@@ -1,0 +1,1 @@
+export function handleHealth(){return Response.json({ok:true,service:"scotty-core",architecture:"modular",time:new Date().toISOString()});}
