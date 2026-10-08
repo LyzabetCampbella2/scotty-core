@@ -17,7 +17,19 @@ export async function handleCloudVoice(req:Request,u:URL){
     headers:{"xi-api-key":key,"content-type":"application/json","accept":"audio/mpeg"},
     body:JSON.stringify({text,model_id:process.env.ELEVENLABS_MODEL||"eleven_multilingual_v2"})
    });
-   if(!r.ok)return json({ok:false,error:"Voice provider request failed",status:r.status},502);
+   if(!r.ok){
+    let detail="Voice provider request failed";
+    try{
+      const raw=await r.text();
+      if(raw){
+        try{
+          const j:any=JSON.parse(raw);
+          detail=String(j?.detail?.message||j?.detail||j?.error||detail).slice(0,500);
+        }catch{detail=raw.slice(0,500)}
+      }
+    }catch{}
+    return json({ok:false,error:detail,status:r.status},502);
+   }
    const h=new Headers({"content-type":r.headers.get("content-type")||"audio/mpeg","cache-control":"no-store"});
    return new Response(r.body,{status:200,headers:h});
   }catch{return json({ok:false,error:"Voice provider unavailable"},502)}
