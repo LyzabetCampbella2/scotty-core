@@ -1,1 +1,1 @@
-{"name":"scotty-core","version":"0.1.0","private":true,"type":"module","scripts":{"start":"bun run src/server-cloud.ts","dev":"bun --watch src/server-cloud.ts"},"engines":{"bun":">=1.1.0"}}
+{"name":"scotty-core","version":"0.1.0","private":true,"type":"module","scripts":{"start":"bun run src/server-cloud-v2.ts","dev":"bun --watch src/server-cloud-v2.ts"},"dependencies":{"postgres":"^3.4.7"},"engines":{"bun":">=1.1.0"}}
