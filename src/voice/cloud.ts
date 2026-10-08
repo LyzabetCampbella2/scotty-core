@@ -1,0 +1,26 @@
+const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{"cache-control":"no-store"}});
+
+export async function handleCloudVoice(req:Request,u:URL){
+ if(req.method==="GET"&&u.pathname==="/api/voice/status"){
+  return json({ok:true,provider:"ElevenLabs",configured:Boolean(process.env.ELEVENLABS_API_KEY),voiceIdConfigured:Boolean(process.env.SCOTTY_VOICE_ID)});
+ }
+ if(req.method==="POST"&&(u.pathname==="/api/tts"||u.pathname==="/api/voice/speak")){
+  let body:any;try{body=await req.json()}catch{return json({ok:false,error:"Invalid JSON"},400)}
+  const text=String(body?.text||"").trim().slice(0,5000);
+  const voiceId=String(body?.voiceId||process.env.SCOTTY_VOICE_ID||"").trim();
+  const key=process.env.ELEVENLABS_API_KEY;
+  if(!text)return json({ok:false,error:"Missing text"},400);
+  if(!key||!voiceId)return json({ok:false,error:"ElevenLabs not configured"},503);
+  try{
+   const r=await fetch("https://api.elevenlabs.io/v1/text-to-speech/"+encodeURIComponent(voiceId),{
+    method:"POST",
+    headers:{"xi-api-key":key,"content-type":"application/json","accept":"audio/mpeg"},
+    body:JSON.stringify({text,model_id:process.env.ELEVENLABS_MODEL||"eleven_multilingual_v2"})
+   });
+   if(!r.ok)return json({ok:false,error:"Voice provider request failed",status:r.status},502);
+   const h=new Headers({"content-type":r.headers.get("content-type")||"audio/mpeg","cache-control":"no-store"});
+   return new Response(r.body,{status:200,headers:h});
+  }catch{return json({ok:false,error:"Voice provider unavailable"},502)}
+ }
+ return json({ok:false,error:"Voice route not found"},404);
+}
