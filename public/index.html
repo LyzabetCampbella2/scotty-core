@@ -367,19 +367,37 @@ body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infini
  const memKey='scottyUnifiedMemoryV1',turnKey='scottyConversationV1';
  function getJ(k,d){try{return JSON.parse(localStorage.getItem(k)||'')||d}catch{return d}}
  function setJ(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+ let cloudMemoryLastSync=0,cloudMemorySyncing=null;
+ function mergeCloudMemories(rows){
+   let local=getJ(memKey,[]),seen=new Set(local.map(x=>String(x.id||'')+'|'+String(x.text||'')));
+   for(const r of (rows||[])){const x={id:String(r.id||''),text:String(r.text||''),at:Date.parse(r.createdAt||'')||Date.now(),scope:r.scope||'shared',kind:r.kind||'note'};const k=x.id+'|'+x.text;if(x.text&&!seen.has(k)){local.push(x);seen.add(k)}}
+   local.sort((a,b)=>(a.at||0)-(b.at||0));if(local.length>300)local=local.slice(-300);setJ(memKey,local);return local
+ }
  window.SCOTTYMemory={
    remember(role,text){let a=getJ(turnKey,[]);a.push({role,text:String(text||''),at:Date.now()});if(a.length>80)a=a.slice(-80);setJ(turnKey,a)},
    recall(){return getJ(turnKey,[]).slice(-18)},
-   save(text){let a=getJ(memKey,[]);a.push({text:String(text||''),at:Date.now()});if(a.length>200)a=a.slice(-200);setJ(memKey,a)},
+   async sync(force=false){
+     if(!force&&Date.now()-cloudMemoryLastSync<30000)return getJ(memKey,[]);
+     if(cloudMemorySyncing)return cloudMemorySyncing;
+     cloudMemorySyncing=(async()=>{try{const r=await fetch('/api/memory/recall?scope=shared&limit=50',{cache:'no-store'});const j=await r.json();if(r.ok&&j.ok){cloudMemoryLastSync=Date.now();return mergeCloudMemories(j.memories)}}catch(e){console.warn('cloud memory sync',e)}finally{cloudMemorySyncing=null}return getJ(memKey,[])})();
+     return cloudMemorySyncing
+   },
+   async save(text,kind='note'){
+     text=String(text||'').trim();if(!text)return false;
+     let local=getJ(memKey,[]);local.push({text,at:Date.now(),scope:'shared',kind});if(local.length>300)local=local.slice(-300);setJ(memKey,local);
+     try{const r=await fetch('/api/memory/remember',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({scope:'shared',kind,text})});const j=await r.json();if(r.ok&&j.ok){local=local.map((x,i)=>i===local.length-1?{...x,id:String(j.id||''),at:Date.parse(j.createdAt||'')||x.at}:x);setJ(memKey,local);cloudMemoryLastSync=Date.now();return true}}catch(e){console.warn('cloud memory save',e)}
+     return false
+   },
    all(){return getJ(memKey,[])}
  };
+ SCOTTYMemory.sync(true).then(()=>{try{const cs=document.querySelector('#cs');if(cs&&/MEMORY|LISTENING|READY/.test(cs.textContent||''))cs.textContent=(voiceArmed?'LISTENING':'READY')+' • CLOUD MEMORY CONNECTED'}catch{}});
  const oldCommand=command;
  command=async function(t){
    t=String(t||'').trim();if(!t)return;
    SCOTTYMemory.remember('user',t);
    const low=t.toLowerCase();
-   if(/^(remember|remember that|save to memory)\b/.test(low)){const v=t.replace(/^(remember|remember that|save to memory)\s*/i,'').trim();if(v){SCOTTYMemory.save(v);await speak('Remembered. I added that to shared memory.');SCOTTYMemory.remember('assistant','Remembered.');return}}
-   const hist=SCOTTYMemory.recall().slice(0,-1).map(x=>(x.role==='user'?'User: ':'S.C.O.T.T.Y.: ')+x.text).join('\n');
+   if(/^(remember|remember that|save to memory)\b/.test(low)){const v=t.replace(/^(remember|remember that|save to memory)\s*/i,'').trim();if(v){const ok=await SCOTTYMemory.save(v,'explicit');await speak(ok?'Remembered. I added that to shared cloud memory.':'Remembered locally. Cloud memory will retry when available.');SCOTTYMemory.remember('assistant','Remembered.');return}}
+   await SCOTTYMemory.sync();\n   const hist=SCOTTYMemory.recall().slice(0,-1).map(x=>(x.role==='user'?'User: ':'S.C.O.T.T.Y.: ')+x.text).join('\\n');
    const memories=SCOTTYMemory.all().slice(-12).map(x=>x.text).join(' | ');
    const enriched=(hist||memories)?'[S.C.O.T.T.Y. SHARED MEMORY CONTEXT]\n'+(memories?'Saved: '+memories+'\n':'')+(hist?'Recent conversation:\n'+hist+'\n':'')+'[CURRENT REQUEST]\n'+t:t;
    $('#cs').textContent='THINKING • MEMORY CONNECTED';
