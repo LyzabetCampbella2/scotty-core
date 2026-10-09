@@ -40,6 +40,14 @@
     {
       "source": "/missions/",
       "destination": "/missions/index.html"
+    },
+    {
+      "source": "/integrations",
+      "destination": "/integrations/index.html"
+    },
+    {
+      "source": "/integrations/",
+      "destination": "/integrations/index.html"
     }
   ]
 }
