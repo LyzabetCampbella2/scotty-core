@@ -31,7 +31,7 @@
   <div class="stats" id="stats"></div>
   <div class="cols">
     <section class="panel"><div class="title">Failure Receipts & Live Activity</div><div class="activity" id="activity">Loading…</div></section>
-    <section class="panel"><div class="title">Cloud Release State</div><div class="meta" id="meta">Loading…</div><div class="title" style="margin-top:16px">Browser Permissions</div><div id="permissions" class="meta">Checking…</div><div class="title" style="margin-top:16px">Recovery Controls</div><div class="actions"><a class="btn" href="/?wake=1">WAKE HUD</a><a class="btn" href="/forge">OPEN FORGE</a><button class="btn" id="recheck">RECHECK</button></div></section>
+    <section class="panel"><div class="title">Cloud Release State</div><div class="meta" id="meta">Loading…</div><div class="title" style="margin-top:16px">Browser Permissions</div><div id="permissions" class="meta">Checking…</div><div class="title" style="margin-top:16px">Recovery Controls</div><div class="actions"><a class="btn" href="/?wake=1">WAKE HUD</a><a class="btn" href="/forge">OPEN FORGE</a><button class="btn" id="recheck">RECHECK</button><button class="btn" id="recover">RECOVER STALE JOBS</button></div></section>
   </div>
   <div class="footer">S.C.O.T.T.Y. release telemetry refreshes automatically every 15 seconds.</div>
 </div>
@@ -84,7 +84,18 @@ async function runFullQa(){
   }catch(e){document.querySelector('#overall').textContent='FULL QA ERROR'}
   finally{b.disabled=false;b.textContent='RUN FULL QA'}
 }
-document.querySelector('#refresh').onclick=load;document.querySelector('#recheck').onclick=load;document.querySelector('#fullqa').onclick=runFullQa;load();setInterval(load,15000);
+async function recover(){
+  const b=document.querySelector('#recover');b.disabled=true;b.textContent='RECOVERING…';
+  try{
+    const r=await fetch('/api/system/recover',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:'{}'});
+    if(r.status===401){location.href='/?next=/system';return}
+    const d=await r.json();if(!r.ok)throw Error(d.error||'Recovery failed');
+    b.textContent='RECOVERED '+(d.recoveredAgents||0)+' AGENT / '+(d.recoveredForgeJobs||0)+' FORGE';
+    setTimeout(()=>{b.textContent='RECOVER STALE JOBS'},2200);await load();
+  }catch(e){b.textContent='RECOVERY CHECK';setTimeout(()=>{b.textContent='RECOVER STALE JOBS'},2200)}
+  finally{b.disabled=false}
+}
+document.querySelector('#refresh').onclick=load;document.querySelector('#recheck').onclick=load;document.querySelector('#fullqa').onclick=runFullQa;document.querySelector('#recover').onclick=recover;load();setInterval(load,15000);
 </script>
 </body>
 </html>
