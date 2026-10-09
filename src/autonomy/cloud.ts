@@ -243,7 +243,10 @@ async function executeExternalStep(mission:any,step:any){
   await addActivity("SCOTTY","EXTERNAL ACTION ERROR",msg.slice(0,260),{missionId:mission.id,stepId:step.id,provider,operation,receiptId:receipt.id});
   throw new Error(msg);
  }
- const result=`Provider action completed through ${provider}/${operation}. Receipt ${receipt.id}.`;
+ const providerResult:any=receipt.result||{};
+ const result=provider==="google"&&operation==="drive_create_text"
+  ?`Created Google Drive file ${providerResult.name||step.actionPayload?.name||"file"}.${providerResult.id?" File ID "+providerResult.id+".":""}${providerResult.webViewLink?" Link "+providerResult.webViewLink:""}`
+  :`Provider action completed through ${provider}/${operation}. Receipt ${receipt.id}.`;
  await db()`update scotty_mission_steps set status='completed',result=${result},completed_at=now(),updated_at=now() where id=${step.id}`;
  try{await db()`insert into scotty_memory(scope,kind,text_content,metadata) values('shared','provider-receipt',${mission.title+" / "+step.title+": "+result},${db().json({missionId:mission.id,stepId:step.id,provider,operation,receiptId:receipt.id})})`}catch{}
  await addActivity("SCOTTY","EXTERNAL ACTION COMPLETE",result,{missionId:mission.id,stepId:step.id,provider,operation,receiptId:receipt.id});
