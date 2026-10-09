@@ -9,7 +9,7 @@
 </style>
 </head>
 <body><div class="wrap">
-<div class="top"><div class="brand">S.C.O.T.T.Y.<small>MISSION AUTONOMY • CHIEF DELEGATION • OWNER APPROVALS</small></div><div class="actions"><a class="btn" href="/">HUD</a><a class="btn" href="/system">OPERATIONS</a><button class="btn" id="refresh">REFRESH</button></div></div>
+<div class="top"><div class="brand">S.C.O.T.T.Y.<small>MISSION AUTONOMY • CHIEF DELEGATION • OWNER APPROVALS</small></div><div class="actions"><a class="btn" href="/">HUD</a><a class="btn" href="/integrations">PROVIDERS</a><a class="btn" href="/system">OPERATIONS</a><button class="btn" id="refresh">REFRESH</button></div></div>
 <div class="stats" id="stats"></div>
 <div class="grid">
 <section class="panel"><div class="title">New Mission</div>
@@ -34,7 +34,7 @@ function buttons(m){
 }
 async function renderMission(m){
  let d={steps:[]};try{d=await detail(m.id)}catch{}
- const steps=(d.steps||[]).map(x=>'<div class="step"><b>'+x.stepNo+'. '+esc(x.title)+'</b> <span class="status '+esc(x.status)+'">'+esc(String(x.status).replaceAll('_',' ').toUpperCase())+'</span><small>'+esc(x.actionType)+(x.requiresApproval?' • OWNER APPROVAL':'')+(x.result?' • '+esc(x.result.slice(0,180)):'')+'</small></div>').join('');
+ const steps=(d.steps||[]).map(x=>'<div class="step"><b>'+x.stepNo+'. '+esc(x.title)+'</b> <span class="status '+esc(x.status)+'">'+esc(String(x.status).replaceAll('_',' ').toUpperCase())+'</span><small>'+esc(x.actionType)+(x.actionProvider?' • '+esc(x.actionProvider)+'/'+esc(x.actionOperation||''):'')+(x.requiresApproval&&!x.approvalGranted?' • OWNER APPROVAL':'')+(x.approvalGranted?' • APPROVED':'')+(x.result?' • '+esc(x.result.slice(0,180)):'')+'</small></div>').join('');
  return '<div class="mission"><span class="status '+esc(m.status)+'">'+esc(String(m.status).replaceAll('_',' ').toUpperCase())+'</span><h3>'+esc(m.title)+'</h3><div class="meta">'+esc(m.autonomyMode.toUpperCase())+' • '+esc(m.priority.toUpperCase())+'<br>'+esc(m.goal)+'</div><div class="steps">'+steps+'</div><div class="actions" style="margin-top:10px">'+buttons(m)+'</div></div>';
 }
 async function load(){
