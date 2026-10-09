@@ -157,11 +157,12 @@ async function createApproval(mission:any,step:any){
  const old=await db()`select id,status from scotty_approvals where step_id=${step.id} and status='pending' limit 1`;
  if(old?.[0])return old[0];
  const id=crypto.randomUUID();
+ const provider=String(step.actionProvider||"").toLowerCase(),operation=String(step.actionOperation||"").toLowerCase();
  const desc=`${step.title}: ${step.instruction}`.slice(0,3000);
- await db()`insert into scotty_approvals(id,mission_id,step_id,action_type,description,payload) values(${id},${mission.id},${step.id},${step.actionType},${desc},${db().json({missionTitle:mission.title,stepNo:step.stepNo})})`;
+ await db()`insert into scotty_approvals(id,mission_id,step_id,action_type,description,payload) values(${id},${mission.id},${step.id},${step.actionType},${desc},${db().json({missionTitle:mission.title,stepNo:step.stepNo,provider,operation,actionPayload:step.actionPayload||{}})})`;
  await db()`update scotty_mission_steps set status='waiting_approval',updated_at=now() where id=${step.id}`;
  await db()`update scotty_missions set status='waiting_approval',updated_at=now() where id=${mission.id}`;
- await addActivity("SCOTTY","MISSION APPROVAL REQUIRED",desc.slice(0,260),{missionId:mission.id,stepId:step.id,approvalId:id});
+ await addActivity("SCOTTY","MISSION APPROVAL REQUIRED",desc.slice(0,260),{missionId:mission.id,stepId:step.id,approvalId:id,provider,operation});
  return {id,status:"pending"};
 }
 async function assignedRows(step:any){
