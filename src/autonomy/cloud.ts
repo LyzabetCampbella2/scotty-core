@@ -209,6 +209,27 @@ async function executeStep(mission:any,step:any){
  await addActivity("SCOTTY","MISSION STEP COMPLETE",step.title,{missionId:mission.id,stepId:step.id});
  return result;
 }
+async function executeExternalStep(mission:any,step:any){
+ const provider=String(step.actionProvider||"").toLowerCase(),operation=String(step.actionOperation||"").toLowerCase();
+ if(!provider||!operation)throw new Error("Approved external action is missing a provider or operation");
+ await db()`update scotty_mission_steps set status='working',updated_at=now() where id=${step.id}`;
+ await db()`update scotty_missions set status='running',updated_at=now() where id=${mission.id}`;
+ await addActivity("SCOTTY","EXTERNAL ACTION START",`${provider} • ${operation}`,{missionId:mission.id,stepId:step.id,provider,operation});
+ const receipt=await executeProviderAction({provider,operation,payload:step.actionPayload||{},missionId:mission.id,stepId:step.id});
+ if(!receipt.ok){
+  const msg=String(receipt.error||"Provider action failed").slice(0,3000);
+  await db()`update scotty_mission_steps set status='error',result=${msg},updated_at=now() where id=${step.id}`;
+  await db()`update scotty_missions set status='needs_attention',updated_at=now() where id=${mission.id}`;
+  await addActivity("SCOTTY","EXTERNAL ACTION ERROR",msg.slice(0,260),{missionId:mission.id,stepId:step.id,provider,operation,receiptId:receipt.id});
+  throw new Error(msg);
+ }
+ const result=`Provider action completed through ${provider}/${operation}. Receipt ${receipt.id}.`;
+ await db()`update scotty_mission_steps set status='completed',result=${result},completed_at=now(),updated_at=now() where id=${step.id}`;
+ try{await db()`insert into scotty_memory(scope,kind,text_content,metadata) values('shared','provider-receipt',${mission.title+" / "+step.title+": "+result},${db().json({missionId:mission.id,stepId:step.id,provider,operation,receiptId:receipt.id})})`}catch{}
+ await addActivity("SCOTTY","EXTERNAL ACTION COMPLETE",result,{missionId:mission.id,stepId:step.id,provider,operation,receiptId:receipt.id});
+ return result;
+}
+
 export async function createMission(input:any){
  await ensure();
  const goal=String(input?.goal||"").trim().slice(0,12000);
