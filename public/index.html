@@ -1,0 +1,507 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="theme-color" content="#020812"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="S.C.O.T.T.Y."><link rel="manifest" href="/manifest.webmanifest"><link rel="canonical" href="https://scotty-cloud-hud.vercel.app/"><title>S.C.O.T.T.Y. HUD</title><!-- SCOTTY_HUD_PART3_AGENT_MATRIX_V1 --><!-- SCOTTY_HUD_PART2_GESTURES_V1 LOGIN_FIX --><style>
+:root{--bg:#020812;--navy:#071827;--cyan:#5eeaff;--ice:#ddf8ff;--silver:#8da8ba;--teal:#28d7bd;--red:#ff7f98;--amber:#ffd166;--line:rgba(94,234,255,.22)}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:radial-gradient(circle at 50% 42%,#0b2b45 0,#051521 32%,#020812 78%);color:var(--ice);font-family:Inter,system-ui,-apple-system,sans-serif}body:before{content:"";position:fixed;inset:0;background-image:linear-gradient(rgba(94,234,255,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(94,234,255,.055) 1px,transparent 1px);background-size:28px 28px;mask-image:radial-gradient(circle,#000,transparent 86%);pointer-events:none}.hud{height:100%;padding:10px;display:grid;grid-template-columns:218px minmax(0,1fr) 280px;grid-template-rows:64px minmax(0,1fr) 76px;gap:9px}.p{border:1px solid rgba(94,234,255,.18);border-radius:12px;background:linear-gradient(180deg,rgba(7,25,42,.78),rgba(2,10,20,.76));box-shadow:inset 0 0 28px rgba(94,234,255,.03),0 0 25px rgba(0,0,0,.22);backdrop-filter:blur(12px);position:relative;overflow:hidden}.top{grid-column:1/4;display:flex;align-items:center;padding:0 18px}.logo{font-weight:800;letter-spacing:.34em;color:#fff}.logo small{display:block;font-size:8px;letter-spacing:.2em;color:var(--silver);margin-top:4px}.chips{margin-left:auto;display:flex;gap:7px}.chip{border:1px solid rgba(94,234,255,.25);border-radius:999px;padding:6px 9px;font-size:9px;letter-spacing:.12em;color:var(--silver)}.chip.on{color:var(--teal);box-shadow:0 0 14px rgba(40,215,189,.12)}.left{grid-column:1;grid-row:2/4;padding:11px;display:flex;flex-direction:column;gap:7px}.title{font-size:9px;letter-spacing:.17em;text-transform:uppercase;color:var(--silver);margin:5px}.nav{border:1px solid transparent;background:transparent;color:#bed2df;border-radius:8px;padding:9px;text-align:left}.nav.active,.nav:hover{border-color:rgba(94,234,255,.25);background:rgba(94,234,255,.07);color:white}.nav i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 9px var(--cyan);margin-right:9px}.privacy{margin-top:auto;border-top:1px solid rgba(94,234,255,.12);padding-top:10px}.privacy b{font-size:10px}.privacy p{font-size:9px;color:var(--silver);line-height:1.4}.eyes{width:100%;border:1px solid rgba(255,127,152,.35);background:rgba(255,127,152,.07);color:#ffc2cd;padding:9px 7px;border-radius:7px;font-size:9px}.eyes.on{color:var(--teal);border-color:rgba(40,215,189,.55);background:rgba(40,215,189,.08)}
+.main{grid-column:2;grid-row:2;position:relative}.toolbar{position:absolute;top:12px;left:12px;right:12px;z-index:6;display:flex;gap:7px}.mode{border:1px solid rgba(94,234,255,.23);background:rgba(1,11,22,.8);color:var(--silver);border-radius:7px;padding:7px 9px;font-size:9px}.mode.on{color:#fff;border-color:rgba(94,234,255,.5)}#graph{position:absolute;inset:0;width:100%;height:100%}.core{position:absolute;left:50%;top:54%;transform:translate(-50%,-50%);width:118px;height:118px;border-radius:50%;display:grid;place-items:center;border:1px solid rgba(94,234,255,.65);background:radial-gradient(circle,rgba(94,234,255,.18),rgba(6,28,46,.86) 52%,rgba(1,7,15,.96) 72%);box-shadow:0 0 55px rgba(94,234,255,.25),inset 0 0 28px rgba(94,234,255,.17);z-index:4}.core:before,.core:after{content:"";position:absolute;inset:-18px;border-radius:50%;border:1px solid rgba(94,234,255,.18);animation:spin 12s linear infinite}.core:after{inset:-33px;border-style:dashed;animation:spin 18s linear infinite reverse}@keyframes spin{to{transform:rotate(360deg)}}.core b{letter-spacing:.18em;font-size:10px}.core small{display:block;text-align:center;color:var(--cyan);font-size:8px;margin-top:5px}.scan{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,transparent 47%,rgba(94,234,255,.035) 50%,transparent 53%);background-size:100% 90px;animation:scan 7s linear infinite}@keyframes scan{to{background-position:0 100vh}}.hint{position:absolute;left:12px;bottom:7px;color:#54768a;font-size:8px;letter-spacing:.08em}.right{grid-column:3;grid-row:2/4;padding:11px;display:flex;flex-direction:column;min-height:0}.stat{display:grid;grid-template-columns:1fr auto;font-size:10px;padding:8px 6px;border-bottom:1px solid rgba(94,234,255,.09)}.stat span:last-child{color:var(--cyan)}.activity{overflow:auto;min-height:0}.evt{padding:8px;margin:6px 0;border-left:2px solid rgba(94,234,255,.35);background:rgba(0,0,0,.14)}.evt b{font-size:9px}.evt p{font-size:8px;color:var(--silver);line-height:1.35;margin:4px 0}.evt time{font-size:7px;color:#5c788a}.bottom{grid-column:2;grid-row:3;padding:10px;display:grid;grid-template-columns:1fr 52px;gap:8px}.cmd{display:flex;gap:8px}.cmd input{flex:1;min-width:0;background:rgba(1,8,16,.65);border:1px solid rgba(94,234,255,.2);color:white;border-radius:7px;padding:0 12px}.cmd button,.mic{border:1px solid rgba(94,234,255,.28);background:rgba(94,234,255,.07);color:white;border-radius:7px;padding:0 13px}.mic.listening{color:var(--teal);box-shadow:0 0 18px rgba(40,215,189,.2)}
+#vision{display:none;position:fixed;inset:0;z-index:40;pointer-events:none}#vision.on{display:block}.cam{position:absolute;right:300px;top:84px;width:min(315px,38vw);aspect-ratio:4/3;background:#000;border:1px solid rgba(40,215,189,.65);border-radius:9px;overflow:hidden;box-shadow:0 0 36px rgba(40,215,189,.2)}#video,#hc{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}.camlabel{position:absolute;z-index:4;left:9px;top:8px;color:var(--teal);font-size:8px;letter-spacing:.16em}.gesture{position:absolute;z-index:4;left:9px;bottom:8px;font-size:8px;color:#fff}.offmsg{position:absolute;z-index:4;right:9px;top:8px;font-size:8px;color:#ff9bad}#confirm{display:none;position:fixed;left:50%;bottom:100px;transform:translateX(-50%);z-index:70;pointer-events:auto}.cc{padding:12px 14px;border-radius:9px;background:#041623;border:1px solid rgba(40,215,189,.6);box-shadow:0 0 28px rgba(40,215,189,.2);text-align:center;font-size:10px}.cc button{margin-top:8px;padding:8px 12px;border-radius:7px;border:1px solid var(--teal);background:rgba(40,215,189,.1);color:white}
+#gate{position:fixed;inset:0;z-index:100;background:radial-gradient(circle,#09263d,#020812 70%);display:grid;place-items:center}.login{width:min(380px,90vw);padding:26px;border:1px solid rgba(94,234,255,.28);border-radius:12px;background:rgba(3,15,27,.9);text-align:center}.login h1{letter-spacing:.3em}.login p{color:var(--silver);font-size:11px;line-height:1.45}.login input{width:100%;padding:11px;border-radius:7px;border:1px solid rgba(94,234,255,.25);background:#020a13;color:white;margin:10px 0}.login button{width:100%;padding:10px;border-radius:7px;border:1px solid rgba(94,234,255,.4);background:rgba(94,234,255,.08);color:white}.err{font-size:9px;color:#ff9bad;margin-top:7px}
+@media(max-width:900px){.hud{grid-template-columns:62px minmax(0,1fr);grid-template-rows:58px minmax(0,1fr) 78px}.top{grid-column:1/3}.left{grid-column:1;grid-row:2/4;padding:6px}.title,.privacy b,.privacy p,.nav span{display:none}.nav{text-align:center;padding:11px 4px}.nav i{margin:0;width:9px;height:9px}.eyes{font-size:0;height:34px}.eyes:after{content:"EYE";font-size:8px}.main{grid-column:2;grid-row:2}.right{display:none}.bottom{grid-column:2;grid-row:3}.cam{right:15px;top:69px;width:min(330px,74vw)}.chips .chip:nth-child(n+3){display:none}.logo{font-size:11px}}
+
+#handCursor{position:fixed;z-index:58;width:28px;height:28px;border:1px solid rgba(94,234,255,.9);border-radius:50%;pointer-events:none;display:none;transform:translate(-50%,-50%);box-shadow:0 0 18px rgba(94,234,255,.55),inset 0 0 10px rgba(94,234,255,.12)}
+#handCursor.on{display:block}#handCursor:before,#handCursor:after{content:"";position:absolute;background:rgba(94,234,255,.8)}#handCursor:before{width:10px;height:1px;left:8px;top:13px}#handCursor:after{width:1px;height:10px;left:13px;top:8px}
+#handCursor.pinch{border-color:var(--teal);width:20px;height:20px;box-shadow:0 0 22px rgba(40,215,189,.7)}
+body.vision-active .top{border-color:rgba(40,215,189,.42);box-shadow:inset 0 0 28px rgba(40,215,189,.05),0 0 28px rgba(40,215,189,.1)}
+body.vision-active .main{border-color:rgba(40,215,189,.34)}
+body.gesture-hold .scan{animation-play-state:paused;opacity:.25}
+body.gesture-hold .core{box-shadow:0 0 70px rgba(255,209,102,.28),inset 0 0 28px rgba(255,209,102,.12)}
+#graph .agent-selected circle{stroke:#fff!important;filter:drop-shadow(0 0 12px #5eeaff)!important}
+#graph .agent-hover circle{stroke-width:3!important;filter:drop-shadow(0 0 11px #28d7bd)!important}
+
+.agent-state-working circle,.agent-state-thinking circle{stroke-width:2.6!important;animation:agentPulse 1.05s ease-in-out infinite}.agent-state-waiting circle{stroke-dasharray:3 2;animation:agentPulse 1.7s ease-in-out infinite}.agent-state-error circle{stroke:#ff6b7a!important;filter:drop-shadow(0 0 8px #ff6b7a)!important}.agent-state-working text,.agent-state-thinking text{fill:#fff!important}.agent-profile{font-size:11px;line-height:1.45}.agent-profile .apname{font-size:14px;font-weight:800;color:#eafcff;letter-spacing:.08em}.agent-profile .aprow{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid rgba(94,234,255,.08)}.agent-profile .aprow span:last-child{text-align:right;color:#7eeeff}.agent-profile .aptags{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}.agent-profile .aptag{border:1px solid rgba(94,234,255,.2);padding:3px 6px;border-radius:10px;color:#a9c8d8;font-size:9px}.agent-profile .apjob{margin-top:8px;padding:8px;border:1px solid rgba(94,234,255,.18);background:rgba(2,15,25,.55)}@keyframes agentPulse{0%,100%{opacity:.62}50%{opacity:1}}
+</style></head><body>
+<div id="gate"><form class="login" id="lf"><h1>S.C.O.T.T.Y.</h1><p id="lc">Authenticate to enter the visual command layer. After login, tap the voice orb once to arm hands-free listening.</p><input id="pw" type="password" placeholder="Owner password"><button>ENTER HUD</button><div class="err" id="le"></div></form></div>
+<div class="hud"><header class="p top"><div class="logo">S.C.O.T.T.Y.<small>VISUAL COMMAND • AGENT NETWORK • PRIVATE VISION</small></div><div class="chips"><span class="chip on" id="net">ONLINE</span><span class="chip">HUD 3/8 • AGENT MATRIX LIVE</span><span class="chip" id="vs">VOICE OFF</span><span class="chip" id="gs">HANDS OFF</span><span class="chip" id="clock">--:--</span></div></header>
+<aside class="p left"><div class="title">Systems</div><button class="nav active"><i></i><span>Agent Matrix</span></button><button class="nav"><i></i><span>Brain</span></button><button class="nav"><i></i><span>Projects</span></button><button class="nav"><i></i><span>Operations</span></button><button class="nav"><i></i><span>Integrations</span></button><button class="nav"><i></i><span>Creative Lab</span></button><button class="nav"><i></i><span>3D Forge</span></button><div class="privacy"><b>VISION PRIVACY LOCK</b><p>Camera is OFF until you say “Scotty, eyes on.”</p><button class="eyes" id="eyes">EYES: LOCKED • SAY “SCOTTY, EYES ON”</button></div></aside>
+<main class="p main"><div class="toolbar"><button class="mode on">AGENT MATRIX</button><button class="mode">LIVE OPS</button><button class="mode">MEMORY MAP</button><span class="chip" id="ac">0 AGENTS</span></div><svg id="graph"></svg><div class="scan"></div><div class="core"><div><b>SCOTTY</b><small id="cs">LISTENING</small></div></div><div class="hint">PINCH = SELECT • OPEN PALM = HOLD • CAMERA NEVER AUTO-STARTS</div></main>
+<aside class="p right"><div class="title">Telemetry</div><div class="stat"><span>Agents</span><span id="sa">--</span></div><div class="stat"><span>Chiefs</span><span id="sc">--</span></div><div class="stat"><span>Camera</span><span id="sv">LOCKED</span></div><div class="stat"><span>Hands</span><span id="sh">OFF</span></div><div class="title">Live activity</div><div class="activity" id="activity"></div></aside>
+<section class="p bottom"><div class="cmd"><input id="ci" placeholder="Ask S.C.O.T.T.Y. or say “Scotty on deck.”"><button id="send">SEND</button></div><button class="mic" id="mic">◉</button></section></div>
+<div id="handCursor"></div><div id="vision"><div class="cam"><video id="video" playsinline muted></video><canvas id="hc"></canvas><div class="camlabel">VISION ACTIVE • USER AUTHORIZED</div><div class="offmsg">SAY “EYES OFF”</div><div class="gesture" id="gl">HAND TRACKING: STARTING</div></div></div>
+<div id="confirm"><div class="cc">You said “Eyes on.”<br><small>The browser needs a tap before opening the camera.</small><br><button id="confirmEyes">CONFIRM SPOKEN CAMERA REQUEST</button></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script><script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];let agents=[],resources={projects:[],folders:[],files:[],tasks:[],layout:{},view:null},stream=null,hands=null,tracking=false,voice=null,voiceCamera=false;
+let voiceArmed=false,speaking=false,audioCtx=null,micStream=null,graphScale=1,graphRotation=0,graphCenter={x:0,y:0},pinchLatched=false,lastPinchAt=0,swipeSeed=null,swipeCooldown=0,holdSince=0,holdOn=false,twoState=null,selectedAgentId=null;
+async function api(p,o={}){const r=await fetch(p,{credentials:'same-origin',headers:{'content-type':'application/json',...(o.headers||{})},...o});const t=await r.text();let j={};try{j=t?JSON.parse(t):{}}catch{j={error:t}}if(!r.ok)throw Error(j.error||('HTTP '+r.status));return j}
+const e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function auth(){try{const s=await api('/api/auth/status');if(s.authenticated){$('#gate').style.display='none';load();return}$('#lc').textContent=s.needsSetup?'Create owner access in your main SCOTTY first.':'Enter your SCOTTY owner password.'}catch{$('#lc').textContent='SCOTTY memory service is unavailable.'}}
+$('#lf').onsubmit=async x=>{x.preventDefault();$('#le').textContent='';try{await api('/api/auth/login',{method:'POST',body:JSON.stringify({password:$('#pw').value})});auth()}catch(z){$('#le').textContent=z.message}};
+function tick(){const d=new Date();$('#clock').textContent=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});$('#net').textContent=navigator.onLine?'ONLINE':'OFFLINE';$('#net').classList.toggle('on',navigator.onLine)}setInterval(tick,1000);tick();
+async function load(){await Promise.allSettled([loadAgents(),loadResources(),loadActivity()]);setInterval(loadActivity,10000);setInterval(loadAgents,15000);setInterval(loadResources,15000)}
+async function loadAgents(){const d=await api('/api/hud/agents');agents=d.agents||[];$('#ac').textContent=agents.length+' AGENTS';$('#sa').textContent=agents.length;$('#sc').textContent=agents.filter(x=>x.isChief).length;draw();if(selectedAgentId){const a=agents.find(x=>x.id===selectedAgentId);if(a)showAgentProfile(a)}}
+async function loadResources(){try{const d=await api('/api/hud/resources');resources={projects:d.projects||[],folders:d.folders||[],files:d.files||[],tasks:d.tasks||[],layout:d.layout||{},view:d.view||null};window.SCOTTYSpatial?.refresh?.()}catch(e){console.warn('resource graph',e)}}
+async function loadActivity(){try{const d=await api('/api/hud/activity');$('#activity').innerHTML=(d.items||[]).map(x=>'<div class="evt"><b>'+e(x.source)+' • '+e(x.title)+'</b><p>'+e(x.message)+'</p><time>'+new Date(x.createdAt).toLocaleString()+'</time></div>').join('')||'<div class="evt"><b>SCOTTY</b><p>No new activity.</p></div>'}catch{}}
+function hash(s){let h=0;for(const c of s)h=(Math.imul(h,31)+c.charCodeAt(0))>>>0;return h}
+function applyGraphTransform(){const w=$('#graphWorld');if(!w)return;const c=graphCenter;w.setAttribute('transform','translate('+c.x+' '+c.y+') rotate('+graphRotation+') scale('+graphScale+') translate('+(-c.x)+' '+(-c.y)+')')}
+function showAgentProfile(a){const chief=a.chiefId?agents.find(x=>x.id===a.chiefId):null,tools=Array.isArray(a.tools)?a.tools:[],collab=Array.isArray(a.collaborators)?a.collaborators:[];$('#activity').innerHTML='<div class="agent-profile"><div class="apname">'+e(a.name)+'</div><div style="color:#7f9eb0;margin:3px 0 8px">'+e(a.department)+' • '+e(a.rank)+'</div><div class="aprow"><span>STATE</span><span>'+e(String(a.state||'idle').toUpperCase())+'</span></div><div class="aprow"><span>CLEARANCE</span><span>L'+e(a.clearance)+'</span></div><div class="aprow"><span>CHIEF</span><span>'+e(chief?.name||'S.C.O.T.T.Y. CORE')+'</span></div><div class="aprow"><span>ROOT</span><span>S.C.O.T.T.Y.</span></div><div class="aprow"><span>MODEL</span><span>'+e(a.model||'local')+'</span></div><div class="aprow"><span>QUEUE</span><span>'+e(a.queueCount||0)+'</span></div><div class="aprow"><span>MEMORY LINKS</span><span>'+e(a.memoryLinks||0)+'</span></div><div class="aprow"><span>VOICE</span><span>'+e(a.voiceMode||'auto')+'</span></div><div class="aptags">'+tools.map(t=>'<span class="aptag">'+e(t.label||t.key)+'</span>').join('')+'</div>'+(a.currentJob?'<div class="apjob"><b>CURRENT JOB</b><br>'+e(a.currentJob)+'</div>':'')+(collab.length?'<div class="apjob"><b>COLLABORATORS</b><br>'+collab.slice(0,8).map(c=>e((agents.find(x=>x.id===c.id)?.name)||c.id)).join(' • ')+'</div>':'')+'</div>'}
+function activateAgent(a){selectedAgentId=a.id;$('#graph g[data-agent]').forEach(g=>g.classList.toggle('agent-selected',g.dataset.agent===a.id));$('#cs').textContent=a.name+' • '+a.department;showAgentProfile(a);setTimeout(()=>{if(selectedAgentId===a.id&&a.state==='idle')$('#cs').textContent='LISTENING'},2500)}
+function cycleNav(dir){const n=$$('.nav');if(!n.length)return;let i=n.findIndex(x=>x.classList.contains('active'));i=i<0?0:i;i=(i+dir+n.length)%n.length;n.forEach((x,k)=>x.classList.toggle('active',k===i));const label=(n[i].textContent||'').trim();$('#cs').textContent='NAV • '+label;setTimeout(()=>$('#cs').textContent='LISTENING',1300)}
+$$('.nav').forEach((n,i)=>n.addEventListener('click',()=>{$$('.nav').forEach((x,k)=>x.classList.toggle('active',k===i))}));
+function draw(){
+ const s=$('#graph'),w=s.clientWidth||700,h=s.clientHeight||550,cx=w*.5,cy=h*.54,ns='http://www.w3.org/2000/svg',pal=['#5eeaff','#28d7bd','#d8f7ff','#ffd166','#9db3c5','#7bb6ff','#ff8ea4'];
+ graphCenter={x:cx,y:cy};s.setAttribute('viewBox','0 0 '+w+' '+h);s.innerHTML='';
+ const world=document.createElementNS(ns,'g');world.id='graphWorld';s.appendChild(world);
+ const chiefs=agents.filter(a=>a.isChief),others=agents.filter(a=>!a.isChief),pos=new Map(),min=Math.min(w,h);
+ const placeRing=(arr,r,offset=0)=>arr.forEach((a,i)=>{const an=offset+(Math.PI*2*i/Math.max(1,arr.length));pos.set(a.id,{x:cx+Math.cos(an)*r,y:cy+Math.sin(an)*r,color:pal[hash(a.department)%pal.length],an})});
+ placeRing(chiefs,min*.20,-Math.PI/2);
+ const ringCounts=[Math.ceil(others.length/3),Math.ceil((others.length-Math.ceil(others.length/3))/2)];
+ const r1=others.slice(0,ringCounts[0]),r2=others.slice(ringCounts[0],ringCounts[0]+ringCounts[1]),r3=others.slice(ringCounts[0]+ringCounts[1]);
+ placeRing(r1,min*.31,-Math.PI/2+.06);placeRing(r2,min*.39,-Math.PI/2+.14);placeRing(r3,min*.47,-Math.PI/2+.22);
+ agents.forEach(a=>{
+  const p=pos.get(a.id);if(!p)return;
+  const ch=a.chiefId?agents.find(x=>x.id===a.chiefId):null,q=ch&&ch.id!==a.id?pos.get(ch.id):{x:cx,y:cy};
+  const l=document.createElementNS(ns,'line');for(const [k,v] of Object.entries({x1:p.x,y1:p.y,x2:q?.x??cx,y2:q?.y??cy,stroke:a.isChief?'rgba(94,234,255,.34)':'rgba(94,234,255,.105)','stroke-width':a.isChief?1.15:.6}))l.setAttribute(k,String(v));world.appendChild(l)
+ });
+ agents.forEach(a=>{
+  const p=pos.get(a.id);if(!p)return;
+  const g=document.createElementNS(ns,'g'),c=document.createElementNS(ns,'circle'),t=document.createElementNS(ns,'text'),title=document.createElementNS(ns,'title');
+  g.dataset.agent=a.id;g.classList.add('agent-state-'+String(a.state||'idle'));c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);c.setAttribute('r',a.isChief?'6':'3.7');c.setAttribute('fill','#041421');c.setAttribute('stroke',p.color);c.setAttribute('stroke-width',a.isChief?'2':'1');c.style.filter='drop-shadow(0 0 5px '+p.color+')';
+  const right=Math.cos(p.an)>=0;t.setAttribute('x',p.x+(right?7:-7));t.setAttribute('y',p.y+2.5);t.setAttribute('text-anchor',right?'start':'end');t.setAttribute('fill',a.isChief?'#fff':'#8fa9b9');t.setAttribute('font-size',a.isChief?'8.4':'5.9');t.textContent=a.name;
+  title.textContent=a.name+' • '+a.department+' • '+a.rank;g.append(c,t,title);g.style.cursor='pointer';g.onclick=()=>activateAgent(a);if(a.id===selectedAgentId)g.classList.add('agent-selected');world.appendChild(g)
+ });
+ applyGraphTransform()
+}
+async function command(t){t=(t||$('#ci').value).trim();if(!t)return;$('#ci').value='';$('#cs').textContent='THINKING';try{
+ if(/^\s*(?:open|show)\s+(?:live ops|missions?|mission control)\s*$/i.test(t)){location.href='/missions';return}
+ const mm=t.match(/^\s*(?:start|create|launch)\s+(?:a\s+)?(?:(autonomous|auto)\s+)?mission(?:\s+(?:to|for))?\s+(.+)$/i);
+ if(mm){
+  try{document.querySelector('#nodeDrawer')?.classList.remove('open')}catch{}
+  $('#cs').textContent='PLANNING MISSION';
+  const r=await api('/api/missions',{method:'POST',body:JSON.stringify({goal:mm[2],autonomyMode:mm[1]?'auto':'supervised',priority:'normal'})});
+  let rr=null;try{rr=await api('/api/missions/'+encodeURIComponent(r.id)+'/run',{method:'POST',body:'{}'})}catch(e){console.warn('mission autorun',e)}
+  const status=rr?.mission?.status||'queued';
+  const waiting=status==='waiting_approval'||(rr?.steps||[]).some(x=>x.status==='waiting_approval');
+  const completed=status==='completed'||(rr?.steps||[]).length>0&&(rr.steps||[]).every(x=>x.status==='completed');
+  const failed=status==='needs_attention'||(rr?.steps||[]).some(x=>x.status==='error');
+  const last=(rr?.steps||[]).slice(-1)[0];
+  let msg='';
+  if(completed){
+    msg=last?.result&&/google\/drive_create_text/i.test(String(last?.result))?'Done. I created the Google Drive file myself.':'Mission complete. '+String(last?.result||rr?.mission?.summary||'Done.');
+    $('#cs').textContent='MISSION COMPLETE';
+  }else if(waiting){
+    msg='This mission contains an action that still requires your approval. I left you in the HUD; open Live Ops when you want to approve it.';
+    $('#cs').textContent='APPROVAL REQUIRED';
+  }else if(failed){
+    msg='The mission hit an execution error. I left you here so we can fix it without interrupting the HUD.';
+    $('#cs').textContent='MISSION NEEDS ATTENTION';
+  }else{
+    msg='Mission started. I am handling the internal work in the background.';
+    $('#cs').textContent='MISSION RUNNING';
+  }
+  try{await speak(msg)}catch(e){console.warn('mission voice',e)}
+  if(!speaking)$('#cs').textContent=completed?'MISSION COMPLETE':waiting?'APPROVAL REQUIRED':failed?'MISSION NEEDS ATTENTION':'MISSION RUNNING';
+  return
+ }
+ const m=t.match(/^\s*(?:ask|bring in)\s+([^:]+):\s*(.+)$/i);
+ if(m){const names=m[1].split(/\s*(?:,|\band\b|\+)\s*/i).map(x=>x.trim().toLowerCase()).filter(Boolean),ids=agents.filter(a=>names.some(n=>a.name.toLowerCase()===n||a.name.toLowerCase().includes(n))).map(a=>a.id).slice(0,8);if(ids.length){$('#cs').textContent='MULTI-AGENT • '+ids.length;const r=await api('/api/hud/agents/run',{method:'POST',body:JSON.stringify({agents:ids,task:m[2]})});await loadAgents();const ok=(r.results||[]).filter(x=>x.status==='completed');const summary=ok.map(x=>x.name+': '+x.result).join('\n\n');window.SCOTTYSpatial?.focusMention?.(summary||m[1]);await speak(summary||'The agent team finished with errors.');return}}
+ window.SCOTTYSpatial?.focusMention?.(t);const r=await api('/api/hud/command',{method:'POST',body:JSON.stringify({text:t})});if(r.focusNode){await loadResources();window.SCOTTYSpatial?.focusId?.(r.focusNode)}else window.SCOTTYSpatial?.focusMention?.(r.reply||t);await speak(r.reply||'Done.');$('#cs').textContent=r.handled?'ACTING':'ROUTING'
+}catch(z){await speak('Command bridge error. '+z.message)}finally{setTimeout(()=>{if(!speaking)$('#cs').textContent=voiceArmed?'LISTENING':'READY'},1800)}}
+$('#send').onclick=()=>command();$('#ci').onkeydown=x=>{if(x.key==='Enter')command()};
+
+async function unlockAudio(){
+ try{
+  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;
+  if(!audioCtx)audioCtx=new AC();
+  if(audioCtx.state==='suspended')await audioCtx.resume();
+  const b=audioCtx.createBuffer(1,1,audioCtx.sampleRate||44100),s=audioCtx.createBufferSource(),g=audioCtx.createGain();s.buffer=b;g.gain.value=0;s.connect(g);g.connect(audioCtx.destination);s.start(0);
+  return audioCtx.state==='running'
+ }catch(e){console.warn('audio unlock',e);return false}
+}
+let localVoiceSource=null,localVoiceProcessor=null,localVoiceGain=null,localVoiceBuffers=[],localVoiceSamples=0,localVoiceLastFlush=0,localVoiceSending=false,scottyVoiceSource=null,lastHeardText='',lastHeardAt=0;
+function writeWavString(v,o,s){for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))}
+function pcmToWav(chunks,sampleRate){
+ let n=0;for(const a of chunks)n+=a.length;
+ const b=new ArrayBuffer(44+n*2),v=new DataView(b);writeWavString(v,0,'RIFF');v.setUint32(4,36+n*2,true);writeWavString(v,8,'WAVE');writeWavString(v,12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sampleRate,true);v.setUint32(28,sampleRate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);writeWavString(v,36,'data');v.setUint32(40,n*2,true);
+ let o=44;for(const a of chunks){for(let i=0;i<a.length;i++){let x=Math.max(-1,Math.min(1,a[i]));v.setInt16(o,x<0?x*32768:x*32767,true);o+=2}}
+ return new Blob([b],{type:'audio/wav'})
+}
+function clearVoiceBuffers(){localVoiceBuffers=[];localVoiceSamples=0;localVoiceLastFlush=performance.now()}
+async function sendVoiceChunk(){
+ if(localVoiceSending||!voiceArmed||speaking||localVoiceSamples<1)return;
+ const chunks=localVoiceBuffers;clearVoiceBuffers();localVoiceSending=true;
+ try{
+  const wav=pcmToWav(chunks,audioCtx?.sampleRate||44100);
+  if(wav.size<2000)return;
+  $('#vs').textContent='LISTENING • ANALYZING';
+  const r=await fetch('/api/hud/stt',{method:'POST',credentials:'same-origin',headers:{'content-type':'audio/wav'},body:wav});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok){$('#vs').textContent='VOICE LINK ERROR';$('#cs').textContent=d.error||'LOCAL VOICE ERROR';return}
+  const text=String(d.text||'').trim(),conf=Number(d.confidence||0);
+  if(text&&conf>=.18){
+   const norm=normalizedSpeech(text),now=Date.now();
+   if(norm && !(norm===lastHeardText&&now-lastHeardAt<2600)){lastHeardText=norm;lastHeardAt=now;$('#vs').textContent='HEARD • '+Math.round(conf*100)+'%';await heard(text)}
+  }else if(voiceArmed&&!speaking){$('#vs').textContent='VOICE ARMED';$('#cs').textContent='LISTENING'}
+ }catch(e){console.warn('local stt',e);$('#vs').textContent='VOICE LINK ERROR';$('#cs').textContent='CLOUD VOICE LINK OFFLINE'}
+ finally{localVoiceSending=false}
+}
+async function startLocalVoice(){
+ if(!navigator.mediaDevices?.getUserMedia){$('#vs').textContent='MIC UNSUPPORTED';return false}
+ try{
+  await unlockAudio();
+  if(!micStream)micStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});
+  if(!audioCtx)await unlockAudio();
+  localVoiceSource=audioCtx.createMediaStreamSource(micStream);
+  localVoiceProcessor=audioCtx.createScriptProcessor(4096,1,1);
+  localVoiceGain=audioCtx.createGain();localVoiceGain.gain.value=0;
+  clearVoiceBuffers();
+  localVoiceProcessor.onaudioprocess=e=>{
+   if(!voiceArmed||speaking)return;
+   const input=e.inputBuffer.getChannelData(0),copy=new Float32Array(input.length);copy.set(input);localVoiceBuffers.push(copy);localVoiceSamples+=copy.length;
+   const elapsed=localVoiceSamples/(audioCtx.sampleRate||44100);
+   if(elapsed>=2.15&&!localVoiceSending)sendVoiceChunk();
+  };
+  localVoiceSource.connect(localVoiceProcessor);localVoiceProcessor.connect(localVoiceGain);localVoiceGain.connect(audioCtx.destination);
+  return true
+ }catch(e){console.warn('mic',e);return false}
+}
+function stopMicStream(){
+ try{if(localVoiceProcessor){localVoiceProcessor.onaudioprocess=null;localVoiceProcessor.disconnect()}}catch{};localVoiceProcessor=null;
+ try{if(localVoiceSource)localVoiceSource.disconnect()}catch{};localVoiceSource=null;
+ try{if(localVoiceGain)localVoiceGain.disconnect()}catch{};localVoiceGain=null;
+ if(micStream){try{micStream.getTracks().forEach(t=>t.stop())}catch{}micStream=null}
+ clearVoiceBuffers()
+}
+async function playScottyBlob(blob){
+ await unlockAudio();
+ try{
+  const ab=await blob.arrayBuffer(),buf=await audioCtx.decodeAudioData(ab.slice(0));
+  await new Promise((resolve,reject)=>{const src=audioCtx.createBufferSource();scottyVoiceSource=src;src.buffer=buf;src.connect(audioCtx.destination);let done=false;const finish=(err)=>{if(done)return;done=true;clearTimeout(timer);src.onended=null;if(scottyVoiceSource===src)scottyVoiceSource=null;err?reject(err):resolve()};const playbackMs=Math.max(20000,Math.ceil((Number(buf.duration)||0)*1000)+8000);const timer=setTimeout(()=>finish(new Error('voice playback timeout')),playbackMs);src.onended=()=>finish();try{src.start(0)}catch(e){finish(e)}})
+ }catch(primary){
+  const url=URL.createObjectURL(blob);try{await new Promise((resolve,reject)=>{const a=new Audio(url);a.playsInline=true;a.volume=1;let done=false;const finish=(err)=>{if(done)return;done=true;clearTimeout(tm);a.onended=null;a.onerror=null;try{a.pause()}catch{};err?reject(err):resolve()};const tm=setTimeout(()=>finish(new Error('html audio playback timeout')),90000);a.onended=()=>finish();a.onerror=()=>finish(primary);const p=a.play();if(p&&p.catch)p.catch(e=>finish(e))})}finally{URL.revokeObjectURL(url)}
+ }
+}
+async function speak(t){
+ t=String(t||'').trim();if(!t)return;
+ speaking=true;$('#vs').textContent='SCOTTY SPEAKING';$('#cs').textContent='SPEAKING';
+ try{
+  const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),10000);
+  let r;try{r=await fetch('/api/tts',{method:'POST',credentials:'same-origin',signal:ctl.signal,headers:{'content-type':'application/json'},body:JSON.stringify({text:t,voiceId:'cVJh6uKaUowPTE2Nt6UF',voiceSettings:{speed:.98,stability:.38,style:.08}})})}finally{clearTimeout(timer)}
+  if(!r.ok)throw Error('SCOTTY voice service '+r.status);
+  const blob=await r.blob();if(!blob.size)throw Error('empty SCOTTY audio');
+  await playScottyBlob(blob)
+ }catch(e){console.warn('SCOTTY TTS',e);$('#vs').textContent='SCOTTY VOICE ERROR';$('#cs').textContent='VOICE OUTPUT FAILED'}
+ finally{
+  speaking=false;clearVoiceBuffers();
+  if(voiceArmed){$('#vs').textContent='VOICE ARMED';$('#cs').textContent='LISTENING'}else if($('#vs').textContent!=='SCOTTY VOICE ERROR'){$('#vs').textContent='VOICE OFF';$('#cs').textContent='READY'}
+ }
+}
+function normalizedSpeech(t){return String(t||'').toLowerCase().replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim()}
+async function heard(t){
+ const l=normalizedSpeech(t);if(!l)return;
+ $('#cs').textContent='HEARD • '+t.slice(0,36);
+ const named=/(scotty|scottie|scoty)/.test(l),eyes=/(eyes|eye|vision|ice)/.test(l),ambiguousEyesOf=eyes&&/\bof\b/.test(l);
+ if((named&&eyes&&/\b(on|own)\b/.test(l))||(/\b(eyes|vision) on\b/.test(l))||(named&&ambiguousEyesOf&&!stream)){voiceCamera=true;await startVisionVoice();return}
+ if((named&&eyes&&/\boff\b/.test(l))||(/\b(eyes|vision) off\b/.test(l))||(named&&ambiguousEyesOf&&!!stream)){stopVision();await speak('Eyes off. Camera closed.');return}
+ if(/(?:scotty|scottie|scoty) on deck|on deck scotty/.test(l)){await speak('Aye, on deck.');return}
+ if(!named)return;
+ const cleaned=t.replace(/^\s*(scotty|scottie|scoty)[,.:;\-\s]*/i,'').trim();if(cleaned)await command(cleaned)
+}
+function stopRecognition(){}
+function disarmVoice(){voiceArmed=false;stopMicStream();$('#mic').classList.remove('listening');$('#mic').textContent='◉';$('#vs').textContent='VOICE OFF';$('#cs').textContent='READY'}
+async function armVoice(){
+ $('#vs').textContent='MIC REQUEST';$('#cs').textContent='ALLOW MICROPHONE';
+ voiceArmed=true;
+ const ok=await startLocalVoice();
+ if(!ok){voiceArmed=false;$('#vs').textContent='MIC BLOCKED';$('#cs').textContent='ALLOW MICROPHONE IN SAFARI';return}
+ $('#mic').classList.add('listening');$('#mic').textContent='●';$('#vs').textContent='VOICE ARMED';$('#cs').textContent='LISTENING';
+ await speak('Voice online.')
+}
+let lastMicGesture=0;
+async function micGesture(e){if(e&&e.cancelable)e.preventDefault();const now=Date.now();if(now-lastMicGesture<450)return;lastMicGesture=now;if(voiceArmed)disarmVoice();else await armVoice()}
+$('#mic').onclick=micGesture;$('#mic').addEventListener('touchend',micGesture,{passive:false});$('#mic').addEventListener('pointerup',micGesture);
+$('#eyes').onclick=()=>{if(!voiceArmed){$('#cs').textContent='ARM VOICE FIRST';return}speak('Camera is locked until you say Scotty, eyes on.')};
+async function startVisionVoice(){if(!voiceCamera)return;try{await startVision();await speak('Eyes on. Hand tracking active.')}catch{$('#confirm').style.display='block';await speak('I heard eyes on. Safari needs one confirmation tap before I can open the camera.')}}
+$('#confirmEyes').onclick=async()=>{if(!voiceCamera)return;await unlockAudio();$('#confirm').style.display='none';try{await startVision();await speak('Eyes on. Hand tracking active.')}catch{await speak('Camera permission was not granted.')}};
+async function startVision(){if(!voiceCamera)throw Error('spoken authorization required');if(stream)return;stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false});const v=$('#video');v.srcObject=stream;await v.play();$('#vision').classList.add('on');document.body.classList.add('vision-active');$('#eyes').classList.add('on');$('#eyes').textContent='EYES: ACTIVE • VOICE AUTHORIZED';$('#sv').textContent='ACTIVE';$('#gs').textContent='VISION ACTIVE';$('#cs').textContent='VISION';await startHands()}
+function stopVision(){voiceCamera=false;tracking=false;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$('#video').srcObject=null;$('#vision').classList.remove('on');document.body.classList.remove('vision-active','gesture-hold');$('#handCursor').className='';$('#eyes').classList.remove('on');$('#eyes').textContent='EYES: LOCKED • SAY “SCOTTY, EYES ON”';$('#sv').textContent='LOCKED';$('#sh').textContent='OFF';$('#gs').textContent='HANDS OFF';$('#cs').textContent='LISTENING';$('#confirm').style.display='none';twoState=null;swipeSeed=null;pinchLatched=false;holdOn=false}
+async function startHands(){if(typeof Hands==='undefined')throw Error('hand tracker unavailable');hands=new Hands({locateFile:f=>'https://cdn.jsdelivr.net/npm/@mediapipe/hands/'+f});hands.setOptions({maxNumHands:2,modelComplexity:1,minDetectionConfidence:.55,minTrackingConfidence:.5});hands.onResults(drawHands);tracking=true;$('#sh').textContent='ACTIVE';const loop=async()=>{if(!tracking||!stream)return;try{await hands.send({image:$('#video')})}catch{}requestAnimationFrame(loop)};loop()}
+function ginfo(p){const d=(a,b)=>Math.hypot(p[a].x-p[b].x,p[a].y-p[b].y),raised=[8,12,16,20].filter(i=>p[i].y<p[i-2].y).length;return{pinch:d(4,8)<.055,open:raised>=4,point:p[8].y<p[6].y&&raised===1,label:d(4,8)<.055?'PINCH • SELECT':raised>=4?'OPEN PALM • HOLD':p[8].y<p[6].y&&raised===1?'POINT • TARGET':'TRACKING'}}
+function cursorFromHand(p){const b=$('.main').getBoundingClientRect(),pt=p[8],x=b.left+(1-pt.x)*b.width,y=b.top+pt.y*b.height,c=$('#handCursor');c.style.left=x+'px';c.style.top=y+'px';c.classList.add('on');return{x,y}}
+function hoverNearest(x,y){let best=null,bd=74;$$('#graph g[data-agent]').forEach(g=>{const r=g.getBoundingClientRect(),gx=r.left+r.width/2,gy=r.top+r.height/2,d=Math.hypot(gx-x,gy-y);g.classList.remove('agent-hover');if(d<bd){bd=d;best=g}});if(best)best.classList.add('agent-hover');return best}
+function pinchSelect(x,y){const g=hoverNearest(x,y);if(!g){$('#cs').textContent='PINCH • NO TARGET';return}const a=agents.find(z=>z.id===g.dataset.agent);if(a){activateAgent(a);$('#cs').textContent='SELECTED • '+a.name}}
+function setHold(on){if(on===holdOn)return;holdOn=on;document.body.classList.toggle('gesture-hold',on);$('#cs').textContent=on?'HOLD • INTERACTIONS PAUSED':'LISTENING'}
+function processSwipe(p,info){const now=Date.now(),x=1-p[9].x;if(!info.open){swipeSeed=null;return}if(now<swipeCooldown)return;if(!swipeSeed){swipeSeed={x,t:now};return}const dx=x-swipeSeed.x,dt=now-swipeSeed.t;if(dt>650){swipeSeed={x,t:now};return}if(Math.abs(dx)>.2){cycleNav(dx>0?1:-1);swipeCooldown=now+900;swipeSeed=null;setHold(false)}}
+function processOne(p){const info=ginfo(p),pt=cursorFromHand(p),c=$('#handCursor'),now=Date.now();c.classList.toggle('pinch',info.pinch);hoverNearest(pt.x,pt.y);processSwipe(p,info);if(info.pinch&&!pinchLatched&&now-lastPinchAt>500){pinchSelect(pt.x,pt.y);lastPinchAt=now}pinchLatched=info.pinch;if(info.open){if(!holdSince)holdSince=now;if(now-holdSince>700&&!swipeSeed)setHold(true)}else{holdSince=0;if(holdOn)setHold(false)}$('#gs').textContent=info.label;return info.label}
+function angleDelta(a,b){let d=a-b;while(d>Math.PI)d-=Math.PI*2;while(d<-Math.PI)d+=Math.PI*2;return d}
+function processTwo(ps){$('#handCursor').className='';setHold(false);const a=ps[0][9],b=ps[1][9],ax=1-a.x,bx=1-b.x,dx=bx-ax,dy=b.y-a.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx);if(twoState){const ratio=dist/Math.max(.001,twoState.dist);if(ratio>.86&&ratio<1.16)graphScale=Math.max(.68,Math.min(1.85,graphScale*ratio));graphRotation+=angleDelta(ang,twoState.ang)*180/Math.PI;graphRotation=Math.max(-120,Math.min(120,graphRotation));applyGraphTransform()}twoState={dist,ang};$('#gs').textContent='TWO HANDS • ZOOM / ROTATE';$('#cs').textContent='GESTURE TRANSFORM';return'TWO-HAND • ZOOM / ROTATE'}
+function drawHands(r){const c=$('#hc'),b=$('.cam'),w=b.clientWidth||300,h=b.clientHeight||225;if(c.width!==w||c.height!==h){c.width=w;c.height=h}const x=c.getContext('2d');x.clearRect(0,0,w,h);const ps=r.multiHandLandmarks||[];let label='NO HAND';for(const p of ps){const inf=ginfo(p);label=inf.label;x.fillStyle=inf.pinch?'#ffd166':'#28d7bd';x.strokeStyle=inf.pinch?'#ffd166':'#5eeaff';x.lineWidth=1.2;p.forEach(q=>{x.beginPath();x.arc((1-q.x)*w,q.y*h,2.4,0,Math.PI*2);x.fill()});[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]].forEach(([a,z])=>{x.beginPath();x.moveTo((1-p[a].x)*w,p[a].y*h);x.lineTo((1-p[z].x)*w,p[z].y*h);x.stroke()})}if(ps.length>=2)label=processTwo(ps);else if(ps.length===1){twoState=null;label=processOne(ps[0])}else{twoState=null;$('#handCursor').className='';pinchLatched=false;holdSince=0;setHold(false);swipeSeed=null;$('#gs').textContent='SEARCHING HANDS'}$('#gl').textContent='HAND TRACKING: '+label}
+
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&stream)stopVision()});addEventListener('beforeunload',stopVision);addEventListener('resize',()=>agents.length&&draw());if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('/hud-sw.js').catch(()=>{}));const wakeLaunch=new URLSearchParams(location.search).get('wake')==='1';if(wakeLaunch){setTimeout(()=>{const v=$('#vs');if(v)v.textContent='TAP ONCE TO WAKE VOICE'},350)};auth();
+</script><style id="scotty-spatial-css">
+.main{perspective:1100px;overflow:hidden!important}.toolbar{z-index:15!important}.core{pointer-events:none}
+#graph{display:none!important}
+#spatialBrain{position:absolute;inset:0;overflow:hidden;touch-action:none;cursor:grab;background:radial-gradient(ellipse at center,rgba(14,67,91,.19),rgba(1,7,15,.04) 55%,rgba(1,5,10,.42))}
+#spatialBrain.dragging{cursor:grabbing}
+#spatialStage{position:absolute;inset:0;transform-style:preserve-3d;perspective:1000px}
+#spatialLines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.5}
+.snode{position:absolute;left:50%;top:50%;width:42px;height:42px;margin:-21px;border-radius:50%;border:1px solid currentColor;background:radial-gradient(circle at 35% 28%,rgba(255,255,255,.22),rgba(5,23,35,.96) 58%,#01070d 100%);box-shadow:0 0 18px currentColor,inset 0 0 10px rgba(255,255,255,.08);color:#5eeaff;display:grid;place-items:center;transform-style:preserve-3d;will-change:transform,opacity;cursor:pointer;padding:0;z-index:5}
+.snode[data-type="project"]{color:#ffd166;width:48px;height:48px}.snode[data-type="file"]{color:#7bb6ff;width:34px;height:34px}.snode[data-type="folder"]{color:#ffad5c;width:44px;height:38px;border-radius:9px}.snode[data-type="task"]{color:#ff8ea4;width:38px;height:38px;border-radius:12px}.snode[data-type="memory"]{color:#b893ff;width:31px;height:31px}.snode[data-type="agent"]{color:#28d7bd}.snode[data-chief="1"]{color:#fff2a8;width:52px;height:52px;border-width:2px}.snode.selected{outline:2px solid #fff;outline-offset:5px;box-shadow:0 0 30px currentColor}
+.snode .glyph{font-size:9px;font-weight:900;pointer-events:none}.snode[data-type="agent"] .glyph{display:none}.snode .nl{position:absolute;top:calc(100% + 5px);left:50%;transform:translateX(-50%);white-space:nowrap;color:#d7edf7;font-size:8px;font-weight:700;letter-spacing:.04em;text-shadow:0 1px 4px #000;pointer-events:none;max-width:110px;overflow:hidden;text-overflow:ellipsis}
+#spatialLegend{position:absolute;right:12px;bottom:12px;z-index:12;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:70%;font-size:7px;color:#8eacbd}.lg{display:flex;align-items:center;gap:4px}.lg i{width:7px;height:7px;border-radius:50%;display:inline-block;background:currentColor;box-shadow:0 0 7px currentColor}
+#nodeDrawer{position:absolute;right:10px;top:54px;bottom:34px;width:min(330px,42%);z-index:18;border:1px solid rgba(94,234,255,.32);background:rgba(2,12,21,.94);backdrop-filter:blur(14px);border-radius:10px;padding:13px;transform:translateX(calc(100% + 24px));transition:transform .24s ease;overflow:auto}
+#nodeDrawer.open{transform:translateX(0)}#nodeDrawer h3{margin:0 28px 4px 0;font-size:14px;letter-spacing:.08em}.ndtype{font-size:8px;color:#5eeaff;letter-spacing:.16em;text-transform:uppercase}.ndrow{padding:7px 0;border-bottom:1px solid rgba(94,234,255,.1);font-size:9px}.ndrow b{color:#7799aa;font-size:7px;letter-spacing:.1em;display:block;margin-bottom:3px}.ndclose{position:absolute;right:8px;top:8px;width:30px;height:30px;border:1px solid rgba(94,234,255,.25);border-radius:50%;background:#071827;color:white}.ndactions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.ndactions button{border:1px solid rgba(94,234,255,.3);background:rgba(94,234,255,.07);color:white;border-radius:7px;padding:7px;font-size:8px}
+#spatialStatus{position:absolute;left:12px;bottom:11px;z-index:11;font-size:7px;color:#65889a;letter-spacing:.08em}
+body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infinite alternate}@keyframes nodeGrab{to{filter:brightness(1.8);transform:scale(1.12)}}
+#vision .cam{right:16px!important;top:235px!important;width:210px!important;max-width:22vw!important;aspect-ratio:4/3!important;z-index:41!important;opacity:.92}#vision .cam:hover{opacity:1}#nodeDrawer{right:10px!important;top:54px!important} .foldergrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}.folderbtn{border:1px solid rgba(255,173,92,.28);background:rgba(255,173,92,.07);color:#ffd4a8;border-radius:8px;padding:8px;text-align:left;font-size:8px}.folderbtn b{display:block;color:#ffad5c;font-size:9px;margin-bottom:2px}.folderview{margin-top:8px;border:1px solid rgba(255,173,92,.18);border-radius:8px;padding:8px;font-size:8px;color:#a9c2cf}.folderview h4{margin:0 0 6px;color:#ffad5c;letter-spacing:.08em}
+@media(max-width:900px){#nodeDrawer{width:min(390px,72%)}.snode .nl{font-size:6px}#vision .cam{right:8px!important;top:150px!important;width:170px!important;max-width:28vw!important}}
+</style>
+<script id="scotty-spatial-js">
+(function(){
+ const main=document.querySelector('.main'); if(!main||document.querySelector('#spatialBrain'))return;
+ const oldHint=main.querySelector('.hint');if(oldHint)oldHint.textContent='PINCH = GRAB NODE • MOVE HAND = MOVE NODE • OPEN PALM = RELEASE • DRAG = ORBIT • WHEEL/PINCH = ZOOM';
+ const sb=document.createElement('div');sb.id='spatialBrain';sb.innerHTML='<svg id="spatialLines"></svg><div id="spatialStage"></div><div id="nodeDrawer"><button class="ndclose" aria-label="Close node">×</button><div id="ndbody"></div></div><div id="spatialLegend"><span class="lg" style="color:#fff2a8"><i></i>CHIEFS</span><span class="lg" style="color:#28d7bd"><i></i>AGENTS</span><span class="lg" style="color:#b893ff"><i></i>SHARED MEMORY</span></div><div id="spatialStatus">1 FINGER = SPIN • 2 FINGERS = ZOOM + SPREAD • 3 FINGERS = PAN • DOUBLE TAP PROJECT/CHIEF = COLLAPSE</div>';main.insertBefore(sb,main.querySelector('.scan'));
+ const stage=sb.querySelector('#spatialStage'),drawer=sb.querySelector('#nodeDrawer'),nd=sb.querySelector('#ndbody'),svg=sb.querySelector('#spatialLines');
+ let nodes=[],selected=null,selectedSet=new Set(),collapsedSet=new Set(),grabbed=null,orbit=0,tilt=-.12,zoom=.82,spread=1,panX=0,panY=0,auto=true,last=performance.now(),drag=null,touches=new Map(),pinchStart=null,lastTap=0,lastGroupTap=0,lastGroupNode=null,spatialViewLoaded=false,viewSaveTimer=null;
+ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),safe=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ function seed(s){let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
+ function addNode(o,i,total){const h=seed(o.id||o.name||i),a=(i/Math.max(1,total))*Math.PI*2+(h%97)/97*.35,r=120+(h%190),y=((h>>>8)%260)-130,z=Math.sin(a)*r;nodes.push({...o,a,r,y,z,ox:0,oy:0,oz:0})}
+ function synthesize(){
+   const A=(typeof agents!=='undefined'&&Array.isArray(agents))?agents:[];
+   const R=(typeof resources!=='undefined'&&resources)?resources:{projects:[],folders:[],files:[],tasks:[]};
+   const P=Array.isArray(R.projects)?R.projects:[],D=Array.isArray(R.folders)?R.folders:[],F=Array.isArray(R.files)?R.files:[],T=Array.isArray(R.tasks)?R.tasks:[];
+   nodes=[];let i=0,total=Math.max(1,A.length+P.length+D.length+F.length+T.length+1);
+   A.forEach(a=>addNode({id:'agent:'+a.id,type:'agent',name:a.name,detail:(a.isChief?'CHIEF • ':'')+a.department+' • '+a.rank+' • SHARED MEMORY',raw:a},i++,total));
+   P.forEach(p=>addNode({id:'project:'+p.id,type:'project',name:p.name,detail:String(p.status||'active').toUpperCase()+' • '+(p.department||'S.C.O.T.T.Y.'),raw:p},i++,total));
+   D.forEach(d=>addNode({id:'folder:'+d.id,type:'folder',name:d.name,detail:'FOLDER • '+(d.path||d.projectId||'CLOUD'),raw:d},i++,total));
+   F.forEach(f=>addNode({id:'file:'+f.id,type:'file',name:f.name,detail:'FILE • '+(f.path||f.mimeType||'CLOUD'),raw:f},i++,total));
+   T.forEach(t=>addNode({id:'task:'+t.id,type:'task',name:t.title,detail:'TASK • '+String(t.status||'queued').toUpperCase(),raw:t},i++,total));
+   addNode({id:'memory:unified',type:'memory',name:'SHARED MEMORY',detail:'S.C.O.T.T.Y. Unified Shared Memory',raw:{scope:'All chiefs, agents, projects and Forge outputs'}},i++,total);
+   const L=R.layout||{};for(const n of nodes){const p=L[n.id];if(p){n.ox=Number(p.ox)||0;n.oy=Number(p.oy)||0;n.oz=Number(p.oz)||0}}
+   if(!spatialViewLoaded&&R.view){const v=R.view;orbit=Number(v.orbit)||0;tilt=Number.isFinite(Number(v.tilt))?Number(v.tilt):-.12;zoom=Number(v.zoom)||.82;spread=Number(v.spread)||1;panX=Number(v.panX)||0;panY=Number(v.panY)||0;collapsedSet=new Set(Array.isArray(v.collapsed)?v.collapsed:[]);spatialViewLoaded=true}
+   nodes=nodes.filter(n=>!(n.type==='agent'&&!n.raw?.isChief&&collapsedSet.has('dept:'+n.raw?.department))&&!((n.type==='file'||n.type==='folder'||n.type==='task')&&n.raw?.projectId&&collapsedSet.has('project:'+n.raw.projectId)));
+   renderNodes()
+ }
+ function groupKey(n){if(n.type==='project')return 'project:'+n.raw?.id;if(n.type==='agent'&&n.raw?.isChief)return 'dept:'+n.raw?.department;return null}
+ function toggleGroup(n){const k=groupKey(n);if(!k)return;collapsedSet.has(k)?collapsedSet.delete(k):collapsedSet.add(k);document.querySelector('#cs').textContent=(collapsedSet.has(k)?'COLLAPSED • ':'EXPANDED • ')+n.name;saveViewSoon();synthesize()}
+ function renderNodes(){stage.innerHTML='';for(const n of nodes){const b=document.createElement('button');b.type='button';b.className='snode';b.dataset.id=n.id;b.dataset.type=n.type;if(n.type==='agent'&&n.raw?.isChief)b.dataset.chief='1';b.innerHTML='<span class="glyph">'+({agent:(n.raw?.isChief?'C':'A'),project:'P',file:'F',folder:'▰',task:'T',memory:'M'}[n.type])+'</span><span class="nl">'+safe(n.name)+'</span>';b.addEventListener('click',e=>{e.stopPropagation();const now=Date.now(),k=groupKey(n);if(k&&lastGroupNode===n.id&&now-lastGroupTap<650){lastGroupNode=null;lastGroupTap=0;toggleGroup(n);return}lastGroupNode=n.id;lastGroupTap=now;select(n)});b.addEventListener('pointerdown',e=>{e.stopPropagation();grabbed=n;grabMoved=false;grabPoint={x:e.clientX,y:e.clientY};document.body.classList.add('spatial-node-grab');try{b.setPointerCapture(e.pointerId)}catch{}});b.addEventListener('pointermove',e=>{if(grabbed!==n||!grabPoint)return;const dx=e.clientX-grabPoint.x,dy=e.clientY-grabPoint.y;if(Math.hypot(dx,dy)>3)grabMoved=true;n.ox+=dx/Math.max(.55,zoom);n.oy+=dy/Math.max(.55,zoom);grabPoint={x:e.clientX,y:e.clientY}});b.addEventListener('pointerup',()=>{if(grabbed===n)window.SCOTTYSpatial?.release?.()});stage.appendChild(b);n.el=b}}
+ function nodeFolders(n){if(n.type==='agent')return[{name:'Memory',desc:'Shared + private context'},{name:'Tasks',desc:'Current and queued work'},{name:'Files',desc:'Agent working files'},{name:'Projects',desc:'Linked projects'},{name:'Reports',desc:'Results and receipts'}];if(n.type==='project')return[{name:'Files',desc:'Project documents'},{name:'Agents',desc:'Assigned agents/chiefs'},{name:'Memory',desc:'Project shared context'},{name:'Tasks',desc:'Project work queue'},{name:'Exports',desc:'Finished outputs'}];if(n.type==='file')return[{name:'Versions',desc:'File history'},{name:'Related',desc:'Linked files'},{name:'Memory',desc:'Context for this file'},{name:'Attachments',desc:'Attached assets'}];if(n.type==='folder')return[{name:'Contents',desc:'Files and subfolders'},{name:'Memory',desc:'Folder context'},{name:'Related',desc:'Linked nodes'}];if(n.type==='task')return[{name:'Agent',desc:'Assigned specialist'},{name:'Project',desc:'Task workspace'},{name:'Memory',desc:'Shared task context'},{name:'Related',desc:'Linked nodes'}];return[{name:'Linked Agents',desc:'Agents sharing this memory'},{name:'Projects',desc:'Projects using this context'},{name:'History',desc:'Recent memory activity'}]}
+ function openFolder(n,i){const f=nodeFolders(n)[i],v=nd.querySelector('#folderview');if(!f||!v)return;let body='';if(f.name==='Agents'||f.name==='Linked Agents')body=nodes.filter(x=>x.type==='agent'&&(n.type!=='project'||x.raw.department===n.raw.department)).slice(0,40).map(x=>safe(x.name)).join(' • ')||'No linked agents';else if(f.name==='Memory')body='Connected to S.C.O.T.T.Y. Unified Shared Memory. Changes and useful context can be shared across chiefs and agents.';else if(f.name==='Files'||f.name==='Contents')body=nodes.filter(x=>x.type==='file'||x.type==='folder').slice(0,24).map(x=>safe(x.name)).join(' • ')||'No indexed files yet';else if(f.name==='Projects')body=nodes.filter(x=>x.type==='project').map(x=>safe(x.name)).join(' • ');else body='This folder is ready for '+safe(n.name)+' and will show its '+safe(f.name).toLowerCase()+' here.';v.style.display='block';v.innerHTML='<h4>▰ '+safe(f.name)+'</h4>'+body}
+ function paintSelection(){nodes.forEach(x=>x.el.classList.toggle('selected',selectedSet.has(x.id)));const names=nodes.filter(x=>selectedSet.has(x.id)).map(x=>x.name);document.querySelector('#cs').textContent=names.length?(names.length+' SELECTED • '+names.join(' + ')):'LISTENING'}
+ function select(n,multi=false){selected=n;if(multi){if(selectedSet.has(n.id))selectedSet.delete(n.id);else selectedSet.add(n.id)}else{selectedSet.clear();selectedSet.add(n.id)}paintSelection();drawer.classList.add('open');const r=n.raw||{};let rows='';
+   if(n.type==='agent')rows='<div class="ndrow"><b>DEPARTMENT</b>'+safe(r.department)+'</div><div class="ndrow"><b>RANK</b>'+safe(r.rank)+'</div><div class="ndrow"><b>STATE</b>'+safe(r.state||'idle')+'</div><div class="ndrow"><b>MODEL</b>'+safe(r.model||'local')+'</div><div class="ndrow"><b>MEMORY</b>CONNECTED • S.C.O.T.T.Y. UNIFIED SHARED MEMORY</div><div class="ndrow"><b>MEMORY LINKS</b>'+safe(r.memoryLinks||0)+'</div><div class="ndrow"><b>CURRENT JOB</b>'+safe(r.currentJob||'No active job')+'</div>';
+   else if(n.type==='file')rows='<div class="ndrow"><b>PATH</b>'+safe(r.path)+'</div><div class="ndrow"><b>PROJECT</b>'+safe(r.projectId||'Unassigned')+'</div><div class="ndrow"><b>STORAGE</b>CLOUD • S.C.O.T.T.Y. RESOURCE GRAPH</div>';
+   else if(n.type==='folder')rows='<div class="ndrow"><b>FOLDER PATH</b>'+safe(r.path)+'</div><div class="ndrow"><b>PROJECT</b>'+safe(r.projectId||'Unassigned')+'</div><div class="ndrow"><b>ACCESS</b>Cloud folder connected to S.C.O.T.T.Y. shared resources.</div>';
+   else if(n.type==='project')rows='<div class="ndrow"><b>WORKSPACE</b>'+safe(r.department)+'</div><div class="ndrow"><b>STATUS</b>'+safe(String(r.status||'active').toUpperCase())+'</div><div class="ndrow"><b>LINKED NODES</b>'+nodes.filter(x=>(x.type==='file'||x.type==='folder'||x.type==='task')&&x.raw?.projectId===r.id).length+' resources</div>';
+   else if(n.type==='task')rows='<div class="ndrow"><b>STATUS</b>'+safe(String(r.status||'queued').toUpperCase())+'</div><div class="ndrow"><b>PROJECT</b>'+safe(r.projectId||'Unassigned')+'</div><div class="ndrow"><b>ASSIGNED AGENT</b>'+safe(r.assignedAgentId||'Unassigned')+'</div><div class="ndrow"><b>NOTES</b>'+safe(r.notes||'No notes')+'</div>';
+   else rows='<div class="ndrow"><b>MEMORY SCOPE</b>'+safe(r.scope)+'</div><div class="ndrow"><b>ACCESS</b>Shared memory cluster available to S.C.O.T.T.Y. and linked chiefs/agents.</div>';
+   nd.innerHTML='<div class="ndtype">'+safe(n.type)+' NODE</div><h3>'+safe(n.name)+'</h3><div class="ndrow"><b>SUMMARY</b>'+safe(n.detail)+'</div>'+rows+'<div class="foldergrid">'+nodeFolders(n).map((f,i)=>'<button class="folderbtn" data-fi="'+i+'"><b>▰ '+safe(f.name)+'</b>'+safe(f.desc)+'</button>').join('')+'</div><div id="folderview" class="folderview" style="display:none"></div><div class="ndactions"><button id="ndmulti">+ MULTI SELECT</button><button id="ndcall">CALL SELECTED</button><button id="ndgrab">GRAB NODE</button><button id="ndfocus">FOCUS</button></div>';
+   nd.querySelector('#ndmulti').onclick=()=>select(n,true);nd.querySelector('#ndcall').onclick=()=>{const chosen=nodes.filter(x=>selectedSet.has(x.id)&&x.type==='agent');if(!chosen.length){document.querySelector('#cs').textContent='SELECT AGENTS FIRST';return}const names=chosen.map(x=>x.name).join(' + '),input=document.querySelector('#ci');if(input)input.value='Ask '+names+': ';document.querySelector('#cs').textContent='CALLED • '+names;input?.focus()};nd.querySelector('#ndgrab').onclick=()=>{grabbed=n;document.body.classList.add('spatial-node-grab');document.querySelector('#cs').textContent='GRABBED • '+n.name};
+   nd.querySelector('#ndfocus').onclick=()=>{n.ox=-Math.cos(n.a)*n.r*.55;n.oz=-Math.sin(n.a)*n.r*.55;n.oy=-n.y*.55;saveNodeLayout(n)};
+   nd.querySelectorAll('.folderbtn').forEach(b=>b.onclick=()=>openFolder(n,Number(b.dataset.fi)));
+   try{if(n.type==='agent'&&typeof showAgentProfile==='function')showAgentProfile(r)}catch{}
+ }
+ drawer.querySelector('.ndclose').onclick=()=>{drawer.classList.remove('open');selected=null;nodes.forEach(x=>x.el.classList.remove('selected'))};
+ function project(n,w,h){if(n.type==='memory')return{x:w/2+panX,y:h/2+panY,z:0,sc:clamp(1.15*zoom,.65,2.2)};const a=n.a+orbit,x=Math.cos(a)*n.r*spread+n.ox,z=Math.sin(a)*n.r*spread+n.oz,y=n.y*spread+n.oy;const ct=Math.cos(tilt),st=Math.sin(tilt),yy=y*ct-z*st,zz=y*st+z*ct;const depth=620+zz,sc=clamp((620/depth)*zoom,.42,1.75);return{x:w/2+panX+x*sc,y:h/2+panY+yy*sc,z:zz,sc}}
+ function frame(t){const dt=Math.min(.05,(t-last)/1000);last=t;if(auto&&!drag&&!grabbed&&!matchMedia('(prefers-reduced-motion: reduce)').matches)orbit+=dt*.085;const w=sb.clientWidth,h=sb.clientHeight;const pts=[];for(const n of nodes){const p=project(n,w,h);pts.push([n,p]);n.el.style.transform='translate3d('+(p.x-w/2)+'px,'+(p.y-h/2)+'px,'+p.z+'px) scale('+p.sc+')';n.el.style.opacity=String(clamp(.35+(p.z+320)/650,.38,1));n.el.style.zIndex=String(20+Math.round(p.z+400))}
+   svg.setAttribute('viewBox','0 0 '+w+' '+h);let l='';const byId=new Map(pts.map(([n,p])=>[n.id,p])),core={x:w/2+panX,y:h/2+panY};for(const [n,p] of pts){if(n.type==='agent'){if(n.raw?.isChief){l+='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+core.x+'" y2="'+core.y+'" stroke="rgba(255,242,168,.48)" stroke-width="1.3"/>'}else{const q=n.raw?.chiefId?byId.get('agent:'+n.raw.chiefId):null;if(q)l+='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+q.x+'" y2="'+q.y+'" stroke="rgba(94,234,255,.18)" stroke-width=".75"/>'}}else if(n.type==='project'){l+='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+core.x+'" y2="'+core.y+'" stroke="rgba(255,209,102,.3)" stroke-width="1"/>'}else if(n.type==='folder'||n.type==='file'||n.type==='task'){const q=n.raw?.projectId?byId.get('project:'+n.raw.projectId):null;if(q){const c=n.type==='task'?'rgba(255,142,164,.26)':n.type==='folder'?'rgba(255,173,92,.24)':'rgba(123,182,255,.22)';l+='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+q.x+'" y2="'+q.y+'" stroke="'+c+'" stroke-width=".7"/>'}if(n.type==='task'&&n.raw?.assignedAgentId){const a=byId.get('agent:'+n.raw.assignedAgentId);if(a)l+='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+a.x+'" y2="'+a.y+'" stroke="rgba(255,142,164,.34)" stroke-width=".8" stroke-dasharray="3 4"/>'}}}svg.innerHTML=l;requestAnimationFrame(frame)}
+ sb.addEventListener('pointerdown',e=>{if(e.target.closest('.snode')||e.target.closest('#nodeDrawer'))return;if(e.pointerType==='touch'){touches.set(e.pointerId,{x:e.clientX,y:e.clientY});sb.setPointerCapture?.(e.pointerId);if(touches.size===1)drag={mode:'spin',x:e.clientX,y:e.clientY,o:orbit,t:tilt};else if(touches.size===2){const a=[...touches.values()],dist=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);pinchStart={dist,zoom,spread};drag=null}else if(touches.size===3){const a=[...touches.values()],cx=a.reduce((s,p)=>s+p.x,0)/a.length,cy=a.reduce((s,p)=>s+p.y,0)/a.length;drag={mode:'pan',x:cx,y:cy,px:panX,py:panY}}return}drag={mode:'orbit',x:e.clientX,y:e.clientY,o:orbit,t:tilt};sb.classList.add('dragging');sb.setPointerCapture?.(e.pointerId)});
+ sb.addEventListener('pointermove',e=>{if(e.pointerType==='touch'&&touches.has(e.pointerId)){touches.set(e.pointerId,{x:e.clientX,y:e.clientY});if(touches.size===2&&pinchStart){const a=[...touches.values()],dist=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),ratio=dist/pinchStart.dist;zoom=clamp(pinchStart.zoom*ratio,.38,3.4);spread=clamp(pinchStart.spread*Math.pow(ratio,.55),.65,2.8)}else if(touches.size===1&&drag?.mode==='spin'){orbit=drag.o+(e.clientX-drag.x)*.009;tilt=clamp(drag.t+(e.clientY-drag.y)*.004,-.7,.7)}else if(touches.size===3&&drag?.mode==='pan'){const a=[...touches.values()],cx=a.reduce((s,p)=>s+p.x,0)/a.length,cy=a.reduce((s,p)=>s+p.y,0)/a.length;panX=drag.px+(cx-drag.x);panY=drag.py+(cy-drag.y)}return}if(!drag||drag.mode!=='orbit')return;orbit=drag.o+(e.clientX-drag.x)*.006;tilt=clamp(drag.t+(e.clientY-drag.y)*.003,-.65,.65)});
+ function saveViewSoon(){clearTimeout(viewSaveTimer);viewSaveTimer=setTimeout(()=>api('/api/hud/resources/view',{method:'POST',body:JSON.stringify({orbit,tilt,zoom,spread,panX,panY,collapsed:[...collapsedSet]})}).catch(e=>console.warn('save spatial view',e)),500)}
+ function pointerEnd(e){if(e.pointerType==='touch'){touches.delete(e.pointerId);pinchStart=null;if(touches.size===1){const a=[...touches.values()][0];drag={mode:'spin',x:a.x,y:a.y,o:orbit,t:tilt}}else drag=null}else drag=null;sb.classList.remove('dragging');saveViewSoon()}
+ sb.addEventListener('pointerup',pointerEnd);sb.addEventListener('pointercancel',pointerEnd);
+ sb.addEventListener('wheel',e=>{e.preventDefault();zoom=clamp(zoom-e.deltaY*.0008,.38,3.4);saveViewSoon()},{passive:false});
+ const originalLoadAgents=loadAgents;loadAgents=async function(){await originalLoadAgents.apply(this,arguments);synthesize()};
+ const originalDraw=draw;draw=function(){try{originalDraw.apply(this,arguments)}catch{};synthesize()};
+ let grabPoint=null,grabMoved=false,lastSpatialTap=0,lastSpatialNode=null,spatialPinch=false;
+ function nearestSpatial(x,y){let best=null,bd=105;for(const n of nodes){const r=n.el.getBoundingClientRect(),d=Math.hypot(r.left+r.width/2-x,r.top+r.height/2-y);if(d<bd){bd=d;best=n}}return best}
+ function focusNode(n){if(!n)return null;const w=sb.clientWidth,h=sb.clientHeight,p=project(n,w,h);panX+=w/2-p.x;panY+=h/2-p.y;select(n);return n}
+ function focusId(id){const n=nodes.find(x=>x.id===id);return n?focusNode(n):null}
+ function focusMention(text){const raw=String(text||''),low=raw.toLowerCase();const cand=nodes.filter(n=>n.type!=='memory'&&n.name).sort((a,b)=>String(b.name).length-String(a.name).length);const n=cand.find(n=>String(n.name).length<=4?raw.includes(String(n.name)):low.includes(String(n.name).toLowerCase()));if(n){focusNode(n);return n}return null}
+ async function saveNodeLayout(source){
+   if(!source?.id)return;
+   try{await api('/api/hud/resources/layout',{method:'POST',body:JSON.stringify({nodeId:source.id,ox:source.ox||0,oy:source.oy||0,oz:source.oz||0})})}catch(e){console.warn('save node position',e)}
+ }
+ async function maybeRelate(source){
+   if(!source?.el)return;const a=source.el.getBoundingClientRect(),x=a.left+a.width/2,y=a.top+a.height/2;let target=null,bd=78;
+   for(const n of nodes){if(n===source||!n.el)continue;const r=n.el.getBoundingClientRect(),d=Math.hypot(r.left+r.width/2-x,r.top+r.height/2-y);if(d<bd){bd=d;target=n}}
+   if(!target)return;
+   try{const r=await api('/api/hud/resources/relate',{method:'POST',body:JSON.stringify({sourceNode:source.id,targetNode:target.id})});document.querySelector('#cs').textContent=(r.suggested?'SUGGESTED • ':'LINKED • ')+source.name+' → '+target.name;await loadResources();setTimeout(()=>{if(!speaking)document.querySelector('#cs').textContent=voiceArmed?'LISTENING':'READY'},1800)}catch(e){console.warn('node relation',e)}
+ }
+ window.SCOTTYSpatial={select,open:select,focus:focusNode,focusId,focusMention,toggleGroup,refresh(){if(!grabbed)synthesize()},release(){const g=grabbed,m=grabMoved;grabbed=null;grabPoint=null;grabMoved=false;document.body.classList.remove('spatial-node-grab');if(g&&m){saveNodeLayout(g);maybeRelate(g)}},grabNearest(x,y){const best=nearestSpatial(x,y);if(best){selected=best;nodes.forEach(q=>q.el.classList.toggle('selected',q===best));grabbed=best;grabMoved=false;grabPoint={x,y};document.body.classList.add('spatial-node-grab');return best}return null},moveGrab(x,y){if(!grabbed||!grabPoint)return;const dx=x-grabPoint.x,dy=y-grabPoint.y;if(Math.hypot(dx,dy)>3)grabMoved=true;grabbed.ox+=dx/Math.max(.55,zoom);grabbed.oy+=dy/Math.max(.55,zoom);grabPoint={x,y}},get grabbed(){return grabbed},nearest:nearestSpatial};
+ pinchSelect=function(x,y){const n=nearestSpatial(x,y);if(n){select(n);document.querySelector('#cs').textContent='OPENED • '+n.name;return}document.querySelector('#cs').textContent='PINCH • NO NODE'};
+ processOne=function(p){const info=ginfo(p),pt=cursorFromHand(p),c=document.querySelector('#handCursor'),now=Date.now();c.classList.toggle('pinch',info.pinch);processSwipe(p,info);
+   if(info.pinch&&!spatialPinch){const n=nearestSpatial(pt.x,pt.y);if(n){if(lastSpatialNode===n&&now-lastSpatialTap<700){select(n);window.SCOTTYSpatial.release();document.querySelector('#cs').textContent='DOUBLE PINCH • OPEN '+n.name}else{window.SCOTTYSpatial.grabNearest(pt.x,pt.y);document.querySelector('#cs').textContent='PINCH HOLD • DRAG '+n.name}lastSpatialTap=now;lastSpatialNode=n}else document.querySelector('#cs').textContent='PINCH • NO NODE'}
+   if(info.pinch&&grabbed)window.SCOTTYSpatial.moveGrab(pt.x,pt.y);
+   if(!info.pinch&&spatialPinch&&grabbed)window.SCOTTYSpatial.release();
+   if(info.open&&grabbed)window.SCOTTYSpatial.release();
+   spatialPinch=info.pinch;pinchLatched=info.pinch;
+   document.querySelector('#gs').textContent=info.pinch?(grabbed?'PINCH • DRAG NODE':'DOUBLE PINCH • OPEN'):info.label;return info.label};
+ setTimeout(synthesize,300);requestAnimationFrame(frame);
+})();
+</script>
+<style>
+#voiceSettingsBtn{position:absolute;right:10px;top:10px;z-index:45;border:1px solid rgba(94,234,255,.28);background:#061522;color:#d8f7ff;border-radius:8px;padding:7px 10px;font-size:8px;letter-spacing:.08em}
+#voiceSettings{position:absolute;right:10px;top:48px;z-index:46;width:280px;padding:12px;border:1px solid rgba(94,234,255,.3);border-radius:10px;background:rgba(2,12,21,.97);display:none;color:#d8edf6}
+#voiceSettings.open{display:block}#voiceSettings label{display:block;font-size:8px;color:#7899aa;margin:8px 0 3px}#voiceSettings input,#voiceSettings select{width:100%;box-sizing:border-box;background:#020a13;color:white;border:1px solid rgba(94,234,255,.22);border-radius:6px;padding:8px}#voiceSettings .va{display:flex;gap:6px;margin-top:10px}#voiceSettings button{flex:1;border:1px solid rgba(94,234,255,.3);background:rgba(94,234,255,.08);color:white;border-radius:6px;padding:7px}
+</style>
+<script>
+(function(){
+ const main=document.querySelector('.main');if(!main)return;
+ const b=document.createElement('button');b.id='voiceSettingsBtn';b.textContent='VOICE';main.appendChild(b);
+ const p=document.createElement('div');p.id='voiceSettings';p.innerHTML='<b>S.C.O.T.T.Y. VOICE</b><label>ElevenLabs Voice ID</label><input id="elVoiceId" placeholder="Paste ElevenLabs voice ID"><label>Fallback iPad voice</label><select id="sysVoice"></select><div class="va"><button id="saveVoice">SAVE</button><button id="testVoice">TEST</button></div><div id="voiceMsg" style="font-size:8px;margin-top:8px;color:#7fa4b5"></div>';main.appendChild(p);
+ const vi=p.querySelector('#elVoiceId'),sv=p.querySelector('#sysVoice'),msg=p.querySelector('#voiceMsg');vi.value=localStorage.getItem('scottyElevenVoiceId')||'cVJh6uKaUowPTE2Nt6UF';
+ function voices(){const a=speechSynthesis.getVoices();sv.innerHTML=a.map((v,i)=>'<option value="'+i+'">'+v.name+' — '+v.lang+'</option>').join('');sv.value=localStorage.getItem('scottySystemVoice')||'0'}voices();speechSynthesis.onvoiceschanged=voices;
+ b.onclick=()=>p.classList.toggle('open');p.querySelector('#saveVoice').onclick=()=>{localStorage.setItem('scottyElevenVoiceId',vi.value.trim());localStorage.setItem('scottySystemVoice',sv.value);msg.textContent='Voice saved on this tablet.'};
+ async function systemSay(t){return new Promise((res,rej)=>{try{const u=new SpeechSynthesisUtterance(t),a=speechSynthesis.getVoices(),v=a[Number(localStorage.getItem('scottySystemVoice')||sv.value||0)];if(v)u.voice=v;u.rate=.96;u.pitch=.92;let done=false;const finish=(err)=>{if(done)return;done=true;clearTimeout(tm);u.onend=null;u.onerror=null;err?rej(err):res()};const tm=setTimeout(()=>{try{speechSynthesis.cancel()}catch{};finish(new Error('system voice timeout'))},Math.max(30000,Math.min(120000,String(t||'').length*140)));u.onend=()=>finish();u.onerror=e=>finish(e);speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){rej(e)}})}
+ const baseSpeak=speak;
+ speak=async function(t){t=String(t||'').trim();if(!t)return;const id=(localStorage.getItem('scottyElevenVoiceId')||vi.value||'').trim();speaking=true;$('#vs').textContent='SCOTTY SPEAKING';$('#cs').textContent='SPEAKING';
+   try{const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),30000);let r;try{r=await fetch('/api/tts',{method:'POST',credentials:'include',signal:ctl.signal,headers:{'content-type':'application/json'},body:JSON.stringify({text:t,voiceId:id,voiceSettings:{speed:.98,stability:.38,style:.08}})})}finally{clearTimeout(tm)}if(!r.ok)throw Error('ElevenLabs '+r.status);const blob=await r.blob();if(!blob.size)throw Error('empty audio');await playScottyBlob(blob);$('#vs').textContent='ELEVENLABS VOICE'}
+   catch(e){console.warn('ElevenLabs fallback',e);try{await systemSay(t);$('#vs').textContent='IPAD VOICE FALLBACK'}catch(z){$('#vs').textContent='VOICE ERROR';$('#cs').textContent='VOICE OUTPUT FAILED'}}
+   finally{speaking=false;clearVoiceBuffers();if(voiceArmed){setTimeout(()=>{$('#vs').textContent='VOICE ARMED';$('#cs').textContent='LISTENING'},250)}}
+ };
+ p.querySelector('#testVoice').onclick=()=>speak('S.C.O.T.T.Y. online. Voice systems ready.');
+})();
+</script>
+<script>
+(function(){
+ let permStream=null,booted=false;
+ async function persistentMedia(){
+   if(permStream&&permStream.getTracks().some(t=>t.readyState==='live'))return permStream;
+   permStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:{facingMode:'user',width:{ideal:640},height:{ideal:480}}});
+   try{micStream=new MediaStream(permStream.getAudioTracks())}catch{}
+   return permStream;
+ }
+ const oldStartLocalVoice=startLocalVoice;
+ startLocalVoice=async function(){
+   try{const s=await persistentMedia();if(!micStream||!micStream.getAudioTracks().length)micStream=new MediaStream(s.getAudioTracks());return await oldStartLocalVoice()}
+   catch(e){console.warn('persistent mic',e);return false}
+ };
+ stopMicStream=function(){
+   try{if(localVoiceProcessor){localVoiceProcessor.onaudioprocess=null;localVoiceProcessor.disconnect()}}catch{};localVoiceProcessor=null;
+   try{if(localVoiceSource)localVoiceSource.disconnect()}catch{};localVoiceSource=null;
+   try{if(localVoiceGain)localVoiceGain.disconnect()}catch{};localVoiceGain=null;clearVoiceBuffers()
+ };
+ startVision=async function(){
+   if(!voiceCamera)throw Error('spoken authorization required');if(stream)return;
+   const s=await persistentMedia(),vt=s.getVideoTracks();if(!vt.length)throw Error('camera unavailable');
+   stream=new MediaStream(vt);const v=$('#video');v.srcObject=stream;await v.play();
+   $('#vision').classList.add('on');document.body.classList.add('vision-active');$('#eyes').classList.add('on');$('#eyes').textContent='EYES: ACTIVE • VOICE AUTHORIZED';$('#sv').textContent='ACTIVE';$('#gs').textContent='VISION ACTIVE';$('#cs').textContent='VISION';await startHands()
+ };
+ stopVision=function(){
+   voiceCamera=false;tracking=false;stream=null;$('#video').srcObject=null;$('#vision').classList.remove('on');document.body.classList.remove('vision-active','gesture-hold');$('#handCursor').className='';$('#eyes').classList.remove('on');$('#eyes').textContent='EYES: LOCKED • SAY “SCOTTY, EYES ON”';$('#sv').textContent='LOCKED';$('#sh').textContent='OFF';$('#gs').textContent='HANDS OFF';$('#cs').textContent=voiceArmed?'LISTENING':'READY';$('#confirm').style.display='none';twoState=null;swipeSeed=null;pinchLatched=false;holdOn=false
+ };
+ const oldSpeak=speak;
+ speak=async function(t){
+   t=String(t||'').trim();if(!t)return;
+   let timedOut=false;
+   try{
+     await Promise.race([
+       Promise.resolve(oldSpeak(t)),
+       new Promise((_,rej)=>setTimeout(()=>{timedOut=true;rej(new Error('voice watchdog timeout'))},Math.max(45000,Math.min(150000,t.length*180))))
+     ]);
+   }catch(e){console.warn('voice watchdog',e)}
+   const state=$('#vs')?.textContent||'';
+   if((timedOut||/VOICE ERROR|VOICE OUTPUT FAILED|SCOTTY VOICE ERROR/i.test(state))&&'speechSynthesis'in window){
+     try{
+       try{if(scottyVoiceSource){scottyVoiceSource.stop(0);scottyVoiceSource=null}}catch{}
+       speaking=true;$('#vs').textContent='IPAD VOICE FALLBACK';$('#cs').textContent='SPEAKING';
+       const u=new SpeechSynthesisUtterance(t);u.rate=.96;u.pitch=.92;
+       await new Promise((res,rej)=>{let done=false;const finish=(err)=>{if(done)return;done=true;clearTimeout(tm);u.onend=null;u.onerror=null;err?rej(err):res()};const tm=setTimeout(()=>{try{speechSynthesis.cancel()}catch{};finish(new Error('fallback timeout'))},Math.max(30000,Math.min(120000,t.length*140)));u.onend=()=>finish();u.onerror=e=>finish(e);speechSynthesis.cancel();speechSynthesis.speak(u)});
+     }catch(e){console.warn('iPad fallback voice',e)}
+   }
+   speaking=false;clearVoiceBuffers();$('#vs').textContent=voiceArmed?'VOICE ARMED':'VOICE READY';$('#cs').textContent=voiceArmed?'LISTENING':'READY';
+ };
+ async function bootMedia(e){
+   if(booted)return;booted=true;
+   try{await unlockAudio();await persistentMedia();if(!voiceArmed)await armVoice();$('#vs').textContent='VOICE ARMED';$('#cs').textContent='LISTENING'}
+   catch(err){booted=false;$('#vs').textContent='MEDIA PERMISSION NEEDED';$('#cs').textContent='ALLOW MICROPHONE + CAMERA FOR THIS SITE'}
+ }
+ document.addEventListener('pointerdown',bootMedia,{once:true,capture:true});
+ document.addEventListener('touchstart',bootMedia,{once:true,capture:true,passive:true});
+})();
+</script><script>
+(function(){
+ let convoUntil=0,commandBusy=false;
+ heard=async function(t){
+   const l=normalizedSpeech(t);if(!l||speaking||commandBusy)return;
+   $('#cs').textContent='HEARD • '+t.slice(0,42);
+   const named=/(scotty|scottie|scoty|scotti|hey scot)/.test(l),eyes=/(eyes|eye|vision|ice)/.test(l);
+   if(named)convoUntil=Date.now()+90000;
+   if((named&&eyes&&/\b(on|own)\b/.test(l))||/\b(eyes|vision) on\b/.test(l)){voiceCamera=true;await startVisionVoice();return}
+   if((named&&eyes&&/\boff\b/.test(l))||/\b(eyes|vision) off\b/.test(l)){stopVision();await speak('Eyes off. Camera closed.');return}
+   if(/(?:scotty|scottie|scoty|scotti) on deck|on deck (?:scotty|scottie|scoty|scotti)/.test(l)){convoUntil=Date.now()+90000;await speak('Aye, on deck. I am listening.');return}
+   if(!(named||Date.now()<convoUntil)){ $('#cs').textContent='LISTENING • SAY SCOTTY';return }
+   let cleaned=t.replace(/^\s*(?:hey\s+)?(scotty|scottie|scoty|scotti)[,.:;\-\s]*/i,'').trim();
+   if(!cleaned||cleaned.length<2)return;
+   commandBusy=true;$('#cs').textContent='THINKING • '+cleaned.slice(0,30);
+   try{await command(cleaned);convoUntil=Date.now()+90000}finally{commandBusy=false}
+ };
+})();
+</script><script>
+(function(){
+ const memKey='scottyUnifiedMemoryV1',turnKey='scottyConversationV1';
+ function getJ(k,d){try{return JSON.parse(localStorage.getItem(k)||'')||d}catch{return d}}
+ function setJ(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+ let cloudMemoryLastSync=0,cloudMemorySyncing=null;
+ function mergeCloudMemories(rows){
+   let local=getJ(memKey,[]),seen=new Set(local.map(x=>String(x.id||'')+'|'+String(x.text||'')));
+   for(const r of (rows||[])){const x={id:String(r.id||''),text:String(r.text||''),at:Date.parse(r.createdAt||'')||Date.now(),scope:r.scope||'shared',kind:r.kind||'note'};const k=x.id+'|'+x.text;if(x.text&&!seen.has(k)){local.push(x);seen.add(k)}}
+   local.sort((a,b)=>(a.at||0)-(b.at||0));if(local.length>300)local=local.slice(-300);setJ(memKey,local);return local
+ }
+ window.SCOTTYMemory={
+   remember(role,text){let a=getJ(turnKey,[]);a.push({role,text:String(text||''),at:Date.now()});if(a.length>80)a=a.slice(-80);setJ(turnKey,a)},
+   recall(){return getJ(turnKey,[]).slice(-18)},
+   async sync(force=false){
+     if(!force&&Date.now()-cloudMemoryLastSync<30000)return getJ(memKey,[]);
+     if(cloudMemorySyncing)return cloudMemorySyncing;
+     cloudMemorySyncing=(async()=>{try{const r=await fetch('/api/memory/recall?scope=shared&limit=50',{cache:'no-store'});const j=await r.json();if(r.ok&&j.ok){cloudMemoryLastSync=Date.now();return mergeCloudMemories(j.memories)}}catch(e){console.warn('cloud memory sync',e)}finally{cloudMemorySyncing=null}return getJ(memKey,[])})();
+     return cloudMemorySyncing
+   },
+   async save(text,kind='note'){
+     text=String(text||'').trim();if(!text)return false;
+     let local=getJ(memKey,[]);local.push({text,at:Date.now(),scope:'shared',kind});if(local.length>300)local=local.slice(-300);setJ(memKey,local);
+     try{const r=await fetch('/api/memory/remember',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({scope:'shared',kind,text})});const j=await r.json();if(r.ok&&j.ok){local=local.map((x,i)=>i===local.length-1?{...x,id:String(j.id||''),at:Date.parse(j.createdAt||'')||x.at}:x);setJ(memKey,local);cloudMemoryLastSync=Date.now();return true}}catch(e){console.warn('cloud memory save',e)}
+     return false
+   },
+   all(){return getJ(memKey,[])}
+ };
+ SCOTTYMemory.sync(true).then(()=>{try{const cs=document.querySelector('#cs');if(cs&&/MEMORY|LISTENING|READY/.test(cs.textContent||''))cs.textContent=(voiceArmed?'LISTENING':'READY')+' • CLOUD MEMORY CONNECTED'}catch{}});
+ const oldCommand=command;
+ command=async function(t){
+   t=String(t||'').trim();if(!t)return;
+   SCOTTYMemory.remember('user',t);
+   const low=t.toLowerCase();
+   if(/^(remember|remember that|save to memory)\b/.test(low)){const v=t.replace(/^(remember|remember that|save to memory)\s*/i,'').trim();if(v){const ok=await SCOTTYMemory.save(v,'explicit');await speak(ok?'Remembered. I added that to shared cloud memory.':'Remembered locally. Cloud memory will retry when available.');SCOTTYMemory.remember('assistant','Remembered.');return}}
+   const structured=/^\s*(?:(?:open|show)\s+(?:live ops|missions?|mission control)|(?:start|create|launch)\s+(?:a\s+)?(?:(?:autonomous|auto)\s+)?mission(?:\s+(?:to|for))?|(?:ask|bring in)\s+[^:]+:)/i.test(t);
+   if(structured){return oldCommand(t)}
+   await SCOTTYMemory.sync();\n   const hist=SCOTTYMemory.recall().slice(0,-1).map(x=>(x.role==='user'?'User: ':'S.C.O.T.T.Y.: ')+x.text).join('\\n');
+   const memories=SCOTTYMemory.all().slice(-12).map(x=>x.text).join(' | ');
+   const enriched=(hist||memories)?'[S.C.O.T.T.Y. SHARED MEMORY CONTEXT]\n'+(memories?'Saved: '+memories+'\n':'')+(hist?'Recent conversation:\n'+hist+'\n':'')+'[CURRENT REQUEST]\n'+t:t;
+   $('#cs').textContent='THINKING • MEMORY CONNECTED';
+   try{const r=await api('/api/hud/command',{method:'POST',body:JSON.stringify({text:enriched,memory:true})});const reply=r.reply||'Done.';SCOTTYMemory.remember('assistant',reply);await speak(reply);$('#cs').textContent=r.handled?'ACTING • MEMORY':'ROUTING • MEMORY'}
+   catch(z){await speak('Command bridge error. '+z.message)}
+   finally{setTimeout(()=>{if(!speaking)$('#cs').textContent=voiceArmed?'LISTENING • MEMORY CONNECTED':'READY • MEMORY CONNECTED'},1800)}
+ };
+ let visionStarting=false;
+ startVisionVoice=async function(){
+   if(!voiceCamera||visionStarting)return;visionStarting=true;$('#cs').textContent='OPENING CAMERA';$('#sv').textContent='OPENING';
+   try{await Promise.race([startVision(),new Promise((_,rej)=>setTimeout(()=>rej(Error('camera timeout')),7000))]);$('#sv').textContent='ACTIVE';$('#sh').textContent=tracking?'ACTIVE':'STARTING';await speak('Eyes on. I can see you.')}
+   catch(e){console.warn('Eyes On',e);$('#sv').textContent='CAMERA ERROR';$('#sh').textContent='OFF';$('#cs').textContent='EYES ON FAILED • '+(e.message||'CAMERA ERROR');try{await speak('Eyes on could not start. Check Safari camera permission and try again.')}catch{}}
+   finally{visionStarting=false}
+ };
+ startVision=async function(){
+   if(!voiceCamera)throw Error('spoken authorization required');if(stream&&stream.getVideoTracks?.().some(t=>t.readyState==='live'))return;
+   $('#cs').textContent='OPENING CAMERA';
+   let s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false});
+   stream=s;const v=$('#video');v.srcObject=s;v.muted=true;v.playsInline=true;await Promise.race([v.play(),new Promise((_,rej)=>setTimeout(()=>rej(Error('video start timeout')),4000))]);
+   $('#vision').classList.add('on');document.body.classList.add('vision-active');$('#eyes').classList.add('on');$('#eyes').textContent='EYES: ACTIVE • VOICE AUTHORIZED';$('#sv').textContent='ACTIVE';$('#gs').textContent='VISION ACTIVE';$('#cs').textContent='VISION ACTIVE';
+   try{await Promise.race([startHands(),new Promise((_,rej)=>setTimeout(()=>rej(Error('hand tracker timeout')),5000))])}catch(e){console.warn('Hands unavailable',e);$('#sh').textContent='CAMERA ONLY';$('#gs').textContent='CAMERA ACTIVE • HANDS RETRYING'}
+ };
+})();
+</script><script>(function(){
+function addActivity(msg){var box=document.getElementById('activity');if(!box)return;var d=document.createElement('div');d.className='evt';d.innerHTML='<b>SCOTTY · EYES ON</b><p></p><time></time>';d.querySelector('p').textContent=msg;d.querySelector('time').textContent=new Date().toLocaleTimeString();box.prepend(d)}
+async function nativeEyesOn(){try{addActivity('Eyes On requested. Opening front camera…');if(typeof heard==='function'){await heard('Scotty, eyes on');}else throw new Error('HUD vision controller unavailable');setTimeout(addLookButton,500)}catch(e){addActivity('Eyes On error: '+e.message)}}
+function addLookButton(){var cam=document.querySelector('.cam');if(!cam||document.getElementById('scottyLookNow'))return;var b=document.createElement('button');b.id='scottyLookNow';b.textContent='LOOK NOW';b.style.cssText='position:absolute;right:9px;bottom:8px;z-index:9;padding:8px 11px;border-radius:7px;border:1px solid #28d7bd;background:#041623;color:white';b.onclick=analyze;cam.appendChild(b)}
+async function analyze(){var v=document.getElementById('video');if(!v||!v.videoWidth){addActivity('Camera is not ready yet.');return}var c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);var sv=document.getElementById('sv'),cs=document.getElementById('cs');if(sv)sv.textContent='ANALYZING';if(cs)cs.textContent='VISION · ANALYZING';try{var r=await fetch('/api/eyes/analyze',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({imageDataUrl:c.toDataURL('image/jpeg',.72)})});var x=await r.json();if(!r.ok)throw new Error(x.error||'Vision failed');var answer=x.text||x.reply||x.analysis||'I can see the frame.';addActivity(answer);if(cs)cs.textContent='VISION · RESPONSE';if(typeof speak==='function')await speak(answer)}catch(e){addActivity('Vision error: '+e.message);if(cs)cs.textContent='VISION ERROR'}finally{if(sv)sv.textContent=(v.srcObject?'ACTIVE':'LOCKED')}}
+function wire(){document.querySelectorAll('.nav').forEach(function(b){var t=(b.textContent||'').trim();if(t==='3D Forge')b.addEventListener('click',function(){location.href='/forge'});if(t==='Operations')b.addEventListener('click',function(){location.href='/system'});if(t==='Integrations')b.addEventListener('click',function(){location.href='/integrations'})});document.querySelectorAll('.mode').forEach(function(b){var t=(b.textContent||'').trim();if(t==='LIVE OPS')b.addEventListener('click',function(){location.href='/missions'})});var e=document.getElementById('eyes');if(e){e.onclick=nativeEyesOn;e.ontouchend=function(ev){ev.preventDefault();nativeEyesOn()}};var v=document.getElementById('video');if(v)v.addEventListener('playing',addLookButton);fetch('/api/eyes/status').then(function(r){return r.json()}).then(function(x){if(x.ok){var sv=document.getElementById('sv');if(sv&&sv.textContent==='LOCKED')sv.textContent='READY'}}).catch(function(){})}
+window.scottyEyesAnalyze=analyze;window.scottyEyesOn=nativeEyesOn;if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wire);else wire();
+})();</script></body></html>
+
+[executed on device: Souper-crew (23dfa2a0-f8aa-4fc7-80af-8bfabd7cbd87)]
