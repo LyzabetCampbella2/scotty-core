@@ -89,4 +89,56 @@
     const input=document.querySelector('#elVoiceId');
     if(input&&input.value.trim())localStorage.setItem('scottyElevenVoiceId',input.value.trim());
   });
+
+  async function ensureVoiceLibrary(){
+    const panel=document.querySelector('#voiceSettings');
+    const input=document.querySelector('#elVoiceId');
+    const msg=document.querySelector('#voiceMsg');
+    if(!panel||!input)return;
+    let sel=document.querySelector('#scottyElevenVoiceLibrary');
+    if(!sel){
+      const label=document.createElement('label');
+      label.textContent='ElevenLabs Voice Library';
+      sel=document.createElement('select');
+      sel.id='scottyElevenVoiceLibrary';
+      input.parentNode.insertBefore(label,input);
+      input.parentNode.insertBefore(sel,input);
+      sel.addEventListener('change',()=>{
+        if(sel.value){
+          input.value=sel.value;
+          localStorage.setItem('scottyElevenVoiceId',sel.value);
+          if(msg)msg.textContent='ElevenLabs voice selected. Tap TEST to hear it.';
+        }
+      });
+    }
+    if(sel.dataset.loaded)return;
+    sel.innerHTML='<option value="">Loading ElevenLabs voices…</option>';
+    try{
+      const r=await fetch('/api/voice/voices',{credentials:'include',cache:'no-store'});
+      const j=await r.json();
+      if(!r.ok||!j.ok)throw new Error(j.error||'Unable to load voices');
+      sel.innerHTML='<option value="">Choose an ElevenLabs voice…</option>';
+      for(const v of j.voices||[]){
+        const o=document.createElement('option');
+        o.value=v.voiceId;
+        o.textContent=v.name+(v.category?' • '+v.category:'');
+        sel.appendChild(o);
+      }
+      const cur=chosenVoice();
+      sel.value=cur;
+      input.value=cur;
+      sel.dataset.loaded='1';
+      if(msg)msg.textContent='ElevenLabs voices loaded. Choose one, SAVE, then TEST.';
+    }catch(e){
+      if(msg)msg.textContent='Could not load ElevenLabs voices: '+e.message;
+    }
+  }
+
+  const voiceButton=document.querySelector('#voiceSettingsBtn');
+  if(voiceButton)voiceButton.addEventListener('click',()=>setTimeout(ensureVoiceLibrary,0));
+  const test=document.querySelector('#testVoice');
+  if(test)test.addEventListener('click',()=>{
+    const input=document.querySelector('#elVoiceId');
+    if(input&&input.value.trim())localStorage.setItem('scottyElevenVoiceId',input.value.trim());
+  });
 })();
