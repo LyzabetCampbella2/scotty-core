@@ -1,0 +1,27 @@
+{
+  "name": "S.C.O.T.T.Y.",
+  "short_name": "S.C.O.T.T.Y.",
+  "start_url": "/?source=homescreen",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#020913",
+  "theme_color": "#06131e",
+  "description": "S.C.O.T.T.Y. cloud command HUD",
+  "shortcuts": [
+    {
+      "name": "HUD",
+      "short_name": "HUD",
+      "url": "/"
+    },
+    {
+      "name": "Operations",
+      "short_name": "Operations",
+      "url": "/system"
+    },
+    {
+      "name": "3D Forge",
+      "short_name": "Forge",
+      "url": "/forge"
+    }
+  ]
+}
