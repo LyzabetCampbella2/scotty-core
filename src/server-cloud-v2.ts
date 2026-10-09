@@ -6,7 +6,7 @@ import { handleCloudCommand } from "./brain/cloud.ts";
 import { handleCloudAgents,bootstrapAgents } from "./agents/cloud.ts";
 import { handleCloudForge,runForgeSelfTest } from "./forge/cloud.ts";
 import { handleCloudResources,bootstrapResources } from "./resources/cloud.ts";
-import { handleHealth,handleSystemStatus,handleSystemQa } from "./health.ts";
+import { handleHealth,handleSystemStatus,handleSystemQa,handleSystemRecover } from "./health.ts";
 import { handleCloudAuth,isCloudAuthenticated } from "./auth/cloud.ts";
 
 const PORT=Number(process.env.PORT||3000);
@@ -29,7 +29,7 @@ Bun.serve({port:PORT,async fetch(req){
   u.pathname==="/api/eyes/analyze"||
   (u.pathname.startsWith("/api/memory/")&&u.pathname!=="/api/memory/status")||
   u.pathname.startsWith("/forge/api/")||
-  (u.pathname==="/api/system/status"||u.pathname==="/api/system/qa");
+  (u.pathname==="/api/system/status"||u.pathname==="/api/system/qa"||u.pathname==="/api/system/recover");
  if(protectedRoute&&!(await isCloudAuthenticated(req))) return Response.json({ok:false,error:"Authentication required"},{status:401,headers:{"cache-control":"no-store"}});
  if(u.pathname==="/api/hud/stt") return handleHudStt(req);
  if(u.pathname==="/api/hud/command"||u.pathname==="/api/hud/brain/status") return handleCloudCommand(req,u);
@@ -38,6 +38,7 @@ Bun.serve({port:PORT,async fetch(req){
  if(u.pathname.startsWith("/forge/api/")) return handleCloudForge(req,u);
  if(u.pathname==="/api/system/status") return handleSystemStatus(req,u);
  if(u.pathname==="/api/system/qa") return handleSystemQa(req,u);
+ if(u.pathname==="/api/system/recover") return handleSystemRecover(req,u);
 
  if(u.pathname.startsWith("/api/eyes")) return handleEyesOn(req,u);
  if(u.pathname==="/api/tts"||u.pathname.startsWith("/api/voice")) return handleCloudVoice(req,u);
