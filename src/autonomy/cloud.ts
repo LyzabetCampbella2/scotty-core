@@ -262,6 +262,15 @@ export async function createMission(input:any){
  const priority=["low","normal","high","critical"].includes(String(input?.priority))?String(input.priority):"normal";
  const projectId=input?.projectId?String(input.projectId).slice(0,240):null;
  const plan=await planMission(goal,title);
+ const directDrive=plan.steps.length===1&&plan.steps[0]?.actionProvider==="google"&&plan.steps[0]?.actionOperation==="drive_create_text"&&!plan.steps[0]?.requiresApproval;
+ if(directDrive){
+  const old=await db()`select id from scotty_missions where goal=${goal} and status='waiting_approval'`;
+  for(const m of old){
+   await db()`update scotty_approvals set status='superseded',decided_at=now() where mission_id=${m.id} and status='pending'`;
+   await db()`update scotty_mission_steps set status='cancelled',result='Superseded by direct owner Drive execution.',updated_at=now() where mission_id=${m.id} and status='waiting_approval'`;
+   await db()`update scotty_missions set status='cancelled',updated_at=now() where id=${m.id}`;
+  }
+ }
  const id=crypto.randomUUID();
  await db().begin(async(tx:any)=>{
   await tx`insert into scotty_missions(id,title,goal,project_id,autonomy_mode,priority,status,summary) values(${id},${title},${goal},${projectId},${autonomyMode},${priority},'queued',${plan.summary})`;
