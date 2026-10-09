@@ -80,7 +80,7 @@ async function unseal(value:string){
  const raw=await crypto.subtle.decrypt({name:"AES-GCM",iv},key,data);
  return JSON.parse(new TextDecoder().decode(raw));
 }
-function setup(){
+export function connectionSetupStatus(){
  return {
   publicUrl:PUBLIC_URL(),
   redirectUri:googleRedirectUri(),
@@ -96,7 +96,7 @@ async function row(provider:string){
 export async function connectionStatus(){
  await ensure();
  const google=await row("google");
- const cfg=setup();
+ const cfg=connectionSetupStatus();
  return {
   setup:cfg,
   connections:{
@@ -125,7 +125,7 @@ async function googleUser(accessToken:string){
 }
 async function startGoogle(){
  await ensure();
- const cfg=setup();
+ const cfg=connectionSetupStatus();
  if(!cfg.vaultConfigured)throw new Error("Connection Vault is not configured");
  if(!cfg.googleClientConfigured)throw new Error("Google OAuth client is not configured");
  const state=crypto.randomUUID().replaceAll("-","")+crypto.randomUUID().replaceAll("-","");
@@ -215,7 +215,7 @@ export async function handleCloudConnections(req:Request,u:URL){
  if(req.method==="GET"&&u.pathname==="/api/connections")return json({ok:true,...await connectionStatus()});
  if(req.method==="GET"&&u.pathname==="/api/connections/google/start"){
   try{return new Response(null,{status:302,headers:{location:await startGoogle(),"cache-control":"no-store"}})}
-  catch(e:any){return json({ok:false,error:String(e?.message||"Unable to start Google connection"),setup:setup()},503)}
+  catch(e:any){return json({ok:false,error:String(e?.message||"Unable to start Google connection"),setup:connectionSetupStatus()},503)}
  }
  if(req.method==="GET"&&u.pathname==="/api/connections/google/callback"){
   try{
