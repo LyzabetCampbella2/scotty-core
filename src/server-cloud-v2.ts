@@ -5,6 +5,7 @@ import { handleCloudMemory } from "./memory/cloud.ts";
 import { handleCloudCommand } from "./brain/cloud.ts";
 import { handleCloudAgents,bootstrapAgents } from "./agents/cloud.ts";
 import { handleCloudForge,runForgeSelfTest } from "./forge/cloud.ts";
+import { handleCloudResources } from "./resources/cloud.ts";
 import { handleHealth } from "./health.ts";
 import { handleCloudAuth,isCloudAuthenticated } from "./auth/cloud.ts";
 import { legacyApi,eyesFallback,voiceFallback,memoryFallback } from "./compat/cloud-fallback.ts";
@@ -24,6 +25,7 @@ Bun.serve({port:PORT,async fetch(req){
   u.pathname==="/api/hud/agents"||
   u.pathname==="/api/hud/agents/run"||
   u.pathname==="/api/hud/activity"||
+  u.pathname.startsWith("/api/hud/resources")||
   u.pathname==="/api/tts"||
   u.pathname==="/api/voice/speak"||
   u.pathname==="/api/eyes/analyze"||
@@ -32,6 +34,7 @@ Bun.serve({port:PORT,async fetch(req){
  if(protectedRoute&&!(await isCloudAuthenticated(req))) return Response.json({ok:false,error:"Authentication required"},{status:401,headers:{"cache-control":"no-store"}});
  if(u.pathname==="/api/hud/command"||u.pathname==="/api/hud/brain/status") return handleCloudCommand(req,u);
  if(u.pathname==="/api/hud/agents"||u.pathname==="/api/hud/agents/run"||u.pathname==="/api/hud/agents/status"||u.pathname==="/api/hud/activity") return handleCloudAgents(req,u);
+ if(u.pathname.startsWith("/api/hud/resources")) return handleCloudResources(req,u);
  if(u.pathname.startsWith("/forge/api/")) return handleCloudForge(req,u);
 
  if(u.pathname.startsWith("/api/eyes")){
@@ -54,7 +57,7 @@ Bun.serve({port:PORT,async fetch(req){
   if(r)return r;
  }
 
- return Response.json({service:"S.C.O.T.T.Y.",status:"online",architecture:"cloud-gateway-v3",native:["brain","agents","activity","eyes","stt","voice","memory","forge-control"]});
+ return Response.json({service:"S.C.O.T.T.Y.",status:"online",architecture:"cloud-gateway-v3",native:["brain","agents","activity","resources","eyes","stt","voice","memory","forge-control"]});
 }});
 
 console.log("S.C.O.T.T.Y. cloud gateway v3 listening",PORT);
