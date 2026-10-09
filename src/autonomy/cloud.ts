@@ -102,6 +102,26 @@ function chooseChief(goal:string,rows:any[]){
 async function planMission(goal:string,title:string){
  const rows=await chiefs();
  const drive=goal.match(/create\s+(?:a\s+)?google\s+drive\s+(?:text\s+)?file\s+named\s+(.+?)\s+containing\s*:\s*([\s\S]+)$/i);
+ const calendar=goal.match(/create\s+(?:a\s+)?google\s+calendar\s+event\s+titled\s+(.+?)\s+today\s+from\s+(\d{1,2}:\d{2}\s*(?:am|pm))\s+to\s+(\d{1,2}:\d{2}\s*(?:am|pm))\s+pacific\s+time\s+with\s+the\s+description\s*:\s*([\s\S]+)$/i);
+ if(calendar){
+  const chief=chooseChief(goal,rows);
+  const title=String(calendar[1]||"").trim().replace(/^["“”']+|["“”']+$/g,"").slice(0,240);
+  const description=String(calendar[4]||"").trim().slice(0,5000);
+  const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Los_Angeles",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
+  const y=parts.find(x=>x.type==="year")?.value||"2026",m=parts.find(x=>x.type==="month")?.value||"01",d=parts.find(x=>x.type==="day")?.value||"01";
+  const norm=(v:string)=>{const z=v.trim().toLowerCase().match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/);if(!z)return"";let h=Number(z[1])%12;if(z[3]==="pm")h+=12;return String(h).padStart(2,"0")+":"+z[2]+":00"};
+  const start=`${y}-${m}-${d}T${norm(String(calendar[2]))}`,end=`${y}-${m}-${d}T${norm(String(calendar[3]))}`;
+  return {
+   summary:"Prepare the requested Google Calendar test event and wait for owner approval before creating it.",
+   steps:[{
+    stepNo:1,title:"Create Google Calendar event",
+    instruction:`Create calendar event "${title}" today from ${calendar[2]} to ${calendar[3]} Pacific Time.`,
+    actionType:"external_action",chiefId:chief?.id||null,requiresApproval:true,
+    actionProvider:"google",actionOperation:"calendar_create",
+    actionPayload:{summary:title,description,start,end,timeZone:"America/Los_Angeles"}
+   }]
+  };
+ }
  const gmail=goal.match(/send\s+(?:a\s+)?gmail\s+to\s+(?:the\s+)?same\s+google\s+account\s+connected\s+to\s+s\.?c\.?o\.?t\.?t\.?y\.?\s+with\s+the\s+subject\s+(.+?)\s+and\s+the\s+message\s*:\s*([\s\S]+)$/i);
  if(gmail){
   const chief=chooseChief(goal,rows);
