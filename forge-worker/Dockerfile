@@ -8,4 +8,4 @@ WORKDIR /app
 COPY forge-worker/server.py /app/server.py
 
 ENV PYTHONUNBUFFERED=1
-CMD ["python","/app/server.py"]
+CMD ["blender","-b","--python","/app/server.py"]
