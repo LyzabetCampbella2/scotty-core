@@ -160,20 +160,20 @@ function asAgent(r:any){
  return {...raw,id:r.id,name:r.name,department:r.department,rank:r.rank,isChief:Boolean(r.isChief),chiefId:r.chiefId||null,clearance:r.clearance,model:r.model,state:r.state,queueCount:r.queueCount,memoryLinks:r.memoryLinks,voiceMode:r.voiceMode,tools:Array.isArray(r.tools)?r.tools:[],collaborators:Array.isArray(r.collaborators)?r.collaborators:[],currentJob:r.currentJob||null,lastResult:r.lastResult||null,lastRunAt:r.lastRunAt||null};
 }
 
-async function getAgentsByIds(ids:string[]){
+export async function getAgentsByIds(ids:string[]){
  if(!ids.length)return [];
  return db()`select id,name,department,rank,is_chief as "isChief",chief_id as "chiefId",clearance,model,state,queue_count as "queueCount",memory_links as "memoryLinks",voice_mode as "voiceMode",tools,collaborators,current_job as "currentJob",last_result as "lastResult",last_run_at as "lastRunAt",raw
   from scotty_agents where id in ${db()(ids)} order by sort_order asc`;
 }
 
-async function memoryContext(){
+export async function memoryContext(){
  try{
   const rows=await db()`select kind,agent_id as "agentId",text_content as text from scotty_memory order by created_at desc limit 20`;
   return rows.reverse().map((x:any)=>`[${x.kind||"memory"}${x.agentId?" · "+x.agentId:""}] ${x.text}`).join("\n");
  }catch{return ""}
 }
 
-async function runAgent(row:any,task:string,context:string){
+export async function runAgent(row:any,task:string,context:string){
  const id=String(row.id),name=String(row.name);
  try{
   await db()`update scotty_agents set state='working',current_job=${task.slice(0,1800)},queue_count=queue_count+1,updated_at=now() where id=${id}`;
