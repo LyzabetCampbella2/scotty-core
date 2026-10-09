@@ -59,6 +59,76 @@ async function elevenHealth(){
   }catch{return {configured:true,reachable:false}}
 }
 
+async function functionalBrainPing(){
+  const key=process.env.GROQ_API_KEY;
+  if(!key)return {ok:false,detail:"Groq key missing"};
+  try{
+    const r=await fetch("https://api.groq.com/openai/v1/chat/completions",{
+      method:"POST",
+      headers:{authorization:"Bearer "+key,"content-type":"application/json"},
+      body:JSON.stringify({model:process.env.SCOTTY_BRAIN_MODEL_GROQ||"qwen/qwen3.8-27b",messages:[{role:"user",content:"Reply with READY only."}],temperature:0,max_completion_tokens:8}),
+      signal:AbortSignal.timeout(12000)
+    });
+    const d:any=await r.json().catch(()=>({}));
+    return {ok:r.ok&&Boolean(d?.choices?.[0]?.message?.content),detail:r.ok?"Reasoning request completed":"Reasoning request failed"};
+  }catch{return {ok:false,detail:"Reasoning request unavailable"}}
+}
+
+async function functionalMemoryRoundTrip(){
+  const q=db(),token="qa-"+crypto.randomUUID();
+  try{
+    const ins=await q`insert into scotty_memory(scope,kind,text_content,metadata) values('system-qa','qa-probe',${token},'{}'::jsonb) returning id`;
+    const id=ins?.[0]?.id;
+    const rows=await q`select text_content as text from scotty_memory where id=${id} limit 1`;
+    await q`delete from scotty_memory where id=${id}`;
+    return {ok:rows?.[0]?.text===token,detail:"Postgres write/read/delete completed"};
+  }catch{return {ok:false,detail:"Memory round-trip failed"}}
+}
+
+async function functionalForgeArtifact(){
+  try{
+    const rows=await db()`select id,status,(blend_bytes is not null) as "blendReady",(glb_bytes is not null) as "glbReady" from scotty_forge_jobs where status='exported' order by completed_at desc nulls last limit 1`;
+    const x=rows?.[0];
+    return {ok:Boolean(x?.blendReady&&x?.glbReady),detail:x?"Latest exported Forge job has cloud artifacts":"No exported Forge job available yet"};
+  }catch{return {ok:false,detail:"Forge artifact check failed"}}
+}
+
+export async function handleSystemQa(req:Request,u:URL){
+  const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{"cache-control":"no-store"}});
+  if(req.method!=="POST"||u.pathname!=="/api/system/qa")return json({ok:false,error:"System QA route not found"},404);
+  const q=db();
+  await q`create table if not exists scotty_qa_runs(
+    id uuid primary key,
+    overall text not null,
+    score integer not null,
+    checks jsonb not null default '[]'::jsonb,
+    created_at timestamptz not null default now()
+  )`;
+  const [brain,memory,forge,groq,eleven,owners,agents,chiefs]=await Promise.all([
+    functionalBrainPing(),
+    functionalMemoryRoundTrip(),
+    functionalForgeArtifact(),
+    groqHealth(),
+    elevenHealth(),
+    count(q`select count(*)::int as n from scotty_auth_owner`),
+    count(q`select count(*)::int as n from scotty_agents`),
+    count(q`select count(*)::int as n from scotty_agents where is_chief=true`)
+  ]);
+  const checks=[
+    {key:"auth",label:"Owner Authentication",ok:owners>=1,detail:owners>=1?"Cloud owner provisioned":"Owner migration missing"},
+    {key:"brain",label:"Brain Round Trip",ok:brain.ok,detail:brain.detail},
+    {key:"memory",label:"Memory Round Trip",ok:memory.ok,detail:memory.detail},
+    {key:"groq",label:"Groq Provider",ok:groq.reachable,detail:groq.reachable?"Provider reachable":"Provider unavailable"},
+    {key:"eleven",label:"ElevenLabs Provider",ok:eleven.reachable,detail:eleven.reachable?"Provider reachable":"Provider unavailable"},
+    {key:"agents",label:"Agent Matrix",ok:agents>=128&&chiefs>=12,detail:agents+" agents • "+chiefs+" chiefs"},
+    {key:"forge",label:"Forge Artifact",ok:forge.ok,detail:forge.detail}
+  ];
+  const passed=checks.filter(x=>x.ok).length,score=Math.round(passed/checks.length*100),overall=score===100?"ready":score>=80?"ready-with-warnings":"degraded";
+  const id=crypto.randomUUID();
+  await q`insert into scotty_qa_runs(id,overall,score,checks) values(${id},${overall},${score},${q.json(checks)})`;
+  return json({ok:score===100,id,overall,score,passed,total:checks.length,checks,createdAt:new Date().toISOString()});
+}
+
 export async function handleSystemStatus(req:Request,u:URL){
   const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{"cache-control":"no-store"}});
   if(req.method!=="GET"||u.pathname!=="/api/system/status")return json({ok:false,error:"System status route not found"},404);
