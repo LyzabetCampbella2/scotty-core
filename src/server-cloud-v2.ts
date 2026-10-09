@@ -14,8 +14,24 @@ import { handleCloudAuth,isCloudAuthenticated } from "./auth/cloud.ts";
 
 const PORT=Number(process.env.PORT||3000);
 
+async function servePublic(path:string,type="text/html; charset=utf-8"){
+ try{
+  const file=Bun.file(path);
+  if(!(await file.exists()))return null;
+  return new Response(file,{headers:{"content-type":type,"cache-control":"no-store"}});
+ }catch{return null}
+}
+
 Bun.serve({port:PORT,async fetch(req){
  const u=new URL(req.url);
+ if(req.method==="GET"){
+  if(u.pathname==="/hud"||u.pathname==="/hud/"||u.pathname==="/") {const r=await servePublic("public/index.html");if(r)return r}
+  if(u.pathname==="/missions"||u.pathname==="/missions/") {const r=await servePublic("public/missions/index.html");if(r)return r}
+  if(u.pathname==="/integrations"||u.pathname==="/integrations/") {const r=await servePublic("public/integrations/index.html");if(r)return r}
+  if(u.pathname==="/system"||u.pathname==="/system/") {const r=await servePublic("public/system/index.html");if(r)return r}
+  if(u.pathname==="/forge"||u.pathname==="/forge/") {const r=await servePublic("public/forge/index.html");if(r)return r}
+  if(u.pathname==="/manifest.webmanifest"||u.pathname==="/hud/manifest.json") {const r=await servePublic("public/manifest.webmanifest","application/manifest+json");if(r)return r}
+ }
  if(u.pathname==="/health") return handleHealth();
  if(req.method==="GET"&&u.pathname==="/api/connections/setup/status") return Response.json({ok:true,...connectionSetupStatus()},{headers:{"cache-control":"no-store"}});
 
