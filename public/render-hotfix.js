@@ -3,8 +3,10 @@
   window.__SCOTTY_VOICE_APPROVAL_V3__=true;
 
   function chosenVoice(){
-    let id=String(localStorage.getItem('scottyElevenVoiceId')||document.querySelector('#elVoiceId')?.value||'v2zbX16tJNtRIx8rSHDM').trim();
+    const freeSafe='cVJh6uKaUowPTE2Nl6OF';
+    let id=String(localStorage.getItem('scottyElevenVoiceId')||document.querySelector('#elVoiceId')?.value||freeSafe).trim();
     if(id==='v2zbX16tJNRIx8rSHDM')id='v2zbX16tJNtRIx8rSHDM';
+    if(id==='v2zbX16tJNtRIx8rSHDM')id=freeSafe;
     try{localStorage.setItem('scottyElevenVoiceId',id)}catch{}
     const input=document.querySelector('#elVoiceId');if(input)input.value=id;
     return id;
@@ -53,9 +55,19 @@
       document.querySelector('#cs').textContent=voiceArmed?'LISTENING':'READY';
     }catch(e){
       console.warn('S.C.O.T.T.Y. voice',e);
-      document.querySelector('#vs').textContent='ELEVENLABS VOICE ERROR';
-      document.querySelector('#cs').textContent='OPEN VOICE SETTINGS • TEST VOICE';
-      const msg=document.querySelector('#voiceMsg');if(msg)msg.textContent='Voice error: '+String(e?.message||e).slice(0,180);
+      const err=String(e?.message||e);
+      if(/free users cannot use library voices|upgrade your subscription/i.test(err)){
+        const safe='cVJh6uKaUowPTE2Nl6OF';
+        try{localStorage.setItem('scottyElevenVoiceId',safe)}catch{}
+        const input=document.querySelector('#elVoiceId');if(input)input.value=safe;
+        document.querySelector('#vs').textContent='SCOTTY 2.0 VOICE READY';
+        document.querySelector('#cs').textContent='PAID LIBRARY VOICE BLOCKED • SWITCHED TO SCOTTY 2.0';
+        const msg=document.querySelector('#voiceMsg');if(msg)msg.textContent='That professional library voice requires a paid ElevenLabs plan. S.C.O.T.T.Y. switched to your generated Scotty 2.0 voice.';
+      }else{
+        document.querySelector('#vs').textContent='ELEVENLABS VOICE ERROR';
+        document.querySelector('#cs').textContent='OPEN VOICE SETTINGS • TEST VOICE';
+        const msg=document.querySelector('#voiceMsg');if(msg)msg.textContent='Voice error: '+err.slice(0,180);
+      }
     }finally{
       speaking=false;
       try{clearVoiceBuffers()}catch{}
@@ -130,7 +142,9 @@
       for(const v of j.voices||[]){
         const o=document.createElement('option');
         o.value=v.voiceId;
-        o.textContent=v.name+(v.category?' • '+v.category:'');
+        const paidOnly=String(v.category||'').toLowerCase()==='professional';
+        o.textContent=v.name+(v.category?' • '+v.category:'')+(paidOnly?' • paid plan required':'');
+        if(paidOnly)o.disabled=true;
         sel.appendChild(o);
       }
       const cur=chosenVoice();
