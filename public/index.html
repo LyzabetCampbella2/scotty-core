@@ -76,12 +76,27 @@ async function command(t){t=(t||$('#ci').value).trim();if(!t)return;$('#ci').val
   $('#cs').textContent='PLANNING MISSION';
   const r=await api('/api/missions',{method:'POST',body:JSON.stringify({goal:mm[2],autonomyMode:mm[1]?'auto':'supervised',priority:'normal'})});
   let rr=null;try{rr=await api('/api/missions/'+encodeURIComponent(r.id)+'/run',{method:'POST',body:'{}'})}catch(e){console.warn('mission autorun',e)}
-  const waiting=rr?.mission?.status==='waiting_approval'||(rr?.steps||[]).some(x=>x.status==='waiting_approval');
-  const msg=waiting?'Mission planned. The Google action is ready and waiting for your approval in Mission Control.':'Mission created and started. Opening Mission Control.';
-  $('#cs').textContent=waiting?'APPROVAL REQUIRED':'MISSION STARTED';
-  try{await Promise.race([Promise.resolve(speak(msg)).catch(()=>{}),new Promise(res=>setTimeout(res,6000))])}catch{}
-  speaking=false;clearVoiceBuffers();$('#vs').textContent=voiceArmed?'VOICE ARMED':'VOICE READY';$('#cs').textContent='OPENING MISSION CONTROL';
-  location.href='/missions?mission='+encodeURIComponent(r.id||'');
+  const status=rr?.mission?.status||'queued';
+  const waiting=status==='waiting_approval'||(rr?.steps||[]).some(x=>x.status==='waiting_approval');
+  const completed=status==='completed'||(rr?.steps||[]).length>0&&(rr.steps||[]).every(x=>x.status==='completed');
+  const failed=status==='needs_attention'||(rr?.steps||[]).some(x=>x.status==='error');
+  const last=(rr?.steps||[]).slice(-1)[0];
+  let msg='';
+  if(completed){
+    msg=last?.result&&/google\/drive_create_text/i.test(String(last?.result))?'Done. I created the Google Drive file myself.':'Mission complete. '+String(last?.result||rr?.mission?.summary||'Done.');
+    $('#cs').textContent='MISSION COMPLETE';
+  }else if(waiting){
+    msg='This mission contains an action that still requires your approval. I left you in the HUD; open Live Ops when you want to approve it.';
+    $('#cs').textContent='APPROVAL REQUIRED';
+  }else if(failed){
+    msg='The mission hit an execution error. I left you here so we can fix it without interrupting the HUD.';
+    $('#cs').textContent='MISSION NEEDS ATTENTION';
+  }else{
+    msg='Mission started. I am handling the internal work in the background.';
+    $('#cs').textContent='MISSION RUNNING';
+  }
+  try{await speak(msg)}catch(e){console.warn('mission voice',e)}
+  if(!speaking)$('#cs').textContent=completed?'MISSION COMPLETE':waiting?'APPROVAL REQUIRED':failed?'MISSION NEEDS ATTENTION':'MISSION RUNNING';
   return
  }
  const m=t.match(/^\s*(?:ask|bring in)\s+([^:]+):\s*(.+)$/i);
