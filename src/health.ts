@@ -53,7 +53,7 @@ export async function handleSystemStatus(req:Request,u:URL){
   if(req.method!=="GET"||u.pathname!=="/api/system/status")return json({ok:false,error:"System status route not found"},404);
   const q=db();
   const database=await q`select 1 as ok`.then(()=>true).catch(()=>false);
-  const [agents,chiefs,memory,projects,folders,files,tasks,forgeJobs,forge,groq,eleven]=await Promise.all([
+  const [agents,chiefs,memory,projects,folders,files,tasks,forgeJobs,owners,sessions,forge,groq,eleven]=await Promise.all([
     count(q`select count(*)::int as n from scotty_agents`),
     count(q`select count(*)::int as n from scotty_agents where is_chief=true`),
     count(q`select count(*)::int as n from scotty_memory`),
@@ -62,6 +62,8 @@ export async function handleSystemStatus(req:Request,u:URL){
     count(q`select count(*)::int as n from scotty_files`),
     count(q`select count(*)::int as n from scotty_tasks`),
     count(q`select count(*)::int as n from scotty_forge_jobs`),
+    count(q`select count(*)::int as n from scotty_auth_owner`),
+    count(q`select count(*)::int as n from scotty_sessions where expires_at>now()`),
     forgeHealth(),
     groqHealth(),
     elevenHealth()
@@ -79,6 +81,7 @@ export async function handleSystemStatus(req:Request,u:URL){
   const checks=[
     {key:"gateway",label:"Cloud Gateway",ok:true,detail:"Render gateway online"},
     {key:"database",label:"Cloud Database",ok:database,detail:database?"Postgres reachable":"Postgres unavailable"},
+    {key:"auth",label:"Owner Session",ok:owners>=1,detail:owners>=1?(sessions+" active cloud session(s)"):"Owner password migration still pending"},
     {key:"brain",label:"S.C.O.T.T.Y. Brain",ok:brain,detail:brain?"Groq reasoning reachable":"Groq reasoning unavailable"},
     {key:"stt",label:"Speech Recognition",ok:stt,detail:stt?"Cloud STT provider reachable":"Speech provider unavailable"},
     {key:"tts",label:"S.C.O.T.T.Y. Voice",ok:tts,detail:tts?"ElevenLabs reachable":"ElevenLabs unavailable"},
@@ -98,7 +101,7 @@ export async function handleSystemStatus(req:Request,u:URL){
     status:score===100?"ready":score>=80?"ready-with-warnings":"degraded",
     score,
     checks,
-    counts:{agents,chiefs,memory,projects,folders,files,tasks,forgeJobs},
+    counts:{agents,chiefs,memory,projects,folders,files,tasks,forgeJobs,owners,sessions},
     forge,
     providers:{groq,elevenLabs:eleven},
     legacyFallbacksActive:legacyFallbacks,
