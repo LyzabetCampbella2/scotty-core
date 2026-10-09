@@ -45,3 +45,6 @@ These branches preserve the production HUD and core state before any future reti
 
 ## Part 8 result
 S.C.O.T.T.Y. is operating on the cloud stack with the old Windows/Tailscale/Railway runtime dependency removed from the active path. Railway deletion is deliberately deferred because it is destructive and unnecessary for cloud independence.
+
+
+Voice/approval diagnostic checkpoint: 2026-10-09.
