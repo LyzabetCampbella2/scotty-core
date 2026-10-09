@@ -118,9 +118,9 @@ async function google(op:string,p:any){
   const boundary="scotty_"+crypto.randomUUID().replaceAll("-","");
   const metadata=JSON.stringify({name,mimeType:"text/plain"});
   const body=`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n${text}\r\n--${boundary}--`;
-  const r=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",{method:"POST",headers:{authorization:"Bearer "+token,"content-type":"multipart/related; boundary="+boundary},body,signal:AbortSignal.timeout(20000)});
+  const r=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink",{method:"POST",headers:{authorization:"Bearer "+token,"content-type":"multipart/related; boundary="+boundary},body,signal:AbortSignal.timeout(20000)});
   const d:any=await r.json().catch(()=>({}));if(!r.ok)throw new Error(String(d?.error?.message||"Drive upload failed"));
-  return {id:d.id,name:d.name||name};
+  return {id:d.id,name:d.name||name,webViewLink:d.webViewLink||null};
  }
  throw new Error("Unsupported Google operation");
 }
