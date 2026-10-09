@@ -2,6 +2,7 @@ import postgres from "postgres";
 import { groqThink,addActivity } from "../brain/cloud.ts";
 import { getAgentsByIds,memoryContext,runAgent } from "../agents/cloud.ts";
 import { executeProviderAction } from "../providers/cloud.ts";
+import { getGoogleConnectedEmail } from "../connections/cloud.ts";
 
 let sql:any=null,initPromise:Promise<void>|null=null;
 function db(){
@@ -101,6 +102,27 @@ function chooseChief(goal:string,rows:any[]){
 async function planMission(goal:string,title:string){
  const rows=await chiefs();
  const drive=goal.match(/create\s+(?:a\s+)?google\s+drive\s+(?:text\s+)?file\s+named\s+(.+?)\s+containing\s*:\s*([\s\S]+)$/i);
+ const gmail=goal.match(/send\s+(?:a\s+)?gmail\s+to\s+(?:the\s+)?same\s+google\s+account\s+connected\s+to\s+s\.?c\.?o\.?t\.?t\.?y\.?\s+with\s+the\s+subject\s+(.+?)\s+and\s+the\s+message\s*:\s*([\s\S]+)$/i);
+ if(gmail){
+  const chief=chooseChief(goal,rows);
+  const to=await getGoogleConnectedEmail();
+  const subject=String(gmail[1]||"").trim().replace(/^["“”']+|["“”']+$/g,"").slice(0,240);
+  const body=String(gmail[2]||"").trim().slice(0,20000);
+  return {
+   summary:"Prepare the requested Gmail to the connected Google account and wait for owner approval before sending.",
+   steps:[{
+    stepNo:1,
+    title:"Send Gmail to connected Google account",
+    instruction:`Send a Gmail to ${to} with subject "${subject}" and the requested message.`,
+    actionType:"external_action",
+    chiefId:chief?.id||null,
+    requiresApproval:true,
+    actionProvider:"google",
+    actionOperation:"gmail_send",
+    actionPayload:{to,subject,body}
+   }]
+  };
+ }
  if(drive){
   const chief=chooseChief(goal,rows);
   const name=String(drive[1]||"").trim().replace(/^["“”']+|["“”']+$/g,"").slice(0,240);
