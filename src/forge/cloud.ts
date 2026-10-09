@@ -127,8 +127,8 @@ async function processJob(id:string){
 
 export async function runForgeSelfTest(){
  await ensure();
- const existing=await db()`select id,status,output_blend as "outputBlend",error from scotty_forge_jobs where title='SCOTTY CLOUD FORGE SELF TEST' order by created_at desc limit 1`;
- if(existing?.[0]?.status==="exported")return {ok:true,reused:true,...existing[0]};
+ const existing=await db()`select id,status,output_blend as "outputBlend",error,(blend_bytes is not null) as "blendReady",((preview_png is not null) or (preview_svg is not null)) as "previewReady",(glb_bytes is not null) as "glbReady" from scotty_forge_jobs where title='SCOTTY CLOUD FORGE SELF TEST' order by created_at desc limit 1`;
+ if(existing?.[0]?.status==="exported"&&existing?.[0]?.blendReady&&existing?.[0]?.previewReady&&existing?.[0]?.glbReady)return {ok:true,reused:true,...existing[0]};
  const id=crypto.randomUUID();
  const base={title:"SCOTTY CLOUD FORGE SELF TEST",taskType:"scene",primitive:"cube",notes:"Automated cloud Blender verification.",destructive:false,replaceExisting:false};
  const plan={summary:"Render a simple cube scene to verify the cloud Blender worker.",sceneSteps:["Create cube","Light scene","Render preview","Export blend and glb"]};
