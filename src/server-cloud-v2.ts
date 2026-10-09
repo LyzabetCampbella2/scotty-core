@@ -5,7 +5,7 @@ import { handleCloudMemory } from "./memory/cloud.ts";
 import { handleCloudCommand } from "./brain/cloud.ts";
 import { handleCloudAgents,bootstrapAgents } from "./agents/cloud.ts";
 import { handleHealth } from "./health.ts";
-import { handleCloudAuth } from "./auth/cloud.ts";
+import { handleCloudAuth,isCloudAuthenticated } from "./auth/cloud.ts";
 import { legacyApi,eyesFallback,voiceFallback,memoryFallback } from "./compat/cloud-fallback.ts";
 
 const PORT=Number(process.env.PORT||3000);
@@ -16,6 +16,18 @@ Bun.serve({port:PORT,async fetch(req){
 
  if(u.pathname==="/api/hud/stt") return handleHudStt(req);
  if(u.pathname.startsWith("/api/auth")) return handleCloudAuth(req,u);
+
+ const protectedRoute=
+  u.pathname==="/api/hud/stt"||
+  u.pathname==="/api/hud/command"||
+  u.pathname==="/api/hud/agents"||
+  u.pathname==="/api/hud/agents/run"||
+  u.pathname==="/api/hud/activity"||
+  u.pathname==="/api/tts"||
+  u.pathname==="/api/voice/speak"||
+  u.pathname==="/api/eyes/analyze"||
+  (u.pathname.startsWith("/api/memory/")&&u.pathname!=="/api/memory/status");
+ if(protectedRoute&&!(await isCloudAuthenticated(req))) return Response.json({ok:false,error:"Authentication required"},{status:401,headers:{"cache-control":"no-store"}});
  if(u.pathname==="/api/hud/command"||u.pathname==="/api/hud/brain/status") return handleCloudCommand(req,u);
  if(u.pathname==="/api/hud/agents"||u.pathname==="/api/hud/agents/run"||u.pathname==="/api/hud/agents/status"||u.pathname==="/api/hud/activity") return handleCloudAgents(req,u);
 
