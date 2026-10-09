@@ -110,6 +110,10 @@ async function writeOwner(password:string,source:string){
   on conflict(id) do update set password_hash=excluded.password_hash,migrated_from=excluded.migrated_from,updated_at=now()`;
 }
 
+export async function isCloudAuthenticated(req:Request){
+ return validSession(req);
+}
+
 export async function handleCloudAuth(req:Request,u:URL){
  const json=(data:unknown,status=200,headers:Record<string,string>={})=>Response.json(data,{status,headers:{"cache-control":"no-store",...headers}});
  await ensure();
