@@ -35,7 +35,7 @@ export async function handleCloudVoice(req:Request,u:URL){
   }
   try{
    let r=await synth(voiceId);
-   if(r.status===404&&requestedVoice&&defaultVoice&&requestedVoice!==defaultVoice)r=await synth(defaultVoice);
+   if(!r.ok&&requestedVoice&&defaultVoice&&requestedVoice!==defaultVoice)r=await synth(defaultVoice);
    if(!r.ok){
     let detail="Voice provider request failed";
     try{
