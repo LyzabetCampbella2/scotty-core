@@ -93,6 +93,23 @@ async function functionalForgeArtifact(){
   }catch{return {ok:false,detail:"Forge artifact check failed"}}
 }
 
+export async function handleSystemRecover(req:Request,u:URL){
+  const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{"cache-control":"no-store"}});
+  if(req.method!=="POST"||u.pathname!=="/api/system/recover")return json({ok:false,error:"System recovery route not found"},404);
+  const q=db();
+  const expired=await q`delete from scotty_sessions where expires_at<=now() returning token_hash`.catch(()=>[]);
+  const agents=await q`update scotty_agents set state='idle',current_job=null,queue_count=0,updated_at=now()
+    where state='working' and updated_at<now()-interval '20 minutes' returning id`.catch(()=>[]);
+  const forge=await q`update scotty_forge_jobs set status='queued',progress=20,error='Recovered stale worker state. Retry from Forge.',updated_at=now()
+    where status='working' and updated_at<now()-interval '20 minutes' returning id`.catch(()=>[]);
+  await q`delete from scotty_memory where scope='system-qa' and created_at<now()-interval '1 hour'`.catch(()=>{});
+  try{
+    await q`insert into scotty_activity(source,title,message,metadata)
+      values('SCOTTY','SYSTEM RECOVERY',${"Recovered "+agents.length+" stale agent job(s), "+forge.length+" stale Forge job(s), and removed "+expired.length+" expired session(s)."},${q.json({agents:agents.length,forge:forge.length,expiredSessions:expired.length})})`;
+  }catch{}
+  return json({ok:true,recoveredAgents:agents.length,recoveredForgeJobs:forge.length,expiredSessionsRemoved:expired.length});
+}
+
 export async function handleSystemQa(req:Request,u:URL){
   const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{"cache-control":"no-store"}});
   if(req.method!=="POST"||u.pathname!=="/api/system/qa")return json({ok:false,error:"System QA route not found"},404);
