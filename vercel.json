@@ -2,9 +2,7 @@
   "framework": null,
   "rewrites": [
     { "source": "/hud", "destination": "/index.html" },
-    { "source": "/hud/", "destination": "/index.html" },
-    { "source": "/hud/manifest.json", "destination": "https://scotty-memory-diagnostic-production.up.railway.app/hud-manifest.json" },
-    { "source": "/api/:path*", "destination": "https://scotty-core.onrender.com/api/:path*" },
+    { "source": "/hud/", "destination": "/index.html" },    { "source": "/api/:path*", "destination": "https://scotty-core.onrender.com/api/:path*" },
     { "source": "/forge", "destination": "https://scotty-core-plqe-production.up.railway.app/forge" },
     { "source": "/forge/:path*", "destination": "https://scotty-core-plqe-production.up.railway.app/forge/:path*" }
   ]
