@@ -1,11 +1,37 @@
 {
   "framework": null,
   "rewrites": [
-    { "source": "/hud", "destination": "/index.html" },
-    { "source": "/hud/", "destination": "/index.html" },
-    { "source": "/api/:path*", "destination": "https://scotty-core.onrender.com/api/:path*" },
-    { "source": "/forge/api/:path*", "destination": "https://scotty-core.onrender.com/forge/api/:path*" },
-    { "source": "/forge", "destination": "/forge/index.html" },
-    { "source": "/forge/", "destination": "/forge/index.html" }
+    {
+      "source": "/hud",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/hud/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://scotty-core.onrender.com/api/:path*"
+    },
+    {
+      "source": "/forge/api/:path*",
+      "destination": "https://scotty-core.onrender.com/forge/api/:path*"
+    },
+    {
+      "source": "/forge",
+      "destination": "/forge/index.html"
+    },
+    {
+      "source": "/forge/",
+      "destination": "/forge/index.html"
+    },
+    {
+      "source": "/system",
+      "destination": "/system/index.html"
+    },
+    {
+      "source": "/system/",
+      "destination": "/system/index.html"
+    }
   ]
 }
