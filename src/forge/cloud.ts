@@ -41,6 +41,9 @@ async function ensure(){
    updated_at timestamptz not null default now()
   )`;
   await q`create index if not exists scotty_forge_jobs_created_idx on scotty_forge_jobs(created_at desc)`;
+  await q`alter table scotty_forge_jobs add column if not exists blend_bytes bytea`;
+  await q`alter table scotty_forge_jobs add column if not exists preview_png bytea`;
+  await q`alter table scotty_forge_jobs add column if not exists glb_bytes bytea`;
  })();
  return initPromise;
 }
@@ -105,8 +108,12 @@ async function processJob(id:string){
   const r=await fetch(worker+"/run",{method:"POST",headers,body:JSON.stringify(payload),signal:AbortSignal.timeout(120000)});
   const out:any=await r.json().catch(()=>({}));
   if(!r.ok||!out?.ok)throw new Error(String(out?.error||"Cloud Blender worker failed"));
+  const blend=out.blendBase64?Uint8Array.fromBase64(String(out.blendBase64)):null;
+  const png=out.previewPngBase64?Uint8Array.fromBase64(String(out.previewPngBase64)):null;
+  const glb=out.glbBase64?Uint8Array.fromBase64(String(out.glbBase64)):null;
   const svg=String(out.previewSvg||previewSvg({...x,status:"exported"}));
-  await db()`update scotty_forge_jobs set status='exported',progress=100,output_blend=${String(out.outputBlend||"cloud://forge/"+id+".blend")},preview_svg=${svg},error=null,completed_at=now(),updated_at=now() where id=${id}`;
+  const output=blend?("/forge/api/jobs/"+id+"/blend"):String(out.outputBlend||"cloud://forge/"+id+".blend");
+  await db()`update scotty_forge_jobs set status='exported',progress=100,output_blend=${output},preview_svg=${svg},blend_bytes=${blend},preview_png=${png},glb_bytes=${glb},error=null,completed_at=now(),updated_at=now() where id=${id}`;
   await addActivity("FORGE","EXPORT COMPLETE",x.title,{jobId:id,outputBlend:out.outputBlend||null});
  }catch(e:any){
   await db()`update scotty_forge_jobs set status='failed',progress=100,error=${String(e?.message||e).slice(0,1200)},completed_at=now(),updated_at=now() where id=${id}`;
@@ -121,7 +128,10 @@ export async function handleCloudForge(req:Request,u:URL){
   const rows=await db()`select status,count(*)::int as n from scotty_forge_jobs group by status`;
   const counts:any={queued:0,working:0,exported:0,waitingForBlender:0};
   for(const x of rows){const n=Number(x.n||0);if(x.status==="queued")counts.queued=n;else if(x.status==="working")counts.working=n;else if(x.status==="exported")counts.exported=n;else if(x.status==="waiting_for_blender")counts.waitingForBlender=n}
-  return j({ok:true,provider:"render-postgres",blenderReady:Boolean(process.env.SCOTTY_FORGE_WORKER_URL),counts});
+  let blenderReady=false,blenderVersion:string|null=null;
+  const worker=String(process.env.SCOTTY_FORGE_WORKER_URL||"").replace(/\/$/,"");
+  if(worker){try{const wr=await fetch(worker+"/health",{signal:AbortSignal.timeout(8000)});const w:any=await wr.json().catch(()=>({}));blenderReady=Boolean(wr.ok&&w?.blenderReady);blenderVersion=w?.version||null}catch{}}
+  return j({ok:true,provider:"render-postgres",blenderReady,blenderVersion,workerConfigured:Boolean(worker),counts});
  }
  if(req.method==="GET"&&p==="/forge/api/jobs"){
   const rows=await db()`select id,project_id as "projectId",creative_project_id as "creativeProjectId",agent_ids as "agentIds",title,task_type as "taskType",primitive,source_images as "sourceImages",asset_paths as "assetPaths",input_blend_file as "inputBlendFile",notes,destructive,replace_existing as "replaceExisting",status,progress,plan,output_blend as "outputBlend",error,created_at as "createdAt",updated_at as "updatedAt" from scotty_forge_jobs order by created_at desc limit 100`;
@@ -159,8 +169,22 @@ export async function handleCloudForge(req:Request,u:URL){
  }
  const prev=p.match(/^\/forge\/api\/jobs\/([0-9a-f-]+)\/preview$/i);
  if(req.method==="GET"&&prev){
-  const x=await row(prev[1]);if(!x)return new Response("Not found",{status:404});
+  const bytes=await db()`select preview_png as "previewPng",preview_svg as "previewSvg",title,primitive,task_type as "taskType",status from scotty_forge_jobs where id=${prev[1]} limit 1`;
+  const x:any=bytes?.[0];if(!x)return new Response("Not found",{status:404});
+  if(x.previewPng)return new Response(x.previewPng,{headers:{"content-type":"image/png","cache-control":"private, max-age=60"}});
   return new Response(x.previewSvg||previewSvg(x),{headers:{"content-type":"image/svg+xml; charset=utf-8","cache-control":"no-store"}});
+ }
+ const artifact=p.match(/^\/forge\/api\/jobs\/([0-9a-f-]+)\/(blend|glb)$/i);
+ if(req.method==="GET"&&artifact){
+  const kind=artifact[2].toLowerCase();
+  const rows=kind==="blend"
+   ? await db()`select blend_bytes as bytes,title from scotty_forge_jobs where id=${artifact[1]} limit 1`
+   : await db()`select glb_bytes as bytes,title from scotty_forge_jobs where id=${artifact[1]} limit 1`;
+  const x:any=rows?.[0];if(!x||!x.bytes)return new Response("Artifact not available",{status:404});
+  const safe=String(x.title||"scotty-forge").replace(/[^a-z0-9_-]+/gi,"-").replace(/^-+|-+$/g,"").slice(0,80)||"scotty-forge";
+  const ext=kind==="blend"?"blend":"glb";
+  const type=kind==="blend"?"application/octet-stream":"model/gltf-binary";
+  return new Response(x.bytes,{headers:{"content-type":type,"content-disposition":`attachment; filename="${safe}.${ext}"`,"cache-control":"private, max-age=60"}});
  }
  return j({ok:false,error:"Forge route not found"},404);
 }
