@@ -1,6 +1,7 @@
 import postgres from "postgres";
 import { groqThink,addActivity } from "../brain/cloud.ts";
 import { getAgentsByIds,memoryContext,runAgent } from "../agents/cloud.ts";
+import { executeProviderAction } from "../providers/cloud.ts";
 
 let sql:any=null,initPromise:Promise<void>|null=null;
 function db(){
@@ -45,6 +46,10 @@ async function ensure(){
     completed_at timestamptz,
     unique(mission_id,step_no)
   )`;
+  await q`alter table scotty_mission_steps add column if not exists action_provider text`;
+  await q`alter table scotty_mission_steps add column if not exists action_operation text`;
+  await q`alter table scotty_mission_steps add column if not exists action_payload jsonb not null default '{}'::jsonb`;
+  await q`alter table scotty_mission_steps add column if not exists approval_granted boolean not null default false`;
   await q`create table if not exists scotty_approvals(
     id uuid primary key,
     mission_id uuid not null references scotty_missions(id) on delete cascade,
