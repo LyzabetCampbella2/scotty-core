@@ -1,4 +1,5 @@
 import postgres from "postgres";
+import { getGoogleAccessToken,connectionStatus } from "../connections/cloud.ts";
 
 let sql:any=null,initPromise:Promise<void>|null=null;
 function db(){
@@ -36,11 +37,13 @@ function b64url(s:string){
  let bin="";for(const b of bytes)bin+=String.fromCharCode(b);
  return btoa(bin).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 }
-function providerInfo(){
+async function providerInfo(){
  const env=process.env;
+ let googleConnection:any=null;
+ try{googleConnection=(await connectionStatus()).connections.google}catch{}
  return [
   {id:"telegram",label:"Telegram",configured:Boolean(env.TELEGRAM_BOT_TOKEN),operations:["send_message"]},
-  {id:"google",label:"Google",configured:Boolean(env.GOOGLE_ACCESS_TOKEN),operations:["gmail_send","calendar_create","drive_create_text"]},
+  {id:"google",label:"Google",configured:Boolean(googleConnection?.configured||env.GOOGLE_ACCESS_TOKEN),accountEmail:googleConnection?.accountEmail||null,operations:["gmail_send","calendar_create","drive_create_text"],connectionMode:googleConnection?.configured?"oauth":"legacy_or_unconnected"},
   {id:"github",label:"GitHub",configured:Boolean(env.SCOTTY_GITHUB_TOKEN||env.GITHUB_TOKEN),operations:["create_issue","comment_issue"]},
   {id:"slack",label:"Slack",configured:Boolean(env.SLACK_BOT_TOKEN),operations:["send_message"]},
   {id:"dropbox",label:"Dropbox",configured:Boolean(env.DROPBOX_ACCESS_TOKEN),operations:["upload_text"]},
@@ -92,7 +95,7 @@ async function github(op:string,p:any){
  throw new Error("Unsupported GitHub operation");
 }
 async function google(op:string,p:any){
- const token=process.env.GOOGLE_ACCESS_TOKEN;if(!token)throw new Error("Google is not connected");
+ const token=await getGoogleAccessToken();
  const headers={authorization:"Bearer "+token,"content-type":"application/json"};
  if(op==="gmail_send"){
   const to=String(p.to||"").trim(),subject=String(p.subject||"").trim(),body=String(p.body||p.text||"").trim();
@@ -184,7 +187,7 @@ export async function executeProviderAction(input:any){
 }
 export async function providerStatus(){
  await ensure();
- const providers=providerInfo();
+ const providers=await providerInfo();
  const receipts=await db()`select id,mission_id as "missionId",step_id as "stepId",provider,operation,status,response_summary as "responseSummary",error,created_at as "createdAt" from scotty_action_receipts order by created_at desc limit 30`;
  return {providers,receipts};
 }
