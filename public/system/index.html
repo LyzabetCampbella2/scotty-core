@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>S.C.O.T.T.Y. Release Center</title>
+<style>
+:root{color-scheme:dark;--bg:#020913;--panel:#07131f;--line:#153244;--text:#dff8ff;--muted:#7896a7;--cyan:#5eeaff;--green:#72efc5;--amber:#ffd166;--red:#ff91a4}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% 10%,#0a2435 0,#020913 42%,#01060c 100%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;min-height:100vh}
+.wrap{max-width:1240px;margin:auto;padding:18px}.top{display:flex;gap:12px;align-items:center;justify-content:space-between;border:1px solid var(--line);background:rgba(6,20,31,.92);border-radius:14px;padding:16px 18px}
+.brand{font-weight:800;letter-spacing:.32em}.brand small{display:block;color:var(--muted);font-size:10px;letter-spacing:.16em;margin-top:6px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{appearance:none;border:1px solid #28546b;background:#061824;color:#dff8ff;border-radius:9px;padding:10px 13px;font-size:11px;letter-spacing:.08em;text-decoration:none}.btn:active{transform:translateY(1px)}
+.hero{display:grid;grid-template-columns:240px 1fr;gap:14px;margin-top:14px}.score,.panel{border:1px solid var(--line);background:rgba(5,17,27,.94);border-radius:14px}.score{padding:20px;display:flex;flex-direction:column;justify-content:center;min-height:180px}.score strong{font-size:58px;line-height:1}.score span{color:var(--muted);font-size:11px;letter-spacing:.12em;margin-top:10px}.panel{padding:14px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.check{border:1px solid #132d3c;background:#04111b;border-radius:10px;padding:12px;display:flex;justify-content:space-between;gap:12px}.check b{font-size:12px}.check small{display:block;color:var(--muted);margin-top:5px;line-height:1.35}.state{font-size:10px;letter-spacing:.08em;white-space:nowrap}.ok{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--amber)}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}.stat{padding:13px;border:1px solid var(--line);background:#06131e;border-radius:10px}.stat strong{font-size:24px}.stat span{display:block;color:var(--muted);font-size:10px;letter-spacing:.1em;margin-top:4px}
+.cols{display:grid;grid-template-columns:1.2fr .8fr;gap:14px;margin-top:14px}.title{font-size:10px;color:#8fb0c0;letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px}.activity{max-height:420px;overflow:auto}.evt{padding:10px 0;border-top:1px solid rgba(255,255,255,.06)}.evt:first-child{border-top:0}.evt b{font-size:11px}.evt p{margin:5px 0;color:#9bb6c4;font-size:12px}.evt time{color:#587587;font-size:9px}.meta{font-size:12px;color:#9db7c4;line-height:1.7}.pill{display:inline-block;border:1px solid #25485b;border-radius:999px;padding:5px 8px;margin:3px 3px 0 0;font-size:9px;color:#a9c7d5}
+.footer{margin-top:14px;color:#587587;font-size:10px;text-align:center}
+@media(max-width:800px){.hero,.cols{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.top{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">S.C.O.T.T.Y.<small>PART 8 • UNIFIED RELEASE CENTER</small></div>
+    <div class="actions"><a class="btn" href="/">RETURN TO HUD</a><a class="btn" href="/forge">3D FORGE</a><button class="btn" id="refresh">RUN SYSTEM CHECK</button><button class="btn" id="fullqa">RUN FULL QA</button></div>
+  </div>
+  <div class="hero">
+    <section class="score"><strong id="score">—</strong><span id="overall">CHECKING SYSTEMS</span></section>
+    <section class="panel"><div class="title">Subsystem Readiness</div><div class="grid" id="checks"></div></section>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="cols">
+    <section class="panel"><div class="title">Failure Receipts & Live Activity</div><div class="activity" id="activity">Loading…</div></section>
+    <section class="panel"><div class="title">Cloud Release State</div><div class="meta" id="meta">Loading…</div><div class="title" style="margin-top:16px">Browser Permissions</div><div id="permissions" class="meta">Checking…</div><div class="title" style="margin-top:16px">Recovery Controls</div><div class="actions"><a class="btn" href="/?wake=1">WAKE HUD</a><a class="btn" href="/forge">OPEN FORGE</a><button class="btn" id="recheck">RECHECK</button><button class="btn" id="recover">RECOVER STALE JOBS</button></div></section>
+  </div>
+  <div class="footer">S.C.O.T.T.Y. release telemetry refreshes automatically every 15 seconds.</div>
+</div>
+<script>
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function request(url){const r=await fetch(url,{credentials:'same-origin',cache:'no-store'});if(r.status===401){location.href='/?next=/system';throw Error('Owner session required')}const d=await r.json();if(!r.ok)throw Error(d.error||('HTTP '+r.status));return d}
+function statusClass(ok){return ok?'ok':'bad'}
+async function permissionState(name){
+  try{
+    if(!navigator.permissions||!navigator.permissions.query)return 'unknown';
+    const p=await navigator.permissions.query({name});
+    return p.state||'unknown';
+  }catch{return 'unknown'}
+}
+async function showPermissions(){
+  const mic=await permissionState('microphone');
+  const cam=await permissionState('camera');
+  document.querySelector('#permissions').innerHTML='<b>Microphone</b><br>'+esc(mic.toUpperCase())+'<br><br><b>Camera</b><br>'+esc(cam.toUpperCase());
+}
+async function load(){
+ const btn=document.querySelector('#refresh');btn.disabled=true;btn.textContent='CHECKING…';
+ try{
+  const [s,a]=await Promise.all([request('/api/system/status'),request('/api/hud/activity?limit=40')]);
+  document.querySelector('#score').textContent=(s.score??0)+'%';
+  document.querySelector('#overall').textContent=String(s.status||'unknown').replaceAll('-',' ').toUpperCase();
+  document.querySelector('#checks').innerHTML=(s.checks||[]).map(x=>'<div class="check"><div><b>'+esc(x.label)+'</b><small>'+esc(x.detail)+'</small></div><div class="state '+statusClass(x.ok)+'">'+(x.ok?'READY':'CHECK')+'</div></div>').join('');
+  const c=s.counts||{};
+  const vals=[['AGENTS',c.agents],['CHIEFS',c.chiefs],['MEMORY',c.memory],['PROJECTS',c.projects],['FOLDERS',c.folders],['FILES',c.files],['TASKS',c.tasks],['FORGE JOBS',c.forgeJobs],['OWNER',c.owners],['SESSIONS',c.sessions]];
+  document.querySelector('#stats').innerHTML=vals.map(x=>'<div class="stat"><strong>'+esc(x[1]??0)+'</strong><span>'+esc(x[0])+'</span></div>').join('');
+  const items=(a.items||[]);const failures=items.filter(x=>/error|failed|failure|offline|degraded/i.test((x.title||'')+' '+(x.message||'')));
+  const shown=[...failures,...items.filter(x=>!failures.includes(x))].slice(0,30);
+  document.querySelector('#activity').innerHTML=shown.length?shown.map(x=>'<div class="evt"><b>'+esc(x.source||'SCOTTY')+' • '+esc(x.title||'ACTIVITY')+'</b><p>'+esc(x.message||'')+'</p><time>'+esc(new Date(x.createdAt||Date.now()).toLocaleString())+'</time></div>').join(''):'No activity receipts yet.';
+  const f=s.forge||{},p=s.providers||{};
+  document.querySelector('#meta').innerHTML='<b>Architecture</b><br>'+esc(s.architecture||'cloud')+'<br><br><b>Release</b><br>'+esc(s.release||'part-8')+'<br><br><b>Last check</b><br>'+esc(new Date(s.checkedAt).toLocaleString())+'<br><br><b>Groq</b><br>'+esc(p.groq?.reachable?'REACHABLE':'CHECK')+'<br><br><b>ElevenLabs</b><br>'+esc(p.elevenLabs?.reachable?'REACHABLE':'CHECK')+'<br><br><b>Forge worker</b><br>'+esc(f.blenderReady?'READY':'CHECK')+(f.version?'<br>'+esc(f.version):'')+'<br><br><span class="pill">VERCEL HUD</span><span class="pill">RENDER CORE</span><span class="pill">POSTGRES MEMORY</span><span class="pill">GROQ BRAIN</span><span class="pill">ELEVENLABS VOICE</span>';
+  await showPermissions();
+ }catch(e){
+  document.querySelector('#overall').textContent='SYSTEM CHECK ERROR';
+  document.querySelector('#checks').innerHTML='<div class="check"><div><b>Release Center</b><small>'+esc(e.message)+'</small></div><div class="state bad">CHECK</div></div>';
+ }finally{btn.disabled=false;btn.textContent='RUN SYSTEM CHECK'}
+}
+async function runFullQa(){
+  const b=document.querySelector('#fullqa');b.disabled=true;b.textContent='RUNNING QA…';
+  try{
+    const r=await fetch('/api/system/qa',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:'{}'});
+    if(r.status===401){location.href='/?next=/system';return}
+    const d=await r.json();if(!r.ok)throw Error(d.error||'QA failed');
+    document.querySelector('#score').textContent=(d.score??0)+'%';
+    document.querySelector('#overall').textContent='FULL QA • '+String(d.overall||'unknown').replaceAll('-',' ').toUpperCase();
+    document.querySelector('#checks').innerHTML=(d.checks||[]).map(x=>'<div class="check"><div><b>'+esc(x.label)+'</b><small>'+esc(x.detail)+'</small></div><div class="state '+statusClass(x.ok)+'">'+(x.ok?'PASS':'CHECK')+'</div></div>').join('');
+  }catch(e){document.querySelector('#overall').textContent='FULL QA ERROR'}
+  finally{b.disabled=false;b.textContent='RUN FULL QA'}
+}
+async function recover(){
+  const b=document.querySelector('#recover');b.disabled=true;b.textContent='RECOVERING…';
+  try{
+    const r=await fetch('/api/system/recover',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:'{}'});
+    if(r.status===401){location.href='/?next=/system';return}
+    const d=await r.json();if(!r.ok)throw Error(d.error||'Recovery failed');
+    b.textContent='RECOVERED '+(d.recoveredAgents||0)+' AGENT / '+(d.recoveredForgeJobs||0)+' FORGE';
+    setTimeout(()=>{b.textContent='RECOVER STALE JOBS'},2200);await load();
+  }catch(e){b.textContent='RECOVERY CHECK';setTimeout(()=>{b.textContent='RECOVER STALE JOBS'},2200)}
+  finally{b.disabled=false}
+}
+document.querySelector('#refresh').onclick=load;document.querySelector('#recheck').onclick=load;document.querySelector('#fullqa').onclick=runFullQa;document.querySelector('#recover').onclick=recover;load();setInterval(load,15000);
+</script>
+</body>
+</html>
