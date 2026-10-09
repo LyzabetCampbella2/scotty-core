@@ -54,3 +54,7 @@ bootstrapResources().then(r=>console.log("S.C.O.T.T.Y. spatial resource graph re
 if(process.env.SCOTTY_FORGE_SELF_TEST==="1"){
  runForgeSelfTest().then(r=>console.log("S.C.O.T.T.Y. Forge self-test",JSON.stringify(r))).catch(e=>console.warn("S.C.O.T.T.Y. Forge self-test failed",e?.message||e));
 }
+if(process.env.SCOTTY_FULL_QA_ON_START==="1"){
+ const qr=new Request("http://localhost/api/system/qa",{method:"POST"});
+ handleSystemQa(qr,new URL(qr.url)).then(async r=>console.log("S.C.O.T.T.Y. Part 8 full QA",await r.text())).catch(e=>console.warn("S.C.O.T.T.Y. Part 8 full QA failed",e?.message||e));
+}
