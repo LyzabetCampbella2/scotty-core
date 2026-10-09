@@ -8,7 +8,6 @@ import { handleCloudForge,runForgeSelfTest } from "./forge/cloud.ts";
 import { handleCloudResources,bootstrapResources } from "./resources/cloud.ts";
 import { handleHealth,handleSystemStatus } from "./health.ts";
 import { handleCloudAuth,isCloudAuthenticated } from "./auth/cloud.ts";
-import { legacyApi,eyesFallback,voiceFallback,memoryFallback } from "./compat/cloud-fallback.ts";
 
 const PORT=Number(process.env.PORT||3000);
 
@@ -39,25 +38,10 @@ Bun.serve({port:PORT,async fetch(req){
  if(u.pathname.startsWith("/forge/api/")) return handleCloudForge(req,u);
  if(u.pathname==="/api/system/status") return handleSystemStatus(req,u);
 
- if(u.pathname.startsWith("/api/eyes")){
-  if(process.env.LOCAL_BRAIN_URL||process.env.GROQ_API_KEY||process.env.OPENAI_API_KEY) return handleEyesOn(req,u);
-  return await eyesFallback(req,u) || handleEyesOn(req,u);
- }
-
- if(u.pathname==="/api/tts"||u.pathname.startsWith("/api/voice")){
-  if(process.env.ELEVENLABS_API_KEY) return handleCloudVoice(req,u);
-  return await voiceFallback(req,u) || handleCloudVoice(req,u);
- }
-
- if(u.pathname.startsWith("/api/memory")){
-  if(process.env.DATABASE_URL) return handleCloudMemory(req,u);
-  return await memoryFallback(req,u) || handleCloudMemory(req,u);
- }
-
- if(u.pathname.startsWith("/api/")){
-  const r=await legacyApi(req,u);
-  if(r)return r;
- }
+ if(u.pathname.startsWith("/api/eyes")) return handleEyesOn(req,u);
+ if(u.pathname==="/api/tts"||u.pathname.startsWith("/api/voice")) return handleCloudVoice(req,u);
+ if(u.pathname.startsWith("/api/memory")) return handleCloudMemory(req,u);
+ if(u.pathname.startsWith("/api/")) return Response.json({ok:false,error:"S.C.O.T.T.Y. cloud route not found"},{status:404,headers:{"cache-control":"no-store"}});
 
  return Response.json({service:"S.C.O.T.T.Y.",status:"online",architecture:"cloud-gateway-v3",native:["brain","agents","activity","resources","eyes","stt","voice","memory","forge-control","release-status"]});
 }});
