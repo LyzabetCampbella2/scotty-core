@@ -153,7 +153,7 @@ export async function handleSystemStatus(req:Request,u:URL){
   if(req.method!=="GET"||u.pathname!=="/api/system/status")return json({ok:false,error:"System status route not found"},404);
   const q=db();
   const database=await q`select 1 as ok`.then(()=>true).catch(()=>false);
-  const [agents,chiefs,memory,projects,folders,files,tasks,forgeJobs,owners,sessions,forge,groq,eleven]=await Promise.all([
+  const [agents,chiefs,memory,projects,folders,files,tasks,forgeJobs,missions,pendingApprovals,owners,sessions,forge,groq,eleven]=await Promise.all([
     count(q`select count(*)::int as n from scotty_agents`),
     count(q`select count(*)::int as n from scotty_agents where is_chief=true`),
     count(q`select count(*)::int as n from scotty_memory`),
@@ -162,6 +162,8 @@ export async function handleSystemStatus(req:Request,u:URL){
     count(q`select count(*)::int as n from scotty_files`),
     count(q`select count(*)::int as n from scotty_tasks`),
     count(q`select count(*)::int as n from scotty_forge_jobs`),
+    count(q`select count(*)::int as n from scotty_missions`),
+    count(q`select count(*)::int as n from scotty_approvals where status='pending'`),
     count(q`select count(*)::int as n from scotty_auth_owner`),
     count(q`select count(*)::int as n from scotty_sessions where expires_at>now()`),
     forgeHealth(),
@@ -189,6 +191,7 @@ export async function handleSystemStatus(req:Request,u:URL){
     {key:"memory",label:"Shared Memory",ok:database,detail:memory+" memory records"},
     {key:"agents",label:"Agent Matrix",ok:agents>=128&&chiefs>=12,detail:agents+" agents • "+chiefs+" chiefs"},
     {key:"resources",label:"Spatial Resources",ok:database,detail:projects+" projects • "+folders+" folders • "+files+" files • "+tasks+" tasks"},
+    {key:"missions",label:"Mission Autonomy",ok:database,detail:missions+" missions • "+pendingApprovals+" owner approval(s) pending"},
     {key:"forge",label:"3D Forge",ok:forge.blenderReady,detail:forge.blenderReady?("Blender online • "+(forge.version||"ready")):"Blender worker degraded"},
     {key:"legacy",label:"Legacy Fallbacks",ok:legacyFallbacks===0,detail:legacyFallbacks===0?"No Railway fallback variables active":legacyFallbacks+" temporary fallback link(s) remain"}
   ];
@@ -201,7 +204,7 @@ export async function handleSystemStatus(req:Request,u:URL){
     status:score===100?"ready":score>=80?"ready-with-warnings":"degraded",
     score,
     checks,
-    counts:{agents,chiefs,memory,projects,folders,files,tasks,forgeJobs,owners,sessions},
+    counts:{agents,chiefs,memory,projects,folders,files,tasks,forgeJobs,missions,pendingApprovals,owners,sessions},
     forge,
     providers:{groq,elevenLabs:eleven},
     legacyFallbacksActive:legacyFallbacks,
