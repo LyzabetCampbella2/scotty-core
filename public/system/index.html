@@ -59,7 +59,7 @@ async function load(){
   document.querySelector('#overall').textContent=String(s.status||'unknown').replaceAll('-',' ').toUpperCase();
   document.querySelector('#checks').innerHTML=(s.checks||[]).map(x=>'<div class="check"><div><b>'+esc(x.label)+'</b><small>'+esc(x.detail)+'</small></div><div class="state '+statusClass(x.ok)+'">'+(x.ok?'READY':'CHECK')+'</div></div>').join('');
   const c=s.counts||{};
-  const vals=[['AGENTS',c.agents],['CHIEFS',c.chiefs],['MEMORY',c.memory],['PROJECTS',c.projects],['FOLDERS',c.folders],['FILES',c.files],['TASKS',c.tasks],['FORGE JOBS',c.forgeJobs]];
+  const vals=[['AGENTS',c.agents],['CHIEFS',c.chiefs],['MEMORY',c.memory],['PROJECTS',c.projects],['FOLDERS',c.folders],['FILES',c.files],['TASKS',c.tasks],['FORGE JOBS',c.forgeJobs],['OWNER',c.owners],['SESSIONS',c.sessions]];
   document.querySelector('#stats').innerHTML=vals.map(x=>'<div class="stat"><strong>'+esc(x[1]??0)+'</strong><span>'+esc(x[0])+'</span></div>').join('');
   const items=(a.items||[]);const failures=items.filter(x=>/error|failed|failure|offline|degraded/i.test((x.title||'')+' '+(x.message||'')));
   const shown=[...failures,...items.filter(x=>!failures.includes(x))].slice(0,30);
