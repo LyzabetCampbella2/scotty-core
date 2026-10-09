@@ -114,7 +114,11 @@ async function processJob(id:string){
   const svg=String(out.previewSvg||previewSvg({...x,status:"exported"}));
   const output=blend?("/forge/api/jobs/"+id+"/blend"):String(out.outputBlend||"cloud://forge/"+id+".blend");
   await db()`update scotty_forge_jobs set status='exported',progress=100,output_blend=${output},preview_svg=${svg},blend_bytes=${blend},preview_png=${png},glb_bytes=${glb},error=null,completed_at=now(),updated_at=now() where id=${id}`;
-  await addActivity("FORGE","EXPORT COMPLETE",x.title,{jobId:id,outputBlend:out.outputBlend||null});
+  try{
+   await db()`insert into scotty_memory(scope,kind,text_content,metadata)
+    values('shared','forge-result',${"Forge completed: "+x.title},${db().json({jobId:id,projectId:x.projectId,blend:blend?("/forge/api/jobs/"+id+"/blend"):null,glb:glb?("/forge/api/jobs/"+id+"/glb"):null})})`;
+  }catch{}
+  await addActivity("FORGE","EXPORT COMPLETE",x.title,{jobId:id,outputBlend:output});
  }catch(e:any){
   await db()`update scotty_forge_jobs set status='failed',progress=100,error=${String(e?.message||e).slice(0,1200)},completed_at=now(),updated_at=now() where id=${id}`;
   await addActivity("FORGE","FORGE ERROR",String(e?.message||e).slice(0,280),{jobId:id});
