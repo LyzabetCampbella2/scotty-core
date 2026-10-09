@@ -1,0 +1,238 @@
+import postgres from "postgres";
+import { groqThink,addActivity } from "../brain/cloud.ts";
+
+let sql:any=null,initPromise:Promise<void>|null=null,lastImportTry=0;
+function db(){
+ if(!sql){
+  const url=process.env.DATABASE_URL;
+  if(!url)throw new Error("DATABASE_URL missing");
+  sql=postgres(url,{max:5,idle_timeout:20,connect_timeout:12,ssl:"require"});
+ }
+ return sql;
+}
+async function ensure(){
+ if(initPromise)return initPromise;
+ initPromise=(async()=>{
+  const q=db();
+  await q`create table if not exists scotty_agents(
+   id text primary key,
+   name text not null,
+   department text not null default 'Operations',
+   rank text not null default 'Agent',
+   is_chief boolean not null default false,
+   chief_id text,
+   clearance integer not null default 3,
+   model text not null default 'groq',
+   state text not null default 'idle',
+   queue_count integer not null default 0,
+   memory_links integer not null default 0,
+   voice_mode text not null default 'auto',
+   tools jsonb not null default '[]'::jsonb,
+   collaborators jsonb not null default '[]'::jsonb,
+   current_job text,
+   last_result text,
+   last_run_at timestamptz,
+   sort_order integer not null default 0,
+   raw jsonb not null default '{}'::jsonb,
+   updated_at timestamptz not null default now()
+  )`;
+  await q`create table if not exists scotty_agent_meta(
+   key text primary key,
+   value text not null,
+   updated_at timestamptz not null default now()
+  )`;
+  await q`create table if not exists scotty_activity(
+   id bigserial primary key,
+   source text not null default 'SCOTTY',
+   title text not null default 'ACTIVITY',
+   message text not null,
+   metadata jsonb not null default '{}'::jsonb,
+   created_at timestamptz not null default now()
+  )`;
+ })();
+ return initPromise;
+}
+
+const chiefs=[
+ ["spock","SPOCK","Strategy & Reasoning"],
+ ["worf","WORF","Security & Defense"],
+ ["data","DATA","Research & Intelligence"],
+ ["quark","QUARK","Commerce & Finance"],
+ ["kirk","KIRK","Command & Missions"],
+ ["uhura","UHURA","Communications & Languages"],
+ ["geordi","GEORDI","Engineering & Systems"],
+ ["keiko","KEIKO","Science & Environment"],
+ ["picard","PICARD","Policy & Diplomacy"],
+ ["bones","BONES","Health & Human Support"],
+ ["zora","ZORA","Creative & Knowledge"],
+ ["riker","RIKER","Operations & Coordination"]
+] as const;
+const seedNames=["O'Brien","Seven Ops","Privacy","Sarek","Risa","Bashir","Vox","Rubric","Lingua","Lab","Circuit","Saru","Guinan Herbal","Chronos","Switchboard","Factcheck","Guinan","Stellar","Number One","Vulcan","Sato","Resolver","PADD","Subspace","Hoshi","Context","CRM","Prime","Watchtower","Audit Sec","Deadline","PADD Legal","Lockout","Transporter","Replicator","Evidence","Promo","Chapel","Dax","ROM","Garak","Enterprise","Neelix","Signal","Daystrom","Academy","Jake","Holodeck","Benny","EMH","SCRIBE","Sentinel","Curator","Echo","Probe","Archer","Combadge","LCARS","Patch","Paris","Sisko","Helm","Mission Control","Delta","Argus","Red Alert","Indexer","Sarek Legal","Archive","QA Core","Policy","Dispatch","Shields","Tuvok","PADD Ops","EMH Persona","Trigger","NOO","Yeoman","Rand","Relay Auto","Examiner","Scheduler","Genesis","B-4","Risa Ayurveda","Boothby","Dockyard","Recovery","Vaultguard","JAG","Garax","Design","Vic","Miles","Lwaxana","Seven","Merchant","Security Command"];
+
+function fallbackRoster(){
+ const out:any[]=[];let order=0,seed=0;
+ for(const [id,name,department] of chiefs){
+  out.push({id:"chief-"+id,name,department,rank:"Chief",isChief:true,chiefId:null,clearance:5,model:"groq",state:"idle",queueCount:0,memoryLinks:0,voiceMode:"auto",tools:[{key:"coordinate",label:"Coordinate"},{key:"analyze",label:"Analyze"}],collaborators:[],currentJob:null,sortOrder:order++});
+ }
+ for(let ci=0;ci<chiefs.length;ci++){
+  const [cid,cname,department]=chiefs[ci];
+  const count=ci<8?10:9;
+  for(let j=0;j<count;j++){
+   const base=seedNames[seed++]||`${cname}-${String(j+1).padStart(2,"0")}`;
+   out.push({id:`agent-${cid}-${String(j+1).padStart(2,"0")}`,name:base,department,rank:"Agent",isChief:false,chiefId:"chief-"+cid,clearance:3,model:"groq",state:"idle",queueCount:0,memoryLinks:0,voiceMode:"auto",tools:[{key:"research",label:"Research"},{key:"report",label:"Report"}],collaborators:[],currentJob:null,sortOrder:order++});
+  }
+ }
+ return out;
+}
+
+async function replaceRoster(items:any[],source:string){
+ const q=db();
+ await q.begin(async(tx:any)=>{
+  await tx`delete from scotty_agents`;
+  let order=0;
+  for(const a of items){
+   const raw=a&&typeof a==="object"?a:{};
+   const id=String(raw.id||`agent-${order+1}`).slice(0,180);
+   const name=String(raw.name||id).slice(0,180);
+   const department=String(raw.department||"Operations").slice(0,180);
+   const rank=String(raw.rank||((raw.isChief||raw.is_chief)?"Chief":"Agent")).slice(0,100);
+   const isChief=Boolean(raw.isChief??raw.is_chief);
+   const chiefId=raw.chiefId?String(raw.chiefId).slice(0,180):raw.chief_id?String(raw.chief_id).slice(0,180):null;
+   const clearance=Math.max(1,Math.min(9,Number(raw.clearance||3)||3));
+   const model="groq";
+   const state=String(raw.state||"idle").slice(0,50);
+   const queueCount=Math.max(0,Number(raw.queueCount??raw.queue_count??0)||0);
+   const memoryLinks=Math.max(0,Number(raw.memoryLinks??raw.memory_links??0)||0);
+   const voiceMode=String(raw.voiceMode??raw.voice_mode??"auto").slice(0,50);
+   const tools=Array.isArray(raw.tools)?raw.tools:[];
+   const collaborators=Array.isArray(raw.collaborators)?raw.collaborators:[];
+   const currentJob=raw.currentJob?String(raw.currentJob).slice(0,2000):raw.current_job?String(raw.current_job).slice(0,2000):null;
+   const sortOrder=Number(raw.sortOrder??raw.sort_order??order)||order;
+   await tx`insert into scotty_agents(id,name,department,rank,is_chief,chief_id,clearance,model,state,queue_count,memory_links,voice_mode,tools,collaborators,current_job,sort_order,raw)
+    values(${id},${name},${department},${rank},${isChief},${chiefId},${clearance},${model},${state},${queueCount},${memoryLinks},${voiceMode},${tx.json(tools)},${tx.json(collaborators)},${currentJob},${sortOrder},${tx.json(raw)})`;
+   order++;
+  }
+  await tx`insert into scotty_agent_meta(key,value,updated_at) values('roster_source',${source},now())
+    on conflict(key) do update set value=excluded.value,updated_at=now()`;
+ });
+}
+
+async function importLegacy(cookie=""){
+ const base=String(process.env.SCOTTY_LEGACY_API_URL||"").replace(/\/$/,"");
+ if(!base)return false;
+ try{
+  const headers:any={accept:"application/json"};
+  if(cookie)headers.cookie=cookie;
+  const r=await fetch(base+"/api/hud/agents",{headers,signal:AbortSignal.timeout(20000)});
+  if(!r.ok)return false;
+  const j:any=await r.json();
+  const items=Array.isArray(j?.agents)?j.agents:[];
+  if(items.length<12)return false;
+  await replaceRoster(items,"legacy");
+  await addActivity("SCOTTY","AGENT MIGRATION",`Imported ${items.length} agents/chiefs into Render shared memory.`,{count:items.length});
+  console.log("S.C.O.T.T.Y. agent roster imported",items.length);
+  return true;
+ }catch(e:any){console.warn("Agent roster import deferred",e?.message||e);return false}
+}
+
+async function rosterSource(){
+ const r=await db()`select value from scotty_agent_meta where key='roster_source' limit 1`;
+ return r?.[0]?.value||"";
+}
+async function ensureRoster(cookie=""){
+ await ensure();
+ const countRow=await db()`select count(*)::int as n from scotty_agents`;
+ let n=Number(countRow?.[0]?.n||0),source=await rosterSource();
+ if((source!=="legacy"||n<12)&&Date.now()-lastImportTry>60000){
+  lastImportTry=Date.now();
+  if(await importLegacy(cookie))return;
+  const again=await db()`select count(*)::int as n from scotty_agents`;n=Number(again?.[0]?.n||0);
+ }
+ if(!n){
+  const items=fallbackRoster();
+  await replaceRoster(items,"fallback");
+  await addActivity("SCOTTY","AGENT MATRIX",`Initialized ${items.length} cloud agents while legacy roster import waits for an authenticated HUD request.`,{count:items.length});
+ }
+}
+
+function asAgent(r:any){
+ const raw=r.raw&&typeof r.raw==="object"?r.raw:{};
+ return {...raw,id:r.id,name:r.name,department:r.department,rank:r.rank,isChief:Boolean(r.isChief),chiefId:r.chiefId||null,clearance:r.clearance,model:r.model,state:r.state,queueCount:r.queueCount,memoryLinks:r.memoryLinks,voiceMode:r.voiceMode,tools:Array.isArray(r.tools)?r.tools:[],collaborators:Array.isArray(r.collaborators)?r.collaborators:[],currentJob:r.currentJob||null,lastResult:r.lastResult||null,lastRunAt:r.lastRunAt||null};
+}
+
+async function getAgentsByIds(ids:string[]){
+ if(!ids.length)return [];
+ return db()`select id,name,department,rank,is_chief as "isChief",chief_id as "chiefId",clearance,model,state,queue_count as "queueCount",memory_links as "memoryLinks",voice_mode as "voiceMode",tools,collaborators,current_job as "currentJob",last_result as "lastResult",last_run_at as "lastRunAt",raw
+  from scotty_agents where id in ${db()(ids)} order by sort_order asc`;
+}
+
+async function memoryContext(){
+ try{
+  const rows=await db()`select kind,agent_id as "agentId",text_content as text from scotty_memory order by created_at desc limit 20`;
+  return rows.reverse().map((x:any)=>`[${x.kind||"memory"}${x.agentId?" · "+x.agentId:""}] ${x.text}`).join("\n");
+ }catch{return ""}
+}
+
+async function runAgent(row:any,task:string,context:string){
+ const id=String(row.id),name=String(row.name);
+ try{
+  await db()`update scotty_agents set state='working',current_job=${task.slice(0,1800)},queue_count=queue_count+1,updated_at=now() where id=${id}`;
+  await addActivity(name,"AGENT START",task.slice(0,220),{agentId:id});
+  const system=`You are ${name}, a S.C.O.T.T.Y. specialist agent. Department: ${row.department}. Rank: ${row.rank}. You work under ${row.chiefId||"S.C.O.T.T.Y. CORE"}. Give a concrete specialist result for the assigned task. Be concise but substantive. You share the S.C.O.T.T.Y. memory network; use relevant context but never invent facts or claim external actions you did not perform.`;
+  const r=await groqThink([{role:"system",content:system+(context?"\n\nSHARED MEMORY:\n"+context:"")},{role:"user",content:task}],750);
+  await db()`update scotty_agents set state='idle',current_job=null,queue_count=greatest(queue_count-1,0),last_result=${r.text.slice(0,8000)},last_run_at=now(),memory_links=memory_links+1,updated_at=now() where id=${id}`;
+  try{await db()`insert into scotty_memory(scope,kind,agent_id,text_content,metadata) values('shared','agent-result',${id},${name+": "+r.text},${db().json({department:row.department,model:r.model,task:task.slice(0,1000)})})`}catch{}
+  await addActivity(name,"AGENT COMPLETE",r.text.slice(0,280),{agentId:id,model:r.model});
+  return {id,name,status:"completed",result:r.text,provider:"groq",model:r.model};
+ }catch(e:any){
+  const msg=String(e?.message||"Agent failed");
+  await db()`update scotty_agents set state='idle',current_job=null,queue_count=greatest(queue_count-1,0),updated_at=now() where id=${id}`;
+  await addActivity(name,"AGENT ERROR",msg.slice(0,300),{agentId:id});
+  return {id,name,status:"error",error:msg};
+ }
+}
+
+export async function bootstrapAgents(){await ensureRoster("");const r=await db()`select count(*)::int as n from scotty_agents`;return Number(r?.[0]?.n||0)}
+
+export async function handleCloudAgents(req:Request,u:URL){
+ const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{"cache-control":"no-store"}});
+ const cookie=req.headers.get("cookie")||"";
+ await ensureRoster(cookie);
+
+ if(req.method==="GET"&&u.pathname==="/api/hud/agents/status"){
+  const c=await db()`select count(*)::int as n,count(*) filter(where is_chief)::int as chiefs from scotty_agents`;
+  return json({ok:true,provider:"render-postgres+groq",agents:Number(c[0]?.n||0),chiefs:Number(c[0]?.chiefs||0),source:await rosterSource()});
+ }
+
+ if(req.method==="GET"&&u.pathname==="/api/hud/agents"){
+  const rows=await db()`select id,name,department,rank,is_chief as "isChief",chief_id as "chiefId",clearance,model,state,queue_count as "queueCount",memory_links as "memoryLinks",voice_mode as "voiceMode",tools,collaborators,current_job as "currentJob",last_result as "lastResult",last_run_at as "lastRunAt",raw from scotty_agents order by sort_order asc,name asc`;
+  return json({ok:true,agents:rows.map(asAgent),source:await rosterSource()});
+ }
+
+ if(req.method==="POST"&&u.pathname==="/api/hud/agents/run"){
+  let body:any;try{body=await req.json()}catch{return json({ok:false,error:"Invalid JSON"},400)}
+  const ids=[...new Set((Array.isArray(body?.agents)?body.agents:[]).map((x:any)=>String(x)))].slice(0,8);
+  const task=String(body?.task||"").trim().slice(0,12000);
+  if(!ids.length)return json({ok:false,error:"Select at least one agent"},400);
+  if(!task)return json({ok:false,error:"Missing agent task"},400);
+  const rows=await getAgentsByIds(ids);
+  if(!rows.length)return json({ok:false,error:"Selected agents were not found"},404);
+  const byId=new Map(rows.map((x:any)=>[x.id,x]));
+  const ordered=ids.map(id=>byId.get(id)).filter(Boolean);
+  const context=await memoryContext();
+  const results:any[]=[];
+  for(let i=0;i<ordered.length;i+=2){
+   const batch=await Promise.all(ordered.slice(i,i+2).map((row:any)=>runAgent(row,task,context)));
+   results.push(...batch);
+  }
+  return json({ok:true,task,results,completed:results.filter(x=>x.status==="completed").length});
+ }
+
+ if(req.method==="GET"&&u.pathname==="/api/hud/activity"){
+  const limit=Math.max(1,Math.min(100,Number(u.searchParams.get("limit")||40)||40));
+  const rows=await db()`select id,source,title,message,metadata,created_at as "createdAt" from scotty_activity order by created_at desc limit ${limit}`;
+  return json({ok:true,items:rows});
+ }
+
+ return json({ok:false,error:"Agent route not found"},404);
+}
