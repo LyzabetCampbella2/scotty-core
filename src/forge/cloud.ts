@@ -125,6 +125,21 @@ async function processJob(id:string){
  }
 }
 
+export async function runForgeSelfTest(){
+ await ensure();
+ const existing=await db()`select id,status,output_blend as "outputBlend",error from scotty_forge_jobs where title='SCOTTY CLOUD FORGE SELF TEST' order by created_at desc limit 1`;
+ if(existing?.[0]?.status==="exported")return {ok:true,reused:true,...existing[0]};
+ const id=crypto.randomUUID();
+ const base={title:"SCOTTY CLOUD FORGE SELF TEST",taskType:"scene",primitive:"cube",notes:"Automated cloud Blender verification.",destructive:false,replaceExisting:false};
+ const plan={summary:"Render a simple cube scene to verify the cloud Blender worker.",sceneSteps:["Create cube","Light scene","Render preview","Export blend and glb"]};
+ const svg=previewSvg({...base,status:"queued"});
+ await db()`insert into scotty_forge_jobs(id,project_id,title,task_type,primitive,notes,status,progress,plan,preview_svg)
+  values(${id},'SCOTTY-SYSTEM',${base.title},${base.taskType},${base.primitive},${base.notes},'queued',20,${db().json(plan)},${svg})`;
+ await processJob(id);
+ const done=await db()`select id,status,output_blend as "outputBlend",error,(blend_bytes is not null) as "blendReady",(preview_png is not null) as "previewReady",(glb_bytes is not null) as "glbReady" from scotty_forge_jobs where id=${id}`;
+ return {ok:done?.[0]?.status==="exported",...done?.[0]};
+}
+
 export async function handleCloudForge(req:Request,u:URL){
  await ensure();
  const p=u.pathname;
