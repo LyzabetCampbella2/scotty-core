@@ -2,6 +2,8 @@ import { handleEyesOn } from "./eyes/index.ts";
 import { handleHudStt } from "./voice/hud-stt.ts";
 import { handleCloudVoice } from "./voice/cloud.ts";
 import { handleCloudMemory } from "./memory/cloud.ts";
+import { handleCloudCommand } from "./brain/cloud.ts";
+import { handleCloudAgents,bootstrapAgents } from "./agents/cloud.ts";
 import { handleHealth } from "./health.ts";
 import { legacyApi,eyesFallback,voiceFallback,memoryFallback } from "./compat/cloud-fallback.ts";
 
@@ -12,9 +14,11 @@ Bun.serve({port:PORT,async fetch(req){
  if(u.pathname==="/health") return handleHealth();
 
  if(u.pathname==="/api/hud/stt") return handleHudStt(req);
+ if(u.pathname==="/api/hud/command"||u.pathname==="/api/hud/brain/status") return handleCloudCommand(req,u);
+ if(u.pathname==="/api/hud/agents"||u.pathname==="/api/hud/agents/run"||u.pathname==="/api/hud/agents/status"||u.pathname==="/api/hud/activity") return handleCloudAgents(req,u);
 
  if(u.pathname.startsWith("/api/eyes")){
-  if(process.env.LOCAL_BRAIN_URL||process.env.OPENAI_API_KEY) return handleEyesOn(req,u);
+  if(process.env.LOCAL_BRAIN_URL||process.env.GROQ_API_KEY||process.env.OPENAI_API_KEY) return handleEyesOn(req,u);
   return await eyesFallback(req,u) || handleEyesOn(req,u);
  }
 
@@ -33,6 +37,8 @@ Bun.serve({port:PORT,async fetch(req){
   if(r)return r;
  }
 
- return Response.json({service:"S.C.O.T.T.Y.",status:"online",architecture:"cloud-gateway-v2"});
+ return Response.json({service:"S.C.O.T.T.Y.",status:"online",architecture:"cloud-gateway-v3",native:["brain","agents","activity","eyes","stt","voice","memory"]});
 }});
-console.log("S.C.O.T.T.Y. cloud gateway v2 listening",PORT);
+
+console.log("S.C.O.T.T.Y. cloud gateway v3 listening",PORT);
+bootstrapAgents().then(n=>console.log("S.C.O.T.T.Y. cloud agent matrix ready",n)).catch(e=>console.warn("Agent bootstrap deferred",e?.message||e));
