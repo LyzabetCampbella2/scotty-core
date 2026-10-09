@@ -172,6 +172,14 @@ async function callbackGoogle(u:URL){
   on conflict(provider) do update set status='connected',account_email=excluded.account_email,scopes=excluded.scopes,encrypted_token=excluded.encrypted_token,token_expires_at=excluded.token_expires_at,refresh_capable=excluded.refresh_capable,metadata=excluded.metadata,connected_at=coalesce(scotty_connections.connected_at,now()),updated_at=now()`;
  return {email:user?.email||null};
 }
+export async function getGoogleConnectedEmail(){
+ await ensure();
+ const rows=await db()`select status,account_email as "accountEmail" from scotty_connections where provider='google' limit 1`;
+ const c=rows?.[0];
+ if(c?.status!=="connected"||!c?.accountEmail)throw new Error("Connected Google account email is unavailable");
+ return String(c.accountEmail);
+}
+
 export async function getGoogleAccessToken(){
  await ensure();
  const rows=await db()`select status,encrypted_token as "encryptedToken",token_expires_at as "tokenExpiresAt" from scotty_connections where provider='google' limit 1`;
