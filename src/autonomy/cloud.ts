@@ -267,10 +267,17 @@ export async function runMission(id:string,maxSteps=2){
    if(!unfinished)await completeMission(mission);
    break;
   }
-  if(next.requiresApproval||next.actionType==="external_action"){
+  if(next.actionType==="external_action"&&!next.approvalGranted){
    await createApproval(mission,next);break;
   }
-  try{await executeStep(mission,next);ran++}
+  if(next.requiresApproval&&!next.approvalGranted){
+   await createApproval(mission,next);break;
+  }
+  try{
+   if(next.actionType==="external_action")await executeExternalStep(mission,next);
+   else await executeStep(mission,next);
+   ran++;
+  }
   catch(e:any){
    const msg=String(e?.message||"Mission step failed").slice(0,3000);
    await db()`update scotty_mission_steps set status='error',result=${msg},updated_at=now() where id=${next.id}`;
@@ -337,7 +344,7 @@ export async function handleCloudAutonomy(req:Request,u:URL){
   if(action==="approve"){
    await db().begin(async(tx:any)=>{
     await tx`update scotty_approvals set status='approved',decided_at=now() where id=${a.id}`;
-    await tx`update scotty_mission_steps set requires_approval=false,status='pending',updated_at=now() where id=${a.stepId}`;
+    await tx`update scotty_mission_steps set approval_granted=true,requires_approval=false,status='pending',updated_at=now() where id=${a.stepId}`;
     await tx`update scotty_missions set status='queued',updated_at=now() where id=${a.missionId}`;
    });
    await addActivity("SCOTTY","MISSION ACTION APPROVED",a.missionTitle,{missionId:a.missionId,approvalId:a.id});
