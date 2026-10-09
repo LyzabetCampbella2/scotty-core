@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>S.C.O.T.T.Y. Mission Control</title>
+<style>
+:root{color-scheme:dark;--bg:#020812;--panel:#061521;--line:#17394b;--cyan:#5eeaff;--teal:#28d7bd;--amber:#ffd166;--red:#ff8ea4;--text:#def8ff;--muted:#819cab}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% 10%,#0a2a3d 0,#020812 48%,#01050a 100%);color:var(--text);font:14px Inter,system-ui,-apple-system,sans-serif;min-height:100vh}.wrap{max-width:1180px;margin:auto;padding:16px}.top,.panel{border:1px solid var(--line);background:rgba(5,18,29,.95);border-radius:13px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 17px}.brand{font-weight:800;letter-spacing:.28em}.brand small{display:block;color:var(--muted);font-size:9px;letter-spacing:.14em;margin-top:5px}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid #2c5b72;background:#061a27;color:white;border-radius:8px;padding:9px 12px;font-size:10px;letter-spacing:.06em;text-decoration:none}.btn.primary{border-color:var(--teal);color:#dffff6}.btn.warn{border-color:#7c5f29;color:#ffe19a}.btn.danger{border-color:#6c3440;color:#ffc2cc}.grid{display:grid;grid-template-columns:.8fr 1.2fr;gap:14px;margin-top:14px}.panel{padding:14px}.title{font-size:10px;letter-spacing:.14em;color:#91b1c0;text-transform:uppercase;margin-bottom:10px}input,textarea,select{width:100%;background:#020b13;color:white;border:1px solid #234759;border-radius:8px;padding:10px;margin:6px 0 10px}textarea{min-height:130px;resize:vertical}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.mission{border:1px solid #153444;background:#04111b;border-radius:10px;padding:12px;margin-bottom:10px}.mission h3{font-size:13px;margin:0 0 6px}.meta{color:var(--muted);font-size:10px;line-height:1.5}.status{float:right;font-size:9px;letter-spacing:.08em}.status.completed{color:var(--teal)}.status.waiting_approval,.status.needs_attention{color:var(--amber)}.status.cancelled,.status.error{color:var(--red)}.status.running{color:var(--cyan)}.steps{margin-top:8px;border-top:1px solid rgba(255,255,255,.07);padding-top:8px}.step{font-size:11px;padding:6px 0}.step small{display:block;color:var(--muted);margin-top:2px}.approval{border:1px solid #6c5626;background:#191304;border-radius:10px;padding:11px;margin-bottom:10px}.approval b{font-size:12px}.approval p{color:#d5c38d;font-size:11px;line-height:1.45}.empty{color:var(--muted);font-size:11px;padding:18px 4px}.stats{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.pill{border:1px solid #244a5c;border-radius:999px;padding:5px 8px;font-size:9px;color:#aac6d4}@media(max-width:820px){.grid{grid-template-columns:1fr}.row{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body><div class="wrap">
+<div class="top"><div class="brand">S.C.O.T.T.Y.<small>MISSION AUTONOMY • CHIEF DELEGATION • OWNER APPROVALS</small></div><div class="actions"><a class="btn" href="/">HUD</a><a class="btn" href="/system">OPERATIONS</a><button class="btn" id="refresh">REFRESH</button></div></div>
+<div class="stats" id="stats"></div>
+<div class="grid">
+<section class="panel"><div class="title">New Mission</div>
+<label>Mission title</label><input id="title" placeholder="Optional short title">
+<label>Goal</label><textarea id="goal" placeholder="Describe the result you want S.C.O.T.T.Y. to coordinate."></textarea>
+<div class="row"><div><label>Autonomy</label><select id="mode"><option value="supervised">Supervised</option><option value="auto">Auto — internal steps only</option></select></div><div><label>Priority</label><select id="priority"><option>normal</option><option>high</option><option>critical</option><option>low</option></select></div></div>
+<button class="btn primary" id="create">CREATE MISSION</button>
+<div class="title" style="margin-top:20px">Pending Owner Approvals</div><div id="approvals"></div>
+</section>
+<section class="panel"><div class="title">Mission Queue</div><div id="missions">Loading…</div></section>
+</div></div>
+<script>
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function api(url,o={}){const r=await fetch(url,{credentials:'same-origin',headers:{'content-type':'application/json',...(o.headers||{})},...o});if(r.status===401){location.href='/?next=/missions';throw Error('Owner session required')}const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||('HTTP '+r.status));return d}
+async function detail(id){return api('/api/missions/'+id)}
+function buttons(m){
+ const a=[];if(!['completed','cancelled'].includes(m.status))a.push('<button class="btn primary" onclick="runMission(\''+m.id+'\')">RUN NEXT</button>');
+ if(['queued','running','waiting_approval','needs_attention'].includes(m.status))a.push('<button class="btn warn" onclick="pauseMission(\''+m.id+'\')">PAUSE</button>');
+ if(m.status==='paused')a.push('<button class="btn primary" onclick="resumeMission(\''+m.id+'\')">RESUME</button>');
+ if(!['completed','cancelled'].includes(m.status))a.push('<button class="btn danger" onclick="cancelMission(\''+m.id+'\')">CANCEL</button>');
+ return a.join(' ');
+}
+async function renderMission(m){
+ let d={steps:[]};try{d=await detail(m.id)}catch{}
+ const steps=(d.steps||[]).map(x=>'<div class="step"><b>'+x.stepNo+'. '+esc(x.title)+'</b> <span class="status '+esc(x.status)+'">'+esc(String(x.status).replaceAll('_',' ').toUpperCase())+'</span><small>'+esc(x.actionType)+(x.requiresApproval?' • OWNER APPROVAL':'')+(x.result?' • '+esc(x.result.slice(0,180)):'')+'</small></div>').join('');
+ return '<div class="mission"><span class="status '+esc(m.status)+'">'+esc(String(m.status).replaceAll('_',' ').toUpperCase())+'</span><h3>'+esc(m.title)+'</h3><div class="meta">'+esc(m.autonomyMode.toUpperCase())+' • '+esc(m.priority.toUpperCase())+'<br>'+esc(m.goal)+'</div><div class="steps">'+steps+'</div><div class="actions" style="margin-top:10px">'+buttons(m)+'</div></div>';
+}
+async function load(){
+ const [m,a,s]=await Promise.all([api('/api/missions?limit=40'),api('/api/approvals?status=pending'),api('/api/missions/status')]);
+ const missions=m.missions||[];const html=[];for(const x of missions)html.push(await renderMission(x));document.querySelector('#missions').innerHTML=html.join('')||'<div class="empty">No missions yet.</div>';
+ const approvals=a.approvals||[];document.querySelector('#approvals').innerHTML=approvals.map(x=>'<div class="approval"><b>'+esc(x.missionTitle)+'</b><p>'+esc(x.description)+'</p><div class="actions"><button class="btn primary" onclick="decide(\''+x.id+'\',\'approve\')">APPROVE</button><button class="btn danger" onclick="decide(\''+x.id+'\',\'reject\')">REJECT</button></div></div>').join('')||'<div class="empty">No external actions waiting for approval.</div>';
+ const ms=s.missions||{};document.querySelector('#stats').innerHTML='<span class="pill">QUEUED '+(ms.queued||0)+'</span><span class="pill">RUNNING '+(ms.running||0)+'</span><span class="pill">WAITING '+(ms.waiting_approval||0)+'</span><span class="pill">COMPLETED '+(ms.completed||0)+'</span><span class="pill">APPROVALS '+(s.pendingApprovals||0)+'</span>';
+}
+async function create(){const goal=document.querySelector('#goal').value.trim();if(!goal)return;const b=document.querySelector('#create');b.disabled=true;b.textContent='PLANNING…';try{await api('/api/missions',{method:'POST',body:JSON.stringify({title:document.querySelector('#title').value.trim(),goal,autonomyMode:document.querySelector('#mode').value,priority:document.querySelector('#priority').value})});document.querySelector('#title').value='';document.querySelector('#goal').value='';await load()}catch(e){alert(e.message)}finally{b.disabled=false;b.textContent='CREATE MISSION'}}
+async function act(id,a){await api('/api/missions/'+id+'/'+a,{method:'POST',body:'{}'});await load()}
+async function runMission(id){return act(id,'run')}async function pauseMission(id){return act(id,'pause')}async function resumeMission(id){return act(id,'resume')}async function cancelMission(id){return act(id,'cancel')}
+async function decide(id,a){await api('/api/approvals/'+id+'/'+a,{method:'POST',body:'{}'});await load()}
+document.querySelector('#create').onclick=create;document.querySelector('#refresh').onclick=load;load();setInterval(load,20000);
+</script></body></html>
