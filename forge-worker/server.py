@@ -78,7 +78,9 @@ def render_job(spec,td):
     glb_path=os.path.join(td,job+".glb")
     scene.render.filepath=png_path
     bpy.ops.wm.save_as_mainfile(filepath=blend_path)
-    bpy.ops.render.render(write_still=True)
+    # Cloud Forge uses a lightweight SVG preview from the control plane.
+    # Skip GPU/OpenGL rendering here so Blender remains reliable on headless CPU instances.
+    png_path=None
     try:
         bpy.ops.export_scene.gltf(filepath=glb_path,export_format='GLB')
     except Exception:
