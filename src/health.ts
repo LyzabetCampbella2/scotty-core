@@ -10,8 +10,19 @@ function db(){
   return sql;
 }
 
-export function handleHealth(){
-  return Response.json({ok:true,service:"scotty-core",architecture:"cloud-gateway-v3",time:new Date().toISOString()},{headers:{"cache-control":"no-store"}});
+export async function handleHealth(){
+  let authOwnerProvisioned=false;
+  try{
+    const rows=await db()`select count(*)::int as n from scotty_auth_owner`;
+    authOwnerProvisioned=Number(rows?.[0]?.n||0)>=1;
+  }catch{}
+  const legacyFallbacks=[
+    process.env.SCOTTY_LEGACY_API_URL,
+    process.env.SCOTTY_EYES_FALLBACK_URL,
+    process.env.SCOTTY_VOICE_FALLBACK_URL,
+    process.env.SCOTTY_MEMORY_FALLBACK_URL
+  ].filter(Boolean).length;
+  return Response.json({ok:true,service:"scotty-core",architecture:"cloud-gateway-v3",authOwnerProvisioned,legacyFallbacks,time:new Date().toISOString()},{headers:{"cache-control":"no-store"}});
 }
 
 async function count(q:Promise<any>){
