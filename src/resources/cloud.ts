@@ -179,6 +179,11 @@ async function relate(sourceNode:string,targetNode:string){
  return {relation:"related_to",suggested:true,message:"Relationship suggested"};
 }
 
+export async function bootstrapResources(){
+ const data=await getResources();
+ return {projects:data.projects.length,folders:data.folders.length,files:data.files.length,tasks:data.tasks.length};
+}
+
 export async function handleCloudResources(req:Request,u:URL){
  await ensure();
  if(req.method==="GET"&&u.pathname==="/api/hud/resources"){
