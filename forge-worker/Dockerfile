@@ -1,7 +1,7 @@
 FROM python:3.12-slim-bookworm
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends blender ca-certificates fonts-dejavu-core \
+ && apt-get install -y --no-install-recommends blender ca-certificates fonts-dejavu-core libegl1 libgl1 libglx0 libopengl0 \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
