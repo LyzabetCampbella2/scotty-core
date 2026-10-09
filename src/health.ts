@@ -103,10 +103,12 @@ export async function handleSystemRecover(req:Request,u:URL){
   const forge=await q`update scotty_forge_jobs set status='queued',progress=20,error='Recovered stale worker state. Retry from Forge.',updated_at=now()
     where status='working' and updated_at<now()-interval '20 minutes' returning id`.catch(()=>[]);
   await q`delete from scotty_memory where scope='system-qa' and created_at<now()-interval '1 hour'`.catch(()=>{});
-  try{
-    await q`insert into scotty_activity(source,title,message,metadata)
-      values('SCOTTY','SYSTEM RECOVERY',${"Recovered "+agents.length+" stale agent job(s), "+forge.length+" stale Forge job(s), and removed "+expired.length+" expired session(s)."},${q.json({agents:agents.length,forge:forge.length,expiredSessions:expired.length})})`;
-  }catch{}
+  if(agents.length||forge.length||expired.length){
+    try{
+      await q`insert into scotty_activity(source,title,message,metadata)
+        values('SCOTTY','SYSTEM RECOVERY',${"Recovered "+agents.length+" stale agent job(s), "+forge.length+" stale Forge job(s), and removed "+expired.length+" expired session(s)."},${q.json({agents:agents.length,forge:forge.length,expiredSessions:expired.length})})`;
+    }catch{}
+  }
   return json({ok:true,recoveredAgents:agents.length,recoveredForgeJobs:forge.length,expiredSessionsRemoved:expired.length});
 }
 
