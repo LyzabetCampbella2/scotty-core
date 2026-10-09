@@ -30,6 +30,24 @@ async function forgeHealth(){
   }
 }
 
+async function groqHealth(){
+  const key=process.env.GROQ_API_KEY;
+  if(!key)return {configured:false,reachable:false};
+  try{
+    const r=await fetch("https://api.groq.com/openai/v1/models",{headers:{authorization:"Bearer "+key},signal:AbortSignal.timeout(8000)});
+    return {configured:true,reachable:r.ok};
+  }catch{return {configured:true,reachable:false}}
+}
+
+async function elevenHealth(){
+  const key=process.env.ELEVENLABS_API_KEY;
+  if(!key)return {configured:false,reachable:false};
+  try{
+    const r=await fetch("https://api.elevenlabs.io/v2/voices?page_size=1",{headers:{"xi-api-key":key},signal:AbortSignal.timeout(8000)});
+    return {configured:true,reachable:r.ok};
+  }catch{return {configured:true,reachable:false}}
+}
+
 export async function handleSystemStatus(req:Request,u:URL){
   const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{"cache-control":"no-store"}});
   if(req.method!=="GET"||u.pathname!=="/api/system/status")return json({ok:false,error:"System status route not found"},404);
