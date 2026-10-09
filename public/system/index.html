@@ -22,7 +22,7 @@
 <div class="wrap">
   <div class="top">
     <div class="brand">S.C.O.T.T.Y.<small>PART 8 • UNIFIED RELEASE CENTER</small></div>
-    <div class="actions"><a class="btn" href="/">RETURN TO HUD</a><a class="btn" href="/forge">3D FORGE</a><button class="btn" id="refresh">RUN SYSTEM CHECK</button></div>
+    <div class="actions"><a class="btn" href="/">RETURN TO HUD</a><a class="btn" href="/forge">3D FORGE</a><button class="btn" id="refresh">RUN SYSTEM CHECK</button><button class="btn" id="fullqa">RUN FULL QA</button></div>
   </div>
   <div class="hero">
     <section class="score"><strong id="score">—</strong><span id="overall">CHECKING SYSTEMS</span></section>
@@ -72,7 +72,19 @@ async function load(){
   document.querySelector('#checks').innerHTML='<div class="check"><div><b>Release Center</b><small>'+esc(e.message)+'</small></div><div class="state bad">CHECK</div></div>';
  }finally{btn.disabled=false;btn.textContent='RUN SYSTEM CHECK'}
 }
-document.querySelector('#refresh').onclick=load;document.querySelector('#recheck').onclick=load;load();setInterval(load,15000);
+async function runFullQa(){
+  const b=document.querySelector('#fullqa');b.disabled=true;b.textContent='RUNNING QA…';
+  try{
+    const r=await fetch('/api/system/qa',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:'{}'});
+    if(r.status===401){location.href='/?next=/system';return}
+    const d=await r.json();if(!r.ok)throw Error(d.error||'QA failed');
+    document.querySelector('#score').textContent=(d.score??0)+'%';
+    document.querySelector('#overall').textContent='FULL QA • '+String(d.overall||'unknown').replaceAll('-',' ').toUpperCase();
+    document.querySelector('#checks').innerHTML=(d.checks||[]).map(x=>'<div class="check"><div><b>'+esc(x.label)+'</b><small>'+esc(x.detail)+'</small></div><div class="state '+statusClass(x.ok)+'">'+(x.ok?'PASS':'CHECK')+'</div></div>').join('');
+  }catch(e){document.querySelector('#overall').textContent='FULL QA ERROR'}
+  finally{b.disabled=false;b.textContent='RUN FULL QA'}
+}
+document.querySelector('#refresh').onclick=load;document.querySelector('#recheck').onclick=load;document.querySelector('#fullqa').onclick=runFullQa;load();setInterval(load,15000);
 </script>
 </body>
 </html>
