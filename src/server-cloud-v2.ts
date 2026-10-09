@@ -59,3 +59,9 @@ if(process.env.SCOTTY_FULL_QA_ON_START==="1"){
  const qr=new Request("http://localhost/api/system/qa",{method:"POST"});
  handleSystemQa(qr,new URL(qr.url)).then(async r=>console.log("S.C.O.T.T.Y. Part 8 full QA",await r.text())).catch(e=>console.warn("S.C.O.T.T.Y. Part 8 full QA failed",e?.message||e));
 }
+const maintenance=()=>{
+ const rr=new Request("http://localhost/api/system/recover",{method:"POST"});
+ handleSystemRecover(rr,new URL(rr.url)).catch(()=>{});
+};
+setTimeout(maintenance,30000);
+setInterval(maintenance,15*60*1000);
