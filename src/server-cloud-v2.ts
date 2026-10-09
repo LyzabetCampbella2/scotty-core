@@ -21,11 +21,21 @@ async function servePublic(path:string,type="text/html; charset=utf-8"){
   return new Response(file,{headers:{"content-type":type,"cache-control":"no-store"}});
  }catch{return null}
 }
+async function serveHud(){
+ try{
+  const file=Bun.file("public/index.html");
+  if(!(await file.exists()))return null;
+  let html=await file.text();
+  if(!html.includes("/render-hotfix.js"))html=html.replace("</body>","<script src=\"/render-hotfix.js?v=3\"></script></body>");
+  return new Response(html,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store"}});
+ }catch{return null}
+}
 
 Bun.serve({port:PORT,async fetch(req){
  const u=new URL(req.url);
  if(req.method==="GET"){
-  if(u.pathname==="/hud"||u.pathname==="/hud/"||u.pathname==="/") {const r=await servePublic("public/index.html");if(r)return r}
+  if(u.pathname==="/render-hotfix.js") {const r=await servePublic("public/render-hotfix.js","application/javascript; charset=utf-8");if(r)return r}
+  if(u.pathname==="/hud"||u.pathname==="/hud/"||u.pathname==="/") {const r=await serveHud();if(r)return r}
   if(u.pathname==="/missions"||u.pathname==="/missions/") {const r=await servePublic("public/missions/index.html");if(r)return r}
   if(u.pathname==="/integrations"||u.pathname==="/integrations/") {const r=await servePublic("public/integrations/index.html");if(r)return r}
   if(u.pathname==="/system"||u.pathname==="/system/") {const r=await servePublic("public/system/index.html");if(r)return r}
