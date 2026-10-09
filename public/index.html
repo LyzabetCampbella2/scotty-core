@@ -434,6 +434,8 @@ body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infini
    SCOTTYMemory.remember('user',t);
    const low=t.toLowerCase();
    if(/^(remember|remember that|save to memory)\b/.test(low)){const v=t.replace(/^(remember|remember that|save to memory)\s*/i,'').trim();if(v){const ok=await SCOTTYMemory.save(v,'explicit');await speak(ok?'Remembered. I added that to shared cloud memory.':'Remembered locally. Cloud memory will retry when available.');SCOTTYMemory.remember('assistant','Remembered.');return}}
+   const structured=/^\s*(?:(?:open|show)\s+(?:live ops|missions?|mission control)|(?:start|create|launch)\s+(?:(?:autonomous|auto)\s+)?mission(?:\s+(?:to|for))?|(?:ask|bring in)\s+[^:]+:)/i.test(t);
+   if(structured){return oldCommand(t)}
    await SCOTTYMemory.sync();\n   const hist=SCOTTYMemory.recall().slice(0,-1).map(x=>(x.role==='user'?'User: ':'S.C.O.T.T.Y.: ')+x.text).join('\\n');
    const memories=SCOTTYMemory.all().slice(-12).map(x=>x.text).join(' | ');
    const enriched=(hist||memories)?'[S.C.O.T.T.Y. SHARED MEMORY CONTEXT]\n'+(memories?'Saved: '+memories+'\n':'')+(hist?'Recent conversation:\n'+hist+'\n':'')+'[CURRENT REQUEST]\n'+t:t;
