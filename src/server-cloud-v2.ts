@@ -47,6 +47,7 @@ Bun.serve({port:PORT,async fetch(req){
 }});
 
 console.log("S.C.O.T.T.Y. cloud gateway v3 listening",PORT);
+handleHealth().then(async r=>console.log("S.C.O.T.T.Y. safe health",await r.text())).catch(()=>{});
 bootstrapAgents().then(n=>console.log("S.C.O.T.T.Y. cloud agent matrix ready",n)).catch(e=>console.warn("Agent bootstrap deferred",e?.message||e));
 bootstrapResources().then(r=>console.log("S.C.O.T.T.Y. spatial resource graph ready",JSON.stringify(r))).catch(e=>console.warn("Resource graph bootstrap deferred",e?.message||e));
 if(process.env.SCOTTY_FORGE_SELF_TEST==="1"){
