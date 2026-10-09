@@ -67,6 +67,24 @@ async function ensure(){
     created_at timestamptz not null default now(),
     unique(source_type,source_id,target_type,target_id,relation)
   )`;
+  await q`create table if not exists scotty_spatial_layout(
+    node_id text primary key,
+    ox double precision not null default 0,
+    oy double precision not null default 0,
+    oz double precision not null default 0,
+    updated_at timestamptz not null default now()
+  )`;
+  await q`create table if not exists scotty_spatial_view(
+    id integer primary key check(id=1),
+    orbit double precision not null default 0,
+    tilt double precision not null default -0.12,
+    zoom double precision not null default 0.82,
+    spread double precision not null default 1,
+    pan_x double precision not null default 0,
+    pan_y double precision not null default 0,
+    updated_at timestamptz not null default now()
+  )`;
+  await q`insert into scotty_spatial_view(id) values(1) on conflict(id) do nothing`;
   await q`insert into scotty_projects(id,name,department,status,description)
     values
       ('system-scotty','S.C.O.T.T.Y. CLOUD','Command','active','Cloud command, memory, voice, vision, agents and orchestration.'),
@@ -120,18 +138,24 @@ async function forgeVirtuals(){
 }
 async function getResources(){
  await ensure();await syncForgeProjects();
- const [projects,folders,files,tasks,virtuals]=await Promise.all([
+ const [projects,folders,files,tasks,virtuals,layoutRows,viewRows]=await Promise.all([
   db()`select id,name,department,status,description,created_at as "createdAt",updated_at as "updatedAt" from scotty_projects order by created_at asc,name asc`,
   db()`select id,project_id as "projectId",parent_folder_id as "parentFolderId",name,path,created_at as "createdAt",updated_at as "updatedAt" from scotty_folders order by created_at asc,name asc`,
   db()`select id,project_id as "projectId",folder_id as "folderId",name,path,mime_type as "mimeType",size_bytes as "sizeBytes",metadata,created_at as "createdAt",updated_at as "updatedAt" from scotty_files order by created_at desc limit 200`,
   db()`select id,project_id as "projectId",assigned_agent_id as "assignedAgentId",title,status,priority,notes,due_at as "dueAt",created_at as "createdAt",updated_at as "updatedAt" from scotty_tasks order by created_at desc limit 200`,
-  forgeVirtuals()
+  forgeVirtuals(),
+  db()`select node_id as "nodeId",ox,oy,oz,updated_at as "updatedAt" from scotty_spatial_layout`,
+  db()`select orbit,tilt,zoom,spread,pan_x as "panX",pan_y as "panY",updated_at as "updatedAt" from scotty_spatial_view where id=1`
  ]);
+ const layout:any={};
+ for(const x of layoutRows)layout[x.nodeId]={ox:Number(x.ox||0),oy:Number(x.oy||0),oz:Number(x.oz||0),updatedAt:x.updatedAt};
  return {
   projects:projects.map(projectRow),
   folders:folders.map(folderRow),
   files:[...files.map(fileRow),...virtuals.files],
-  tasks:[...tasks.map(taskRow),...virtuals.tasks]
+  tasks:[...tasks.map(taskRow),...virtuals.tasks],
+  layout,
+  view:viewRows?.[0]?{orbit:Number(viewRows[0].orbit||0),tilt:Number(viewRows[0].tilt??-0.12),zoom:Number(viewRows[0].zoom||0.82),spread:Number(viewRows[0].spread||1),panX:Number(viewRows[0].panX||0),panY:Number(viewRows[0].panY||0),updatedAt:viewRows[0].updatedAt}:null
  };
 }
 function newId(kind:string){return kind+"-"+crypto.randomUUID()}
@@ -224,6 +248,26 @@ export async function handleCloudResources(req:Request,u:URL){
   const sourceNode=String(b?.sourceNode||""),targetNode=String(b?.targetNode||"");
   if(!sourceNode||!targetNode||sourceNode===targetNode)return json({ok:false,error:"Two different nodes are required"},400);
   try{return json({ok:true,...await relate(sourceNode,targetNode)})}catch(e:any){return json({ok:false,error:String(e?.message||"Relationship failed")},400)}
+ }
+ if(req.method==="POST"&&u.pathname==="/api/hud/resources/layout"){
+  let b:any;try{b=await req.json()}catch{return json({ok:false,error:"Invalid JSON"},400)}
+  const nodeId=String(b?.nodeId||"").slice(0,300);
+  if(!nodeId||!nodeId.includes(":"))return json({ok:false,error:"Valid nodeId required"},400);
+  const num=(v:any,lo:number,hi:number)=>Math.max(lo,Math.min(hi,Number(v)||0));
+  const ox=num(b?.ox,-5000,5000),oy=num(b?.oy,-5000,5000),oz=num(b?.oz,-5000,5000);
+  await db()`insert into scotty_spatial_layout(node_id,ox,oy,oz,updated_at)
+    values(${nodeId},${ox},${oy},${oz},now())
+    on conflict(node_id) do update set ox=excluded.ox,oy=excluded.oy,oz=excluded.oz,updated_at=now()`;
+  return json({ok:true,nodeId,ox,oy,oz});
+ }
+ if(req.method==="POST"&&u.pathname==="/api/hud/resources/view"){
+  let b:any;try{b=await req.json()}catch{return json({ok:false,error:"Invalid JSON"},400)}
+  const clamp=(v:any,lo:number,hi:number,fallback:number)=>{const n=Number(v);return Number.isFinite(n)?Math.max(lo,Math.min(hi,n)):fallback};
+  const orbit=clamp(b?.orbit,-1000,1000,0),tilt=clamp(b?.tilt,-1.2,1.2,-0.12),zoom=clamp(b?.zoom,0.2,6,0.82),spread=clamp(b?.spread,0.2,6,1),panX=clamp(b?.panX,-10000,10000,0),panY=clamp(b?.panY,-10000,10000,0);
+  await db()`insert into scotty_spatial_view(id,orbit,tilt,zoom,spread,pan_x,pan_y,updated_at)
+    values(1,${orbit},${tilt},${zoom},${spread},${panX},${panY},now())
+    on conflict(id) do update set orbit=excluded.orbit,tilt=excluded.tilt,zoom=excluded.zoom,spread=excluded.spread,pan_x=excluded.pan_x,pan_y=excluded.pan_y,updated_at=now()`;
+  return json({ok:true,orbit,tilt,zoom,spread,panX,panY});
  }
  return json({ok:false,error:"Resource route not found"},404);
 }
