@@ -73,10 +73,10 @@ export async function handleSystemStatus(req:Request,u:URL){
   const checks=[
     {key:"gateway",label:"Cloud Gateway",ok:true,detail:"Render gateway online"},
     {key:"database",label:"Cloud Database",ok:database,detail:database?"Postgres reachable":"Postgres unavailable"},
-    {key:"brain",label:"S.C.O.T.T.Y. Brain",ok:brain,detail:brain?"Cloud reasoning configured":"Reasoning provider missing"},
-    {key:"stt",label:"Speech Recognition",ok:stt,detail:stt?"Cloud STT configured":"Speech provider missing"},
-    {key:"tts",label:"S.C.O.T.T.Y. Voice",ok:tts,detail:tts?"ElevenLabs configured":"Voice provider missing"},
-    {key:"eyes",label:"Eyes On",ok:eyes,detail:eyes?"Vision provider configured":"Vision provider missing"},
+    {key:"brain",label:"S.C.O.T.T.Y. Brain",ok:brain,detail:brain?"Groq reasoning reachable":"Groq reasoning unavailable"},
+    {key:"stt",label:"Speech Recognition",ok:stt,detail:stt?"Cloud STT provider reachable":"Speech provider unavailable"},
+    {key:"tts",label:"S.C.O.T.T.Y. Voice",ok:tts,detail:tts?"ElevenLabs reachable":"ElevenLabs unavailable"},
+    {key:"eyes",label:"Eyes On",ok:eyes,detail:eyes?"Vision provider reachable":"Vision provider unavailable"},
     {key:"memory",label:"Shared Memory",ok:database,detail:memory+" memory records"},
     {key:"agents",label:"Agent Matrix",ok:agents>=128&&chiefs>=12,detail:agents+" agents • "+chiefs+" chiefs"},
     {key:"resources",label:"Spatial Resources",ok:database,detail:projects+" projects • "+folders+" folders • "+files+" files • "+tasks+" tasks"},
@@ -93,6 +93,7 @@ export async function handleSystemStatus(req:Request,u:URL){
     checks,
     counts:{agents,chiefs,memory,projects,folders,files,tasks,forgeJobs},
     forge,
+    providers:{groq,elevenLabs:eleven},
     checkedAt:new Date().toISOString()
   });
 }
