@@ -4,6 +4,7 @@ import { handleCloudVoice } from "./voice/cloud.ts";
 import { handleCloudMemory } from "./memory/cloud.ts";
 import { handleCloudCommand } from "./brain/cloud.ts";
 import { handleCloudAgents,bootstrapAgents } from "./agents/cloud.ts";
+import { handleCloudForge } from "./forge/cloud.ts";
 import { handleHealth } from "./health.ts";
 import { handleCloudAuth,isCloudAuthenticated } from "./auth/cloud.ts";
 import { legacyApi,eyesFallback,voiceFallback,memoryFallback } from "./compat/cloud-fallback.ts";
@@ -26,10 +27,12 @@ Bun.serve({port:PORT,async fetch(req){
   u.pathname==="/api/tts"||
   u.pathname==="/api/voice/speak"||
   u.pathname==="/api/eyes/analyze"||
-  (u.pathname.startsWith("/api/memory/")&&u.pathname!=="/api/memory/status");
+  (u.pathname.startsWith("/api/memory/")&&u.pathname!=="/api/memory/status")||
+  u.pathname.startsWith("/forge/api/");
  if(protectedRoute&&!(await isCloudAuthenticated(req))) return Response.json({ok:false,error:"Authentication required"},{status:401,headers:{"cache-control":"no-store"}});
  if(u.pathname==="/api/hud/command"||u.pathname==="/api/hud/brain/status") return handleCloudCommand(req,u);
  if(u.pathname==="/api/hud/agents"||u.pathname==="/api/hud/agents/run"||u.pathname==="/api/hud/agents/status"||u.pathname==="/api/hud/activity") return handleCloudAgents(req,u);
+ if(u.pathname.startsWith("/forge/api/")) return handleCloudForge(req,u);
 
  if(u.pathname.startsWith("/api/eyes")){
   if(process.env.LOCAL_BRAIN_URL||process.env.GROQ_API_KEY||process.env.OPENAI_API_KEY) return handleEyesOn(req,u);
@@ -51,7 +54,7 @@ Bun.serve({port:PORT,async fetch(req){
   if(r)return r;
  }
 
- return Response.json({service:"S.C.O.T.T.Y.",status:"online",architecture:"cloud-gateway-v3",native:["brain","agents","activity","eyes","stt","voice","memory"]});
+ return Response.json({service:"S.C.O.T.T.Y.",status:"online",architecture:"cloud-gateway-v3",native:["brain","agents","activity","eyes","stt","voice","memory","forge-control"]});
 }});
 
 console.log("S.C.O.T.T.Y. cloud gateway v3 listening",PORT);
