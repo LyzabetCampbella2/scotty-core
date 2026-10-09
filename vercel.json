@@ -32,6 +32,14 @@
     {
       "source": "/system/",
       "destination": "/system/index.html"
+    },
+    {
+      "source": "/missions",
+      "destination": "/missions/index.html"
+    },
+    {
+      "source": "/missions/",
+      "destination": "/missions/index.html"
     }
   ]
 }
