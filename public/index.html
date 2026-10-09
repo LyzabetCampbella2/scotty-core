@@ -502,6 +502,135 @@ function addLookButton(){var cam=document.querySelector('.cam');if(!cam||documen
 async function analyze(){var v=document.getElementById('video');if(!v||!v.videoWidth){addActivity('Camera is not ready yet.');return}var c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);var sv=document.getElementById('sv'),cs=document.getElementById('cs');if(sv)sv.textContent='ANALYZING';if(cs)cs.textContent='VISION · ANALYZING';try{var r=await fetch('/api/eyes/analyze',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({imageDataUrl:c.toDataURL('image/jpeg',.72)})});var x=await r.json();if(!r.ok)throw new Error(x.error||'Vision failed');var answer=x.text||x.reply||x.analysis||'I can see the frame.';addActivity(answer);if(cs)cs.textContent='VISION · RESPONSE';if(typeof speak==='function')await speak(answer)}catch(e){addActivity('Vision error: '+e.message);if(cs)cs.textContent='VISION ERROR'}finally{if(sv)sv.textContent=(v.srcObject?'ACTIVE':'LOCKED')}}
 function wire(){document.querySelectorAll('.nav').forEach(function(b){var t=(b.textContent||'').trim();if(t==='3D Forge')b.addEventListener('click',function(){location.href='/forge'});if(t==='Operations')b.addEventListener('click',function(){location.href='/system'});if(t==='Integrations')b.addEventListener('click',function(){location.href='/integrations'})});document.querySelectorAll('.mode').forEach(function(b){var t=(b.textContent||'').trim();if(t==='LIVE OPS')b.addEventListener('click',function(){location.href='/missions'})});var e=document.getElementById('eyes');if(e){e.onclick=nativeEyesOn;e.ontouchend=function(ev){ev.preventDefault();nativeEyesOn()}};var v=document.getElementById('video');if(v)v.addEventListener('playing',addLookButton);fetch('/api/eyes/status').then(function(r){return r.json()}).then(function(x){if(x.ok){var sv=document.getElementById('sv');if(sv&&sv.textContent==='LOCKED')sv.textContent='READY'}}).catch(function(){})}
 window.scottyEyesAnalyze=analyze;window.scottyEyesOn=nativeEyesOn;if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wire);else wire();
-})();</script></body></html>
+})();</script><script>
+(function(){
+  // Final iPad voice transport: mute the live mic while S.C.O.T.T.Y. speaks,
+  // play ElevenLabs with duration-aware completion, then restore listening.
+  let scottyVoiceRun=0;
+
+  function pauseHudMic(){
+    const changed=[];
+    try{
+      if(window.micStream||typeof micStream!=="undefined"){
+        const ms=(typeof micStream!=="undefined"?micStream:window.micStream);
+        if(ms&&ms.getAudioTracks)for(const tr of ms.getAudioTracks()){changed.push([tr,tr.enabled]);tr.enabled=false}
+      }
+    }catch{}
+    return ()=>{for(const [tr,on] of changed){try{tr.enabled=on}catch{}}};
+  }
+
+  async function playElevenLabsDirect(text){
+    const voiceId=(localStorage.getItem("scottyElevenVoiceId")||"").trim();
+    const ctl=new AbortController(),fetchTimer=setTimeout(()=>ctl.abort(),20000);
+    let r;
+    try{
+      r=await fetch("/api/tts",{method:"POST",credentials:"include",signal:ctl.signal,headers:{"content-type":"application/json"},body:JSON.stringify({text,voiceId,voiceSettings:{speed:.98,stability:.38,style:.08}})});
+    }finally{clearTimeout(fetchTimer)}
+    if(!r.ok)throw new Error("ElevenLabs "+r.status);
+    const blob=await r.blob();
+    if(!blob.size)throw new Error("empty ElevenLabs audio");
+
+    await unlockAudio();
+    if(!audioCtx)throw new Error("AudioContext unavailable");
+    if(audioCtx.state==="suspended")await audioCtx.resume();
+    if(audioCtx.state!=="running")throw new Error("AudioContext not running");
+
+    const buf=await audioCtx.decodeAudioData((await blob.arrayBuffer()).slice(0));
+    await new Promise((resolve,reject)=>{
+      const src=audioCtx.createBufferSource();
+      scottyVoiceSource=src;
+      src.buffer=buf;
+      src.connect(audioCtx.destination);
+      let done=false;
+      const finish=(err)=>{
+        if(done)return;done=true;clearTimeout(timer);src.onended=null;
+        if(scottyVoiceSource===src)scottyVoiceSource=null;
+        err?reject(err):resolve();
+      };
+      const timer=setTimeout(()=>finish(new Error("voice playback timeout")),Math.max(20000,Math.ceil((Number(buf.duration)||0)*1000)+10000));
+      src.onended=()=>finish();
+      try{src.start(0)}catch(e){finish(e)}
+    });
+  }
+
+  async function playSystemVoice(text){
+    if(!("speechSynthesis" in window))throw new Error("speech synthesis unavailable");
+    return new Promise((resolve,reject)=>{
+      try{
+        const u=new SpeechSynthesisUtterance(text);
+        const voices=speechSynthesis.getVoices();
+        const idx=Number(localStorage.getItem("scottySystemVoice")||0);
+        if(voices[idx])u.voice=voices[idx];
+        u.rate=.96;u.pitch=.92;
+        let done=false;
+        const finish=(err)=>{if(done)return;done=true;clearTimeout(timer);u.onend=null;u.onerror=null;err?reject(err):resolve()};
+        const timer=setTimeout(()=>{try{speechSynthesis.cancel()}catch{};finish(new Error("system voice timeout"))},Math.max(30000,Math.min(120000,text.length*150)));
+        u.onend=()=>finish();
+        u.onerror=e=>finish(e);
+        speechSynthesis.cancel();
+        speechSynthesis.speak(u);
+      }catch(e){reject(e)}
+    });
+  }
+
+  speak=async function(text){
+    text=String(text||"").trim();if(!text)return;
+    const run=++scottyVoiceRun,restoreMic=pauseHudMic();
+    speaking=true;
+    try{clearVoiceBuffers()}catch{}
+    $("#vs").textContent="SCOTTY SPEAKING";
+    $("#cs").textContent="SPEAKING";
+    try{
+      await playElevenLabsDirect(text);
+      if(run===scottyVoiceRun)$("#vs").textContent="ELEVENLABS VOICE";
+    }catch(e){
+      console.warn("direct ElevenLabs playback",e);
+      try{
+        if(run===scottyVoiceRun)$("#vs").textContent="IPAD VOICE FALLBACK";
+        await playSystemVoice(text);
+      }catch(z){
+        console.warn("system voice fallback",z);
+        if(run===scottyVoiceRun){$("#vs").textContent="VOICE ERROR";$("#cs").textContent="VOICE OUTPUT FAILED"}
+      }
+    }finally{
+      restoreMic();
+      if(run===scottyVoiceRun){
+        speaking=false;
+        try{clearVoiceBuffers()}catch{}
+        setTimeout(()=>{
+          if(run!==scottyVoiceRun)return;
+          $("#vs").textContent=voiceArmed?"VOICE ARMED":"VOICE READY";
+          $("#cs").textContent=voiceArmed?"LISTENING":"READY";
+        },250);
+      }
+    }
+  };
+
+  // Natural spoken approval when exactly one action is waiting.
+  const priorCommand=command;
+  command=async function(t){
+    const raw=String(t||"").trim(),n=raw.toLowerCase().replace(/[.!?]+$/,"").trim();
+    if(/^(approve|approved|approve it|yes approve|yes approved)$/.test(n)){
+      try{
+        const p=await api("/api/approvals?status=pending");
+        const a=p.approvals||[];
+        if(a.length===1){
+          $("#cs").textContent="APPROVING ACTION";
+          await api("/api/approvals/"+encodeURIComponent(a[0].id)+"/approve",{method:"POST",body:"{}"});
+          const r=await api("/api/missions/"+encodeURIComponent(a[0].missionId)+"/run",{method:"POST",body:"{}"});
+          const st=r?.mission?.status||"";
+          const last=(r?.steps||[]).slice(-1)[0];
+          if(st==="completed"||last?.status==="completed")await speak("Approved and completed. "+String(last?.result||"The action finished successfully."));
+          else if(st==="needs_attention"||last?.status==="error")await speak("I approved it, but the provider action needs attention. "+String(last?.result||"Please check Mission Control."));
+          else await speak("Approved. I am continuing the mission.");
+          return;
+        }
+        if(a.length>1){await speak("There is more than one action waiting for approval. Open Live Ops so you can choose the correct one.");return}
+      }catch(e){console.warn("voice approval",e)}
+    }
+    return priorCommand(t);
+  };
+})();
+</script></body></html>
 
 [executed on device: Souper-crew (23dfa2a0-f8aa-4fc7-80af-8bfabd7cbd87)]
