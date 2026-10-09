@@ -106,14 +106,14 @@ async function planMission(goal:string,title:string){
   const name=String(drive[1]||"").trim().replace(/^["“”']+|["“”']+$/g,"").slice(0,240);
   const text=String(drive[2]||"").trim().slice(0,20000);
   return {
-   summary:"Create the requested Google Drive text file after owner approval.",
+   summary:"Create the requested Google Drive text file directly in the connected owner's Drive.",
    steps:[{
     stepNo:1,
     title:"Create Google Drive text file",
     instruction:`Create Google Drive file ${name} with the requested contents.`,
     actionType:"external_action",
     chiefId:chief?.id||null,
-    requiresApproval:true,
+    requiresApproval:false,
     actionProvider:"google",
     actionOperation:"drive_create_text",
     actionPayload:{name,text}
@@ -287,7 +287,8 @@ export async function runMission(id:string,maxSteps=2){
    if(!unfinished)await completeMission(mission);
    break;
   }
-  if(next.actionType==="external_action"&&!next.approvalGranted){
+  const safeOwnerCreate=next.actionProvider==="google"&&next.actionOperation==="drive_create_text"&&!next.requiresApproval;
+  if(next.actionType==="external_action"&&!next.approvalGranted&&!safeOwnerCreate){
    await createApproval(mission,next);break;
   }
   if(next.requiresApproval&&!next.approvalGranted){
