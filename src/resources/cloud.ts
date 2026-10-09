@@ -84,6 +84,7 @@ async function ensure(){
     pan_y double precision not null default 0,
     updated_at timestamptz not null default now()
   )`;
+  await q`alter table scotty_spatial_view add column if not exists collapsed jsonb not null default '[]'::jsonb`;
   await q`insert into scotty_spatial_view(id) values(1) on conflict(id) do nothing`;
   await q`insert into scotty_projects(id,name,department,status,description)
     values
@@ -145,7 +146,7 @@ async function getResources(){
   db()`select id,project_id as "projectId",assigned_agent_id as "assignedAgentId",title,status,priority,notes,due_at as "dueAt",created_at as "createdAt",updated_at as "updatedAt" from scotty_tasks order by created_at desc limit 200`,
   forgeVirtuals(),
   db()`select node_id as "nodeId",ox,oy,oz,updated_at as "updatedAt" from scotty_spatial_layout`,
-  db()`select orbit,tilt,zoom,spread,pan_x as "panX",pan_y as "panY",updated_at as "updatedAt" from scotty_spatial_view where id=1`
+  db()`select orbit,tilt,zoom,spread,pan_x as "panX",pan_y as "panY",collapsed,updated_at as "updatedAt" from scotty_spatial_view where id=1`
  ]);
  const layout:any={};
  for(const x of layoutRows)layout[x.nodeId]={ox:Number(x.ox||0),oy:Number(x.oy||0),oz:Number(x.oz||0),updatedAt:x.updatedAt};
@@ -155,7 +156,7 @@ async function getResources(){
   files:[...files.map(fileRow),...virtuals.files],
   tasks:[...tasks.map(taskRow),...virtuals.tasks],
   layout,
-  view:viewRows?.[0]?{orbit:Number(viewRows[0].orbit||0),tilt:Number(viewRows[0].tilt??-0.12),zoom:Number(viewRows[0].zoom||0.82),spread:Number(viewRows[0].spread||1),panX:Number(viewRows[0].panX||0),panY:Number(viewRows[0].panY||0),updatedAt:viewRows[0].updatedAt}:null
+  view:viewRows?.[0]?{orbit:Number(viewRows[0].orbit||0),tilt:Number(viewRows[0].tilt??-0.12),zoom:Number(viewRows[0].zoom||0.82),spread:Number(viewRows[0].spread||1),panX:Number(viewRows[0].panX||0),panY:Number(viewRows[0].panY||0),collapsed:Array.isArray(viewRows[0].collapsed)?viewRows[0].collapsed:[],updatedAt:viewRows[0].updatedAt}:null
  };
 }
 function newId(kind:string){return kind+"-"+crypto.randomUUID()}
@@ -264,10 +265,11 @@ export async function handleCloudResources(req:Request,u:URL){
   let b:any;try{b=await req.json()}catch{return json({ok:false,error:"Invalid JSON"},400)}
   const clamp=(v:any,lo:number,hi:number,fallback:number)=>{const n=Number(v);return Number.isFinite(n)?Math.max(lo,Math.min(hi,n)):fallback};
   const orbit=clamp(b?.orbit,-1000,1000,0),tilt=clamp(b?.tilt,-1.2,1.2,-0.12),zoom=clamp(b?.zoom,0.2,6,0.82),spread=clamp(b?.spread,0.2,6,1),panX=clamp(b?.panX,-10000,10000,0),panY=clamp(b?.panY,-10000,10000,0);
-  await db()`insert into scotty_spatial_view(id,orbit,tilt,zoom,spread,pan_x,pan_y,updated_at)
-    values(1,${orbit},${tilt},${zoom},${spread},${panX},${panY},now())
-    on conflict(id) do update set orbit=excluded.orbit,tilt=excluded.tilt,zoom=excluded.zoom,spread=excluded.spread,pan_x=excluded.pan_x,pan_y=excluded.pan_y,updated_at=now()`;
-  return json({ok:true,orbit,tilt,zoom,spread,panX,panY});
+  const collapsed=[...new Set((Array.isArray(b?.collapsed)?b.collapsed:[]).map((x:any)=>String(x).slice(0,300)).filter(Boolean))].slice(0,200);
+  await db()`insert into scotty_spatial_view(id,orbit,tilt,zoom,spread,pan_x,pan_y,collapsed,updated_at)
+    values(1,${orbit},${tilt},${zoom},${spread},${panX},${panY},${db().json(collapsed)},now())
+    on conflict(id) do update set orbit=excluded.orbit,tilt=excluded.tilt,zoom=excluded.zoom,spread=excluded.spread,pan_x=excluded.pan_x,pan_y=excluded.pan_y,collapsed=excluded.collapsed,updated_at=now()`;
+  return json({ok:true,orbit,tilt,zoom,spread,panX,panY,collapsed});
  }
  return json({ok:false,error:"Resource route not found"},404);
 }
