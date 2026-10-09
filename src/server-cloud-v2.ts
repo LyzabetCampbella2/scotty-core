@@ -5,7 +5,7 @@ import { handleCloudMemory } from "./memory/cloud.ts";
 import { handleCloudCommand } from "./brain/cloud.ts";
 import { handleCloudAgents,bootstrapAgents } from "./agents/cloud.ts";
 import { handleCloudForge,runForgeSelfTest } from "./forge/cloud.ts";
-import { handleCloudResources } from "./resources/cloud.ts";
+import { handleCloudResources,bootstrapResources } from "./resources/cloud.ts";
 import { handleHealth } from "./health.ts";
 import { handleCloudAuth,isCloudAuthenticated } from "./auth/cloud.ts";
 import { legacyApi,eyesFallback,voiceFallback,memoryFallback } from "./compat/cloud-fallback.ts";
@@ -62,6 +62,7 @@ Bun.serve({port:PORT,async fetch(req){
 
 console.log("S.C.O.T.T.Y. cloud gateway v3 listening",PORT);
 bootstrapAgents().then(n=>console.log("S.C.O.T.T.Y. cloud agent matrix ready",n)).catch(e=>console.warn("Agent bootstrap deferred",e?.message||e));
+bootstrapResources().then(r=>console.log("S.C.O.T.T.Y. spatial resource graph ready",JSON.stringify(r))).catch(e=>console.warn("Resource graph bootstrap deferred",e?.message||e));
 if(process.env.SCOTTY_FORGE_SELF_TEST==="1"){
  runForgeSelfTest().then(r=>console.log("S.C.O.T.T.Y. Forge self-test",JSON.stringify(r))).catch(e=>console.warn("S.C.O.T.T.Y. Forge self-test failed",e?.message||e));
 }
