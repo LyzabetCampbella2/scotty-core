@@ -20,6 +20,36 @@ async function ensure(){
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
  )`;
+ await q`create table if not exists scotty_projects(
+  id text primary key,
+  name text not null,
+  department text not null default 'S.C.O.T.T.Y.',
+  status text not null default 'active',
+  description text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+ )`;
+ await q`create table if not exists scotty_folders(
+  id text primary key,
+  project_id text,
+  parent_folder_id text,
+  name text not null,
+  path text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+ )`;
+ await q`create table if not exists scotty_tasks(
+  id text primary key,
+  project_id text,
+  assigned_agent_id text,
+  title text not null,
+  status text not null default 'queued',
+  priority text not null default 'normal',
+  notes text not null default '',
+  due_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+ )`;
 }
 
 async function sharedContext(limit=18){
@@ -51,6 +81,109 @@ export async function addActivity(source:string,title:string,message:string,meta
  try{await db()`insert into scotty_activity(source,title,message,metadata) values(${source},${title},${message},${db().json(metadata)})`}catch{}
 }
 
+function cleanLabel(v:string){
+ return String(v||"").trim().replace(/^["'“”]+|["'“”.!?]+$/g,"").trim().slice(0,500);
+}
+async function findProject(name:string){
+ const q=cleanLabel(name);if(!q)return null;
+ const exact=await db()`select id,name from scotty_projects where lower(name)=lower(${q}) limit 1`;
+ if(exact?.[0])return exact[0];
+ const rows=await db()`select id,name from scotty_projects where name ilike ${"%"+q+"%"} order by length(name) asc limit 1`;
+ return rows?.[0]||null;
+}
+async function findAgent(name:string){
+ const q=cleanLabel(name);if(!q)return null;
+ try{
+  const exact=await db()`select id,name from scotty_agents where lower(name)=lower(${q}) limit 1`;
+  if(exact?.[0])return exact[0];
+  const rows=await db()`select id,name from scotty_agents where name ilike ${"%"+q+"%"} order by is_chief desc,length(name) asc limit 1`;
+  return rows?.[0]||null;
+ }catch{return null}
+}
+async function findTask(name:string){
+ const q=cleanLabel(name);if(!q)return null;
+ const exact=await db()`select id,title,'task' as type from scotty_tasks where lower(title)=lower(${q}) order by updated_at desc limit 1`;
+ if(exact?.[0])return exact[0];
+ const rows=await db()`select id,title,'task' as type from scotty_tasks where title ilike ${"%"+q+"%"} order by updated_at desc limit 1`;
+ if(rows?.[0])return rows[0];
+ try{
+  const fx=await db()`select id::text as id,title,'forge' as type from scotty_forge_jobs where lower(title)=lower(${q}) or title ilike ${"%"+q+"%"} order by updated_at desc limit 1`;
+  if(fx?.[0])return fx[0];
+ }catch{}
+ return null;
+}
+async function handleNativeResourceCommand(text:string){
+ await ensure();
+
+ let m=text.match(/^\s*(?:create|make|start)\s+(?:a\s+)?project(?:\s+(?:called|named))?\s+(.+?)\s*$/i);
+ if(m){
+  const name=cleanLabel(m[1]);if(!name)return null;
+  const old=await findProject(name);
+  if(old)return {reply:`Project ${old.name} already exists.`,focusNode:"project:"+old.id,handled:true,action:"project_exists"};
+  const id="project-"+crypto.randomUUID();
+  await db()`insert into scotty_projects(id,name,department,status,description) values(${id},${name},'S.C.O.T.T.Y.','active','Created by S.C.O.T.T.Y. command.')`;
+  await addActivity("SCOTTY","PROJECT CREATED",name,{projectId:id,source:"voice-command"});
+  return {reply:`Created project ${name}.`,focusNode:"project:"+id,handled:true,action:"project_created"};
+ }
+
+ m=text.match(/^\s*(?:create|make|add)\s+(?:a\s+)?folder(?:\s+(?:called|named))?\s+(.+?)\s+(?:in|under)\s+(?:project\s+)?(.+?)\s*$/i);
+ if(m){
+  const name=cleanLabel(m[1]),project=await findProject(m[2]);
+  if(!name||!project)return {reply:project?"I need a folder name.":`I could not find project ${cleanLabel(m[2])}.`,handled:true,action:"folder_not_created"};
+  const id="folder-"+crypto.randomUUID(),path="/cloud/"+project.id+"/"+name.replace(/[^a-z0-9_-]+/gi,"-").toLowerCase();
+  await db()`insert into scotty_folders(id,project_id,name,path) values(${id},${project.id},${name},${path})`;
+  await addActivity("SCOTTY","FOLDER CREATED",name,{folderId:id,projectId:project.id});
+  return {reply:`Created folder ${name} inside ${project.name}.`,focusNode:"folder:"+id,handled:true,action:"folder_created"};
+ }
+
+ m=text.match(/^\s*(?:create|make|add)\s+(?:a\s+)?task(?:\s+(?:called|named))?\s+(.+?)\s*$/i);
+ if(m){
+  let rest=String(m[1]).trim(),agentName="",projectName="";
+  const assign=rest.match(/\s+(?:and\s+)?assign(?:\s+it)?\s+to\s+(.+)$/i);
+  if(assign){agentName=cleanLabel(assign[1]);rest=rest.slice(0,assign.index).trim()}
+  const projectPart=rest.match(/\s+(?:in|under)\s+project\s+(.+)$/i);
+  if(projectPart){projectName=cleanLabel(projectPart[1]);rest=rest.slice(0,projectPart.index).trim()}
+  const title=cleanLabel(rest);if(!title)return null;
+  const project=projectName?await findProject(projectName):null;
+  if(projectName&&!project)return {reply:`I could not find project ${projectName}.`,handled:true,action:"task_not_created"};
+  const agent=agentName?await findAgent(agentName):null;
+  if(agentName&&!agent)return {reply:`I could not find agent ${agentName}.`,handled:true,action:"task_not_created"};
+  const id="task-"+crypto.randomUUID();
+  await db()`insert into scotty_tasks(id,project_id,assigned_agent_id,title,status,priority,notes)
+   values(${id},${project?.id||null},${agent?.id||null},${title},'queued','normal','Created by S.C.O.T.T.Y. command.')`;
+  await addActivity("SCOTTY","TASK CREATED",title,{taskId:id,projectId:project?.id||null,agentId:agent?.id||null});
+  const suffix=(project?" in "+project.name:"")+(agent?" and assigned it to "+agent.name:"");
+  return {reply:`Created task ${title}${suffix}.`,focusNode:"task:"+id,handled:true,action:"task_created"};
+ }
+
+ m=text.match(/^\s*assign\s+(?:the\s+)?task\s+(.+?)\s+to\s+(.+?)\s*$/i);
+ if(m){
+  const task=await findTask(m[1]),agent=await findAgent(m[2]);
+  if(!task)return {reply:`I could not find task ${cleanLabel(m[1])}.`,handled:true,action:"task_not_found"};
+  if(!agent)return {reply:`I could not find agent ${cleanLabel(m[2])}.`,handled:true,action:"agent_not_found"};
+  if(task.type==="forge"){
+   await db()`update scotty_forge_jobs set agent_ids=${db().json([agent.id])},updated_at=now() where id::text=${task.id}`;
+   await addActivity("SCOTTY","FORGE TASK ASSIGNED",task.title,{forgeJobId:task.id,agentId:agent.id});
+   return {reply:`Assigned Forge task ${task.title} to ${agent.name}.`,focusNode:"task:forge-task-"+task.id,handled:true,action:"forge_task_assigned"};
+  }
+  await db()`update scotty_tasks set assigned_agent_id=${agent.id},updated_at=now() where id=${task.id}`;
+  await addActivity("SCOTTY","TASK ASSIGNED",task.title,{taskId:task.id,agentId:agent.id});
+  return {reply:`Assigned task ${task.title} to ${agent.name}.`,focusNode:"task:"+task.id,handled:true,action:"task_assigned"};
+ }
+
+ m=text.match(/^\s*move\s+(?:the\s+)?task\s+(.+?)\s+to\s+(?:project\s+)?(.+?)\s*$/i);
+ if(m){
+  const task=await findTask(m[1]),project=await findProject(m[2]);
+  if(!task)return {reply:`I could not find task ${cleanLabel(m[1])}.`,handled:true,action:"task_not_found"};
+  if(!project)return {reply:`I could not find project ${cleanLabel(m[2])}.`,handled:true,action:"project_not_found"};
+  if(task.type==="forge")await db()`update scotty_forge_jobs set project_id=${project.id},updated_at=now() where id::text=${task.id}`;
+  else await db()`update scotty_tasks set project_id=${project.id},updated_at=now() where id=${task.id}`;
+  await addActivity("SCOTTY","TASK MOVED",task.title,{taskId:task.id,projectId:project.id});
+  return {reply:`Moved task ${task.title} into ${project.name}.`,focusNode:"project:"+project.id,handled:true,action:"task_moved"};
+ }
+ return null;
+}
+
 export async function handleCloudCommand(req:Request,u:URL){
  const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{"cache-control":"no-store"}});
  if(req.method==="GET"&&u.pathname==="/api/hud/brain/status")return json({ok:true,provider:"groq",configured:Boolean(process.env.GROQ_API_KEY),memoryConfigured:Boolean(process.env.DATABASE_URL),model:process.env.SCOTTY_BRAIN_MODEL_GROQ||"qwen/qwen3.8-27b"});
@@ -62,6 +195,8 @@ export async function handleCloudCommand(req:Request,u:URL){
   await addActivity("SCOTTY","ON DECK","Voice command acknowledged.");
   return json({ok:true,handled:true,reply:"Aye, on deck.",provider:"native"});
  }
+ const nativeAction=await handleNativeResourceCommand(text);
+ if(nativeAction)return json({ok:true,provider:"native",...nativeAction});
  const memory=await sharedContext();
  const system=[
   "You are S.C.O.T.T.Y., a private visual command assistant and the root coordinator of a 128-agent network with 12 chiefs.",
