@@ -16,7 +16,6 @@ Bun.serve({port:PORT,async fetch(req){
  const u=new URL(req.url);
  if(u.pathname==="/health") return handleHealth();
 
- if(u.pathname==="/api/hud/stt") return handleHudStt(req);
  if(u.pathname.startsWith("/api/auth")) return handleCloudAuth(req,u);
 
  const protectedRoute=
@@ -32,6 +31,7 @@ Bun.serve({port:PORT,async fetch(req){
   (u.pathname.startsWith("/api/memory/")&&u.pathname!=="/api/memory/status")||
   u.pathname.startsWith("/forge/api/");
  if(protectedRoute&&!(await isCloudAuthenticated(req))) return Response.json({ok:false,error:"Authentication required"},{status:401,headers:{"cache-control":"no-store"}});
+ if(u.pathname==="/api/hud/stt") return handleHudStt(req);
  if(u.pathname==="/api/hud/command"||u.pathname==="/api/hud/brain/status") return handleCloudCommand(req,u);
  if(u.pathname==="/api/hud/agents"||u.pathname==="/api/hud/agents/run"||u.pathname==="/api/hud/agents/status"||u.pathname==="/api/hud/activity") return handleCloudAgents(req,u);
  if(u.pathname.startsWith("/api/hud/resources")) return handleCloudResources(req,u);
