@@ -1,4 +1,5 @@
 import postgres from "postgres";
+import { connectionSetupStatus } from "./connections/cloud.ts";
 
 let sql:any=null;
 function db(){
@@ -180,6 +181,7 @@ export async function handleSystemStatus(req:Request,u:URL){
     process.env.SCOTTY_VOICE_FALLBACK_URL,
     process.env.SCOTTY_MEMORY_FALLBACK_URL
   ].filter(Boolean).length;
+  const conn=connectionSetupStatus();
   const checks=[
     {key:"gateway",label:"Cloud Gateway",ok:true,detail:"Render gateway online"},
     {key:"database",label:"Cloud Database",ok:database,detail:database?"Postgres reachable":"Postgres unavailable"},
@@ -193,7 +195,9 @@ export async function handleSystemStatus(req:Request,u:URL){
     {key:"resources",label:"Spatial Resources",ok:database,detail:projects+" projects • "+folders+" folders • "+files+" files • "+tasks+" tasks"},
     {key:"missions",label:"Mission Autonomy",ok:database,detail:missions+" missions • "+pendingApprovals+" owner approval(s) pending"},
     {key:"forge",label:"3D Forge",ok:forge.blenderReady,detail:forge.blenderReady?("Blender online • "+(forge.version||"ready")):"Blender worker degraded"},
-    {key:"legacy",label:"Legacy Fallbacks",ok:legacyFallbacks===0,detail:legacyFallbacks===0?"No Railway fallback variables active":legacyFallbacks+" temporary fallback link(s) remain"}
+    {key:"legacy",label:"Legacy Fallbacks",ok:legacyFallbacks===0,detail:legacyFallbacks===0?"No Railway fallback variables active":legacyFallbacks+" temporary fallback link(s) remain"},
+    {key:"connections",label:"Connection Vault",ok:conn.vaultConfigured,detail:conn.vaultConfigured?"Encrypted OAuth vault configured":"SCOTTY_CONNECTION_KEY still needs to be added in Render"},
+    {key:"googleOAuth",label:"Google OAuth Client",ok:conn.googleClientConfigured,detail:conn.googleClientConfigured?"Google OAuth client configured":"Google OAuth client ID/secret still need to be added"}
   ];
   const passed=checks.filter(x=>x.ok).length;
   const score=Math.round((passed/checks.length)*100);
@@ -208,6 +212,7 @@ export async function handleSystemStatus(req:Request,u:URL){
     forge,
     providers:{groq,elevenLabs:eleven},
     legacyFallbacksActive:legacyFallbacks,
+    connectionsSetup:conn,
     checkedAt:new Date().toISOString()
   });
 }
