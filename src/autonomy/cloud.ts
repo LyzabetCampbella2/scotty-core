@@ -107,8 +107,10 @@ async function planMission(goal:string,title:string){
   "Use only two action types: internal_analysis or external_action.",
   "external_action means sending/posting/deleting/purchasing/changing an account or provider, contacting another person, or any action outside S.C.O.T.T.Y.'s own database.",
   "Every external_action MUST require approval. Internal analysis should not require approval.",
+  "For external_action choose provider and operation only from: telegram/send_message, google/gmail_send, google/calendar_create, google/drive_create_text, github/create_issue, github/comment_issue, slack/send_message, dropbox/upload_text, facebook/create_post, instagram/publish_image, tiktok/status_only.",
+  "Put all needed non-secret arguments in actionPayload. Never invent email addresses, chat IDs, issue numbers, channels, image URLs, dates, or account identifiers; if the goal does not provide them, leave them missing so execution can stop safely.",
   "Assign exactly one chief by name from the supplied roster.",
-  "Return JSON only: {summary:string,steps:[{title:string,instruction:string,actionType:string,chiefName:string,requiresApproval:boolean}]}."
+  "Return JSON only: {summary:string,steps:[{title:string,instruction:string,actionType:string,chiefName:string,requiresApproval:boolean,actionProvider:string|null,actionOperation:string|null,actionPayload:object}]}."
  ].join(" ");
  try{
   const r=await groqThink([{role:"system",content:system+"\n\nCHIEFS:\n"+roster},{role:"user",content:"Mission title: "+title+"\nGoal: "+goal}],900);
@@ -126,14 +128,17 @@ async function planMission(goal:string,title:string){
        instruction:String(x?.instruction||goal).slice(0,5000),
        actionType,
        chiefId:chief?.id||null,
-       requiresApproval:actionType==="external_action"||Boolean(x?.requiresApproval)
+       requiresApproval:actionType==="external_action"||Boolean(x?.requiresApproval),
+       actionProvider:actionType==="external_action"?String(x?.actionProvider||"").toLowerCase().slice(0,80):null,
+       actionOperation:actionType==="external_action"?String(x?.actionOperation||"").toLowerCase().slice(0,120):null,
+       actionPayload:actionType==="external_action"&&x?.actionPayload&&typeof x.actionPayload==="object"?x.actionPayload:{}
       };
     })
    };
   }
  }catch{}
  const chief=chooseChief(goal,rows);
- return {summary:"Mission plan created with a safe internal analysis step.",steps:[{stepNo:1,title:"Analyze mission",instruction:goal,actionType:"internal_analysis",chiefId:chief?.id||null,requiresApproval:false}]};
+ return {summary:"Mission plan created with a safe internal analysis step.",steps:[{stepNo:1,title:"Analyze mission",instruction:goal,actionType:"internal_analysis",chiefId:chief?.id||null,requiresApproval:false,actionProvider:null,actionOperation:null,actionPayload:{}}]};
 }
 function missionRow(r:any){
  return {id:r.id,title:r.title,goal:r.goal,projectId:r.projectId||null,autonomyMode:r.autonomyMode,priority:r.priority,status:r.status,summary:r.summary||null,createdAt:r.createdAt,updatedAt:r.updatedAt,completedAt:r.completedAt||null};
