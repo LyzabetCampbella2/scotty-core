@@ -31,7 +31,7 @@
   <div class="stats" id="stats"></div>
   <div class="cols">
     <section class="panel"><div class="title">Failure Receipts & Live Activity</div><div class="activity" id="activity">Loading…</div></section>
-    <section class="panel"><div class="title">Cloud Release State</div><div class="meta" id="meta">Loading…</div></section>
+    <section class="panel"><div class="title">Cloud Release State</div><div class="meta" id="meta">Loading…</div><div class="title" style="margin-top:16px">Browser Permissions</div><div id="permissions" class="meta">Checking…</div><div class="title" style="margin-top:16px">Recovery Controls</div><div class="actions"><a class="btn" href="/?wake=1">WAKE HUD</a><a class="btn" href="/forge">OPEN FORGE</a><button class="btn" id="recheck">RECHECK</button></div></section>
   </div>
   <div class="footer">S.C.O.T.T.Y. release telemetry refreshes automatically every 15 seconds.</div>
 </div>
@@ -39,6 +39,18 @@
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 async function request(url){const r=await fetch(url,{credentials:'same-origin',cache:'no-store'});if(r.status===401){location.href='/?next=/system';throw Error('Owner session required')}const d=await r.json();if(!r.ok)throw Error(d.error||('HTTP '+r.status));return d}
 function statusClass(ok){return ok?'ok':'bad'}
+async function permissionState(name){
+  try{
+    if(!navigator.permissions||!navigator.permissions.query)return 'unknown';
+    const p=await navigator.permissions.query({name});
+    return p.state||'unknown';
+  }catch{return 'unknown'}
+}
+async function showPermissions(){
+  const mic=await permissionState('microphone');
+  const cam=await permissionState('camera');
+  document.querySelector('#permissions').innerHTML='<b>Microphone</b><br>'+esc(mic.toUpperCase())+'<br><br><b>Camera</b><br>'+esc(cam.toUpperCase());
+}
 async function load(){
  const btn=document.querySelector('#refresh');btn.disabled=true;btn.textContent='CHECKING…';
  try{
@@ -52,14 +64,15 @@ async function load(){
   const items=(a.items||[]);const failures=items.filter(x=>/error|failed|failure|offline|degraded/i.test((x.title||'')+' '+(x.message||'')));
   const shown=[...failures,...items.filter(x=>!failures.includes(x))].slice(0,30);
   document.querySelector('#activity').innerHTML=shown.length?shown.map(x=>'<div class="evt"><b>'+esc(x.source||'SCOTTY')+' • '+esc(x.title||'ACTIVITY')+'</b><p>'+esc(x.message||'')+'</p><time>'+esc(new Date(x.createdAt||Date.now()).toLocaleString())+'</time></div>').join(''):'No activity receipts yet.';
-  const f=s.forge||{};
-  document.querySelector('#meta').innerHTML='<b>Architecture</b><br>'+esc(s.architecture||'cloud')+'<br><br><b>Release</b><br>'+esc(s.release||'part-8')+'<br><br><b>Last check</b><br>'+esc(new Date(s.checkedAt).toLocaleString())+'<br><br><b>Forge worker</b><br>'+esc(f.blenderReady?'READY':'CHECK')+(f.version?'<br>'+esc(f.version):'')+'<br><br><span class="pill">VERCEL HUD</span><span class="pill">RENDER CORE</span><span class="pill">POSTGRES MEMORY</span><span class="pill">GROQ BRAIN</span><span class="pill">ELEVENLABS VOICE</span>';
+  const f=s.forge||{},p=s.providers||{};
+  document.querySelector('#meta').innerHTML='<b>Architecture</b><br>'+esc(s.architecture||'cloud')+'<br><br><b>Release</b><br>'+esc(s.release||'part-8')+'<br><br><b>Last check</b><br>'+esc(new Date(s.checkedAt).toLocaleString())+'<br><br><b>Groq</b><br>'+esc(p.groq?.reachable?'REACHABLE':'CHECK')+'<br><br><b>ElevenLabs</b><br>'+esc(p.elevenLabs?.reachable?'REACHABLE':'CHECK')+'<br><br><b>Forge worker</b><br>'+esc(f.blenderReady?'READY':'CHECK')+(f.version?'<br>'+esc(f.version):'')+'<br><br><span class="pill">VERCEL HUD</span><span class="pill">RENDER CORE</span><span class="pill">POSTGRES MEMORY</span><span class="pill">GROQ BRAIN</span><span class="pill">ELEVENLABS VOICE</span>';
+  await showPermissions();
  }catch(e){
   document.querySelector('#overall').textContent='SYSTEM CHECK ERROR';
   document.querySelector('#checks').innerHTML='<div class="check"><div><b>Release Center</b><small>'+esc(e.message)+'</small></div><div class="state bad">CHECK</div></div>';
  }finally{btn.disabled=false;btn.textContent='RUN SYSTEM CHECK'}
 }
-document.querySelector('#refresh').onclick=load;load();setInterval(load,15000);
+document.querySelector('#refresh').onclick=load;document.querySelector('#recheck').onclick=load;load();setInterval(load,15000);
 </script>
 </body>
 </html>
