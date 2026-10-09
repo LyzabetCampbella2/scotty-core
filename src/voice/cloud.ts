@@ -30,7 +30,8 @@ export async function handleCloudVoice(req:Request,u:URL){
    return fetch("https://api.elevenlabs.io/v1/text-to-speech/"+encodeURIComponent(id),{
     method:"POST",
     headers:{"xi-api-key":key,"content-type":"application/json","accept":"audio/mpeg"},
-    body:JSON.stringify({text,model_id:process.env.ELEVENLABS_MODEL||"eleven_multilingual_v2"})
+    body:JSON.stringify({text,model_id:process.env.ELEVENLABS_MODEL||"eleven_multilingual_v2"}),
+    signal:AbortSignal.timeout(15000)
    });
   }
   try{
