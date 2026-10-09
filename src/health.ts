@@ -53,7 +53,7 @@ export async function handleSystemStatus(req:Request,u:URL){
   if(req.method!=="GET"||u.pathname!=="/api/system/status")return json({ok:false,error:"System status route not found"},404);
   const q=db();
   const database=await q`select 1 as ok`.then(()=>true).catch(()=>false);
-  const [agents,chiefs,memory,projects,folders,files,tasks,forgeJobs,forge]=await Promise.all([
+  const [agents,chiefs,memory,projects,folders,files,tasks,forgeJobs,forge,groq,eleven]=await Promise.all([
     count(q`select count(*)::int as n from scotty_agents`),
     count(q`select count(*)::int as n from scotty_agents where is_chief=true`),
     count(q`select count(*)::int as n from scotty_memory`),
@@ -62,12 +62,14 @@ export async function handleSystemStatus(req:Request,u:URL){
     count(q`select count(*)::int as n from scotty_files`),
     count(q`select count(*)::int as n from scotty_tasks`),
     count(q`select count(*)::int as n from scotty_forge_jobs`),
-    forgeHealth()
+    forgeHealth(),
+    groqHealth(),
+    elevenHealth()
   ]);
-  const brain=Boolean(process.env.GROQ_API_KEY);
-  const stt=Boolean(process.env.GROQ_API_KEY||process.env.OPENAI_API_KEY);
-  const tts=Boolean(process.env.ELEVENLABS_API_KEY);
-  const eyes=Boolean(process.env.GROQ_API_KEY||process.env.OPENAI_API_KEY||process.env.LOCAL_BRAIN_URL);
+  const brain=groq.reachable;
+  const stt=groq.reachable||Boolean(process.env.OPENAI_API_KEY);
+  const tts=eleven.reachable;
+  const eyes=groq.reachable||Boolean(process.env.OPENAI_API_KEY||process.env.LOCAL_BRAIN_URL);
   const checks=[
     {key:"gateway",label:"Cloud Gateway",ok:true,detail:"Render gateway online"},
     {key:"database",label:"Cloud Database",ok:database,detail:database?"Postgres reachable":"Postgres unavailable"},
