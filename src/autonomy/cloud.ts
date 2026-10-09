@@ -222,8 +222,8 @@ export async function createMission(input:any){
  await db().begin(async(tx:any)=>{
   await tx`insert into scotty_missions(id,title,goal,project_id,autonomy_mode,priority,status,summary) values(${id},${title},${goal},${projectId},${autonomyMode},${priority},'queued',${plan.summary})`;
   for(const s of plan.steps){
-   await tx`insert into scotty_mission_steps(id,mission_id,step_no,title,instruction,action_type,assigned_chief_id,requires_approval,status)
-    values(${crypto.randomUUID()},${id},${s.stepNo},${s.title},${s.instruction},${s.actionType},${s.chiefId},${s.requiresApproval},'pending')`;
+   await tx`insert into scotty_mission_steps(id,mission_id,step_no,title,instruction,action_type,action_provider,action_operation,action_payload,assigned_chief_id,requires_approval,status)
+    values(${crypto.randomUUID()},${id},${s.stepNo},${s.title},${s.instruction},${s.actionType},${s.actionProvider||null},${s.actionOperation||null},${tx.json(s.actionPayload||{})},${s.chiefId},${s.requiresApproval},'pending')`;
   }
  });
  await addActivity("SCOTTY","MISSION CREATED",title,{missionId:id,autonomyMode,steps:plan.steps.length});
