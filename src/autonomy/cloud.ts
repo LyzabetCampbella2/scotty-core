@@ -100,6 +100,26 @@ function chooseChief(goal:string,rows:any[]){
 }
 async function planMission(goal:string,title:string){
  const rows=await chiefs();
+ const drive=goal.match(/create\s+(?:a\s+)?google\s+drive\s+(?:text\s+)?file\s+named\s+(.+?)\s+containing\s*:\s*([\s\S]+)$/i);
+ if(drive){
+  const chief=chooseChief(goal,rows);
+  const name=String(drive[1]||"").trim().replace(/^["“”']+|["“”']+$/g,"").slice(0,240);
+  const text=String(drive[2]||"").trim().slice(0,20000);
+  return {
+   summary:"Create the requested Google Drive text file after owner approval.",
+   steps:[{
+    stepNo:1,
+    title:"Create Google Drive text file",
+    instruction:`Create Google Drive file ${name} with the requested contents.`,
+    actionType:"external_action",
+    chiefId:chief?.id||null,
+    requiresApproval:true,
+    actionProvider:"google",
+    actionOperation:"drive_create_text",
+    actionPayload:{name,text}
+   }]
+  };
+ }
  const roster=rows.map(x=>`${x.name} — ${x.department}`).join("\n");
  const system=[
   "You are S.C.O.T.T.Y.'s mission planner.",
