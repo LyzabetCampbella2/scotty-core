@@ -70,6 +70,12 @@ export async function handleSystemStatus(req:Request,u:URL){
   const stt=groq.reachable||Boolean(process.env.OPENAI_API_KEY);
   const tts=eleven.reachable;
   const eyes=groq.reachable||Boolean(process.env.OPENAI_API_KEY||process.env.LOCAL_BRAIN_URL);
+  const legacyFallbacks=[
+    process.env.SCOTTY_LEGACY_API_URL,
+    process.env.SCOTTY_EYES_FALLBACK_URL,
+    process.env.SCOTTY_VOICE_FALLBACK_URL,
+    process.env.SCOTTY_MEMORY_FALLBACK_URL
+  ].filter(Boolean).length;
   const checks=[
     {key:"gateway",label:"Cloud Gateway",ok:true,detail:"Render gateway online"},
     {key:"database",label:"Cloud Database",ok:database,detail:database?"Postgres reachable":"Postgres unavailable"},
@@ -80,7 +86,8 @@ export async function handleSystemStatus(req:Request,u:URL){
     {key:"memory",label:"Shared Memory",ok:database,detail:memory+" memory records"},
     {key:"agents",label:"Agent Matrix",ok:agents>=128&&chiefs>=12,detail:agents+" agents • "+chiefs+" chiefs"},
     {key:"resources",label:"Spatial Resources",ok:database,detail:projects+" projects • "+folders+" folders • "+files+" files • "+tasks+" tasks"},
-    {key:"forge",label:"3D Forge",ok:forge.blenderReady,detail:forge.blenderReady?("Blender online • "+(forge.version||"ready")):"Blender worker degraded"}
+    {key:"forge",label:"3D Forge",ok:forge.blenderReady,detail:forge.blenderReady?("Blender online • "+(forge.version||"ready")):"Blender worker degraded"},
+    {key:"legacy",label:"Legacy Fallbacks",ok:legacyFallbacks===0,detail:legacyFallbacks===0?"No Railway fallback variables active":legacyFallbacks+" temporary fallback link(s) remain"}
   ];
   const passed=checks.filter(x=>x.ok).length;
   const score=Math.round((passed/checks.length)*100);
@@ -94,6 +101,7 @@ export async function handleSystemStatus(req:Request,u:URL){
     counts:{agents,chiefs,memory,projects,folders,files,tasks,forgeJobs},
     forge,
     providers:{groq,elevenLabs:eleven},
+    legacyFallbacksActive:legacyFallbacks,
     checkedAt:new Date().toISOString()
   });
 }
