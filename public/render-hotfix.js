@@ -3,7 +3,11 @@
   window.__SCOTTY_VOICE_APPROVAL_V3__=true;
 
   function chosenVoice(){
-    return String(localStorage.getItem('scottyElevenVoiceId')||document.querySelector('#elVoiceId')?.value||'cVJh6uKaUowPTE2Nt6UF').trim();
+    let id=String(localStorage.getItem('scottyElevenVoiceId')||document.querySelector('#elVoiceId')?.value||'v2zbX16tJNtRIx8rSHDM').trim();
+    if(id==='v2zbX16tJNRIx8rSHDM')id='v2zbX16tJNtRIx8rSHDM';
+    try{localStorage.setItem('scottyElevenVoiceId',id)}catch{}
+    const input=document.querySelector('#elVoiceId');if(input)input.value=id;
+    return id;
   }
 
   async function playEleven(text){
@@ -13,7 +17,11 @@
       headers:{'content-type':'application/json'},
       body:JSON.stringify({text,voiceId:chosenVoice(),voiceSettings:{speed:.98,stability:.38,style:.08}})
     });
-    if(!r.ok) throw new Error('ElevenLabs '+r.status);
+    if(!r.ok){
+      let detail='ElevenLabs '+r.status;
+      try{const j=await r.json();detail=String(j?.error||j?.detail?.message||j?.detail||detail)}catch{}
+      throw new Error(detail);
+    }
     const blob=await r.blob();
     if(!blob.size) throw new Error('Empty ElevenLabs audio');
     const url=URL.createObjectURL(blob);
@@ -47,6 +55,7 @@
       console.warn('S.C.O.T.T.Y. voice',e);
       document.querySelector('#vs').textContent='ELEVENLABS VOICE ERROR';
       document.querySelector('#cs').textContent='OPEN VOICE SETTINGS • TEST VOICE';
+      const msg=document.querySelector('#voiceMsg');if(msg)msg.textContent='Voice error: '+String(e?.message||e).slice(0,180);
     }finally{
       speaking=false;
       try{clearVoiceBuffers()}catch{}
