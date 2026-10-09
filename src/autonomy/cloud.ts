@@ -144,14 +144,14 @@ function missionRow(r:any){
  return {id:r.id,title:r.title,goal:r.goal,projectId:r.projectId||null,autonomyMode:r.autonomyMode,priority:r.priority,status:r.status,summary:r.summary||null,createdAt:r.createdAt,updatedAt:r.updatedAt,completedAt:r.completedAt||null};
 }
 function stepRow(r:any){
- return {id:r.id,missionId:r.missionId,stepNo:r.stepNo,title:r.title,instruction:r.instruction,actionType:r.actionType,assignedChiefId:r.assignedChiefId||null,assignedAgentIds:r.assignedAgentIds||[],requiresApproval:Boolean(r.requiresApproval),status:r.status,result:r.result||null,createdAt:r.createdAt,updatedAt:r.updatedAt,completedAt:r.completedAt||null};
+ return {id:r.id,missionId:r.missionId,stepNo:r.stepNo,title:r.title,instruction:r.instruction,actionType:r.actionType,actionProvider:r.actionProvider||null,actionOperation:r.actionOperation||null,actionPayload:r.actionPayload||{},approvalGranted:Boolean(r.approvalGranted),assignedChiefId:r.assignedChiefId||null,assignedAgentIds:r.assignedAgentIds||[],requiresApproval:Boolean(r.requiresApproval),status:r.status,result:r.result||null,createdAt:r.createdAt,updatedAt:r.updatedAt,completedAt:r.completedAt||null};
 }
 async function getMission(id:string){
  const rows=await db()`select id,title,goal,project_id as "projectId",autonomy_mode as "autonomyMode",priority,status,summary,created_at as "createdAt",updated_at as "updatedAt",completed_at as "completedAt" from scotty_missions where id::text=${id} limit 1`;
  return rows?.[0]||null;
 }
 async function getSteps(id:string){
- return db()`select id,mission_id as "missionId",step_no as "stepNo",title,instruction,action_type as "actionType",assigned_chief_id as "assignedChiefId",assigned_agent_ids as "assignedAgentIds",requires_approval as "requiresApproval",status,result,created_at as "createdAt",updated_at as "updatedAt",completed_at as "completedAt" from scotty_mission_steps where mission_id::text=${id} order by step_no asc`;
+ return db()`select id,mission_id as "missionId",step_no as "stepNo",title,instruction,action_type as "actionType",action_provider as "actionProvider",action_operation as "actionOperation",action_payload as "actionPayload",approval_granted as "approvalGranted",assigned_chief_id as "assignedChiefId",assigned_agent_ids as "assignedAgentIds",requires_approval as "requiresApproval",status,result,created_at as "createdAt",updated_at as "updatedAt",completed_at as "completedAt" from scotty_mission_steps where mission_id::text=${id} order by step_no asc`;
 }
 async function createApproval(mission:any,step:any){
  const old=await db()`select id,status from scotty_approvals where step_id=${step.id} and status='pending' limit 1`;
