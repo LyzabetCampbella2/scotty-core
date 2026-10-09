@@ -6,6 +6,7 @@ import { handleCloudCommand } from "./brain/cloud.ts";
 import { handleCloudAgents,bootstrapAgents } from "./agents/cloud.ts";
 import { handleCloudForge,runForgeSelfTest } from "./forge/cloud.ts";
 import { handleCloudResources,bootstrapResources } from "./resources/cloud.ts";
+import { handleCloudAutonomy,bootstrapAutonomy,autonomyTick } from "./autonomy/cloud.ts";
 import { handleHealth,handleSystemStatus,handleSystemQa,handleSystemRecover } from "./health.ts";
 import { handleCloudAuth,isCloudAuthenticated } from "./auth/cloud.ts";
 
@@ -24,6 +25,8 @@ Bun.serve({port:PORT,async fetch(req){
   u.pathname==="/api/hud/agents/run"||
   u.pathname==="/api/hud/activity"||
   u.pathname.startsWith("/api/hud/resources")||
+  u.pathname.startsWith("/api/missions")||
+  u.pathname.startsWith("/api/approvals")||
   u.pathname==="/api/tts"||
   u.pathname==="/api/voice/speak"||
   u.pathname==="/api/eyes/analyze"||
@@ -35,6 +38,7 @@ Bun.serve({port:PORT,async fetch(req){
  if(u.pathname==="/api/hud/command"||u.pathname==="/api/hud/brain/status") return handleCloudCommand(req,u);
  if(u.pathname==="/api/hud/agents"||u.pathname==="/api/hud/agents/run"||u.pathname==="/api/hud/agents/status"||u.pathname==="/api/hud/activity") return handleCloudAgents(req,u);
  if(u.pathname.startsWith("/api/hud/resources")) return handleCloudResources(req,u);
+ if(u.pathname.startsWith("/api/missions")||u.pathname.startsWith("/api/approvals")) return handleCloudAutonomy(req,u);
  if(u.pathname.startsWith("/forge/api/")) return handleCloudForge(req,u);
  if(u.pathname==="/api/system/status") return handleSystemStatus(req,u);
  if(u.pathname==="/api/system/qa") return handleSystemQa(req,u);
@@ -45,13 +49,14 @@ Bun.serve({port:PORT,async fetch(req){
  if(u.pathname.startsWith("/api/memory")) return handleCloudMemory(req,u);
  if(u.pathname.startsWith("/api/")) return Response.json({ok:false,error:"S.C.O.T.T.Y. cloud route not found"},{status:404,headers:{"cache-control":"no-store"}});
 
- return Response.json({service:"S.C.O.T.T.Y.",status:"online",architecture:"cloud-gateway-v3",native:["brain","agents","activity","resources","eyes","stt","voice","memory","forge-control","release-status"]});
+ return Response.json({service:"S.C.O.T.T.Y.",status:"online",architecture:"cloud-gateway-v3",native:["brain","agents","activity","resources","missions","approvals","eyes","stt","voice","memory","forge-control","release-status"]});
 }});
 
 console.log("S.C.O.T.T.Y. cloud gateway v3 listening",PORT);
 handleHealth().then(async r=>console.log("S.C.O.T.T.Y. safe health",await r.text())).catch(()=>{});
 bootstrapAgents().then(n=>console.log("S.C.O.T.T.Y. cloud agent matrix ready",n)).catch(e=>console.warn("Agent bootstrap deferred",e?.message||e));
 bootstrapResources().then(r=>console.log("S.C.O.T.T.Y. spatial resource graph ready",JSON.stringify(r))).catch(e=>console.warn("Resource graph bootstrap deferred",e?.message||e));
+bootstrapAutonomy().then(n=>console.log("S.C.O.T.T.Y. autonomy mission core ready",n)).catch(e=>console.warn("Autonomy bootstrap deferred",e?.message||e));
 if(process.env.SCOTTY_FORGE_SELF_TEST==="1"){
  runForgeSelfTest().then(r=>console.log("S.C.O.T.T.Y. Forge self-test",JSON.stringify(r))).catch(e=>console.warn("S.C.O.T.T.Y. Forge self-test failed",e?.message||e));
 }
@@ -65,3 +70,5 @@ const maintenance=()=>{
 };
 setTimeout(maintenance,30000);
 setInterval(maintenance,15*60*1000);
+setTimeout(()=>autonomyTick().catch(()=>{}),45000);
+setInterval(()=>autonomyTick().catch(()=>{}),5*60*1000);
