@@ -8,7 +8,7 @@ import { handleCloudForge,runForgeSelfTest } from "./forge/cloud.ts";
 import { handleCloudResources,bootstrapResources } from "./resources/cloud.ts";
 import { handleCloudAutonomy,bootstrapAutonomy,autonomyTick } from "./autonomy/cloud.ts";
 import { handleCloudProviders } from "./providers/cloud.ts";
-import { handleCloudConnections } from "./connections/cloud.ts";
+import { handleCloudConnections,connectionSetupStatus } from "./connections/cloud.ts";
 import { handleHealth,handleSystemStatus,handleSystemQa,handleSystemRecover } from "./health.ts";
 import { handleCloudAuth,isCloudAuthenticated } from "./auth/cloud.ts";
 
@@ -17,6 +17,7 @@ const PORT=Number(process.env.PORT||3000);
 Bun.serve({port:PORT,async fetch(req){
  const u=new URL(req.url);
  if(u.pathname==="/health") return handleHealth();
+ if(req.method==="GET"&&u.pathname==="/api/connections/setup/status") return Response.json({ok:true,...connectionSetupStatus()},{headers:{"cache-control":"no-store"}});
 
  if(u.pathname.startsWith("/api/auth")) return handleCloudAuth(req,u);
  if(u.pathname==="/api/connections/google/callback") return handleCloudConnections(req,u);
@@ -31,7 +32,7 @@ Bun.serve({port:PORT,async fetch(req){
   u.pathname.startsWith("/api/missions")||
   u.pathname.startsWith("/api/approvals")||
   u.pathname.startsWith("/api/providers")||
-  u.pathname.startsWith("/api/connections")||
+  (u.pathname.startsWith("/api/connections")&&u.pathname!=="/api/connections/setup/status")||
   u.pathname==="/api/tts"||
   u.pathname==="/api/voice/speak"||
   u.pathname==="/api/eyes/analyze"||
