@@ -8,6 +8,7 @@ import { handleCloudForge,runForgeSelfTest } from "./forge/cloud.ts";
 import { handleCloudResources,bootstrapResources } from "./resources/cloud.ts";
 import { handleCloudAutonomy,bootstrapAutonomy,autonomyTick } from "./autonomy/cloud.ts";
 import { handleCloudProviders } from "./providers/cloud.ts";
+import { handleCloudConnections } from "./connections/cloud.ts";
 import { handleHealth,handleSystemStatus,handleSystemQa,handleSystemRecover } from "./health.ts";
 import { handleCloudAuth,isCloudAuthenticated } from "./auth/cloud.ts";
 
@@ -18,6 +19,7 @@ Bun.serve({port:PORT,async fetch(req){
  if(u.pathname==="/health") return handleHealth();
 
  if(u.pathname.startsWith("/api/auth")) return handleCloudAuth(req,u);
+ if(u.pathname==="/api/connections/google/callback") return handleCloudConnections(req,u);
 
  const protectedRoute=
   u.pathname==="/api/hud/stt"||
@@ -29,6 +31,7 @@ Bun.serve({port:PORT,async fetch(req){
   u.pathname.startsWith("/api/missions")||
   u.pathname.startsWith("/api/approvals")||
   u.pathname.startsWith("/api/providers")||
+  u.pathname.startsWith("/api/connections")||
   u.pathname==="/api/tts"||
   u.pathname==="/api/voice/speak"||
   u.pathname==="/api/eyes/analyze"||
@@ -42,6 +45,7 @@ Bun.serve({port:PORT,async fetch(req){
  if(u.pathname.startsWith("/api/hud/resources")) return handleCloudResources(req,u);
  if(u.pathname.startsWith("/api/missions")||u.pathname.startsWith("/api/approvals")) return handleCloudAutonomy(req,u);
  if(u.pathname.startsWith("/api/providers")) return handleCloudProviders(req,u);
+ if(u.pathname.startsWith("/api/connections")) return handleCloudConnections(req,u);
  if(u.pathname.startsWith("/forge/api/")) return handleCloudForge(req,u);
  if(u.pathname==="/api/system/status") return handleSystemStatus(req,u);
  if(u.pathname==="/api/system/qa") return handleSystemQa(req,u);
@@ -52,7 +56,7 @@ Bun.serve({port:PORT,async fetch(req){
  if(u.pathname.startsWith("/api/memory")) return handleCloudMemory(req,u);
  if(u.pathname.startsWith("/api/")) return Response.json({ok:false,error:"S.C.O.T.T.Y. cloud route not found"},{status:404,headers:{"cache-control":"no-store"}});
 
- return Response.json({service:"S.C.O.T.T.Y.",status:"online",architecture:"cloud-gateway-v3",native:["brain","agents","activity","resources","missions","approvals","providers","eyes","stt","voice","memory","forge-control","release-status"]});
+ return Response.json({service:"S.C.O.T.T.Y.",status:"online",architecture:"cloud-gateway-v3",native:["brain","agents","activity","resources","missions","approvals","providers","connections","eyes","stt","voice","memory","forge-control","release-status"]});
 }});
 
 console.log("S.C.O.T.T.Y. cloud gateway v3 listening",PORT);
