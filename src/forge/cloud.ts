@@ -136,7 +136,7 @@ export async function runForgeSelfTest(){
  await db()`insert into scotty_forge_jobs(id,project_id,title,task_type,primitive,notes,status,progress,plan,preview_svg)
   values(${id},'SCOTTY-SYSTEM',${base.title},${base.taskType},${base.primitive},${base.notes},'queued',20,${db().json(plan)},${svg})`;
  await processJob(id);
- const done=await db()`select id,status,output_blend as "outputBlend",error,(blend_bytes is not null) as "blendReady",(preview_png is not null) as "previewReady",(glb_bytes is not null) as "glbReady" from scotty_forge_jobs where id=${id}`;
+ const done=await db()`select id,status,output_blend as "outputBlend",error,(blend_bytes is not null) as "blendReady",((preview_png is not null) or (preview_svg is not null)) as "previewReady",(glb_bytes is not null) as "glbReady" from scotty_forge_jobs where id=${id}`;
  return {ok:done?.[0]?.status==="exported",...done?.[0]};
 }
 
