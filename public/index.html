@@ -99,6 +99,18 @@ async function command(t){t=(t||$('#ci').value).trim();if(!t)return;$('#ci').val
   if(!speaking)$('#cs').textContent=completed?'MISSION COMPLETE':waiting?'APPROVAL REQUIRED':failed?'MISSION NEEDS ATTENTION':'MISSION RUNNING';
   return
  }
+ const auto=t.match(/^\\s*(?:scotty[, ]+)?(?:assemble|coordinate|assign)\\s+(?:the\\s+)?(?:best\\s+)?(?:agents|chiefs|team)\\s+(?:to|for)\\s+(.+)$/i);
+ if(auto){
+  $('#cs').textContent='ASSEMBLING AGENT TEAM';
+  const r=await api('/api/hud/agents/run',{method:'POST',body:JSON.stringify({autoAssign:true,task:auto[1]})});
+  await loadAgents();
+  const reviews=(r.review||[]).map(x=>x.chief+': '+(x.assessment||x.status)).join('\\n\\n');
+  const findings=(r.results||[]).filter(x=>x.status==='completed').map(x=>x.name+': '+x.result).join('\\n\\n');
+  const summary=reviews||findings||'The team could not complete this mission.';
+  const panel=$('#activity');if(panel)panel.innerHTML='<div class="agent-profile"><div class="apname">COORDINATED MISSION</div><div class="apjob"><b>CHIEF REVIEWS</b><p>'+e(reviews||'No completed reviews')+'</p></div><div class="apjob"><b>AGENT FINDINGS</b><p>'+e(findings||'No completed findings')+'</p></div></div>';
+  $('#cs').textContent='TEAM REVIEW COMPLETE';
+  await speak(summary.slice(0,1200));return;
+ }
  const m=t.match(/^\s*(?:ask|bring in)\s+([^:]+):\s*(.+)$/i);
  if(m){const names=m[1].split(/\s*(?:,|\band\b|\+)\s*/i).map(x=>x.trim().toLowerCase()).filter(Boolean),ids=agents.filter(a=>names.some(n=>a.name.toLowerCase()===n||a.name.toLowerCase().includes(n))).map(a=>a.id).slice(0,8);if(ids.length){$('#cs').textContent='MULTI-AGENT • '+ids.length;const r=await api('/api/hud/agents/run',{method:'POST',body:JSON.stringify({agents:ids,task:m[2]})});await loadAgents();const ok=(r.results||[]).filter(x=>x.status==='completed');const summary=ok.map(x=>x.name+': '+x.result).join('\n\n');window.SCOTTYSpatial?.focusMention?.(summary||m[1]);await speak(summary||'The agent team finished with errors.');return}}
  window.SCOTTYSpatial?.focusMention?.(t);const r=await api('/api/hud/command',{method:'POST',body:JSON.stringify({text:t})});if(r.focusNode){await loadResources();window.SCOTTYSpatial?.focusId?.(r.focusNode)}else window.SCOTTYSpatial?.focusMention?.(r.reply||t);await speak(r.reply||'Done.');$('#cs').textContent=r.handled?'ACTING':'ROUTING'
