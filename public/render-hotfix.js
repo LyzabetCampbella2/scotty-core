@@ -173,6 +173,20 @@
   const test=$('#testVoice');if(test){test.textContent='TEST SCOTTISH VOICE'}
  }
  const badge=document.createElement('span');badge.id='scottyVoiceQueueStatus';badge.textContent='VOICE: READY';badge.style.cssText='display:inline-block;border:1px solid #28616a;border-radius:8px;padding:5px 8px;color:#92e8e1;font-size:10px;letter-spacing:.08em';const header=document.querySelector('header')||document.querySelector('#vs')?.parentElement;if(header)header.appendChild(badge);
+ const preview=document.createElement('button');
+ preview.id='scottyScottishPreview';preview.textContent='▶ HEAR SCOTTISH VOICE NOW';
+ preview.style.cssText='width:100%;margin-top:8px;background:#12313b;color:#b8f9f0;border:1px solid #58a8b1;padding:10px;border-radius:8px;font-weight:bold';
+ preview.onclick=async()=>{
+  try{
+   const r=await fetch('/api/voice/scottish/ack',{credentials:'include'});
+   if(!r.ok)throw await responseError(r);
+   const blob=await r.blob(),url=URL.createObjectURL(blob),a=new Audio(url);
+   a.onended=()=>URL.revokeObjectURL(url);
+   a.onerror=()=>URL.revokeObjectURL(url);
+   await a.play();
+  }catch(e){const msg=$('#voiceMsg');if(msg)msg.textContent='Scottish preview: '+String(e?.message||e)}
+ };
+ const panel=$('#voiceSettings');if(panel)panel.appendChild(preview);
  updateVoicePanel();
  const settings=$('#voiceSettingsBtn');if(settings)settings.addEventListener('click',()=>setTimeout(updateVoicePanel,0));
  state('READY');
