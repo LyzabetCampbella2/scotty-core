@@ -360,8 +360,9 @@ export async function handleCloudAgents(req:Request,u:URL){
   try{await db()`insert into scotty_agent_missions(id,task,status,agents,briefing,dependencies) values(${missionId},${task},'running',${db().json(ids)},${db().json(briefing)},${db().json(ordered.map((a:any)=>({agentId:a.id,name:a.name,state:"waiting",dependsOn:agentDependencies[a.id]||[]})))}) on conflict(id) do nothing`}catch(err){console.warn("live mission start failed",err)}
   if(body?.recoverySourceMissionId){
    const parent=String(body.recoverySourceMissionId);
-   const source=await db()`select id from scotty_agent_missions where id=${parent} and status='interrupted' limit 1`;
-   if(source.length)await db()`update scotty_agent_missions set parent_mission_id=${parent} where id=${missionId}`;
+   const claimed=await db()`update scotty_agent_missions set status='recovering',updated_at=now() where id=${parent} and status='interrupted' returning id`;
+   if(!claimed.length)return json({ok:false,error:"Recovery already started or mission unavailable"},409);
+   await db()`update scotty_agent_missions set parent_mission_id=${parent} where id=${missionId}`;
   }
   const results:any[]=[];
   const pending=new Map(ordered.map((a:any)=>[a.id,a]));
