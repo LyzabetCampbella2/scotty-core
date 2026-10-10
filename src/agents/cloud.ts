@@ -233,6 +233,10 @@ export async function handleCloudAgents(req:Request,u:URL){
     checks.push({name:"Disposable interrupted mission persisted",passed:m.status==="interrupted"});
     checks.push({name:"Completed finding preserved",passed:finished.has("test-complete")&&m.results[0].result==="Saved finding"});
     checks.push({name:"Only unfinished agent selected",passed:remaining.length===1&&remaining[0]==="test-pending"});
+    const rosterValid=(requested:string[])=>requested.length===remaining.length&&remaining.every((a:string)=>requested.includes(a));
+    checks.push({name:"Valid unfinished roster accepted",passed:rosterValid(["test-pending"])});
+    checks.push({name:"Completed agent cannot be restarted",passed:!rosterValid(["test-complete"])});
+    checks.push({name:"Missing unfinished agent rejected",passed:!rosterValid([])});
     const claimed=await tx`update scotty_agent_missions set status='recovering' where id=${id} and status='interrupted' returning id`;
     const duplicate=await tx`update scotty_agent_missions set status='recovering' where id=${id} and status='interrupted' returning id`;
     checks.push({name:"Second recovery claim rejected",passed:claimed.length===1&&duplicate.length===0});
