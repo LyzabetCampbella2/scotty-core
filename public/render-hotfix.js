@@ -10,33 +10,61 @@
   let j={};try{j=await r.json()}catch{}
   return new Error(String(j.error||j.detail||('HTTP '+r.status)).slice(0,250));
  }
- async function playScottish(text){
-  const start=await fetch(base+'/speak',{method:'POST',credentials:'include',headers:{'content-type':'application/json'},body:JSON.stringify({text:text.slice(0,190)})});
-  if(!start.ok)throw await responseError(start);
-  const job=await start.json();
-  if(!job.job_id)throw Error('Scottish voice queue returned no job ID');
-  setStatus('SCOTTISH VOICE GENERATING');
+ let generation=0,active=null,player=null,voiceState='READY';
+ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+ function state(value){
+  voiceState=value;
+  setStatus('SCOTTISH VOICE '+value);
+  const badge=document.getElementById('scottyVoiceQueueStatus');
+  if(badge)badge.textContent='VOICE: '+value;
+  const test=$('#testVoice');if(test)test.textContent=value==='GENERATING'||value==='SPEAKING'||value==='BUSY'?'REPLACE VOICE TEST':'TEST SCOTTISH VOICE';
+ }
+ function stopCurrent(){
+  if(active){active.abort();active=null}
+  if(player){try{player.pause();player.src=''}catch{}player=null}
+ }
+ async function queueRequest(text,signal){
+  // The local F5 engine is single-worker. A full queue means retry the latest phrase,
+  // never submit parallel jobs or create a backlog of obsolete utterances.
+  for(let attempt=0;attempt<7;attempt++){
+   if(signal.aborted)throw new DOMException('Superseded','AbortError');
+   const r=await fetch(base+'/speak',{method:'POST',credentials:'include',headers:{'content-type':'application/json'},body:JSON.stringify({text:text.slice(0,190)}),signal});
+   if(r.ok){const j=await r.json();if(!j.job_id)throw Error('Scottish queue returned no job ID');return j.job_id}
+   const err=await responseError(r);
+   if(r.status!==429&&!/queue full|busy/i.test(err.message))throw err;
+   state('BUSY');setCommand('VOICE BUSY • WAITING FOR LOCAL WORKER');
+   if(attempt===6)throw Error('Local Scottish voice queue remains full. Wait for old jobs to finish.');
+   await sleep(2500+attempt*1500);
+  }
+ }
+ async function playScottish(text,seq,controller){
+  const signal=controller.signal;
+  const jobId=await queueRequest(text,signal);
+  state('GENERATING');setCommand('VOICE GENERATING');
   for(let n=0;n<160;n++){
-   await new Promise(resolve=>setTimeout(resolve,1200));
-   const r=await fetch(base+'/jobs/'+encodeURIComponent(job.job_id),{credentials:'include',cache:'no-store'});
+   if(signal.aborted||seq!==generation)throw new DOMException('Superseded','AbortError');
+   await sleep(1200);
+   const r=await fetch(base+'/jobs/'+encodeURIComponent(jobId),{credentials:'include',cache:'no-store',signal});
    if(!r.ok)throw await responseError(r);
    const x=await r.json();
    if(x.state==='error')throw Error(x.error||'Scottish voice generation failed');
    if(x.state==='complete'){
-    const audio=await fetch(base+'/jobs/'+encodeURIComponent(job.job_id)+'/audio',{credentials:'include'});
+    const audio=await fetch(base+'/jobs/'+encodeURIComponent(jobId)+'/audio',{credentials:'include',signal});
     if(!audio.ok)throw await responseError(audio);
     const blob=await audio.blob();
-    if(!blob.size)throw Error('Scottish voice audio is empty');
+    if(!blob.size)throw Error('Scottish audio empty');
+    if(signal.aborted||seq!==generation)throw new DOMException('Superseded','AbortError');
     const url=URL.createObjectURL(blob);
     try{
      await new Promise((resolve,reject)=>{
-      const player=new Audio(url);player.playsInline=true;player.volume=1;
-      let finished=false;
-      const finish=e=>{if(finished)return;finished=true;clearTimeout(timer);player.onended=null;player.onerror=null;e?reject(e):resolve()};
-      const timer=setTimeout(()=>finish(Error('Audio playback timed out')),120000);
-      player.onended=()=>finish();player.onerror=()=>finish(Error('Audio playback failed'));
-      setStatus('SCOTTISH VOICE SPEAKING');
-      const p=player.play();if(p&&p.catch)p.catch(finish);
+      const a=new Audio(url);player=a;a.playsInline=true;
+      let done=false;
+      const finish=e=>{if(done)return;done=true;clearTimeout(timer);a.onended=null;a.onerror=null;if(player===a)player=null;e?reject(e):resolve()};
+      const timer=setTimeout(()=>finish(Error('Playback timed out')),120000);
+      signal.addEventListener('abort',()=>{a.pause();finish(new DOMException('Superseded','AbortError'))},{once:true});
+      a.onended=()=>finish();a.onerror=()=>finish(Error('Playback failed'));
+      state('SPEAKING');setCommand('SPEAKING');
+      const p=a.play();if(p&&p.catch)p.catch(finish);
      });
     }finally{URL.revokeObjectURL(url)}
     return;
@@ -46,16 +74,21 @@
  }
  speak=async function(text){
   text=String(text||'').trim();if(!text)return;
-  speaking=true;setStatus('SCOTTISH VOICE CONNECTING');setCommand('SCOTTISH VOICE');
+  const seq=++generation;
+  stopCurrent();
+  const controller=new AbortController();active=controller;
+  speaking=true;state('GENERATING');setCommand('SCOTTISH VOICE');
   try{
-   await playScottish(text);
-   setStatus('SCOTTISH VOICE READY');setCommand(voiceArmed?'LISTENING':'READY');
+   await playScottish(text,seq,controller);
+   if(seq===generation){state(voiceArmed?'LISTENING':'READY');setCommand(voiceArmed?'LISTENING':'READY')}
   }catch(e){
+   if(seq!==generation||e?.name==='AbortError')return;
    console.warn('S.C.O.T.T.Y. Scottish voice',e);
-   setStatus('SCOTTISH VOICE ERROR');
-   setCommand('VOICE ERROR • OPEN VOICE SETTINGS');
+   state('BUSY');setCommand('SCOTTISH VOICE BUSY');
    const msg=$('#voiceMsg');if(msg)msg.textContent='Scottish voice: '+String(e?.message||e).slice(0,180);
-  }finally{speaking=false;try{clearVoiceBuffers()}catch{}}
+  }finally{
+   if(seq===generation){active=null;speaking=false;try{clearVoiceBuffers()}catch{}}
+  }
  };
   const previousCommand=command;
   command=async function(t){
@@ -98,7 +131,8 @@
   const msg=$('#voiceMsg');if(msg)msg.textContent='Scottish F5 voice connected through the Eyes On test bridge. No ElevenLabs credits or voice ID needed. Tap TEST to listen.';
   const test=$('#testVoice');if(test){test.textContent='TEST SCOTTISH VOICE'}
  }
+ const badge=document.createElement('span');badge.id='scottyVoiceQueueStatus';badge.textContent='VOICE: READY';badge.style.cssText='display:inline-block;border:1px solid #28616a;border-radius:8px;padding:5px 8px;color:#92e8e1;font-size:10px;letter-spacing:.08em';const header=document.querySelector('header')||document.querySelector('#vs')?.parentElement;if(header)header.appendChild(badge);
  updateVoicePanel();
  const settings=$('#voiceSettingsBtn');if(settings)settings.addEventListener('click',()=>setTimeout(updateVoicePanel,0));
- setStatus('SCOTTISH VOICE READY');
+ state('READY');
 })();
