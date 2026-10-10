@@ -52,6 +52,11 @@ async function ensure(){
    updated_at timestamptz not null default now()
   )`;
   await q`alter table scotty_agent_missions add column if not exists dependencies jsonb not null default '[]'::jsonb`;
+  await q`create table if not exists scotty_agent_plans(
+   id uuid primary key,task text not null,agents jsonb not null,dependencies jsonb not null,
+   briefing jsonb not null, status text not null default 'awaiting_approval',
+   created_at timestamptz not null default now(), approved_at timestamptz
+  )`;
   await q`create table if not exists scotty_agent_meta(
    key text primary key,
    value text not null,
@@ -252,93 +257,35 @@ export async function handleCloudAgents(req:Request,u:URL){
 
  if(req.method==="POST"&&u.pathname==="/api/hud/agents/run"){
   let body:any;try{body=await req.json()}catch{return json({ok:false,error:"Invalid JSON"},400)}
+  const approvedPlanId=typeof body?.approvedPlanId==="string"?body.approvedPlanId:"";
+  let approvedPlan:any=null;
+  if(approvedPlanId){
+   const found=await db()`select * from scotty_agent_plans where id=${approvedPlanId} and status='awaiting_approval' limit 1`;
+   if(!found.length)return json({ok:false,error:"Plan unavailable or already approved"},409);
+   approvedPlan=found[0];
+   body={...body,agents:approvedPlan.agents,task:approvedPlan.task,dependencies:approvedPlan.dependencies,autoAssign:false};
+  }
   const ids:string[]=[...new Set<string>((Array.isArray(body?.agents)?body.agents:[]).map((x:any)=>String(x)))].slice(0,8);
-  const task=String(body?.task||"").trim().slice(0,12000);
-  if(!ids.length && body?.autoAssign!==true)return json({ok:false,error:"Select at least one agent or enable autoAssign"},400);
-  if(!task)return json({ok:false,error:"Missing agent task"},400);
-  if(body?.autoAssign===true && ids.length===0){
-   const candidates=await db()`select id,name,department,rank,is_chief as "isChief",chief_id as "chiefId",tools from scotty_agents where is_chief=true order by sort_order asc`;
-   const tokens=task.toLowerCase().split(/[^a-z]+/).filter((x:string)=>x.length>3);
-   const ranked=candidates.map((a:any)=>({a,score:(departmentSkills[a.department]?.skills||[]).join(" ").toLowerCase().split(/[^a-z]+/).filter((x:string)=>tokens.includes(x)).length+(a.department.toLowerCase().split(/[^a-z]+/).filter((x:string)=>tokens.includes(x)).length)})).sort((a:any,b:any)=>b.score-a.score);
-   ids.push(...ranked.filter((x:any)=>x.score>0).slice(0,3).map((x:any)=>x.a.id));
-   if(!ids.length)ids.push(...ranked.slice(0,2).map((x:any)=>x.a.id));
-  }
-  if(body?.autoAssign===true && body?.recruitSpecialists!==false){
-   const chiefs=ids.filter((id:string)=>id.startsWith("chief-"));
-   for(const chiefId of chiefs){
-    const pool=await db()`select id,name,department,rank,is_chief as "isChief",chief_id as "chiefId",tools from scotty_agents where chief_id=${chiefId} order by sort_order asc limit 30`;
-    const tokens=task.toLowerCase().split(/[^a-z]+/).filter((x:string)=>x.length>3);
-    const ranked=pool.map((a:any)=>{const skills=departmentSkills[a.department]?.skills||["analysis"];const slot=Math.max(0,Number(String(a.id).split("-").pop())-1)%skills.length;const primary=skills[slot];return {a,score:primary.toLowerCase().split(/[^a-z]+/).filter((x:string)=>tokens.includes(x)).length};}).sort((a:any,b:any)=>b.score-a.score);
-    for(const match of ranked.slice(0,2)){if(ids.length<8 && !ids.includes(match.a.id))ids.push(match.a.id)}
+  const task=String(body?.task||"").trim().slice(0,12000);  if(body?.planOnly===true && !approvedPlan){
+   const proposed:Record<string,string[]>={};
+   for(const a of ordered)proposed[a.id]=[];
+   for(const b of briefing){
+    const chief=supervisors.find((x:any)=>x.id===b.chiefId);
+    if(!chief)continue;
+    const prompt="Return ONLY JSON with shape {\\\"dependencies\\\":{\\\"agent-id\\\":[\\\"prerequisite-agent-id\\\"]}}. Assign only real prerequisites, never depend on yourself. Selected agents: "+JSON.stringify(ordered.map((a:any)=>({id:a.id,name:a.name,department:a.department})))+". Chief briefing: "+b.plan+". Mission: "+task;
+    const proposal=await runAgent(chief,prompt,context);
+    try{const raw=String(proposal.result||"");const parsed=JSON.parse(raw.slice(raw.indexOf("{"),raw.lastIndexOf("}")+1));for(const [id,deps] of Object.entries(parsed.dependencies||{})){if(id in proposed && Array.isArray(deps))proposed[id].push(...deps.map(String))}}catch{}
    }
+   for(const id of Object.keys(proposed))proposed[id]=[...new Set(proposed[id].filter((d:string)=>d!==id&&d in proposed))];
+   const state:Record<string,number>={};
+   const visit=(id:string):boolean=>{if(state[id]===1)return false;if(state[id]===2)return true;state[id]=1;for(const dep of proposed[id])if(!visit(dep))return false;state[id]=2;return true};
+   if(!Object.keys(proposed).every(visit))return json({ok:false,error:"Chief plan contains a dependency cycle. No agents were executed.",dependencies:proposed},409);
+   const planId=crypto.randomUUID();
+   await db()`insert into scotty_agent_plans(id,task,agents,dependencies,briefing) values(${planId},${task},${db().json(ids)},${db().json(proposed)},${db().json(briefing)})`;
+   return json({ok:true,awaitingApproval:true,planId,task,agents:ordered.map((a:any)=>({id:a.id,name:a.name})),dependencies:proposed,briefing});
   }
-  const rows=await getAgentsByIds(ids);
-  if(!rows.length)return json({ok:false,error:"Selected agents were not found"},404);
-  const byId=new Map(rows.map((x:any)=>[x.id,x]));
-  const ordered=ids.map(id=>byId.get(id)).filter(Boolean);
-  const specialtyAssignments=ordered.map((a:any)=>({agentId:a.id,name:a.name,department:a.department,primarySkill:(departmentSkills[a.department]?.skills||["analysis"])[Math.max(0,Number(String(a.id).split("-").pop())-1)%(departmentSkills[a.department]?.skills?.length||1)],secondarySkills:(departmentSkills[a.department]?.skills||[]).filter((_:string,i:number)=>i!==Math.max(0,Number(String(a.id).split("-").pop())-1)%(departmentSkills[a.department]?.skills?.length||1))}));
-  const context=await memoryContext();
-  const chiefIds=[...new Set(ordered.map((a:any)=>a.isChief?a.id:a.chiefId).filter(Boolean))];
-  const supervisors=await getAgentsByIds(chiefIds);
-  const briefing=supervisors.length?await Promise.all(supervisors.map(async (chief:any)=>{
-   const teammates=ordered.filter((a:any)=>a.id===chief.id||a.chiefId===chief.id);
-   const brief="Plan and delegate this mission among "+teammates.map((a:any)=>a.name).join(", ")+". Task: "+task+". Give concise assignments, dependencies, and review criteria.";
-   const result=await runAgent(chief,brief,context);
-   return {chiefId:chief.id,chief:chief.name,team:teammates.map((a:any)=>a.id),plan:result.result||"",status:result.status};
-  })): [];
-  const requestedDependencies=body?.dependencies&&typeof body.dependencies==="object"&&!Array.isArray(body.dependencies)?body.dependencies:{};
-  const agentDependencies:Record<string,string[]>={};
-  for(const row of ordered){
-   const raw=Array.isArray(requestedDependencies[row.id])?requestedDependencies[row.id]:[];
-   agentDependencies[row.id]=[...new Set<string>(raw.map((x:any)=>String(x)).filter((x:string)=>x!==row.id&&ordered.some((a:any)=>a.id===x)))];
+  if(approvedPlan){
+   const updated=await db()`update scotty_agent_plans set status='approved',approved_at=now() where id=${approvedPlan.id} and status='awaiting_approval' returning id`;
+   if(!updated.length)return json({ok:false,error:"Plan already used"},409);
   }
-  const results:any[]=[];
-  const pending=new Map(ordered.map((a:any)=>[a.id,a]));
-  while(pending.size){
-   const ready=[...pending.values()].filter((a:any)=>agentDependencies[a.id].every((dep:string)=>results.some((r:any)=>r.id===dep)));
-   if(!ready.length){
-    for(const a of pending.values()){results.push({id:a.id,name:a.name,status:"error",error:"Circular or unresolved agent dependency"})}
-    pending.clear();break;
-   }
-   const batch=ready.slice(0,2);
-   for(const a of batch)pending.delete(a.id);
-   const outcomes=await Promise.all(batch.map(async(row:any)=>{
-    const upstream=agentDependencies[row.id].map((id:string)=>results.find((r:any)=>r.id===id));
-    const failed=upstream.filter((r:any)=>r?.status!=="completed");
-    if(failed.length)return {id:row.id,name:row.name,status:"blocked",error:"Waiting for successful upstream work: "+failed.map((r:any)=>r.name).join(", ")};
-    const findings=upstream.map((r:any)=>r.name+": "+String(r.result||"").slice(0,3000)).join("\\n");
-    return runAgent(row,task+"\\nChief briefings: "+briefing.filter((b:any)=>b.team.includes(row.id)).map((b:any)=>b.plan).join("\\n")+"\\nUpstream agent findings: "+findings,context);
-   }));
-   results.push(...outcomes);
-  }
-  const review=await Promise.all(supervisors.map(async (chief:any)=>{
-   const findings=results.filter((r:any)=>ordered.some((a:any)=>a.id===r.id&&(a.chiefId===chief.id||a.id===chief.id)));
-   if(!findings.length)return {chief:chief.name,status:"no-results"};
-   const assessment=await runAgent(chief,"Review these team findings for the mission: "+task+"\n"+JSON.stringify(findings).slice(0,14000)+"\nSummarize completed work, disagreements, gaps, unresolved questions and next steps.",context);
-   return {chief:chief.name,chiefId:chief.id,status:assessment.status,assessment:assessment.result||assessment.error};
-  }));
-  const unresolved=[...review.filter((x:any)=>x.status!=="completed").map((x:any)=>x.chief+" review incomplete"),...results.filter((x:any)=>x.status!=="completed").map((x:any)=>x.name+": "+(x.error||x.status))];
-  const missionId=crypto.randomUUID();
-  const progress=results.map((r:any)=>({agentId:r.id,name:r.name,status:r.status,primarySkill:specialtyAssignments.find((a:any)=>a.agentId===r.id)?.primarySkill||"general",finding:r.status==="completed"?String(r.result||"").slice(0,1500):null,blocker:r.status==="error"?String(r.error||"Unknown error"):null}));
-  const dependencies=progress.map((p:any)=>{
-   const supervisor=ordered.find((a:any)=>a.id===p.agentId);
-   const chiefReview=review.find((r:any)=>r.chiefId===(supervisor?.isChief?supervisor.id:supervisor?.chiefId));
-   const state=p.status==="error"||p.status==="blocked"?"blocked":p.status!=="completed"?"in_progress":chiefReview?.status!=="completed"?"awaiting_review":"completed";
-   return {agentId:p.agentId,name:p.name,state,dependsOn:agentDependencies[p.agentId]||[],reviewerId:supervisor?.isChief?supervisor.id:supervisor?.chiefId||null,blocker:p.blocker||((state==="awaiting_review")?"Chief review not completed":null),updatedAt:new Date().toISOString()};
-  });
-  const questions=review.filter((x:any)=>x.status==="completed").map((x:any)=>({chief:x.chief,review:String(x.assessment||"").slice(0,4000)}));
-  try{await db()`insert into scotty_agent_missions(id,task,status,agents,briefing,results,review,progress,dependencies,unresolved) values(${missionId},${task},${unresolved.length?"needs_attention":"completed"},${db().json(ids)},${db().json(briefing)},${db().json(results)},${db().json(review)},${db().json(progress)},${db().json(dependencies)},${db().json(unresolved)})`}catch(err){console.warn("mission persistence failed",err)}
-  try{await db()`insert into scotty_activity(source,title,message,metadata) values('SCOTTY','MISSION INTELLIGENCE',${task.slice(0,400)},${db().json({missionId,progress,dependencies,questions,unresolved,chiefIds})})`}catch{}
 
-  try{await db()`insert into scotty_memory(scope,kind,text_content,metadata) values('shared','mission-summary',${("Mission: "+task+"\nChief reviews: "+JSON.stringify(review)+"\nUnresolved: "+unresolved.join("; ")).slice(0,24000)},${db().json({agentIds:ids,chiefIds,completed:results.filter((x:any)=>x.status==="completed").length,unresolved})})`}catch{}
-  return json({ok:true,missionId,task,progress,dependencies,questions,autoAssigned:body?.autoAssign===true,assignments:specialtyAssignments,briefing,results,review,unresolved,completed:results.filter(x=>x.status==="completed").length});
- }
-
- if(req.method==="GET"&&u.pathname==="/api/hud/activity"){
-  const limit=Math.max(1,Math.min(100,Number(u.searchParams.get("limit")||40)||40));
-  const rows=await db()`select id,source,title,message,metadata,created_at as "createdAt" from scotty_activity order by created_at desc limit ${limit}`;
-  return json({ok:true,items:rows});
- }
-
- return json({ok:false,error:"Agent route not found"},404);
-}
