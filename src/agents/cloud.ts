@@ -362,7 +362,12 @@ export async function handleCloudAgents(req:Request,u:URL){
    const parent=String(body.recoverySourceMissionId);
    const claimed=await db()`update scotty_agent_missions set status='recovering',updated_at=now() where id=${parent} and status='interrupted' returning id`;
    if(!claimed.length)return json({ok:false,error:"Recovery already started or mission unavailable"},409);
-   await db()`update scotty_agent_missions set parent_mission_id=${parent} where id=${missionId}`;
+   try{
+    await db()`update scotty_agent_missions set parent_mission_id=${parent} where id=${missionId}`;
+   }catch(err){
+    await db()`update scotty_agent_missions set status='interrupted',updated_at=now() where id=${parent} and status='recovering'`;
+    throw err;
+   }
   }
   const results:any[]=[];
   const pending=new Map(ordered.map((a:any)=>[a.id,a]));
