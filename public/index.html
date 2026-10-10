@@ -128,6 +128,12 @@ function showAgentProfile(a){if(missionPanelPinned)return;const chief=a.chiefId?
 function activateAgent(a){selectedAgentId=a.id;$('#graph g[data-agent]').forEach(g=>g.classList.toggle('agent-selected',g.dataset.agent===a.id));$('#cs').textContent=a.name+' • '+a.department;showAgentProfile(a);setTimeout(()=>{if(selectedAgentId===a.id&&a.state==='idle')$('#cs').textContent='LISTENING'},2500)}
 function cycleNav(dir){const n=$$('.nav');if(!n.length)return;let i=n.findIndex(x=>x.classList.contains('active'));i=i<0?0:i;i=(i+dir+n.length)%n.length;n.forEach((x,k)=>x.classList.toggle('active',k===i));const label=(n[i].textContent||'').trim();$('#cs').textContent='NAV • '+label;setTimeout(()=>$('#cs').textContent='LISTENING',1300)}
 $$('.nav').forEach((n,i)=>n.addEventListener('click',()=>{$$('.nav').forEach((x,k)=>x.classList.toggle('active',k===i))}));
+const eyesNodePositions=(()=>{try{return JSON.parse(localStorage.getItem('scotty-eyes-node-positions-v1')||'{}')}catch{return {}}})();
+let eyesDrag=null;
+function eyesGraphPoint(x,y){const svg=$('#graph'),world=$('#graphWorld'),m=world?.getScreenCTM();if(!m)return null;const p=svg.createSVGPoint();p.x=x;p.y=y;return p.matrixTransform(m.inverse())}
+function eyesMoveNode(id,x,y){const p=eyesGraphPoint(x,y);if(!p)return;const svg=$('#graph'),w=svg.clientWidth||700,h=svg.clientHeight||550;eyesNodePositions[id]={x:Math.max(12,Math.min(w-12,p.x)),y:Math.max(12,Math.min(h-12,p.y))};const g=[...$('#graph g[data-agent]')].find(el=>el.dataset.agent===id);if(!g)return;const c=g.querySelector('circle'),t=g.querySelector('text');if(c){c.setAttribute('cx',eyesNodePositions[id].x);c.setAttribute('cy',eyesNodePositions[id].y)}if(t){const dx=Number(t.getAttribute('x'))-Number(c?.getAttribute('data-old-x')||eyesNodePositions[id].x),dy=Number(t.getAttribute('y'))-Number(c?.getAttribute('data-old-y')||eyesNodePositions[id].y);t.setAttribute('x',eyesNodePositions[id].x+(Math.abs(dx)<30?dx:8));t.setAttribute('y',eyesNodePositions[id].y+(Math.abs(dy)<30?dy:2.5))}
+}
+function eyesSavePositions(){try{localStorage.setItem('scotty-eyes-node-positions-v1',JSON.stringify(eyesNodePositions))}catch{}}
 function draw(){
  const s=$('#graph'),w=s.clientWidth||700,h=s.clientHeight||550,cx=w*.5,cy=h*.54,ns='http://www.w3.org/2000/svg',pal=['#5eeaff','#28d7bd','#d8f7ff','#ffd166','#9db3c5','#7bb6ff','#ff8ea4'];
  graphCenter={x:cx,y:cy};s.setAttribute('viewBox','0 0 '+w+' '+h);s.innerHTML='';
