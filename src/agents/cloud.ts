@@ -360,7 +360,7 @@ export async function handleCloudAgents(req:Request,u:URL){
     const failed=upstream.filter((r:any)=>r?.status!=="completed");
     if(failed.length)return {id:row.id,name:row.name,status:"blocked",error:"Waiting for successful upstream work: "+failed.map((r:any)=>r.name).join(", ")};
     const findings=upstream.map((r:any)=>r.name+": "+String(r.result||"").slice(0,3000)).join("\\n");
-    return runAgent(row,task+"\\nChief briefings: "+briefing.filter((b:any)=>b.team.includes(row.id)).map((b:any)=>b.plan).join("\\n")+"\\nUpstream agent findings: "+findings,context);
+    try{return await runAgent(row,task+"\\nChief briefings: "+briefing.filter((b:any)=>b.team.includes(row.id)).map((b:any)=>b.plan).join("\\n")+"\\nUpstream agent findings: "+findings,context)}catch(err:any){return {id:row.id,name:row.name,status:"error",error:String(err?.message||err).slice(0,500)}}
    }));
    results.push(...outcomes);
    for(const r of outcomes)liveState[r.id]=r.status==="completed"?"awaiting_review":"blocked";
@@ -370,7 +370,7 @@ export async function handleCloudAgents(req:Request,u:URL){
   const review=await Promise.all(supervisors.map(async (chief:any)=>{
    const findings=results.filter((r:any)=>ordered.some((a:any)=>a.id===r.id&&(a.chiefId===chief.id||a.id===chief.id)));
    if(!findings.length)return {chief:chief.name,status:"no-results"};
-   const assessment=await runAgent(chief,"Review these team findings for the mission: "+task+"\n"+JSON.stringify(findings).slice(0,14000)+"\nSummarize completed work, disagreements, gaps, unresolved questions and next steps.",context);
+   let assessment:any;try{assessment=await runAgent(chief,"Review these team findings for the mission: "+task+"\n"+JSON.stringify(findings).slice(0,14000)+"\nSummarize completed work, disagreements, gaps, unresolved questions and next steps.",context)}catch(err:any){assessment={status:"error",error:String(err?.message||err).slice(0,500)}}
    return {chief:chief.name,chiefId:chief.id,status:assessment.status,assessment:assessment.result||assessment.error};
   }));
   const unresolved=[...review.filter((x:any)=>x.status!=="completed").map((x:any)=>x.chief+" review incomplete"),...results.filter((x:any)=>x.status!=="completed").map((x:any)=>x.name+": "+(x.error||x.status))];
