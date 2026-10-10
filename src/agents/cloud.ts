@@ -245,6 +245,8 @@ export async function handleCloudAgents(req:Request,u:URL){
   const m=rows[0];const body=await req.json().catch(()=>({}));
   if(body.resumeInterrupted===true){
    if(m.status!=="interrupted")return json({ok:false,error:"Only interrupted missions can use recovery"},409);
+   const existing=await db()`select id,status from scotty_agent_missions where parent_mission_id=${m.id} order by created_at desc limit 1`;
+   if(existing.length)return json({ok:false,error:"This mission already has a recovery attempt. Review the linked recovery before starting another.",recoveryMissionId:existing[0].id},409);
    const prior=Array.isArray(m.results)?m.results:[];
    const completed=new Set(prior.filter((x:any)=>x.status==="completed").map((x:any)=>String(x.id)));
    const original=Array.isArray(m.agents)?m.agents.map(String):[];
