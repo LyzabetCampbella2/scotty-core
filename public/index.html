@@ -410,20 +410,21 @@ function cursorFromHand(p,index=0){
  return{x,y}
 }
 function hoverNearest(x,y){
- let best=null,bestDistance=100;
- const svg=$('#graph'),rect=svg.getBoundingClientRect(),vb=svg.viewBox.baseVal;
- if(!rect.width||!rect.height)return null;
+ const svg=$('#graph'),gr=svg.getBoundingClientRect(),main=$('.main').getBoundingClientRect();
+ const rect=gr.width>10&&gr.height>10?gr:main;
+ const vb=svg.viewBox.baseVal;
+ if(!rect.width||!rect.height||!vb.width||!vb.height)return null;
  const px=(x-rect.left)*vb.width/rect.width+vb.x,py=(y-rect.top)*vb.height/rect.height+vb.y;
- const world=$('#graphWorld'),transform=world?.transform?.baseVal?.consolidate()?.matrix;
+ const matrix=$('#graphWorld')?.transform?.baseVal?.consolidate()?.matrix;
+ let best=null,bestDistance=115;
  document.querySelectorAll('#graph g[data-agent]').forEach(g=>{
   const circle=g.querySelector('circle');if(!circle)return;
   const cx=Number(circle.getAttribute('cx')),cy=Number(circle.getAttribute('cy'));
-  const gx=transform?transform.a*cx+transform.c*cy+transform.e:cx;
-  const gy=transform?transform.b*cx+transform.d*cy+transform.f:cy;
-  const dx=(gx-px)*rect.width/vb.width,dy=(gy-py)*rect.height/vb.height;
-  const distance=Math.hypot(dx,dy);
+  const gx=matrix?matrix.a*cx+matrix.c*cy+matrix.e:cx;
+  const gy=matrix?matrix.b*cx+matrix.d*cy+matrix.f:cy;
+  const distance=Math.hypot((gx-px)*rect.width/vb.width,(gy-py)*rect.height/vb.height);
   g.classList.remove('agent-hover');
-  if(distance<bestDistance){bestDistance=distance;best=g}
+  if(distance<bestDistance){best=g;bestDistance=distance}
  });
  if(best)best.classList.add('agent-hover');
  return best
@@ -484,7 +485,7 @@ function processOne(p){
  }else{
   st.downFrames=0;if(++st.upFrames>=2){st.armed=true;st.lastTarget=target}
  }
- if(eyesPointerFrames%6===0)eyesCursorDiagnostic('PINCH '+Math.round(info.pinchRatio*100)+'% • '+(target||st.lastTarget||'NO TARGET')+' • '+(st.armed?'READY':'RELEASE'));
+ if(eyesPointerFrames%6===0)eyesCursorDiagnostic('PINCH '+Math.round(info.pinchRatio*100)+'% • '+(target||st.lastTarget||'NO TARGET')+' • '+(st.armed?'READY':'RELEASE')+' • GRAPH '+Math.round($('#graph').getBoundingClientRect().width)+'px');
  return info.pinch?'PINCH DETECTED':target?'TARGET '+target:'MOVE CURSOR OVER NODE'
 }
 function angleDelta(a,b){let d=a-b;while(d>Math.PI)d-=Math.PI*2;while(d<-Math.PI)d+=Math.PI*2;return d}
