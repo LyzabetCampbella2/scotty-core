@@ -37,6 +37,19 @@ async function ensure(){
    raw jsonb not null default '{}'::jsonb,
    updated_at timestamptz not null default now()
   )`;
+  await q`create table if not exists scotty_agent_missions(
+   id uuid primary key,
+   task text not null,
+   status text not null default 'completed',
+   agents jsonb not null default '[]'::jsonb,
+   briefing jsonb not null default '[]'::jsonb,
+   results jsonb not null default '[]'::jsonb,
+   review jsonb not null default '[]'::jsonb,
+   progress jsonb not null default '[]'::jsonb,
+   unresolved jsonb not null default '[]'::jsonb,
+   created_at timestamptz not null default now(),
+   updated_at timestamptz not null default now()
+  )`;
   await q`create table if not exists scotty_agent_meta(
    key text primary key,
    value text not null,
@@ -266,6 +279,7 @@ export async function handleCloudAgents(req:Request,u:URL){
   const missionId=crypto.randomUUID();
   const progress=results.map((r:any)=>({agentId:r.id,name:r.name,status:r.status,primarySkill:specialtyAssignments.find((a:any)=>a.agentId===r.id)?.primarySkill||"general",finding:r.status==="completed"?String(r.result||"").slice(0,1500):null,blocker:r.status==="error"?String(r.error||"Unknown error"):null}));
   const questions=review.filter((x:any)=>x.status==="completed").map((x:any)=>({chief:x.chief,review:String(x.assessment||"").slice(0,4000)}));
+  try{await db()`insert into scotty_agent_missions(id,task,status,agents,briefing,results,review,progress,unresolved) values(${missionId},${task},${unresolved.length?"needs_attention":"completed"},${db().json(ids)},${db().json(briefing)},${db().json(results)},${db().json(review)},${db().json(progress)},${db().json(unresolved)})`}catch(err){console.warn("mission persistence failed",err)}
   try{await db()`insert into scotty_activity(source,title,message,metadata) values('SCOTTY','MISSION INTELLIGENCE',${task.slice(0,400)},${db().json({missionId,progress,questions,unresolved,chiefIds})})`}catch{}
 
   try{await db()`insert into scotty_memory(scope,kind,text_content,metadata) values('shared','mission-summary',${("Mission: "+task+"\nChief reviews: "+JSON.stringify(review)+"\nUnresolved: "+unresolved.join("; ")).slice(0,24000)},${db().json({agentIds:ids,chiefIds,completed:results.filter((x:any)=>x.status==="completed").length,unresolved})})`}catch{}
