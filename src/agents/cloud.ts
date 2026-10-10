@@ -272,7 +272,7 @@ export async function handleCloudAgents(req:Request,u:URL){
    for(const b of briefing){
     const chief=supervisors.find((x:any)=>x.id===b.chiefId);
     if(!chief)continue;
-    const prompt="Return ONLY JSON with shape {\\\"dependencies\\\":{\\\"agent-id\\\":[\\\"prerequisite-agent-id\\\"]}}. Assign only real prerequisites, never depend on yourself. Selected agents: "+JSON.stringify(ordered.map((a:any)=>({id:a.id,name:a.name,department:a.department})))+". Chief briefing: "+b.plan+". Mission: "+task;
+    const prompt='Return only a JSON object with a dependencies property mapping agent IDs to prerequisite agent ID arrays. Avoid self-dependencies. Selected agents: '+JSON.stringify(ordered.map((a:any)=>({id:a.id,name:a.name,department:a.department})))+'. Chief briefing: '+b.plan+'. Mission: '+task;
     const proposal=await runAgent(chief,prompt,context);
     try{const raw=String(proposal.result||"");const parsed=JSON.parse(raw.slice(raw.indexOf("{"),raw.lastIndexOf("}")+1));for(const [id,deps] of Object.entries(parsed.dependencies||{})){if(id in proposed && Array.isArray(deps))proposed[id].push(...deps.map(String))}}catch{}
    }
