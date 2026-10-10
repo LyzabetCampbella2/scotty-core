@@ -60,6 +60,7 @@ Bun.serve({port:PORT,async fetch(req){
   u.pathname.startsWith("/api/providers")||
   (u.pathname.startsWith("/api/connections")&&u.pathname!=="/api/connections/setup/status")||
   u.pathname==="/api/tts"||
+  u.pathname.startsWith("/api/voice/scottish/")||
   u.pathname==="/api/voice/speak"||
   u.pathname==="/api/eyes/analyze"||
   (u.pathname.startsWith("/api/memory/")&&u.pathname!=="/api/memory/status")||
