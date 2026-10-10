@@ -351,7 +351,7 @@ async function startVision(){if(!voiceCamera)throw Error('spoken authorization r
 function stopVision(){voiceCamera=false;tracking=false;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$('#video').srcObject=null;$('#vision').classList.remove('on');document.body.classList.remove('vision-active','gesture-hold');$('#handCursor').className='';$('#eyes').classList.remove('on');$('#eyes').textContent='EYES: LOCKED • SAY “SCOTTY, EYES ON”';$('#sv').textContent='LOCKED';$('#sh').textContent='OFF';$('#gs').textContent='HANDS OFF';$('#cs').textContent='LISTENING';$('#confirm').style.display='none';twoState=null;swipeSeed=null;resetEyesPinch();holdOn=false}
 async function startHands(){if(typeof Hands==='undefined')throw Error('hand tracker unavailable');hands=new Hands({locateFile:f=>'https://cdn.jsdelivr.net/npm/@mediapipe/hands/'+f});hands.setOptions({maxNumHands:2,modelComplexity:1,minDetectionConfidence:.55,minTrackingConfidence:.5});hands.onResults(drawHands);tracking=true;$('#sh').textContent='ACTIVE';const loop=async()=>{if(!tracking||!stream)return;try{await hands.send({image:$('#video')})}catch{}requestAnimationFrame(loop)};loop()}
 function ginfo(p){const d=(a,b)=>Math.hypot(p[a].x-p[b].x,p[a].y-p[b].y),raised=[8,12,16,20].filter(i=>p[i].y<p[i-2].y).length;return{pinch:d(4,8)<.055,open:raised>=4,point:p[8].y<p[6].y&&raised===1,label:d(4,8)<.055?'PINCH • SELECT':raised>=4?'OPEN PALM • HOLD':p[8].y<p[6].y&&raised===1?'POINT • TARGET':'TRACKING'}}
-function cursorFromHand(p){const b=$('.main').getBoundingClientRect(),pt=p[8],x=b.left+(1-pt.x)*b.width,y=b.top+pt.y*b.height,c=$('#handCursor');c.style.left=x+'px';c.style.top=y+'px';c.classList.add('on');return{x,y}}
+function cursorFromHand(p){const b=$('#graph').getBoundingClientRect(),pt=p[8],x=b.left+(1-pt.x)*b.width,y=b.top+pt.y*b.height,c=$('#handCursor');c.style.left=x+'px';c.style.top=y+'px';c.classList.add('on');return{x,y}}
 function hoverNearest(x,y){let best=null,bd=74;$$('#graph g[data-agent]').forEach(g=>{const r=g.getBoundingClientRect(),gx=r.left+r.width/2,gy=r.top+r.height/2,d=Math.hypot(gx-x,gy-y);g.classList.remove('agent-hover');if(d<bd){bd=d;best=g}});if(best)best.classList.add('agent-hover');return best}
 function pinchSelect(x,y){const g=hoverNearest(x,y);if(!g){$('#cs').textContent='PINCH • NO TARGET';return}const a=agents.find(z=>z.id===g.dataset.agent);if(a){activateAgent(a);$('#cs').textContent='SELECTED • '+a.name}}
 function setHold(on){if(on===holdOn)return;holdOn=on;document.body.classList.toggle('gesture-hold',on);$('#cs').textContent=on?'HOLD • INTERACTIONS PAUSED':'LISTENING'}
@@ -384,7 +384,7 @@ function processOne(p){
  processSwipe(p,info);
  if(info.pinch){
   eyesReleaseFrames=0;const id=hovered?.dataset?.agent||null;
-  if(id===eyesTargetId)eyesPinchFrames++;else{eyesTargetId=id;eyesPinchFrames=1}
+  if(id===eyesTargetId)eyesPinchFrames++;else if(!eyesTargetId||eyesPinchFrames<2){eyesTargetId=id;eyesPinchFrames=1}else{eyesPinchFrames++}
   if(!pinchLatched&&eyesPinchFrames>=3&&eyesTargetId&&now-lastPinchAt>500){
    lastPinchAt=now;pinchLatched=true;
    if(eyesMultiMode&&!eyesSelectedNodes.has(eyesTargetId)){eyesSelectedNodes.add(eyesTargetId);eyesPaintSelection();$('#cs').textContent='SELECTED '+eyesSelectedNodes.size+' AGENT(S)'}
