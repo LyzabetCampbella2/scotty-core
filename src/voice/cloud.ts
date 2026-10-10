@@ -3,7 +3,7 @@ const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{"cache
 const SCOTTISH_BRIDGE="https://scotty-voice-diagnostic-eyes-on-test.up.railway.app";
 async function scottishBridge(req:Request,u:URL){
  const sub=u.pathname.slice("/api/voice/scottish".length);
- if(!/^\/(?:health|speak|jobs\/[a-zA-Z0-9_-]+(?:\/audio)?)$/.test(sub))return json({ok:false,error:"Unknown Scottish voice route"},404);
+ if(!/^\/(?:health|ack|speak|jobs\/[a-zA-Z0-9_-]+(?:\/audio)?)$/.test(sub))return json({ok:false,error:"Unknown Scottish voice route"},404);
  if(sub==="/speak"&&req.method!=="POST")return json({ok:false,error:"POST required"},405);
  if(sub!=="/speak"&&req.method!=="GET")return json({ok:false,error:"GET required"},405);
  try{
