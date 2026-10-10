@@ -383,6 +383,7 @@ export async function handleCloudAgents(req:Request,u:URL){
     try{return await runAgent(row,task+"\\nChief briefings: "+briefing.filter((b:any)=>b.team.includes(row.id)).map((b:any)=>b.plan).join("\\n")+"\\nUpstream agent findings: "+findings,context)}catch(err:any){return {id:row.id,name:row.name,status:"error",error:String(err?.message||err).slice(0,500)}}
    }));
    results.push(...outcomes);
+   try{await db()`update scotty_agent_missions set results=${db().json(results)},updated_at=now() where id=${missionId}`}catch(err){console.warn("mission checkpoint failed",err)}
    for(const r of outcomes)liveState[r.id]=r.status==="completed"?"awaiting_review":"blocked";
    await saveLive("running");
   }
