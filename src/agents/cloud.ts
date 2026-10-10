@@ -217,7 +217,7 @@ export async function handleCloudAgents(req:Request,u:URL){
 
  if(req.method==="POST"&&u.pathname==="/api/hud/agents/run"){
   let body:any;try{body=await req.json()}catch{return json({ok:false,error:"Invalid JSON"},400)}
-  const ids=[...new Set((Array.isArray(body?.agents)?body.agents:[]).map((x:any)=>String(x)))].slice(0,8);
+  const ids:string[]=[...new Set<string>((Array.isArray(body?.agents)?body.agents:[]).map((x:any)=>String(x)))].slice(0,8);
   const task=String(body?.task||"").trim().slice(0,12000);
   if(!ids.length && body?.autoAssign!==true)return json({ok:false,error:"Select at least one agent or enable autoAssign"},400);
   if(!task)return json({ok:false,error:"Missing agent task"},400);
@@ -232,6 +232,7 @@ export async function handleCloudAgents(req:Request,u:URL){
   if(!rows.length)return json({ok:false,error:"Selected agents were not found"},404);
   const byId=new Map(rows.map((x:any)=>[x.id,x]));
   const ordered=ids.map(id=>byId.get(id)).filter(Boolean);
+  const specialtyAssignments=ordered.map((a:any)=>({agentId:a.id,name:a.name,department:a.department,primarySkill:(departmentSkills[a.department]?.skills||["analysis"])[Math.max(0,Number(String(a.id).split("-").pop())-1)%(departmentSkills[a.department]?.skills?.length||1)],secondarySkills:(departmentSkills[a.department]?.skills||[]).filter((_:string,i:number)=>i!==Math.max(0,Number(String(a.id).split("-").pop())-1)%(departmentSkills[a.department]?.skills?.length||1))}));
   const context=await memoryContext();
   const chiefIds=[...new Set(ordered.map((a:any)=>a.isChief?a.id:a.chiefId).filter(Boolean))];
   const supervisors=await getAgentsByIds(chiefIds);
@@ -254,7 +255,7 @@ export async function handleCloudAgents(req:Request,u:URL){
   }));
   const unresolved=review.filter((x:any)=>x.status!=="completed").map((x:any)=>x.chief+" review incomplete");
   try{await db()`insert into scotty_memory(scope,kind,text_content,metadata) values('shared','mission-summary',${("Mission: "+task+"\nChief reviews: "+JSON.stringify(review)+"\nUnresolved: "+unresolved.join("; ")).slice(0,24000)},${db().json({agentIds:ids,chiefIds,completed:results.filter((x:any)=>x.status==="completed").length,unresolved})})`}catch{}
-  return json({ok:true,task,briefing,results,review,unresolved,completed:results.filter(x=>x.status==="completed").length});
+  return json({ok:true,task,autoAssigned:body?.autoAssign===true,assignments:specialtyAssignments,briefing,results,review,unresolved,completed:results.filter(x=>x.status==="completed").length});
  }
 
  if(req.method==="GET"&&u.pathname==="/api/hud/activity"){
