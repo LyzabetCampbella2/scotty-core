@@ -52,6 +52,7 @@ async function ensure(){
    updated_at timestamptz not null default now()
   )`;
   await q`alter table scotty_agent_missions add column if not exists dependencies jsonb not null default '[]'::jsonb`;
+  await q`alter table scotty_agent_missions add column if not exists parent_mission_id uuid`;
   await q`create table if not exists scotty_agent_plans(
    id uuid primary key,task text not null,agents jsonb not null,dependencies jsonb not null,
    briefing jsonb not null, status text not null default 'awaiting_approval',
@@ -234,7 +235,9 @@ export async function handleCloudAgents(req:Request,u:URL){
  if(req.method==="GET"&&missionMatch){
   await db()`update scotty_agent_missions set status='interrupted',updated_at=now() where id=${missionMatch[1]} and status in ('running','reviewing') and updated_at < now()-interval '60 minutes'`;
   const rows=await db()`select * from scotty_agent_missions where id=${missionMatch[1]} limit 1`;
-  return rows.length?json({ok:true,mission:rows[0]}):json({ok:false,error:"Mission not found"},404);
+  if(!rows.length)return json({ok:false,error:"Mission not found"},404);
+  const related=await db()`select id,task,status,results,review,created_at as "createdAt" from scotty_agent_missions where parent_mission_id=${rows[0].id} order by created_at asc`;
+  return json({ok:true,mission:rows[0],continuations:related});
  }
  if(req.method==="POST"&&missionMatch){
   const rows=await db()`select * from scotty_agent_missions where id=${missionMatch[1]} limit 1`;
@@ -355,6 +358,11 @@ export async function handleCloudAgents(req:Request,u:URL){
    try{await db()`update scotty_agent_missions set status=${status},dependencies=${db().json(items)},updated_at=now() where id=${missionId}`}catch(err){console.warn("live mission update failed",err)}
   };
   try{await db()`insert into scotty_agent_missions(id,task,status,agents,briefing,dependencies) values(${missionId},${task},'running',${db().json(ids)},${db().json(briefing)},${db().json(ordered.map((a:any)=>({agentId:a.id,name:a.name,state:"waiting",dependsOn:agentDependencies[a.id]||[]})))}) on conflict(id) do nothing`}catch(err){console.warn("live mission start failed",err)}
+  if(body?.recoverySourceMissionId){
+   const parent=String(body.recoverySourceMissionId);
+   const source=await db()`select id from scotty_agent_missions where id=${parent} and status='interrupted' limit 1`;
+   if(source.length)await db()`update scotty_agent_missions set parent_mission_id=${parent} where id=${missionId}`;
+  }
   const results:any[]=[];
   const pending=new Map(ordered.map((a:any)=>[a.id,a]));
   while(pending.size){
