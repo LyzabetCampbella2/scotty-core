@@ -347,20 +347,42 @@ function processOne(p){
  if(eyesDrag){
   if(info.pinch){
    if(Math.hypot(pt.x-eyesDrag.startX,pt.y-eyesDrag.startY)>18)eyesDrag.moved=true;
-   if(eyesDrag.moved&&now-eyesDrag.lastDraw>55){eyesMoveNode(eyesDrag.id,pt.x,pt.y);eyesDrag.lastDraw=now;$('#cs').textContent='MOVING NODE • RELEASE TO PLACE'}
-  }else{
-   eyesReleaseFrames++;
-   if(eyesReleaseFrames>=3){if(eyesDrag.moved){eyesMoveNode(eyesDrag.id,pt.x,pt.y);eyesMoveHistory.push({id:eyesDrag.id,previous:eyesDrag.previous});if(eyesMoveHistory.length>30)eyesMoveHistory.shift();eyesSavePositions();$('#cs').textContent='NODE POSITION SAVED'}eyesDrag=null;resetEyesPinch()}
+   if(eyesDrag.moved&&now-eyesDrag.lastDraw>55){
+    const point=eyesGraphPoint(pt.x,pt.y),origin=eyesDrag.origin;
+    if(point&&origin){
+     const dx=point.x-origin.x,dy=point.y-origin.y;
+     const svg=$('#graph'),w=svg.clientWidth||700,h=svg.clientHeight||550;
+     for(const [id,start] of Object.entries(eyesDrag.starts)){
+      eyesNodePositions[id]={x:Math.max(12,Math.min(w-12,start.x+dx)),y:Math.max(12,Math.min(h-12,start.y+dy))}
+     }
+     draw();eyesDrag.lastDraw=now;$('#cs').textContent='MOVING '+Object.keys(eyesDrag.starts).length+' NODE(S)'
+    }
+   }
+  }else if(++eyesReleaseFrames>=3){
+   if(eyesDrag.moved){eyesCommitMove(eyesDrag.previous);$('#cs').textContent='NODE POSITIONS SAVED'}
+   eyesDrag=null;resetEyesPinch()
   }
-  $('#gs').textContent=eyesDrag?'PINCH • DRAG NODE':'NODE PLACED';return $('#gs').textContent
+  $('#gs').textContent=eyesDrag?'PINCH • DRAG NODES':'NODES PLACED';return $('#gs').textContent
  }
  processSwipe(p,info);
  if(info.pinch){
   eyesReleaseFrames=0;const id=hovered?.dataset?.agent||null;
   if(id===eyesTargetId)eyesPinchFrames++;else{eyesTargetId=id;eyesPinchFrames=1}
   if(!pinchLatched&&eyesPinchFrames>=3&&eyesTargetId&&now-lastPinchAt>500){
-   pinchSelect(pt.x,pt.y);lastPinchAt=now;pinchLatched=true;
-   eyesDrag={id:eyesTargetId,startX:pt.x,startY:pt.y,moved:false,lastDraw:0,previous:eyesNodePositions[eyesTargetId]?{...eyesNodePositions[eyesTargetId]}:null}
+   lastPinchAt=now;pinchLatched=true;
+   if(eyesMultiMode&&!eyesSelectedNodes.has(eyesTargetId)){eyesSelectedNodes.add(eyesTargetId);eyesPaintSelection();$('#cs').textContent='SELECTED '+eyesSelectedNodes.size+' AGENT(S)'}
+   else{
+    if(!eyesMultiMode)pinchSelect(pt.x,pt.y);
+    const ids=eyesMultiMode?[...eyesSelectedNodes]:[eyesTargetId],starts={},previous={};
+    const svg=$('#graph'),w=svg.clientWidth||700,h=svg.clientHeight||550,cx=w*.5,cy=h*.54;
+    for(const id of ids){
+     const g=[...$$('#graph g[data-agent]')].find(el=>el.dataset.agent===id),circle=g?.querySelector('circle');
+     if(!circle)continue;
+     starts[id]={x:Number(circle.getAttribute('cx')),y:Number(circle.getAttribute('cy'))};
+     previous[id]=eyesNodePositions[id]?{...eyesNodePositions[id]}:null
+    }
+    if(Object.keys(starts).length)eyesDrag={startX:pt.x,startY:pt.y,origin:eyesGraphPoint(pt.x,pt.y),starts,previous,moved:false,lastDraw:0}
+   }
   }
  }else{eyesPinchFrames=0;eyesTargetId=null;if(++eyesReleaseFrames>=3)pinchLatched=false}
  if(info.open){if(!holdSince)holdSince=now;if(now-holdSince>700&&!swipeSeed)setHold(true)}
