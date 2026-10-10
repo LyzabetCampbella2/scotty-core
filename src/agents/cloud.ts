@@ -226,6 +226,7 @@ export async function handleCloudAgents(req:Request,u:URL){
  }
 
  if(req.method==="GET"&&u.pathname==="/api/hud/agents/missions"){
+  await db()`update scotty_agent_missions set status='interrupted',updated_at=now() where status in ('running','reviewing') and updated_at < now()-interval '60 minutes'`;
   const rows=await db()`select id,task,status,agents,progress,unresolved,created_at as "createdAt",updated_at as "updatedAt" from scotty_agent_missions order by created_at desc limit 30`;
   return json({ok:true,missions:rows});
  }
