@@ -210,6 +210,29 @@
  modeButton.onclick=()=>{voiceMode=voiceMode==='fast'?'f5':'fast';++generation;stopCurrent();speaking=false;state('READY');updateMode()};
  const voicePanel=$('#voiceSettings');if(voicePanel)voicePanel.appendChild(modeButton);
  updateVoicePanel();updateMode();
- const settings=$('#voiceSettingsBtn');if(settings)settings.addEventListener('click',()=>setTimeout(updateVoicePanel,0));
+ // Rebind the actual TEST button, bypassing older ElevenLabs handlers.
+ // A direct user tap is important for Safari speech permission.
+ function bindTest(){
+  const btn=$('#testVoice');
+  if(!btn)return;
+  btn.onclick=null;
+  if(btn.dataset.scottyFastBound==='1')return;
+  btn.dataset.scottyFastBound='1';
+  btn.addEventListener('click',async e=>{
+   e.preventDefault();e.stopImmediatePropagation();
+   setCommand('VOICE TEST REQUESTED');state('STARTING');
+   const msg=$('#voiceMsg');if(msg)msg.textContent='Testing '+(voiceMode==='fast'?'built-in device speech':'Scottish F5')+' now…';
+   try{
+    if(voiceMode==='fast'){
+     const seq=++generation;stopCurrent();speaking=true;
+     state('SPEAKING');setCommand('DEVICE VOICE TEST');
+     await browserVoice('Aye, S.C.O.T.T.Y. is ready.',seq);
+     if(seq===generation){speaking=false;state('READY');setCommand('VOICE TEST COMPLETE');if(msg)msg.textContent='Device speech test finished. If silent, check iPad volume and available speech voices.'}
+    }else await speak('Aye, S.C.O.T.T.Y. is ready.');
+   }catch(err){speaking=false;state('ERROR');setCommand('VOICE TEST FAILED');if(msg)msg.textContent='Voice test error: '+String(err?.message||err)}
+  },true);
+ }
+ bindTest();
+ const settings=$('#voiceSettingsBtn');if(settings)settings.addEventListener('click',()=>setTimeout(()=>{updateVoicePanel();bindTest()},0));
  state('READY');
 })();
