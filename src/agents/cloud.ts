@@ -266,7 +266,25 @@ export async function handleCloudAgents(req:Request,u:URL){
    body={...body,agents:approvedPlan.agents,task:approvedPlan.task,dependencies:approvedPlan.dependencies,autoAssign:false};
   }
   const ids:string[]=[...new Set<string>((Array.isArray(body?.agents)?body.agents:[]).map((x:any)=>String(x)))].slice(0,8);
-  const task=String(body?.task||"").trim().slice(0,12000);  if(body?.planOnly===true && !approvedPlan){
+  const task=String(body?.task||"").trim().slice(0,12000);  if(!ids.length && body?.autoAssign!==true)return json({ok:false,error:"Select at least one agent or enable autoAssign"},400);
+  if(!task)return json({ok:false,error:"Missing agent task"},400);
+  if(body?.autoAssign===true && ids.length===0){
+   const candidates=await db()`select id,name,department,rank,is_chief as "isChief",chief_id as "chiefId",tools from scotty_agents where is_chief=true order by sort_order asc`;
+   const tokens=task.toLowerCase().split(/[^a-z]+/).filter((x:string)=>x.length>3);
+   const ranked=candidates.map((a:any)=>({a,score:(departmentSkills[a.department]?.skills||[]).join(" ").toLowerCase().split(/[^a-z]+/).filter((x:string)=>tokens.includes(x)).length+(a.department.toLowerCase().split(/[^a-z]+/).filter((x:string)=>tokens.includes(x)).length)})).sort((a:any,b:any)=>b.score-a.score);
+   ids.push(...ranked.filter((x:any)=>x.score>0).slice(0,3).map((x:any)=>x.a.id));
+   if(!ids.length)ids.push(...ranked.slice(0,2).map((x:any)=>x.a.id));
+  }
+  if(body?.autoAssign===true && body?.recruitSpecialists!==false){
+   const chiefs=ids.filter((id:string)=>id.startsWith("chief-"));
+   for(const chiefId of chiefs){
+    const pool=await db()`select id,name,department,rank,is_chief as "isChief",chief_id as "chiefId",tools from scotty_agents where chief_id=${chiefId} order by sort_order asc limit 30`;
+    const tokens=task.toLowerCase().split(/[^a-z]+/).filter((x:string)=>x.length>3);
+    const ranked=pool.map((a:any)=>{const skills=departmentSkills[a.department]?.skills||["analysis"];const slot=Math.max(0,Number(String(a.id).split("-").pop())-1)%skills.length;const primary=skills[slot];return {a,score:primary.toLowerCase().split(/[^a-z]+/).filter((x:string)=>tokens.includes(x)).length};}).sort((a:any,b:any)=>b.score-a.score);
+    for(const match of ranked.slice(0,2)){if(ids.length<8 && !ids.includes(match.a.id))ids.push(match.a.id)}
+   }
+  }
+  if(body?.planOnly===true && !approvedPlan){
    const proposed:Record<string,string[]>={};
    for(const a of ordered)proposed[a.id]=[];
    for(const b of briefing){
