@@ -1,5 +1,6 @@
 import postgres from "postgres";
 import { groqThink,addActivity } from "../brain/cloud.ts";
+import { specialistInstructions,departmentSkills } from "./skills.ts";
 
 let sql:any=null,initPromise:Promise<void>|null=null,lastImportTry=0;
 function db(){
@@ -178,7 +179,7 @@ export async function runAgent(row:any,task:string,context:string){
  try{
   await db()`update scotty_agents set state='working',current_job=${task.slice(0,1800)},queue_count=queue_count+1,updated_at=now() where id=${id}`;
   await addActivity(name,"AGENT START",task.slice(0,220),{agentId:id});
-  const system=`You are ${name}, a S.C.O.T.T.Y. specialist agent. Department: ${row.department}. Rank: ${row.rank}. You work under ${row.chiefId||"S.C.O.T.T.Y. CORE"}. Give a concrete specialist result for the assigned task. Be concise but substantive. You share the S.C.O.T.T.Y. memory network; use relevant context but never invent facts or claim external actions you did not perform.`;
+  const system=specialistInstructions(row);
   const r=await groqThink([{role:"system",content:system+(context?"\n\nSHARED MEMORY:\n"+context:"")},{role:"user",content:task}],750);
   await db()`update scotty_agents set state='idle',current_job=null,queue_count=greatest(queue_count-1,0),last_result=${r.text.slice(0,8000)},last_run_at=now(),memory_links=memory_links+1,updated_at=now() where id=${id}`;
   try{await db()`insert into scotty_memory(scope,kind,agent_id,text_content,metadata) values('shared','agent-result',${id},${name+": "+r.text},${db().json({department:row.department,model:r.model,task:task.slice(0,1000)})})`}catch{}
@@ -198,6 +199,11 @@ export async function handleCloudAgents(req:Request,u:URL){
  const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{"cache-control":"no-store"}});
  const cookie=req.headers.get("cookie")||"";
  await ensureRoster(cookie);
+
+ if(req.method==="GET"&&u.pathname==="/api/hud/agents/skills"){
+  const rows=await db()`select id,name,department,rank,is_chief as "isChief",chief_id as "chiefId",tools from scotty_agents order by sort_order asc`;
+  return json({ok:true,departments:departmentSkills,agents:rows.map((r:any)=>({id:r.id,name:r.name,department:r.department,rank:r.rank,isChief:r.isChief,chiefId:r.chiefId,skills:departmentSkills[r.department]?.skills||["analysis","planning","reporting"],capabilities:Array.isArray(r.tools)?r.tools:[]}))});
+ }
 
  if(req.method==="GET"&&u.pathname==="/api/hud/agents/status"){
   const c=await db()`select count(*)::int as n,count(*) filter(where is_chief)::int as chiefs from scotty_agents`;
