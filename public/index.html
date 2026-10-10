@@ -384,7 +384,7 @@ function ginfo(p){
  const d=(a,b)=>Math.hypot(p[a].x-p[b].x,p[a].y-p[b].y);
  const palm=Math.max(.04,d(5,17)),pinchRatio=d(4,8)/palm;
  const raised=[8,12,16,20].filter(i=>p[i].y<p[i-2].y).length;
- const pinch=pinchRatio<.43;
+ const pinch=pinchRatio<.66;
  return{pinch,pinchRatio,open:raised>=4,point:p[8].y<p[6].y&&raised===1,label:pinch?'PINCH • '+Math.round(pinchRatio*100)+'%':raised>=4?'OPEN PALM':raised===1?'POINT • TARGET':'TRACKING'}
 }
 function eyesSvgPointer(index,x,y){
@@ -399,7 +399,7 @@ function eyesHidePointer(index){const node=$('#eyesPointer'+index);if(node)node.
 let eyesPointerFrames=0;
 function eyesCursorDiagnostic(message){const el=$('#eyesCursorDiagnostics');if(el)el.textContent=message}
 function cursorFromHand(p,index=0){
- const graph=$('#graph'),gr=graph.getBoundingClientRect(),main=$('.main').getBoundingClientRect(),b=gr.width>10&&gr.height>10?gr:main,pt=p[8],x=b.left+(1-pt.x)*b.width,y=b.top+pt.y*b.height;
+ const graph=$('#graph'),gr=graph.getBoundingClientRect(),main=$('.main').getBoundingClientRect(),b=gr.width>10&&gr.height>10?gr:main,tip=p[8],thumb=p[4],pt={x:(tip.x+thumb.x)/2,y:(tip.y+thumb.y)/2},x=b.left+(1-pt.x)*b.width,y=b.top+pt.y*b.height;
  const c=index===0?$('#handCursor'):$('#handCursor2');
  c.style.left=x+'px';c.style.top=y+'px';c.classList.add('on');c.style.display='block';eyesSvgPointer(index,x,y);
  const surface=$('#eyesCursorSurface'+index);if(surface){surface.style.left=(x-main.left)+'px';surface.style.top=(y-main.top)+'px';surface.style.display='block'}
@@ -459,8 +459,8 @@ function processOne(p){
  processSwipe(p,info);
  if(info.pinch){
   eyesReleaseFrames=0;const id=hovered?.dataset?.agent||null;
-  if(id===eyesTargetId)eyesPinchFrames++;else if(!eyesTargetId||eyesPinchFrames<2){eyesTargetId=id;eyesPinchFrames=1}else{eyesPinchFrames++}
-  if(!pinchLatched&&eyesPinchFrames>=3&&eyesTargetId&&now-lastPinchAt>500){
+  if(id===eyesTargetId)eyesPinchFrames++;else{eyesTargetId=id;eyesPinchFrames=1}
+  if(!pinchLatched&&eyesPinchFrames>=2&&eyesTargetId&&now-lastPinchAt>500){
    lastPinchAt=now;pinchLatched=true;
    if(eyesMultiMode&&!eyesSelectedNodes.has(eyesTargetId)){eyesSelectedNodes.add(eyesTargetId);eyesPaintSelection();eyesOpenSelectedNode(id);$('#cs').textContent='OPENED '+id+' • '+eyesSelectedNodes.size+' SELECTED'}
    else{
@@ -490,7 +490,7 @@ function eyesHandPinch(p,index){
  if(down){
   state.released=0;
   if(!state.pinched){state.frames++;if(state.frames>=2){state.pinched=true;state.target=id;if(id){
-   if(eyesMultiMode){if(eyesSelectedNodes.has(id))eyesSelectedNodes.delete(id);else eyesSelectedNodes.add(id);eyesPaintSelection();$('#cs').textContent='SELECTED '+eyesSelectedNodes.size+' AGENT(S)'}
+   if(eyesMultiMode){if(eyesSelectedNodes.has(id))eyesSelectedNodes.delete(id);else eyesSelectedNodes.add(id);eyesPaintSelection();eyesOpenSelectedNode(id);$('#cs').textContent='OPENED '+id+' • '+eyesSelectedNodes.size+' SELECTED'}
    else{eyesOpenSelectedNode(id);$('#cs').textContent='PINCH OPENED '+id}
   }}}
  }else if(up){state.frames=0;if(++state.released>=2){state.pinched=false;state.target=null}}
