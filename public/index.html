@@ -500,11 +500,39 @@ function eyesHandPinch(p,index){
   state.released=0;
   if(!state.pinched&&++state.frames>=2){
    const chosen=id||state.lastTarget;
-   if(chosen&&eyesPinchAction(chosen)){state.pinched=true;state.target=chosen}
+   if(chosen&&eyesPinchAction(chosen)){
+    state.pinched=true;state.target=chosen;
+    state.startX=pt.x;state.startY=pt.y;state.lastDraw=0;
+    state.previous={};state.starts={};
+    const moving=eyesMultiMode?[...eyesSelectedNodes]:[chosen];
+    for(const key of moving){
+     const g=[...document.querySelectorAll('#graph g[data-agent]')].find(n=>n.dataset.agent===key);
+     const c=g?.querySelector('circle');if(!c)continue;
+     state.starts[key]={x:Number(c.getAttribute('cx')),y:Number(c.getAttribute('cy'))};
+     state.previous[key]=eyesNodePositions[key]?{...eyesNodePositions[key]}:null
+    }
+    state.origin=eyesGraphPoint(pt.x,pt.y);state.moved=false
+   }
+  }
+  if(state.pinched&&state.origin&&Math.hypot(pt.x-state.startX,pt.y-state.startY)>28){
+   const now=Date.now();
+   if(now-state.lastDraw>80){
+    const current=eyesGraphPoint(pt.x,pt.y),svg=$('#graph');
+    if(current){
+     const dx=current.x-state.origin.x,dy=current.y-state.origin.y,w=svg.clientWidth||700,h=svg.clientHeight||550;
+     for(const [key,start] of Object.entries(state.starts||{})){
+      eyesNodePositions[key]={x:Math.max(12,Math.min(w-12,start.x+dx)),y:Math.max(12,Math.min(h-12,start.y+dy))}
+     }
+     state.moved=true;state.lastDraw=now;draw()
+    }
+   }
   }
  }else if(up){
   state.frames=0;
-  if(++state.released>=2){state.pinched=false;state.target=null}
+  if(++state.released>=2){
+   if(state.moved){eyesCommitMove(state.previous);$('#cs').textContent='NODES MOVED • SAVED'}
+   state.pinched=false;state.target=null;state.moved=false;state.origin=null
+  }
  }
  state.wrist={x:p[0].x,y:p[0].y};
  return {info,id:id||state.lastTarget,down}
@@ -527,7 +555,7 @@ function processTwo(ps){
 }
 function drawHands(r){const c=$('#hc'),b=$('.cam'),w=b.clientWidth||300,h=b.clientHeight||225;if(c.width!==w||c.height!==h){c.width=w;c.height=h}const x=c.getContext('2d');x.clearRect(0,0,w,h);const ps=r.multiHandLandmarks||[];
  if(!ps.length)eyesCursorDiagnostic('EYES CURSOR: NO HAND LANDMARKS • SHOW HAND');
- $('#sh').textContent=ps.length?'TRACKING '+ps.length+' HAND'+(ps.length>1?'S':''):'SEARCHING';let label='NO HAND';for(const p of ps){const inf=ginfo(p);label=inf.label;x.fillStyle=inf.pinch?'#ffd166':'#28d7bd';x.strokeStyle=inf.pinch?'#ffd166':'#5eeaff';x.lineWidth=1.2;p.forEach(q=>{x.beginPath();x.arc((1-q.x)*w,q.y*h,2.4,0,Math.PI*2);x.fill()});[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]].forEach(([a,z])=>{x.beginPath();x.moveTo((1-p[a].x)*w,p[a].y*h);x.lineTo((1-p[z].x)*w,p[z].y*h);x.stroke()})}if(ps.length>=2)label=processTwo(ps);else if(ps.length===1){twoState=null;eyesHandStates[1]={pinched:false,frames:0,released:0,target:null};label=processOne(ps[0])}else{twoState=null;$('#handCursor').className='';$('#handCursor').style.display='none';$('#handCursor2').classList.remove('on');$('#handCursor2').style.display='none';eyesHidePointer(0);eyesHidePointer(1);resetEyesPinch();eyesHandStates.forEach(st=>{st.pinched=false;st.frames=0;st.released=0;st.target=null});holdSince=0;setHold(false);swipeSeed=null;$('#gs').textContent='SHOW HAND TO CAMERA • CHECK LIGHTING'}$('#gl').textContent='HAND TRACKING: '+label}
+ $('#sh').textContent=ps.length?'TRACKING '+ps.length+' HAND'+(ps.length>1?'S':''):'SEARCHING';let label='NO HAND';for(const p of ps){const inf=ginfo(p);label=inf.label;x.fillStyle=inf.pinch?'#ffd166':'#28d7bd';x.strokeStyle=inf.pinch?'#ffd166':'#5eeaff';x.lineWidth=1.2;p.forEach(q=>{x.beginPath();x.arc((1-q.x)*w,q.y*h,2.4,0,Math.PI*2);x.fill()});[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]].forEach(([a,z])=>{x.beginPath();x.moveTo((1-p[a].x)*w,p[a].y*h);x.lineTo((1-p[z].x)*w,p[z].y*h);x.stroke()})}if(ps.length>=2)label=processTwo(ps);else if(ps.length===1){twoState=null;eyesHandStates.forEach(st=>{if(st.moved)eyesCommitMove(st.previous);st.pinched=false;st.frames=0;st.released=0;st.target=null;st.wrist=null;st.moved=false});label=processOne(ps[0])}else{twoState=null;$('#handCursor').className='';$('#handCursor').style.display='none';$('#handCursor2').classList.remove('on');$('#handCursor2').style.display='none';eyesHidePointer(0);eyesHidePointer(1);resetEyesPinch();eyesHandStates.forEach(st=>{if(st.moved)eyesCommitMove(st.previous);st.pinched=false;st.frames=0;st.released=0;st.target=null;st.wrist=null;st.moved=false});holdSince=0;setHold(false);swipeSeed=null;$('#gs').textContent='SHOW HAND TO CAMERA • CHECK LIGHTING'}$('#gl').textContent='HAND TRACKING: '+label}
 
 $('#eyesMultiSelect').onclick=eyesToggleMulti;$('#eyesClearSelection').onclick=eyesClearSelection;$('#eyesUndoMove').onclick=eyesUndoMove;$('#eyesResetLayout').onclick=eyesResetLayout;
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&stream)stopVision()});addEventListener('beforeunload',stopVision);addEventListener('resize',()=>agents.length&&draw());if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('/hud-sw.js').catch(()=>{}));const wakeLaunch=new URLSearchParams(location.search).get('wake')==='1';if(wakeLaunch){setTimeout(()=>{const v=$('#vs');if(v)v.textContent='TAP ONCE TO WAKE VOICE'},350)};auth();
