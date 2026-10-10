@@ -310,6 +310,13 @@ export async function handleCloudAgents(req:Request,u:URL){
   }
   if(body?.recoverySourceMissionId&&!/^[0-9a-f-]{36}$/i.test(String(body.recoverySourceMissionId)))return json({ok:false,error:"Invalid recovery mission identifier"},400);
   const ids:string[]=[...new Set<string>((Array.isArray(body?.agents)?body.agents:[]).map((x:any)=>String(x)))].slice(0,8);
+  if(body?.recoverySourceMissionId){
+   const source=await db()`select status,agents,results from scotty_agent_missions where id=${String(body.recoverySourceMissionId)} limit 1`;
+   if(!source.length||source[0].status!=="interrupted")return json({ok:false,error:"Recovery source is not interrupted"},409);
+   const finished=new Set((Array.isArray(source[0].results)?source[0].results:[]).filter((r:any)=>r.status==="completed").map((r:any)=>String(r.id)));
+   const remaining=(Array.isArray(source[0].agents)?source[0].agents:[]).map(String).filter((id:string)=>!finished.has(id));
+   if(remaining.length!==ids.length||remaining.some((id:string)=>!ids.includes(id)))return json({ok:false,error:"Recovery agent selection does not match unfinished work"},409);
+  }
   const task=String(body?.task||"").trim().slice(0,12000);  if(!ids.length && body?.autoAssign!==true)return json({ok:false,error:"Select at least one agent or enable autoAssign"},400);
   if(!task)return json({ok:false,error:"Missing agent task"},400);
   if(body?.autoAssign===true && ids.length===0){
