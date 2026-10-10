@@ -4,7 +4,7 @@ const SCOTTISH_BRIDGE=String(process.env.SCOTTY_SCOTTISH_VOICE_URL||"").replace(
 const SCOTTISH_TOKEN=String(process.env.SCOTTY_SCOTTISH_VOICE_TOKEN||"");
 async function scottishBridge(req:Request,u:URL){
  const sub=u.pathname.slice("/api/voice/scottish".length);
- if(!/^\\/(?:health|speak|jobs\\/[a-zA-Z0-9_-]+(?:\\/audio)?)$/.test(sub))return json({ok:false,error:"Unknown Scottish voice route"},404);
+ if(!/^\/(?:health|speak|jobs\/[a-zA-Z0-9_-]+(?:\/audio)?)$/.test(sub))return json({ok:false,error:"Unknown Scottish voice route"},404);
  if(sub==="/speak"&&req.method!=="POST")return json({ok:false,error:"POST required"},405);
  if(sub!=="/speak"&&req.method!=="GET")return json({ok:false,error:"GET required"},405);
  if(!SCOTTISH_BRIDGE||!SCOTTISH_TOKEN)return json({ok:false,error:"Scottish voice gateway not configured"},503);
