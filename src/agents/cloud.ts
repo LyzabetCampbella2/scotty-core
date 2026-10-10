@@ -221,6 +221,32 @@ export async function handleCloudAgents(req:Request,u:URL){
  const cookie=req.headers.get("cookie")||"";
  await ensureRoster(cookie);
 
+ if(req.method==="POST"&&u.pathname==="/api/hud/agents/recovery-self-test"){
+  const checks:{name:string,passed:boolean}[]=[];
+  const id=crypto.randomUUID(),recovery=crypto.randomUUID();
+  try{
+   await db().begin(async(tx:any)=>{
+    await tx`insert into scotty_agent_missions(id,task,status,agents,results,dependencies) values(${id},'[RECOVERY SELF-TEST — DISPOSABLE]','interrupted',${tx.json(["test-complete","test-pending"])},${tx.json([{id:"test-complete",name:"Completed test agent",status:"completed",result:"Saved finding"}])},${tx.json([{agentId:"test-complete",state:"completed"},{agentId:"test-pending",state:"interrupted"}])})`;
+    const initial=await tx`select * from scotty_agent_missions where id=${id}`;
+    const m=initial[0],finished=new Set((m.results||[]).filter((r:any)=>r.status==="completed").map((r:any)=>r.id));
+    const remaining=(m.agents||[]).filter((a:string)=>!finished.has(a));
+    checks.push({name:"Disposable interrupted mission persisted",passed:m.status==="interrupted"});
+    checks.push({name:"Completed finding preserved",passed:finished.has("test-complete")&&m.results[0].result==="Saved finding"});
+    checks.push({name:"Only unfinished agent selected",passed:remaining.length===1&&remaining[0]==="test-pending"});
+    const claimed=await tx`update scotty_agent_missions set status='recovering' where id=${id} and status='interrupted' returning id`;
+    const duplicate=await tx`update scotty_agent_missions set status='recovering' where id=${id} and status='interrupted' returning id`;
+    checks.push({name:"Second recovery claim rejected",passed:claimed.length===1&&duplicate.length===0});
+    await tx`insert into scotty_agent_missions(id,task,status,agents,parent_mission_id,results) values(${recovery},'[RECOVERY SELF-TEST CONTINUATION]','completed',${tx.json(["test-pending"])},${id},${tx.json([{id:"test-pending",name:"Pending test agent",status:"completed",result:"Recovery finding"}])})`;
+    const linked=await tx`select id,results from scotty_agent_missions where parent_mission_id=${id}`;
+    checks.push({name:"Recovery findings linked to original",passed:linked.length===1&&linked[0].results[0].result==="Recovery finding"});
+    const error=new Error("SELF_TEST_ROLLBACK");
+    throw error;
+   });
+  }catch(err:any){if(String(err?.message)!=="SELF_TEST_ROLLBACK")return json({ok:false,error:"Isolated database test failed",checks},500)}
+  const leftovers=await db()`select id from scotty_agent_missions where id in (${id},${recovery})`;
+  checks.push({name:"Test data rolled back",passed:leftovers.length===0});
+  return json({ok:checks.every(x=>x.passed),checks,disposable:true,realAgentsInvoked:false});
+ }
  if(req.method==="GET"&&u.pathname==="/api/hud/agents/skills"){
   const rows=await db()`select id,name,department,rank,is_chief as "isChief",chief_id as "chiefId",tools from scotty_agents order by sort_order asc`;
   return json({ok:true,departments:departmentSkills,agents:rows.map((r:any)=>({id:r.id,name:r.name,department:r.department,rank:r.rank,isChief:r.isChief,chiefId:r.chiefId,skills:departmentSkills[r.department]?.skills||["analysis","planning","reporting"],capabilities:Array.isArray(r.tools)?r.tools:[]}))});
