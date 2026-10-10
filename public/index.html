@@ -410,22 +410,23 @@ function cursorFromHand(p,index=0){
  return{x,y}
 }
 function hoverNearest(x,y){
- let best=null,bd=90;
- const gr=$('#graph').getBoundingClientRect(),main=$('.main').getBoundingClientRect();
- const region=gr.width>10&&gr.height>10?gr:main;
- const svg=$('#graph'),vb=svg.viewBox.baseVal;
- const vx=(x-region.left)/region.width*vb.width+vb.x,vy=(y-region.top)/region.height*vb.height+vb.y;
- const world=$('#graphWorld'),matrix=world?.transform?.baseVal?.consolidate()?.matrix;
+ let best=null,bestDistance=95;
  document.querySelectorAll('#graph g[data-agent]').forEach(g=>{
   const circle=g.querySelector('circle');if(!circle)return;
-  const px=Number(circle.getAttribute('cx')),py=Number(circle.getAttribute('cy'));
-  const gx=matrix?matrix.a*px+matrix.c*py+matrix.e:px,gy=matrix?matrix.b*px+matrix.d*py+matrix.f:py;
-  const dx=(gx-vx)*region.width/vb.width,dy=(gy-vy)*region.height/vb.height,d=Math.hypot(dx,dy);
+  const matrix=circle.getScreenCTM();if(!matrix)return;
+  const cx=Number(circle.getAttribute('cx')),cy=Number(circle.getAttribute('cy'));
+  const screen=new DOMPoint(cx,cy).matrixTransform(matrix);
+  const distance=Math.hypot(screen.x-x,screen.y-y);
   g.classList.remove('agent-hover');
-  if(d<bd){bd=d;best=g}
+  if(distance<bestDistance){bestDistance=distance;best=g}
  });
  if(best)best.classList.add('agent-hover');
  return best
+}
+function eyesOpenSelectedNode(id){
+ const agent=agents.find(a=>a.id===id);if(!agent)return false;
+ activateAgent(agent);$('#cs').textContent='OPENED • '+agent.name;
+ return true
 }
 function pinchSelect(x,y){const g=hoverNearest(x,y);if(!g){$('#cs').textContent='PINCH • NO TARGET';return}const a=agents.find(z=>z.id===g.dataset.agent);if(a){activateAgent(a);$('#cs').textContent='SELECTED • '+a.name}}
 function setHold(on){if(on===holdOn)return;holdOn=on;document.body.classList.toggle('gesture-hold',on);$('#cs').textContent=on?'HOLD • INTERACTIONS PAUSED':'LISTENING'}
@@ -461,9 +462,9 @@ function processOne(p){
   if(id===eyesTargetId)eyesPinchFrames++;else if(!eyesTargetId||eyesPinchFrames<2){eyesTargetId=id;eyesPinchFrames=1}else{eyesPinchFrames++}
   if(!pinchLatched&&eyesPinchFrames>=3&&eyesTargetId&&now-lastPinchAt>500){
    lastPinchAt=now;pinchLatched=true;
-   if(eyesMultiMode&&!eyesSelectedNodes.has(eyesTargetId)){eyesSelectedNodes.add(eyesTargetId);eyesPaintSelection();$('#cs').textContent='SELECTED '+eyesSelectedNodes.size+' AGENT(S)'}
+   if(eyesMultiMode&&!eyesSelectedNodes.has(eyesTargetId)){eyesSelectedNodes.add(eyesTargetId);eyesPaintSelection();eyesOpenSelectedNode(id);$('#cs').textContent='OPENED '+id+' • '+eyesSelectedNodes.size+' SELECTED'}
    else{
-    if(!eyesMultiMode)pinchSelect(pt.x,pt.y);
+    if(!eyesMultiMode)eyesOpenSelectedNode(eyesTargetId);
     const ids=eyesMultiMode?[...eyesSelectedNodes]:[eyesTargetId],starts={},previous={};
     const svg=$('#graph'),w=svg.clientWidth||700,h=svg.clientHeight||550,cx=w*.5,cy=h*.54;
     for(const id of ids){
@@ -484,13 +485,13 @@ function angleDelta(a,b){let d=a-b;while(d>Math.PI)d-=Math.PI*2;while(d<-Math.PI
 const eyesHandStates=[{pinched:false,frames:0,released:0,target:null},{pinched:false,frames:0,released:0,target:null}];
 function eyesHandPinch(p,index){
  const state=eyesHandStates[index],info=ginfo(p),pt=cursorFromHand(p,index),hovered=hoverNearest(pt.x,pt.y),id=hovered?.dataset?.agent||null;
- const down=info.pinchRatio<.52,up=info.pinchRatio>.72;
+ const down=info.pinchRatio<.66,up=info.pinchRatio>.83;
  const dot=$('#eyesCursorSurface'+index);if(dot)dot.style.transform=down?'translate(-50%,-50%) scale(.72)':'translate(-50%,-50%)';
  if(down){
   state.released=0;
   if(!state.pinched){state.frames++;if(state.frames>=2){state.pinched=true;state.target=id;if(id){
    if(eyesMultiMode){if(eyesSelectedNodes.has(id))eyesSelectedNodes.delete(id);else eyesSelectedNodes.add(id);eyesPaintSelection();$('#cs').textContent='SELECTED '+eyesSelectedNodes.size+' AGENT(S)'}
-   else{pinchSelect(pt.x,pt.y);$('#cs').textContent='PINCH SELECTED'}
+   else{eyesOpenSelectedNode(id);$('#cs').textContent='PINCH OPENED '+id}
   }}}
  }else if(up){state.frames=0;if(++state.released>=2){state.pinched=false;state.target=null}}
  return {info,id,down}
