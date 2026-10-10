@@ -326,6 +326,16 @@ export async function handleCloudAgents(req:Request,u:URL){
    const raw=Array.isArray(requestedDependencies[row.id])?requestedDependencies[row.id]:[];
    agentDependencies[row.id]=[...new Set<string>(raw.map((x:any)=>String(x)).filter((x:string)=>x!==row.id&&ordered.some((a:any)=>a.id===x)))];
   }
+  const visitState:Record<string,number>={};
+  const visitDependency=(id:string):boolean=>{
+   if(visitState[id]===1)return false;
+   if(visitState[id]===2)return true;
+   visitState[id]=1;
+   for(const parent of agentDependencies[id]||[])if(!visitDependency(parent))return false;
+   visitState[id]=2;
+   return true;
+  };
+  if(!ordered.every((a:any)=>visitDependency(a.id)))return json({ok:false,error:"Dependency cycle detected. Execution cancelled before any agents started."},409);
   const missionId=approvedPlan?String(approvedPlan.id):crypto.randomUUID();
   const liveState:Record<string,string>=Object.fromEntries(ordered.map((a:any)=>[a.id,"waiting"]));
   const saveLive=async(status:string)=>{
