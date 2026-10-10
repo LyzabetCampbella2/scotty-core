@@ -460,6 +460,10 @@ function processSwipe(p,info){const now=Date.now(),x=1-p[9].x;if(!info.open){swi
 let eyesPinchFrames=0,eyesReleaseFrames=0,eyesTargetId=null;
 function resetEyesPinch(){eyesDrag=null;eyesPinchFrames=0;eyesReleaseFrames=0;eyesTargetId=null;pinchLatched=false}
 const eyesOneHand={armed:true,downFrames:0,upFrames:0,lastTarget:null,lastOpen:0};
+function eyesMoveSelectionTogether(id){
+ if(!eyesMultiMode||!eyesSelectedNodes.has(id)||eyesSelectedNodes.size<2)return [id];
+ return [...eyesSelectedNodes]
+}
 function eyesPinchAction(id){
  if(!id){eyesCursorDiagnostic('PINCH DETECTED • NO NODE UNDER CURSOR');return false}
  const agent=agents.find(a=>a.id===id);if(!agent)return false;
@@ -496,7 +500,7 @@ function processOne(p){
    const id=target||st.lastTarget;
    if(eyesPinchAction(id)){
     st.lastOpen=now;st.armed=false;
-    const ids=eyesMultiMode?[...eyesSelectedNodes]:[id],starts={},previous={};
+    const ids=eyesMoveSelectionTogether(id),starts={},previous={};
     for(const key of ids){const g=[...document.querySelectorAll('#graph g[data-agent]')].find(el=>el.dataset.agent===key),circle=g?.querySelector('circle');if(!circle)continue;
      starts[key]={x:Number(circle.getAttribute('cx')),y:Number(circle.getAttribute('cy'))};previous[key]=eyesNodePositions[key]?{...eyesNodePositions[key]}:null}
     if(Object.keys(starts).length)eyesDrag={startX:pt.x,startY:pt.y,origin:eyesGraphPoint(pt.x,pt.y),starts,previous,moved:false,lastDraw:0}
@@ -525,7 +529,7 @@ function eyesHandPinch(p,index){
     state.pinched=true;state.target=chosen;
     state.startX=pt.x;state.startY=pt.y;state.lastDraw=0;
     state.previous={};state.starts={};
-    const moving=eyesMultiMode?[chosen]:[chosen];
+    const moving=eyesMoveSelectionTogether(chosen);
     for(const key of moving){
      const g=[...document.querySelectorAll('#graph g[data-agent]')].find(n=>n.dataset.agent===key);
      const c=g?.querySelector('circle');if(!c)continue;
