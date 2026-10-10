@@ -136,7 +136,7 @@ export async function handleCloudAuth(req:Request,u:URL){
    ok=await verifyLegacy(password);
    if(ok){await writeOwner(password,"railway-first-login");migrated=true;o=await owner()}
   }
-  if(!ok){failed(req);return json({ok:false,error:o?"Incorrect owner password.":"Could not verify the existing S.C.O.T.T.Y. owner password for migration."},401)}
+  if(!ok){if(o)failed(req);return json({ok:false,error:o?"Incorrect owner password.":"Owner migration is not yet verified. Use the original HUD while staging is configured."},o?401:503)}
   cleared(req);
   const cookie=await createSession(req);
   return json({ok:true,authenticated:true,migrated,provider:"render-postgres"},200,{"set-cookie":cookie});
