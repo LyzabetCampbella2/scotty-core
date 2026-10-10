@@ -1,6 +1,19 @@
 const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{"cache-control":"no-store"}});
 
+const SCOTTISH_BRIDGE="https://scotty-voice-diagnostic-eyes-on-test.up.railway.app";
+async function scottishBridge(req:Request,u:URL){
+ const sub=u.pathname.slice("/api/voice/scottish".length);
+ if(!/^\/(?:health|speak|jobs\/[a-zA-Z0-9_-]+(?:\/audio)?)$/.test(sub))return json({ok:false,error:"Unknown Scottish voice route"},404);
+ if(sub==="/speak"&&req.method!=="POST")return json({ok:false,error:"POST required"},405);
+ if(sub!=="/speak"&&req.method!=="GET")return json({ok:false,error:"GET required"},405);
+ try{
+  const response=await fetch(SCOTTISH_BRIDGE+"/scottish"+sub,{method:req.method,headers:sub==="/speak"?{"content-type":"application/json"}:{},body:sub==="/speak"?await req.text():undefined,signal:AbortSignal.timeout(25000)});
+  return new Response(response.body,{status:response.status,headers:{"content-type":response.headers.get("content-type")||"application/json","cache-control":"no-store"}});
+ }catch(e){return json({ok:false,error:"Scottish voice bridge unavailable: "+String((e as Error).message||e)},503)}
+}
+
 export async function handleCloudVoice(req:Request,u:URL){
+ if(u.pathname.startsWith("/api/voice/scottish/"))return scottishBridge(req,u);
  const key=process.env.ELEVENLABS_API_KEY;
 
  if(req.method==="GET"&&u.pathname==="/api/voice/status"){
