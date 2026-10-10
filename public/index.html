@@ -36,6 +36,30 @@ $('#lf').onsubmit=async x=>{x.preventDefault();$('#le').textContent='';try{await
 function tick(){const d=new Date();$('#clock').textContent=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});$('#net').textContent=navigator.onLine?'ONLINE':'OFFLINE';$('#net').classList.toggle('on',navigator.onLine)}setInterval(tick,1000);tick();
 async function load(){await Promise.allSettled([loadAgents(),loadResources(),loadActivity()]);setInterval(loadActivity,10000);setInterval(loadAgents,15000);setInterval(loadResources,15000)}
 async function loadAgents(){const d=await api('/api/hud/agents');agents=d.agents||[];$('#ac').textContent=agents.length+' AGENTS';$('#sa').textContent=agents.length;$('#sc').textContent=agents.filter(x=>x.isChief).length;draw();if(selectedAgentId){const a=agents.find(x=>x.id===selectedAgentId);if(a)showAgentProfile(a)}}
+async function continueAgentMission(id){
+ const feedback=window.prompt('What should S.C.O.T.T.Y. and the agents work on next?','Review unresolved questions and continue the remaining work.');
+ if(!feedback||!feedback.trim())return;
+ $('#cs').textContent='RESUMING MISSION';
+ try{
+  const prepared=await api('/api/hud/agents/missions/'+encodeURIComponent(id),{method:'POST',body:JSON.stringify({feedback:feedback.trim()})});
+  const r=await api('/api/hud/agents/run',{method:'POST',body:JSON.stringify({agents:prepared.agents||[],task:prepared.continuationTask})});
+  const review=(r.review||[]).map(x=>x.chief+': '+(x.assessment||x.status)).join('\n\n');
+  const findings=(r.results||[]).map(x=>x.name+': '+(x.result||x.error||'No result')).join('\n\n');
+  $('#activity').innerHTML='<div class="agent-profile"><div class="apname">MISSION CONTINUATION</div><div class="apjob"><b>CHIEF REVIEW</b><p>'+e(review||'No chief review')+'</p></div><div class="apjob"><b>AGENT FINDINGS</b><p>'+e(findings||'No agent findings')+'</p></div></div>';
+  $('#cs').textContent='MISSION CONTINUED';
+ }catch(err){$('#cs').textContent='MISSION ERROR';$('#activity').textContent='Could not continue mission: '+err.message}
+}
+async function showAgentMissionDetails(id){
+ try{
+  const r=await api('/api/hud/agents/missions/'+encodeURIComponent(id));const m=r.mission;
+  const results=Array.isArray(m.results)?m.results:[],reviews=Array.isArray(m.review)?m.review:[],progress=Array.isArray(m.progress)?m.progress:[];
+  $('#activity').innerHTML='<div class="agent-profile"><div class="apname">MISSION FINDINGS</div><div class="apjob"><b>MISSION</b><p>'+e(m.task)+'</p></div><div class="apjob"><b>PROGRESS</b><p>'+e(progress.map(x=>x.name+': '+x.status).join(' | ')||m.status)+'</p></div><div class="apjob"><b>FINDINGS</b><p>'+e(results.map(x=>x.name+': '+(x.result||x.error||x.status)).join('\n\n'))+'</p></div><div class="apjob"><b>CHIEF REVIEWS</b><p>'+e(reviews.map(x=>x.chief+': '+(x.assessment||x.status)).join('\n\n'))+'</p></div><button type="button" data-scotty-resume="'+e(id)+'">CONTINUE MISSION</button></div>';
+ }catch(err){$('#activity').textContent='Could not load findings: '+err.message}
+}
+document.addEventListener('click',event=>{
+ const resume=event.target.closest?.('[data-scotty-resume]');if(resume){continueAgentMission(resume.getAttribute('data-scotty-resume'));return}
+ const details=event.target.closest?.('[data-scotty-details]');if(details){showAgentMissionDetails(details.getAttribute('data-scotty-details'))}
+});
 async function loadResources(){try{const d=await api('/api/hud/resources');resources={projects:d.projects||[],folders:d.folders||[],files:d.files||[],tasks:d.tasks||[],layout:d.layout||{},view:d.view||null};window.SCOTTYSpatial?.refresh?.()}catch(e){console.warn('resource graph',e)}}
 async function loadActivity(){try{const d=await api('/api/hud/activity');$('#activity').innerHTML=(d.items||[]).map(x=>'<div class="evt"><b>'+e(x.source)+' • '+e(x.title)+'</b><p>'+e(x.message)+'</p><time>'+new Date(x.createdAt).toLocaleString()+'</time></div>').join('')||'<div class="evt"><b>SCOTTY</b><p>No new activity.</p></div>'}catch{}}
 function hash(s){let h=0;for(const c of s)h=(Math.imul(h,31)+c.charCodeAt(0))>>>0;return h}
