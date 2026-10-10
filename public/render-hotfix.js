@@ -38,7 +38,6 @@
  }
  function stopCurrent(){
   if(acknowledgement){try{acknowledgement.pause()}catch{}acknowledgement=null}
-  try{window.speechSynthesis?.cancel()}catch{}
   if(progressTimer){clearInterval(progressTimer);progressTimer=null}
   pendingPlayback=null;showPlayButton(false);
   if(active){active.abort();active=null}
