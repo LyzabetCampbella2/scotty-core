@@ -308,6 +308,7 @@ export async function handleCloudAgents(req:Request,u:URL){
    approvedPlan=found[0];
    body={...body,agents:approvedPlan.agents,task:approvedPlan.task,dependencies:approvedPlan.dependencies,autoAssign:false};
   }
+  if(body?.recoverySourceMissionId&&!/^[0-9a-f-]{36}$/i.test(String(body.recoverySourceMissionId)))return json({ok:false,error:"Invalid recovery mission identifier"},400);
   const ids:string[]=[...new Set<string>((Array.isArray(body?.agents)?body.agents:[]).map((x:any)=>String(x)))].slice(0,8);
   const task=String(body?.task||"").trim().slice(0,12000);  if(!ids.length && body?.autoAssign!==true)return json({ok:false,error:"Select at least one agent or enable autoAssign"},400);
   if(!task)return json({ok:false,error:"Missing agent task"},400);
