@@ -73,16 +73,37 @@ async function continueAgentMission(id){missionPanelPinned=true;
   $('#cs').textContent='MISSION CONTINUED';
  }catch(err){$('#cs').textContent='MISSION ERROR';$('#activity').textContent='Could not continue mission: '+err.message}
 }
+async function recoverInterruptedMission(id){
+ missionPanelPinned=true;$('#cs').textContent='PREPARING RECOVERY';
+ try{
+  const p=await api('/api/hud/agents/missions/'+encodeURIComponent(id),{method:'POST',body:JSON.stringify({resumeInterrupted:true})});
+  $('#activity').innerHTML='<div class="agent-profile"><div class="apname">RECOVERY APPROVAL REQUIRED</div><div class="apjob"><b>COMPLETED AGENTS PRESERVED</b><p>'+e(String(p.completedAgents.length))+'</p></div><div class="apjob"><b>UNFINISHED AGENTS</b><p>'+e(p.remainingAgents.join(', '))+'</p></div><p>No agents will restart until you approve.</p><button type="button" data-scotty-confirm-recovery="'+e(id)+'">APPROVE RECOVERY</button></div>';
+  window.scottyPendingRecovery=window.scottyPendingRecovery||{};window.scottyPendingRecovery[id]=p;
+  $('#cs').textContent='AWAITING RECOVERY APPROVAL';
+ }catch(err){$('#cs').textContent='RECOVERY ERROR';$('#activity').textContent='Could not prepare recovery: '+err.message}
+}
+async function confirmInterruptedRecovery(id){
+ const p=window.scottyPendingRecovery?.[id];if(!p)return;
+ delete window.scottyPendingRecovery[id];$('#cs').textContent='RECOVERING MISSION';
+ try{
+  const r=await api('/api/hud/agents/run',{method:'POST',body:JSON.stringify({agents:p.remainingAgents,task:p.task})});
+  const findings=(r.results||[]).map(x=>x.name+': '+(x.result||x.error||x.status)).join('\\n\\n');
+  $('#activity').innerHTML='<div class="agent-profile"><div class="apname">RECOVERY RESULTS</div><div class="apjob"><b>NEW FINDINGS</b><p>'+e(findings)+'</p></div><button type="button" data-scotty-details="'+e(id)+'">VIEW ORIGINAL MISSION</button></div>';
+  $('#cs').textContent='RECOVERY FINISHED';
+ }catch(err){$('#cs').textContent='RECOVERY ERROR';$('#activity').textContent='Recovery failed: '+err.message}
+}
 async function showAgentMissionDetails(id){missionPanelPinned=true;
  try{
   const r=await api('/api/hud/agents/missions/'+encodeURIComponent(id));const m=r.mission;
   const results=Array.isArray(m.results)?m.results:[],reviews=Array.isArray(m.review)?m.review:[],progress=Array.isArray(m.progress)?m.progress:[],dependencies=Array.isArray(m.dependencies)?m.dependencies:[];
-  $('#activity').innerHTML='<div class="agent-profile"><div class="apname">MISSION FINDINGS</div><div class="apjob"><b>MISSION</b><p>'+e(m.task)+'</p></div><div class="apjob"><b>PROGRESS</b><p>'+e((dependencies.length?dependencies.map(x=>x.name+': '+x.state+(x.dependsOn?.length?' (after '+x.dependsOn.join(', ')+')':'')+(x.blocker?' — '+x.blocker:'')):progress.map(x=>x.name+': '+x.status)).join(' | ')||m.status)+'</p></div><div class="apjob"><b>FINDINGS</b><p>'+e(results.map(x=>x.name+': '+(x.result||x.error||x.status)).join('\n\n'))+'</p></div><div class="apjob"><b>CHIEF REVIEWS</b><p>'+e(reviews.map(x=>x.chief+': '+(x.assessment||x.status)).join('\n\n'))+'</p></div><button type="button" data-scotty-resume="'+e(id)+'">CONTINUE MISSION</button></div>';
+  $('#activity').innerHTML='<div class="agent-profile"><div class="apname">MISSION FINDINGS</div><div class="apjob"><b>MISSION</b><p>'+e(m.task)+'</p></div><div class="apjob"><b>PROGRESS</b><p>'+e((dependencies.length?dependencies.map(x=>x.name+': '+x.state+(x.dependsOn?.length?' (after '+x.dependsOn.join(', ')+')':'')+(x.blocker?' — '+x.blocker:'')):progress.map(x=>x.name+': '+x.status)).join(' | ')||m.status)+'</p></div><div class="apjob"><b>FINDINGS</b><p>'+e(results.map(x=>x.name+': '+(x.result||x.error||x.status)).join('\n\n'))+'</p></div><div class="apjob"><b>CHIEF REVIEWS</b><p>'+e(reviews.map(x=>x.chief+': '+(x.assessment||x.status)).join('\n\n'))+'</p></div>'+(m.status==="interrupted"?'<button type="button" data-scotty-recover="'+e(id)+'">RESUME INTERRUPTED MISSION</button>':'<button type="button" data-scotty-resume="'+e(id)+'">CONTINUE MISSION</button>')+'</div>';
  }catch(err){$('#activity').textContent='Could not load findings: '+err.message}
 }
 document.addEventListener('click',event=>{
  const approve=event.target.closest?.('[data-scotty-approve-plan]');if(approve){approve.disabled=true;approveAgentPlan(approve.getAttribute('data-scotty-approve-plan'));return}
  const close=event.target.closest?.('[data-scotty-close-missions]');if(close){missionPanelPinned=false;selectedAgentId=null;loadActivity();return}
+ const recover=event.target.closest?.('[data-scotty-recover]');if(recover){recoverInterruptedMission(recover.getAttribute('data-scotty-recover'));return}
+ const confirmRecovery=event.target.closest?.('[data-scotty-confirm-recovery]');if(confirmRecovery){confirmRecovery.disabled=true;confirmInterruptedRecovery(confirmRecovery.getAttribute('data-scotty-confirm-recovery'));return}
  const resume=event.target.closest?.('[data-scotty-resume]');if(resume){continueAgentMission(resume.getAttribute('data-scotty-resume'));return}
  const details=event.target.closest?.('[data-scotty-details]');if(details){showAgentMissionDetails(details.getAttribute('data-scotty-details'))}
 });
