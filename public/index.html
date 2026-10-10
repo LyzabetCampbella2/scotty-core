@@ -17,6 +17,11 @@ body.gesture-hold .core{box-shadow:0 0 70px rgba(255,209,102,.28),inset 0 0 28px
 #graph .agent-hover circle{stroke-width:3!important;filter:drop-shadow(0 0 11px #28d7bd)!important}
 
 .agent-state-working circle,.agent-state-thinking circle{stroke-width:2.6!important;animation:agentPulse 1.05s ease-in-out infinite}.agent-state-waiting circle{stroke-dasharray:3 2;animation:agentPulse 1.7s ease-in-out infinite}.agent-state-error circle{stroke:#ff6b7a!important;filter:drop-shadow(0 0 8px #ff6b7a)!important}.agent-state-working text,.agent-state-thinking text{fill:#fff!important}.agent-profile{font-size:11px;line-height:1.45}.agent-profile .apname{font-size:14px;font-weight:800;color:#eafcff;letter-spacing:.08em}.agent-profile .aprow{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid rgba(94,234,255,.08)}.agent-profile .aprow span:last-child{text-align:right;color:#7eeeff}.agent-profile .aptags{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}.agent-profile .aptag{border:1px solid rgba(94,234,255,.2);padding:3px 6px;border-radius:10px;color:#a9c8d8;font-size:9px}.agent-profile .apjob{margin-top:8px;padding:8px;border:1px solid rgba(94,234,255,.18);background:rgba(2,15,25,.55)}@keyframes agentPulse{0%,100%{opacity:.62}50%{opacity:1}}
+
+/* Eyes On 2.0: keep preview away from command buttons and allow it to be minimized. */
+#vision .cam{position:fixed;left:12px;right:auto;top:auto;bottom:82px;width:min(210px,26vw);max-height:170px;z-index:1;pointer-events:none}
+body.eyes-camera-minimized #vision .cam{width:112px;bottom:76px;opacity:.82}
+@media(max-width:760px){#vision .cam{left:8px;bottom:100px;width:112px;opacity:.82}}
 </style></head><body>
 <div id="gate"><form class="login" id="lf"><h1>S.C.O.T.T.Y.</h1><p id="lc">Authenticate to enter the visual command layer. After login, tap the voice orb once to arm hands-free listening.</p><input id="pw" type="password" placeholder="Owner password"><button>ENTER HUD</button><div class="err" id="le"></div></form></div>
 <div class="hud"><header class="p top"><div class="logo">S.C.O.T.T.Y.<small>VISUAL COMMAND • AGENT NETWORK • PRIVATE VISION</small></div><div class="chips"><span class="chip on" id="net">ONLINE</span><span class="chip">HUD 3/8 • AGENT MATRIX LIVE</span><span class="chip" id="vs">VOICE OFF</span><span class="chip" id="gs">HANDS OFF</span><span class="chip" id="clock">--:--</span></div></header>
@@ -135,6 +140,17 @@ function eyesMoveNode(id,x,y){const p=eyesGraphPoint(x,y);if(!p)return;const svg
 const eyesMoveHistory=[];
 const eyesSelectedNodes=new Set();let eyesMultiMode=false;
 function eyesPaintSelection(){$('#graph g[data-agent]').forEach(g=>g.classList.toggle('agent-selected',eyesSelectedNodes.has(g.dataset.agent)||(!eyesMultiMode&&g.dataset.agent===selectedAgentId)))}
+function eyesSetMulti(on){if(eyesMultiMode!==on)eyesToggleMulti();else $('#cs').textContent='MULTI-SELECT ALREADY '+(on?'ON':'OFF')}
+function eyesVoiceCommand(t){
+ const l=normalizedSpeech(t).replace(/^(scotty|scottie|scoty)\s*/,'').trim();
+ if(/\b(?:multi select|multiple select|group select)\b/.test(l)){eyesSetMulti(!/\b(off|disable|stop)\b/.test(l));return 'Multi-select '+(eyesMultiMode?'on':'off')+'.'}
+ if(/\b(?:clear selection|deselect all|unselect all)\b/.test(l)){eyesClearSelection();return 'Selection cleared.'}
+ if(/\b(?:undo (?:node )?move|undo last move|move undo)\b/.test(l)){eyesUndoMove();return $('#cs').textContent==='LAST NODE MOVE UNDONE'?'Last node move undone.':'No moves to undo.'}
+ if(/\b(?:reset (?:node )?layout|restore node layout)\b/.test(l)){eyesResetLayout();return 'Layout reset requested. Please confirm on screen.'}
+ if(/\b(?:hide camera|minimize camera|camera smaller)\b/.test(l)){document.body.classList.add('eyes-camera-minimized');return 'Camera preview minimized.'}
+ if(/\b(?:show camera|expand camera)\b/.test(l)){document.body.classList.remove('eyes-camera-minimized');return 'Camera preview expanded.'}
+ return null
+}
 function eyesToggleMulti(){eyesMultiMode=!eyesMultiMode;if(!eyesMultiMode)eyesSelectedNodes.clear();$('#eyesMultiSelect').textContent='MULTI-SELECT: '+(eyesMultiMode?'ON':'OFF');eyesPaintSelection();$('#cs').textContent=eyesMultiMode?'MULTI-SELECT • PINCH NODES':'SINGLE NODE MODE'}
 function eyesClearSelection(){eyesSelectedNodes.clear();eyesPaintSelection();$('#cs').textContent='NODE SELECTION CLEARED'}
 function eyesCommitMove(previous){eyesMoveHistory.push({positions:previous});if(eyesMoveHistory.length>30)eyesMoveHistory.shift();eyesSavePositions()}
@@ -166,7 +182,7 @@ function draw(){
  });
  applyGraphTransform()
 }
-async function command(t){t=(t||$('#ci').value).trim();if(!t)return;$('#ci').value='';$('#cs').textContent='THINKING';try{
+async function command(t){t=(t||$('#ci').value).trim();if(!t)return;$('#ci').value='';const eyesAction=eyesVoiceCommand(t);if(eyesAction){$('#cs').textContent=eyesAction;return}$('#cs').textContent='THINKING';try{
  if(/^\s*(?:open|show)\s+(?:live ops|missions?|mission control)\s*$/i.test(t)){location.href='/missions';return}
  const mm=t.match(/^\s*(?:start|create|launch)\s+(?:a\s+)?(?:(autonomous|auto)\s+)?mission(?:\s+(?:to|for))?\s+(.+)$/i);
  if(mm){
@@ -311,6 +327,7 @@ async function heard(t){
  if((named&&eyes&&/\b(on|own)\b/.test(l))||(/\b(eyes|vision) on\b/.test(l))||(named&&ambiguousEyesOf&&!stream)){voiceCamera=true;await startVisionVoice();return}
  if((named&&eyes&&/\boff\b/.test(l))||(/\b(eyes|vision) off\b/.test(l))||(named&&ambiguousEyesOf&&!!stream)){stopVision();await speak('Eyes off. Camera closed.');return}
  if(/(?:scotty|scottie|scoty) on deck|on deck scotty/.test(l)){await speak('Aye, on deck.');return}
+ if(named){const action=eyesVoiceCommand(t);if(action){await speak(action);return}}
  if(!named)return;
  const cleaned=t.replace(/^\s*(scotty|scottie|scoty)[,.:;\-\s]*/i,'').trim();if(cleaned)await command(cleaned)
 }
