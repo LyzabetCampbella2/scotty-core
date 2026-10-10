@@ -227,7 +227,7 @@ export async function handleCloudAgents(req:Request,u:URL){
  }
 
  if(req.method==="GET"&&u.pathname==="/api/hud/agents/missions"){
-  await db()`update scotty_agent_missions set status='interrupted',dependencies=(select coalesce(jsonb_agg(case when item->>'state' in ('working','waiting','awaiting_review') then jsonb_set(item,'{state}',to_jsonb('interrupted'::text),true) else item end),'[]'::jsonb) from jsonb_array_elements(dependencies) as item),updated_at=now() where status in ('running','reviewing') and updated_at < now()-interval '60 minutes'`;
+  await db()`update scotty_agent_missions set status='interrupted',dependencies=(select coalesce(jsonb_agg(case when item->>'state' in ('working','waiting','awaiting_review') then jsonb_set(item,'{state}',to_jsonb('interrupted'::text),true) else item end),'[]'::jsonb) from jsonb_array_elements(dependencies) as item),updated_at=now() where status in ('running','reviewing','recovering') and updated_at < now()-interval '60 minutes'`;
   const rows=await db()`select id,task,status,agents,progress,unresolved,created_at as "createdAt",updated_at as "updatedAt" from scotty_agent_missions order by created_at desc limit 30`;
   return json({ok:true,missions:rows});
  }
