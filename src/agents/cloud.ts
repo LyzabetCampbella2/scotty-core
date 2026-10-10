@@ -394,6 +394,7 @@ export async function handleCloudAgents(req:Request,u:URL){
    let assessment:any;try{assessment=await runAgent(chief,"Review these team findings for the mission: "+task+"\n"+JSON.stringify(findings).slice(0,14000)+"\nSummarize completed work, disagreements, gaps, unresolved questions and next steps.",context)}catch(err:any){assessment={status:"error",error:String(err?.message||err).slice(0,500)}}
    return {chief:chief.name,chiefId:chief.id,status:assessment.status,assessment:assessment.result||assessment.error};
   }));
+  try{await db()`update scotty_agent_missions set review=${db().json(review)},updated_at=now() where id=${missionId}`}catch(err){console.warn("chief review checkpoint failed",err)}
   const unresolved=[...review.filter((x:any)=>x.status!=="completed").map((x:any)=>x.chief+" review incomplete"),...results.filter((x:any)=>x.status!=="completed").map((x:any)=>x.name+": "+(x.error||x.status))];
   const progress=results.map((r:any)=>({agentId:r.id,name:r.name,status:r.status,primarySkill:specialtyAssignments.find((a:any)=>a.agentId===r.id)?.primarySkill||"general",finding:r.status==="completed"?String(r.result||"").slice(0,1500):null,blocker:r.status==="error"||r.status==="blocked"?String(r.error||"Unknown error"):null}));
   const dependencies=progress.map((p:any)=>{
