@@ -165,7 +165,13 @@ function eyesVoiceCommand(t){
  if(/\b(?:show camera|expand camera)\b/.test(l)){document.body.classList.remove('eyes-camera-minimized');return 'Camera preview expanded.'}
  return null
 }
-function eyesToggleMulti(){eyesMultiMode=!eyesMultiMode;if(!eyesMultiMode)eyesSelectedNodes.clear();$('#eyesMultiSelect').textContent='MULTI-SELECT: '+(eyesMultiMode?'ON':'OFF');eyesPaintSelection();$('#cs').textContent=eyesMultiMode?'MULTI-SELECT • PINCH NODES':'SINGLE NODE MODE'}
+function eyesToggleMulti(){
+ try{eyesMultiMode=!eyesMultiMode;if(!eyesMultiMode)eyesSelectedNodes.clear();
+ $('#eyesMultiSelect').textContent='MULTI-SELECT: '+(eyesMultiMode?'ON':'OFF');
+ eyesPaintSelection();$('#cs').textContent=eyesMultiMode?'MULTI-SELECT • PINCH NODES':'SINGLE NODE MODE';
+ eyesCursorDiagnostic('MULTI-SELECT '+(eyesMultiMode?'ENABLED':'DISABLED'))}
+ catch(err){console.error('Eyes multi-select:',err);eyesCursorDiagnostic('MULTI-SELECT ERROR: '+err.message)}
+}
 function eyesClearSelection(){eyesSelectedNodes.clear();eyesPaintSelection();$('#cs').textContent='NODE SELECTION CLEARED'}
 function eyesCommitMove(previous){eyesMoveHistory.push({positions:previous});if(eyesMoveHistory.length>30)eyesMoveHistory.shift();eyesSavePositions()}
 
@@ -410,7 +416,7 @@ function hoverNearest(x,y){
  const svg=$('#graph'),vb=svg.viewBox.baseVal;
  const vx=(x-region.left)/region.width*vb.width+vb.x,vy=(y-region.top)/region.height*vb.height+vb.y;
  const world=$('#graphWorld'),matrix=world?.transform?.baseVal?.consolidate()?.matrix;
- $$(' #graph g[data-agent]').forEach(g=>{
+ $('#graph g[data-agent]').forEach(g=>{
   const circle=g.querySelector('circle');if(!circle)return;
   const px=Number(circle.getAttribute('cx')),py=Number(circle.getAttribute('cy'));
   const gx=matrix?matrix.a*px+matrix.c*py+matrix.e:px,gy=matrix?matrix.b*px+matrix.d*py+matrix.f:py;
