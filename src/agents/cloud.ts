@@ -240,6 +240,16 @@ export async function handleCloudAgents(req:Request,u:URL){
   const rows=await db()`select * from scotty_agent_missions where id=${missionMatch[1]} limit 1`;
   if(!rows.length)return json({ok:false,error:"Mission not found"},404);
   const m=rows[0];const body=await req.json().catch(()=>({}));
+  if(body.resumeInterrupted===true){
+   if(m.status!=="interrupted")return json({ok:false,error:"Only interrupted missions can use recovery"},409);
+   const prior=Array.isArray(m.results)?m.results:[];
+   const completed=new Set(prior.filter((x:any)=>x.status==="completed").map((x:any)=>String(x.id)));
+   const original=Array.isArray(m.agents)?m.agents.map(String):[];
+   const remaining=original.filter((id:string)=>!completed.has(id));
+   if(!remaining.length)return json({ok:false,error:"No unfinished agents to resume"},409);
+   const context=JSON.stringify(prior.filter((x:any)=>x.status==="completed").map((x:any)=>({agent:x.name,finding:String(x.result||"").slice(0,2500)}))).slice(0,10000);
+   return json({ok:true,awaitingApproval:true,remainingAgents:remaining,completedAgents:[...completed],task:String(m.task)+"\\nPreviously completed findings (do not repeat): "+context+"\\nFinish only the remaining assigned work.",sourceMissionId:m.id});
+  }
   const feedback=String(body.feedback||"").trim().slice(0,3000);
   if(!feedback)return json({ok:false,error:"Feedback is required to continue a mission"},400);
   const previous=JSON.stringify({results:m.results,review:m.review,unresolved:m.unresolved}).slice(0,12000);
