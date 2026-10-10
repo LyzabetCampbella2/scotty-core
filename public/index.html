@@ -91,14 +91,15 @@ async function recoverInterruptedMission(id){
  }catch(err){$('#cs').textContent='RECOVERY ERROR';$('#activity').textContent='Could not prepare recovery: '+err.message}
 }
 async function confirmInterruptedRecovery(id){
- const p=window.scottyPendingRecovery?.[id];if(!p)return;
- delete window.scottyPendingRecovery[id];$('#cs').textContent='RECOVERING MISSION';
+ const p=window.scottyPendingRecovery?.[id];if(!p||p.executing)return;
+ p.executing=true;$('#cs').textContent='RECOVERING MISSION';
+ $('#activity').innerHTML='<div class="agent-profile"><div class="apname">RECOVERING MISSION</div><p>Approval received. Running '+e(String(p.remainingAgents.length))+' unfinished agents. Completed findings remain saved.</p></div>';
  try{
   const r=await api('/api/hud/agents/run',{method:'POST',body:JSON.stringify({agents:p.remainingAgents,task:p.task,recoverySourceMissionId:id})});
   const findings=(r.results||[]).map(x=>x.name+': '+(x.result||x.error||x.status)).join('\\n\\n');
   $('#activity').innerHTML='<div class="agent-profile"><div class="apname">RECOVERY RESULTS</div><div class="apjob"><b>NEW FINDINGS</b><p>'+e(findings)+'</p></div><button type="button" data-scotty-details="'+e(id)+'">VIEW ORIGINAL MISSION</button></div>';
-  $('#cs').textContent='RECOVERY FINISHED';
- }catch(err){$('#cs').textContent='RECOVERY ERROR';$('#activity').textContent='Recovery failed: '+err.message}
+  delete window.scottyPendingRecovery[id];$('#cs').textContent='RECOVERY FINISHED';
+ }catch(err){delete window.scottyPendingRecovery[id];$('#cs').textContent='RECOVERY ERROR';$('#activity').innerHTML='<div class="agent-profile"><div class="apname">RECOVERY NEEDS ATTENTION</div><p>'+e(err.message)+'</p><button type="button" data-scotty-details="'+e(id)+'">VIEW MISSION STATUS</button></div>'}
 }
 async function showAgentMissionDetails(id){missionPanelPinned=true;
  try{
