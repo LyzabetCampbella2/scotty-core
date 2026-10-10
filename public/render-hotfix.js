@@ -10,7 +10,7 @@
   let j={};try{j=await r.json()}catch{}
   return new Error(String(j.error||j.detail||('HTTP '+r.status)).slice(0,250));
  }
- let generation=0,active=null,player=null,voiceState='READY',pendingPlayback=null,progressTimer=null,voiceMode='f5';
+ let generation=0,active=null,player=null,voiceState='READY',pendingPlayback=null,progressTimer=null;
  const audioEl=document.createElement('audio');audioEl.setAttribute('playsinline','');audioEl.style.display='none';document.body.appendChild(audioEl);
  function showPlayButton(show){
   let btn=document.getElementById('scottyPlayReadyAudio');
@@ -37,6 +37,7 @@
   const test=$('#testVoice');if(test)test.textContent=value==='GENERATING'||value==='SPEAKING'||value==='BUSY'?'REPLACE VOICE TEST':'TEST SCOTTISH VOICE';
  }
  function stopCurrent(){
+  if(acknowledgement){try{acknowledgement.pause()}catch{}acknowledgement=null}
   try{window.speechSynthesis?.cancel()}catch{}
   if(progressTimer){clearInterval(progressTimer);progressTimer=null}
   pendingPlayback=null;showPlayButton(false);
@@ -80,6 +81,7 @@
    const x=await r.json();
    if(x.state==='error')throw Error(x.error||'Scottish voice generation failed');
    if(x.state==='complete'){
+    if(acknowledgement){try{acknowledgement.pause()}catch{}acknowledgement=null}
     if(progressTimer){clearInterval(progressTimer);progressTimer=null}
     const audio=await fetch(base+'/jobs/'+encodeURIComponent(jobId)+'/audio',{credentials:'include',signal});
     if(!audio.ok)throw await responseError(audio);
@@ -114,22 +116,18 @@
   }
   throw Error('Scottish voice generation timed out');
  }
- function browserVoice(text,seq){
-  return new Promise((resolve,reject)=>{
-   if(!('speechSynthesis' in window)){reject(Error('Browser speech is unavailable'));return}
-   const engine=window.speechSynthesis;
-   const utterance=new SpeechSynthesisUtterance(text);
-   utterance.lang='en-GB';utterance.rate=1.04;utterance.pitch=0.94;
-   const voices=engine.getVoices();
-   const voice=voices.find(v=>/scottish|scotland|en-GB.*(fiona|daniel)/i.test(v.name))||
-     voices.find(v=>v.lang==='en-GB')||voices.find(v=>v.lang.startsWith('en'));
-   if(voice)utterance.voice=voice;
-   const watchdog=setTimeout(()=>{if(seq===generation){state('TAP TO ENABLE AUDIO');setCommand('TAP VOICE TEST TO ENABLE AUDIO')}resolve()},4500);
-   utterance.onstart=()=>{clearTimeout(watchdog);if(seq===generation){state('SPEAKING');setCommand('SPEAKING')}};
-   utterance.onend=()=>{clearTimeout(watchdog);resolve()};
-   utterance.onerror=e=>{clearTimeout(watchdog);reject(Error('Browser voice: '+(e.error||'unavailable')))};
-   try{engine.cancel();engine.speak(utterance)}catch(e){clearTimeout(watchdog);reject(e)}
-  })
+ let acknowledgement=null;
+ async function acknowledge(seq){
+  try{
+   const r=await fetch(base+'/ack',{credentials:'include',signal:active?.signal});
+   if(!r.ok)return;
+   const blob=await r.blob();if(!blob.size||seq!==generation)return;
+   const url=URL.createObjectURL(blob),a=new Audio(url);
+   acknowledgement=a;
+   a.onended=()=>{URL.revokeObjectURL(url);if(acknowledgement===a)acknowledgement=null};
+   a.onerror=()=>{URL.revokeObjectURL(url);if(acknowledgement===a)acknowledgement=null};
+   await a.play();
+  }catch(e){console.debug('Scottish acknowledgement unavailable',e)}
  }
  speak=async function(text){
   text=String(text||'').trim();if(!text)return;
@@ -138,7 +136,8 @@
   const controller=new AbortController();active=controller;
   speaking=true;state('GENERATING');setCommand('SCOTTISH VOICE');
   try{
-   if(voiceMode==='fast')await browserVoice(text,seq);else await playScottish(text,seq,controller);
+   void acknowledge(seq);
+   await playScottish(text,seq,controller);
    if(seq===generation){state(voiceArmed?'LISTENING':'READY');setCommand(voiceArmed?'LISTENING':'READY')}
   }catch(e){
    if(seq!==generation||e?.name==='AbortError')return;
@@ -187,7 +186,7 @@
   const input=$('#elVoiceId');if(input){input.style.display='none';const l=input.previousElementSibling;if(l&&l.tagName==='LABEL')l.style.display='none'}
   const oldLibrary=$('#scottyElevenVoiceLibrary');if(oldLibrary)oldLibrary.style.display='none';
   const save=$('#saveVoice');if(save){save.style.display='none'}
-  const msg=$('#voiceMsg');if(msg)msg.textContent='Scottish F5 voice connected through the Eyes On test bridge. No ElevenLabs credits or voice ID needed. Tap TEST to listen.';
+  const msg=$('#voiceMsg');if(msg)msg.textContent='Original Scottish voice only. A prerecorded acknowledgement can play immediately; new sentences are generated on your Windows computer.';
   const test=$('#testVoice');if(test){test.textContent='TEST SCOTTISH VOICE'}
  }
  const badge=document.createElement('span');badge.id='scottyVoiceQueueStatus';badge.textContent='VOICE: READY';badge.style.cssText='display:inline-block;border:1px solid #28616a;border-radius:8px;padding:5px 8px;color:#92e8e1;font-size:10px;letter-spacing:.08em';const header=document.querySelector('header')||document.querySelector('#vs')?.parentElement;if(header)header.appendChild(badge);
@@ -205,11 +204,7 @@
   }catch(e){const msg=$('#voiceMsg');if(msg)msg.textContent='Scottish preview: '+String(e?.message||e)}
  };
  const panel=$('#voiceSettings');if(panel)panel.appendChild(preview);
- const modeButton=document.createElement('button');modeButton.id='scottyVoiceMode';modeButton.style.cssText='width:100%;margin-top:8px;background:#12313b;color:#b8f9f0;border:1px solid #58a8b1;padding:10px;border-radius:8px';
- function updateMode(){modeButton.textContent=voiceMode==='fast'?'MODE: DEVICE VOICE (NOT SCOTTISH) • RESTORE SCOTTISH':'MODE: ORIGINAL SCOTTISH F5 • OPTIONAL DEVICE VOICE';const msg=$('#voiceMsg');if(msg)msg.textContent=voiceMode==='fast'?'Device voice is not S.C.O.T.T.Y.’s custom Scottish voice. Tap the mode button to restore his original voice.':'Original Scottish F5 voice selected. Tap HEAR SCOTTISH VOICE NOW for instant prerecorded playback; new sentences may take minutes on the Windows CPU.'}
- modeButton.onclick=()=>{voiceMode=voiceMode==='fast'?'f5':'fast';++generation;stopCurrent();speaking=false;state('READY');updateMode()};
- const voicePanel=$('#voiceSettings');if(voicePanel)voicePanel.appendChild(modeButton);
- updateVoicePanel();updateMode();
+
  // Rebind the actual TEST button, bypassing older ElevenLabs handlers.
  // A direct user tap is important for Safari speech permission.
  function bindTest(){
@@ -221,14 +216,9 @@
   btn.addEventListener('click',async e=>{
    e.preventDefault();e.stopImmediatePropagation();
    setCommand('VOICE TEST REQUESTED');state('STARTING');
-   const msg=$('#voiceMsg');if(msg)msg.textContent='Testing '+(voiceMode==='fast'?'built-in device speech':'Scottish F5')+' now…';
+   const msg=$('#voiceMsg');if(msg)msg.textContent='Testing S.C.O.T.T.Y.’s original Scottish voice…';
    try{
-    if(voiceMode==='fast'){
-     const seq=++generation;stopCurrent();speaking=true;
-     state('SPEAKING');setCommand('DEVICE VOICE TEST');
-     await browserVoice('Aye, S.C.O.T.T.Y. is ready.',seq);
-     if(seq===generation){speaking=false;state('READY');setCommand('VOICE TEST COMPLETE');if(msg)msg.textContent='Device speech test finished. If silent, check iPad volume and available speech voices.'}
-    }else await speak('Aye, S.C.O.T.T.Y. is ready.');
+    await speak('Aye, S.C.O.T.T.Y. is ready.');
    }catch(err){speaking=false;state('ERROR');setCommand('VOICE TEST FAILED');if(msg)msg.textContent='Voice test error: '+String(err?.message||err)}
   },true);
  }
