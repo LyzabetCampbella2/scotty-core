@@ -2,7 +2,7 @@ const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{"cache
 
 // Opt-in local Scottish voice tunnel. Disabled until the private bridge is configured.
 async function tryLocalScottishVoice(text:string):Promise<Response|null>{
- const endpoint=process.env.SCOTTY_SCOTTISH_VOICE_URL?.replace(/\\/$/,"");
+ const endpoint=process.env.SCOTTY_SCOTTISH_VOICE_URL?.replace(/\/$/,"");
  const token=process.env.SCOTTY_SCOTTISH_VOICE_TOKEN;
  if(!endpoint||!token)return null;
  const headers={"authorization":"Bearer "+token,"content-type":"application/json"};
