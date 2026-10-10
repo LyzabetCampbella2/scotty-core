@@ -227,13 +227,13 @@ export async function handleCloudAgents(req:Request,u:URL){
  }
 
  if(req.method==="GET"&&u.pathname==="/api/hud/agents/missions"){
-  await db()`update scotty_agent_missions set status='interrupted',updated_at=now() where status in ('running','reviewing') and updated_at < now()-interval '60 minutes'`;
+  await db()`update scotty_agent_missions set status='interrupted',dependencies=(select coalesce(jsonb_agg(case when item->>'state' in ('working','waiting','awaiting_review') then jsonb_set(item,'{state}',to_jsonb('interrupted'::text),true) else item end),'[]'::jsonb) from jsonb_array_elements(dependencies) as item),updated_at=now() where status in ('running','reviewing') and updated_at < now()-interval '60 minutes'`;
   const rows=await db()`select id,task,status,agents,progress,unresolved,created_at as "createdAt",updated_at as "updatedAt" from scotty_agent_missions order by created_at desc limit 30`;
   return json({ok:true,missions:rows});
  }
  const missionMatch=u.pathname.match(/^\/api\/hud\/agents\/missions\/([0-9a-f-]{36})$/i);
  if(req.method==="GET"&&missionMatch){
-  await db()`update scotty_agent_missions set status='interrupted',updated_at=now() where id=${missionMatch[1]} and status in ('running','reviewing') and updated_at < now()-interval '60 minutes'`;
+  await db()`update scotty_agent_missions set status='interrupted',dependencies=(select coalesce(jsonb_agg(case when item->>'state' in ('working','waiting','awaiting_review') then jsonb_set(item,'{state}',to_jsonb('interrupted'::text),true) else item end),'[]'::jsonb) from jsonb_array_elements(dependencies) as item),updated_at=now() where id=${missionMatch[1]} and status in ('running','reviewing') and updated_at < now()-interval '60 minutes'`;
   const rows=await db()`select * from scotty_agent_missions where id=${missionMatch[1]} limit 1`;
   if(!rows.length)return json({ok:false,error:"Mission not found"},404);
   const related=await db()`select id,task,status,results,review,created_at as "createdAt" from scotty_agent_missions where parent_mission_id=${rows[0].id} order by created_at asc`;
