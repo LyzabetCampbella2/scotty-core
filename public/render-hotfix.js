@@ -10,7 +10,7 @@
   let j={};try{j=await r.json()}catch{}
   return new Error(String(j.error||j.detail||('HTTP '+r.status)).slice(0,250));
  }
- let generation=0,active=null,player=null,voiceState='READY',pendingPlayback=null;
+ let generation=0,active=null,player=null,voiceState='READY',pendingPlayback=null,progressTimer=null;
  const audioEl=document.createElement('audio');audioEl.setAttribute('playsinline','');audioEl.style.display='none';document.body.appendChild(audioEl);
  function showPlayButton(show){
   let btn=document.getElementById('scottyPlayReadyAudio');
@@ -37,6 +37,7 @@
   const test=$('#testVoice');if(test)test.textContent=value==='GENERATING'||value==='SPEAKING'||value==='BUSY'?'REPLACE VOICE TEST':'TEST SCOTTISH VOICE';
  }
  function stopCurrent(){
+  if(progressTimer){clearInterval(progressTimer);progressTimer=null}
   pendingPlayback=null;showPlayButton(false);
   if(active){active.abort();active=null}
   if(player){try{player.pause();player.src=''}catch{}player=null}
@@ -59,6 +60,17 @@
   const signal=controller.signal;
   const jobId=await queueRequest(text,signal);
   state('GENERATING');setCommand('VOICE GENERATING');
+  const started=Date.now();
+  if(progressTimer)clearInterval(progressTimer);
+  progressTimer=setInterval(()=>{
+   if(seq!==generation){clearInterval(progressTimer);progressTimer=null;return}
+   const elapsed=Math.floor((Date.now()-started)/1000);
+   if(voiceState==='GENERATING'){
+    setStatus('SCOTTISH VOICE GENERATING • '+elapsed+'S');
+    const msg=$('#voiceMsg');
+    if(msg)msg.textContent=elapsed<180?'Scottish F5 CPU generating audio ('+elapsed+' seconds).':'Generation is taking unusually long ('+elapsed+' seconds). Check the local worker.';
+   }
+  },1000);
   for(let n=0;n<160;n++){
    if(signal.aborted||seq!==generation)throw new DOMException('Superseded','AbortError');
    await sleep(1200);
@@ -67,6 +79,7 @@
    const x=await r.json();
    if(x.state==='error')throw Error(x.error||'Scottish voice generation failed');
    if(x.state==='complete'){
+    if(progressTimer){clearInterval(progressTimer);progressTimer=null}
     const audio=await fetch(base+'/jobs/'+encodeURIComponent(jobId)+'/audio',{credentials:'include',signal});
     if(!audio.ok)throw await responseError(audio);
     const blob=await audio.blob();
@@ -115,7 +128,7 @@
    state('BUSY');setCommand('SCOTTISH VOICE BUSY');
    const msg=$('#voiceMsg');if(msg)msg.textContent='Scottish voice: '+String(e?.message||e).slice(0,180);
   }finally{
-   if(seq===generation){active=null;speaking=false;try{clearVoiceBuffers()}catch{}}
+   if(seq===generation){if(progressTimer){clearInterval(progressTimer);progressTimer=null}active=null;speaking=false;try{clearVoiceBuffers()}catch{}}
   }
  };
   const previousCommand=command;
