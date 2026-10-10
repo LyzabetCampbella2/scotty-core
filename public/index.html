@@ -512,7 +512,7 @@ function eyesHandPinch(p,index){
     state.pinched=true;state.target=chosen;
     state.startX=pt.x;state.startY=pt.y;state.lastDraw=0;
     state.previous={};state.starts={};
-    const moving=eyesMultiMode?[...eyesSelectedNodes]:[chosen];
+    const moving=eyesMultiMode?[chosen]:[chosen];
     for(const key of moving){
      const g=[...document.querySelectorAll('#graph g[data-agent]')].find(n=>n.dataset.agent===key);
      const c=g?.querySelector('circle');if(!c)continue;
@@ -546,7 +546,7 @@ function eyesHandPinch(p,index){
  return {info,id:id||state.lastTarget,down}
 }
 function processTwo(ps){
- if(eyesDrag){eyesSavePositions();resetEyesPinch()}
+ if(eyesDrag){if(eyesDrag.moved)eyesCommitMove(eyesDrag.previous);resetEyesPinch()}
  const distW=(p,w)=>w?Math.hypot(p[0].x-w.x,p[0].y-w.y):Infinity;
  if(eyesHandStates[0].wrist&&eyesHandStates[1].wrist){
   const same=distW(ps[0],eyesHandStates[0].wrist)+distW(ps[1],eyesHandStates[1].wrist);
@@ -556,7 +556,7 @@ function processTwo(ps){
  const a=eyesHandPinch(ps[0],0),b=eyesHandPinch(ps[1],1);
  $('#handCursor').classList.toggle('pinch',a.down);$('#handCursor2').classList.toggle('pinch',b.down);
  const pa=ps[0][9],pb=ps[1][9],dx=pb.x-pa.x,dy=pb.y-pa.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx);
- if(!a.down&&!b.down&&twoState){const ratio=dist/Math.max(.001,twoState.dist);if(ratio>.90&&ratio<1.10)graphScale=Math.max(.68,Math.min(1.85,graphScale*ratio));graphRotation+=angleDelta(ang,twoState.ang)*180/Math.PI;graphRotation=Math.max(-120,Math.min(120,graphRotation));applyGraphTransform()}
+ if(!a.down&&!b.down&&!eyesHandStates.some(st=>st.pinched||st.moved)&&twoState){const ratio=dist/Math.max(.001,twoState.dist);if(ratio>.90&&ratio<1.10)graphScale=Math.max(.68,Math.min(1.85,graphScale*ratio));graphRotation+=angleDelta(ang,twoState.ang)*180/Math.PI;graphRotation=Math.max(-120,Math.min(120,graphRotation));applyGraphTransform()}
  twoState={dist,ang};setHold(false);
  const status='LEFT '+Math.round(a.info.pinchRatio*100)+'% '+(a.id||'—')+' • RIGHT '+Math.round(b.info.pinchRatio*100)+'% '+(b.id||'—');
  eyesCursorDiagnostic(status);$('#gs').textContent='TWO HANDS • PINCH TO SELECT';return status
