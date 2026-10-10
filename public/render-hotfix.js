@@ -10,7 +10,7 @@
   let j={};try{j=await r.json()}catch{}
   return new Error(String(j.error||j.detail||('HTTP '+r.status)).slice(0,250));
  }
- let generation=0,active=null,player=null,voiceState='READY',pendingPlayback=null,progressTimer=null;
+ let generation=0,active=null,player=null,voiceState='READY',pendingPlayback=null,progressTimer=null,voiceMode='fast';
  const audioEl=document.createElement('audio');audioEl.setAttribute('playsinline','');audioEl.style.display='none';document.body.appendChild(audioEl);
  function showPlayButton(show){
   let btn=document.getElementById('scottyPlayReadyAudio');
@@ -37,6 +37,7 @@
   const test=$('#testVoice');if(test)test.textContent=value==='GENERATING'||value==='SPEAKING'||value==='BUSY'?'REPLACE VOICE TEST':'TEST SCOTTISH VOICE';
  }
  function stopCurrent(){
+  try{window.speechSynthesis?.cancel()}catch{}
   if(progressTimer){clearInterval(progressTimer);progressTimer=null}
   pendingPlayback=null;showPlayButton(false);
   if(active){active.abort();active=null}
@@ -113,6 +114,23 @@
   }
   throw Error('Scottish voice generation timed out');
  }
+ function browserVoice(text,seq){
+  return new Promise((resolve,reject)=>{
+   if(!('speechSynthesis' in window)){reject(Error('Browser speech is unavailable'));return}
+   const engine=window.speechSynthesis;
+   const utterance=new SpeechSynthesisUtterance(text);
+   utterance.lang='en-GB';utterance.rate=1.04;utterance.pitch=0.94;
+   const voices=engine.getVoices();
+   const voice=voices.find(v=>/scottish|scotland|en-GB.*(fiona|daniel)/i.test(v.name))||
+     voices.find(v=>v.lang==='en-GB')||voices.find(v=>v.lang.startsWith('en'));
+   if(voice)utterance.voice=voice;
+   const watchdog=setTimeout(()=>{if(seq===generation){state('TAP TO ENABLE AUDIO');setCommand('TAP VOICE TEST TO ENABLE AUDIO')}resolve()},4500);
+   utterance.onstart=()=>{clearTimeout(watchdog);if(seq===generation){state('SPEAKING');setCommand('SPEAKING')}};
+   utterance.onend=()=>{clearTimeout(watchdog);resolve()};
+   utterance.onerror=e=>{clearTimeout(watchdog);reject(Error('Browser voice: '+(e.error||'unavailable')))};
+   try{engine.cancel();engine.speak(utterance)}catch(e){clearTimeout(watchdog);reject(e)}
+  })
+ }
  speak=async function(text){
   text=String(text||'').trim();if(!text)return;
   const seq=++generation;
@@ -120,7 +138,7 @@
   const controller=new AbortController();active=controller;
   speaking=true;state('GENERATING');setCommand('SCOTTISH VOICE');
   try{
-   await playScottish(text,seq,controller);
+   if(voiceMode==='fast')await browserVoice(text,seq);else await playScottish(text,seq,controller);
    if(seq===generation){state(voiceArmed?'LISTENING':'READY');setCommand(voiceArmed?'LISTENING':'READY')}
   }catch(e){
    if(seq!==generation||e?.name==='AbortError')return;
@@ -187,7 +205,11 @@
   }catch(e){const msg=$('#voiceMsg');if(msg)msg.textContent='Scottish preview: '+String(e?.message||e)}
  };
  const panel=$('#voiceSettings');if(panel)panel.appendChild(preview);
- updateVoicePanel();
+ const modeButton=document.createElement('button');modeButton.id='scottyVoiceMode';modeButton.style.cssText='width:100%;margin-top:8px;background:#12313b;color:#b8f9f0;border:1px solid #58a8b1;padding:10px;border-radius:8px';
+ function updateMode(){modeButton.textContent=voiceMode==='fast'?'MODE: FAST (DEVICE VOICE) • SWITCH TO SCOTTISH F5':'MODE: SCOTTISH F5 (SLOW) • SWITCH TO FAST';const msg=$('#voiceMsg');if(msg)msg.textContent=voiceMode==='fast'?'Fast mode speaks using the iPad built-in voice; a Scottish accent is not guaranteed. No paid API or F5 queue.':'Scottish F5 mode preserves the custom voice but may take minutes on the Windows CPU.'}
+ modeButton.onclick=()=>{voiceMode=voiceMode==='fast'?'f5':'fast';++generation;stopCurrent();speaking=false;state('READY');updateMode()};
+ const voicePanel=$('#voiceSettings');if(voicePanel)voicePanel.appendChild(modeButton);
+ updateVoicePanel();updateMode();
  const settings=$('#voiceSettingsBtn');if(settings)settings.addEventListener('click',()=>setTimeout(updateVoicePanel,0));
  state('READY');
 })();
