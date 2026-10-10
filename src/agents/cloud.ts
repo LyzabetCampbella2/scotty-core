@@ -263,8 +263,13 @@ export async function handleCloudAgents(req:Request,u:URL){
    return {chief:chief.name,chiefId:chief.id,status:assessment.status,assessment:assessment.result||assessment.error};
   }));
   const unresolved=review.filter((x:any)=>x.status!=="completed").map((x:any)=>x.chief+" review incomplete");
+  const missionId=crypto.randomUUID();
+  const progress=results.map((r:any)=>({agentId:r.id,name:r.name,status:r.status,primarySkill:specialtyAssignments.find((a:any)=>a.agentId===r.id)?.primarySkill||"general",finding:r.status==="completed"?String(r.result||"").slice(0,1500):null,blocker:r.status==="error"?String(r.error||"Unknown error"):null}));
+  const questions=review.filter((x:any)=>x.status==="completed").map((x:any)=>({chief:x.chief,review:String(x.assessment||"").slice(0,4000)}));
+  try{await db()`insert into scotty_activity(source,title,message,metadata) values('SCOTTY','MISSION INTELLIGENCE',${task.slice(0,400)},${db().json({missionId,progress,questions,unresolved,chiefIds})})`}catch{}
+
   try{await db()`insert into scotty_memory(scope,kind,text_content,metadata) values('shared','mission-summary',${("Mission: "+task+"\nChief reviews: "+JSON.stringify(review)+"\nUnresolved: "+unresolved.join("; ")).slice(0,24000)},${db().json({agentIds:ids,chiefIds,completed:results.filter((x:any)=>x.status==="completed").length,unresolved})})`}catch{}
-  return json({ok:true,task,autoAssigned:body?.autoAssign===true,assignments:specialtyAssignments,briefing,results,review,unresolved,completed:results.filter(x=>x.status==="completed").length});
+  return json({ok:true,missionId,task,progress,questions,autoAssigned:body?.autoAssign===true,assignments:specialtyAssignments,briefing,results,review,unresolved,completed:results.filter(x=>x.status==="completed").length});
  }
 
  if(req.method==="GET"&&u.pathname==="/api/hud/activity"){
