@@ -397,17 +397,20 @@ export async function handleCloudAgents(req:Request,u:URL){
    const items=ordered.map((a:any)=>({agentId:a.id,name:a.name,state:liveState[a.id],dependsOn:agentDependencies[a.id]||[],updatedAt:new Date().toISOString()}));
    try{await db()`update scotty_agent_missions set status=${status},dependencies=${db().json(items)},updated_at=now() where id=${missionId}`}catch(err){console.warn("live mission update failed",err)}
   };
-  try{await db()`insert into scotty_agent_missions(id,task,status,agents,briefing,dependencies) values(${missionId},${task},'running',${db().json(ids)},${db().json(briefing)},${db().json(ordered.map((a:any)=>({agentId:a.id,name:a.name,state:"waiting",dependsOn:agentDependencies[a.id]||[]})))}) on conflict(id) do nothing`}catch(err){console.warn("live mission start failed",err)}
   if(body?.recoverySourceMissionId){
    const parent=String(body.recoverySourceMissionId);
-   const claimed=await db()`update scotty_agent_missions set status='recovering',updated_at=now() where id=${parent} and status='interrupted' returning id`;
-   if(!claimed.length)return json({ok:false,error:"Recovery already started or mission unavailable"},409);
+   let claimed=false;
    try{
-    await db()`update scotty_agent_missions set parent_mission_id=${parent} where id=${missionId}`;
-   }catch(err){
-    await db()`update scotty_agent_missions set status='interrupted',updated_at=now() where id=${parent} and status='recovering'`;
-    throw err;
-   }
+    await db().begin(async(tx:any)=>{
+     const rows=await tx`update scotty_agent_missions set status='recovering',updated_at=now() where id=${parent} and status='interrupted' returning id`;
+     if(!rows.length)return;
+     await tx`insert into scotty_agent_missions(id,task,status,agents,briefing,dependencies,parent_mission_id) values(${missionId},${task},'running',${tx.json(ids)},${tx.json(briefing)},${tx.json(ordered.map((a:any)=>({agentId:a.id,name:a.name,state:"waiting",dependsOn:agentDependencies[a.id]||[]})))},${parent})`;
+     claimed=true;
+    });
+   }catch(err){console.error("atomic recovery start failed",err);return json({ok:false,error:"Could not safely start recovery; original mission remains unchanged"},500)}
+   if(!claimed)return json({ok:false,error:"Recovery already started or mission unavailable"},409);
+  }else{
+   try{await db()`insert into scotty_agent_missions(id,task,status,agents,briefing,dependencies) values(${missionId},${task},'running',${db().json(ids)},${db().json(briefing)},${db().json(ordered.map((a:any)=>({agentId:a.id,name:a.name,state:"waiting",dependsOn:agentDependencies[a.id]||[]})))}) on conflict(id) do nothing`}catch(err){console.warn("live mission start failed",err)}
   }
   const results:any[]=[];
   const pending=new Map(ordered.map((a:any)=>[a.id,a]));
