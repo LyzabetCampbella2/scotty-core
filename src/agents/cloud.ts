@@ -232,6 +232,7 @@ export async function handleCloudAgents(req:Request,u:URL){
  }
  const missionMatch=u.pathname.match(/^\/api\/hud\/agents\/missions\/([0-9a-f-]{36})$/i);
  if(req.method==="GET"&&missionMatch){
+  await db()`update scotty_agent_missions set status='interrupted',updated_at=now() where id=${missionMatch[1]} and status in ('running','reviewing') and updated_at < now()-interval '60 minutes'`;
   const rows=await db()`select * from scotty_agent_missions where id=${missionMatch[1]} limit 1`;
   return rows.length?json({ok:true,mission:rows[0]}):json({ok:false,error:"Mission not found"},404);
  }
