@@ -132,13 +132,13 @@ async function sendVoiceChunk(){
   $('#vs').textContent='LISTENING • ANALYZING';
   const r=await fetch('/api/hud/stt',{method:'POST',credentials:'same-origin',headers:{'content-type':'audio/wav'},body:wav});
   const d=await r.json().catch(()=>({}));
-  if(!r.ok){$('#vs').textContent='VOICE LINK ERROR';$('#cs').textContent=d.error||'LOCAL VOICE ERROR';return}
+  if(!r.ok){$('#vs').textContent='MICROPHONE TRANSCRIPTION ERROR';$('#cs').textContent=d.error||'LOCAL VOICE ERROR';return}
   const text=String(d.text||'').trim(),conf=Number(d.confidence||0);
   if(text&&conf>=.18){
    const norm=normalizedSpeech(text),now=Date.now();
    if(norm && !(norm===lastHeardText&&now-lastHeardAt<2600)){lastHeardText=norm;lastHeardAt=now;$('#vs').textContent='HEARD • '+Math.round(conf*100)+'%';await heard(text)}
   }else if(voiceArmed&&!speaking){$('#vs').textContent='VOICE ARMED';$('#cs').textContent='LISTENING'}
- }catch(e){console.warn('local stt',e);$('#vs').textContent='VOICE LINK ERROR';$('#cs').textContent='CLOUD VOICE LINK OFFLINE'}
+ }catch(e){console.warn('local stt',e);$('#vs').textContent='MICROPHONE TRANSCRIPTION ERROR';$('#cs').textContent='SPEECH RECOGNITION OFFLINE'}
  finally{localVoiceSending=false}
 }
 async function startLocalVoice(){
@@ -182,7 +182,7 @@ async function speak(t){
  speaking=true;$('#vs').textContent='SCOTTY SPEAKING';$('#cs').textContent='SPEAKING';
  try{
   const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),10000);
-  let r;try{r=await fetch('/api/tts',{method:'POST',credentials:'same-origin',signal:ctl.signal,headers:{'content-type':'application/json'},body:JSON.stringify({text:t,voiceId:'cVJh6uKaUowPTE2Nt6UF',voiceSettings:{speed:.98,stability:.38,style:.08}})})}finally{clearTimeout(timer)}
+  let r;try{r=await fetch('/api/tts',{method:'POST',credentials:'same-origin',signal:ctl.signal,headers:{'content-type':'application/json'},body:JSON.stringify({text:t,voiceId:'cVJh6uKaUowPTE2Nl6OF',voiceSettings:{speed:.98,stability:.38,style:.08}})})}finally{clearTimeout(timer)}
   if(!r.ok)throw Error('SCOTTY voice service '+r.status);
   const blob=await r.blob();if(!blob.size)throw Error('empty SCOTTY audio');
   await playScottyBlob(blob)
@@ -346,7 +346,7 @@ body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infini
  const main=document.querySelector('.main');if(!main)return;
  const b=document.createElement('button');b.id='voiceSettingsBtn';b.textContent='VOICE';main.appendChild(b);
  const p=document.createElement('div');p.id='voiceSettings';p.innerHTML='<b>S.C.O.T.T.Y. VOICE</b><label>ElevenLabs Voice ID</label><input id="elVoiceId" placeholder="Paste ElevenLabs voice ID"><label>Fallback iPad voice</label><select id="sysVoice"></select><div class="va"><button id="saveVoice">SAVE</button><button id="testVoice">TEST</button></div><div id="voiceMsg" style="font-size:8px;margin-top:8px;color:#7fa4b5"></div>';main.appendChild(p);
- const vi=p.querySelector('#elVoiceId'),sv=p.querySelector('#sysVoice'),msg=p.querySelector('#voiceMsg');vi.value=localStorage.getItem('scottyElevenVoiceId')||'cVJh6uKaUowPTE2Nt6UF';
+ const vi=p.querySelector('#elVoiceId'),sv=p.querySelector('#sysVoice'),msg=p.querySelector('#voiceMsg');vi.value=localStorage.getItem('scottyElevenVoiceId')||'cVJh6uKaUowPTE2Nl6OF';
  function voices(){const a=speechSynthesis.getVoices();sv.innerHTML=a.map((v,i)=>'<option value="'+i+'">'+v.name+' — '+v.lang+'</option>').join('');sv.value=localStorage.getItem('scottySystemVoice')||'0'}voices();speechSynthesis.onvoiceschanged=voices;
  b.onclick=()=>p.classList.toggle('open');p.querySelector('#saveVoice').onclick=()=>{localStorage.setItem('scottyElevenVoiceId',vi.value.trim());localStorage.setItem('scottySystemVoice',sv.value);msg.textContent='Voice saved on this tablet.'};
  async function systemSay(t){return new Promise((res,rej)=>{try{const u=new SpeechSynthesisUtterance(t),a=speechSynthesis.getVoices(),v=a[Number(localStorage.getItem('scottySystemVoice')||sv.value||0)];if(v)u.voice=v;u.rate=.96;u.pitch=.92;let done=false;const finish=(err)=>{if(done)return;done=true;clearTimeout(tm);u.onend=null;u.onerror=null;err?rej(err):res()};const tm=setTimeout(()=>{try{speechSynthesis.cancel()}catch{};finish(new Error('system voice timeout'))},Math.max(30000,Math.min(120000,String(t||'').length*140)));u.onend=()=>finish();u.onerror=e=>finish(e);speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){rej(e)}})}
