@@ -436,9 +436,22 @@ function hoverNearest(x,y){
  if(best&&bestDistance<140){best.classList.add('agent-hover');return best}
  return null
 }
+function eyesShowInspector(agent){
+ let panel=document.getElementById('eyesAgentInspector');
+ if(!panel){
+  panel=document.createElement('section');panel.id='eyesAgentInspector';
+  panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Eyes On agent inspector');
+  panel.style.cssText='position:fixed;right:18px;top:90px;width:min(350px,calc(100vw - 36px));max-height:70vh;overflow:auto;z-index:99999;background:rgba(6,25,34,.96);border:1px solid #5eeaff;border-radius:14px;box-shadow:0 12px 48px #000a;color:#d8f7ff;padding:18px;font:14px system-ui,sans-serif';
+  document.body.appendChild(panel)
+ }
+ const chief=agent.chiefId?agents.find(a=>a.id===agent.chiefId):null;
+ const row=(label,value)=>'<div style="display:flex;justify-content:space-between;gap:14px;border-bottom:1px solid #ffffff18;padding:9px 0"><span style="color:#8eb4c4">'+label+'</span><strong style="text-align:right">'+e(String(value??'—'))+'</strong></div>';
+ panel.innerHTML='<div style="display:flex;align-items:start;justify-content:space-between;gap:10px"><div><div style="font-size:11px;letter-spacing:2px;color:#5eeaff">EYES ON • AGENT INSPECTOR</div><h3 style="margin:8px 0 3px;color:#fff">'+e(agent.name)+'</h3><div style="color:#8eb4c4">'+e(agent.department)+'</div></div><button type="button" id="eyesInspectorClose" aria-label="Close inspector" style="background:transparent;color:#d8f7ff;border:1px solid #5eeaff;border-radius:7px;padding:5px 9px;cursor:pointer">✕</button></div>'+row('ROLE',agent.rank)+row('STATUS',agent.state||'idle')+row('CLEARANCE','L'+(agent.clearance??'—'))+row('CHIEF',chief?.name||'S.C.O.T.T.Y.')+row('QUEUE',agent.queueCount||0)+row('MEMORY LINKS',agent.memoryLinks||0)+'<div style="margin-top:12px;color:#5eeaff;font-size:12px">Pinch another node to inspect it • close with ✕</div>';
+ panel.querySelector('#eyesInspectorClose').onclick=()=>panel.remove();
+}
 function eyesOpenSelectedNode(id){
  const agent=agents.find(a=>a.id===id);if(!agent)return false;
- missionPanelPinned=false;activateAgent(agent);$('#cs').textContent='OPENED • '+agent.name;
+ missionPanelPinned=false;activateAgent(agent);eyesShowInspector(agent);$('#cs').textContent='OPENED • '+agent.name;
  return true
 }
 function pinchSelect(x,y){const g=hoverNearest(x,y);if(!g){$('#cs').textContent='PINCH • NO TARGET';return}const a=agents.find(z=>z.id===g.dataset.agent);if(a){activateAgent(a);$('#cs').textContent='SELECTED • '+a.name}}
