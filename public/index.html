@@ -73,6 +73,14 @@ async function continueAgentMission(id){missionPanelPinned=true;
   $('#cs').textContent='MISSION CONTINUED';
  }catch(err){$('#cs').textContent='MISSION ERROR';$('#activity').textContent='Could not continue mission: '+err.message}
 }
+async function runSafeRecoveryTest(){
+ missionPanelPinned=true;$('#cs').textContent='TESTING RECOVERY';
+ try{
+  const r=await api('/api/hud/agents/recovery-self-test',{method:'POST',body:'{}'});
+  $('#activity').innerHTML='<div class="agent-profile"><div class="apname">SAFE RECOVERY TEST — '+(r.ok?'PASSED':'NEEDS ATTENTION')+'</div>'+((r.checks||[]).map(c=>'<div class="apjob"><b>'+(c.passed?'PASS':'FAIL')+'</b><p>'+e(c.name)+'</p></div>').join(''))+'<p>Disposable database test only. No real agents invoked.</p><button type="button" data-scotty-close-missions>BACK TO ACTIVITY</button></div>';
+  $('#cs').textContent=r.ok?'RECOVERY TEST PASSED':'RECOVERY TEST FAILED';
+ }catch(err){$('#cs').textContent='RECOVERY TEST ERROR';$('#activity').textContent='Test failed: '+err.message}
+}
 async function recoverInterruptedMission(id){
  missionPanelPinned=true;$('#cs').textContent='PREPARING RECOVERY';
  try{
@@ -104,6 +112,7 @@ async function showAgentMissionDetails(id){missionPanelPinned=true;
 document.addEventListener('click',event=>{
  const approve=event.target.closest?.('[data-scotty-approve-plan]');if(approve){approve.disabled=true;approveAgentPlan(approve.getAttribute('data-scotty-approve-plan'));return}
  const close=event.target.closest?.('[data-scotty-close-missions]');if(close){missionPanelPinned=false;selectedAgentId=null;loadActivity();return}
+ const recoveryTest=event.target.closest?.('[data-scotty-recovery-test]');if(recoveryTest){recoveryTest.disabled=true;runSafeRecoveryTest();return}
  const recover=event.target.closest?.('[data-scotty-recover]');if(recover){recoverInterruptedMission(recover.getAttribute('data-scotty-recover'));return}
  const confirmRecovery=event.target.closest?.('[data-scotty-confirm-recovery]');if(confirmRecovery){confirmRecovery.disabled=true;confirmInterruptedRecovery(confirmRecovery.getAttribute('data-scotty-confirm-recovery'));return}
  const resume=event.target.closest?.('[data-scotty-resume]');if(resume){continueAgentMission(resume.getAttribute('data-scotty-resume'));return}
@@ -174,7 +183,7 @@ async function command(t){t=(t||$('#ci').value).trim();if(!t)return;$('#ci').val
   return
  }
  const history=t.match(/^\s*(?:scotty[, ]+)?(?:show|list|open)\s+(?:my\s+)?(?:agent\s+)?(?:mission\s+history|previous\s+missions)\s*$/i);
- if(history){missionPanelPinned=true;const r=await api('/api/hud/agents/missions');const items=(r.missions||[]).slice(0,15);$('#activity').innerHTML='<div class="agent-profile"><div class="apname">AGENT MISSION HISTORY</div><button type="button" data-scotty-close-missions>BACK TO ACTIVITY</button>'+items.map((m,i)=>'<div class="apjob"><b>'+e((i+1)+'. '+m.status)+'</b><p>'+e(m.task)+'</p><small>'+e(m.id)+'</small><div style="margin-top:8px"><button type="button" data-scotty-resume="'+e(m.id)+'">CONTINUE MISSION</button> <button type="button" data-scotty-details="'+e(m.id)+'">VIEW FINDINGS</button></div></div>').join('')+'</div>';$('#cs').textContent='MISSION HISTORY';return;}
+ if(history){missionPanelPinned=true;const r=await api('/api/hud/agents/missions');const items=(r.missions||[]).slice(0,15);$('#activity').innerHTML='<div class="agent-profile"><div class="apname">AGENT MISSION HISTORY</div><button type="button" data-scotty-close-missions>BACK TO ACTIVITY</button> <button type="button" data-scotty-recovery-test>RUN SAFE RECOVERY TEST</button>'+items.map((m,i)=>'<div class="apjob"><b>'+e((i+1)+'. '+m.status)+'</b><p>'+e(m.task)+'</p><small>'+e(m.id)+'</small><div style="margin-top:8px"><button type="button" data-scotty-resume="'+e(m.id)+'">CONTINUE MISSION</button> <button type="button" data-scotty-details="'+e(m.id)+'">VIEW FINDINGS</button></div></div>').join('')+'</div>';$('#cs').textContent='MISSION HISTORY';return;}
  const resume=t.match(/^\s*(?:scotty[, ]+)?(?:continue|resume)\s+(?:agent\s+)?mission\s+([0-9a-f-]{36})\s*:\s*(.+)$/i);
  if(resume){$('#cs').textContent='RESUMING MISSION';const prepared=await api('/api/hud/agents/missions/'+encodeURIComponent(resume[1]),{method:'POST',body:JSON.stringify({feedback:resume[2]})});const r=await api('/api/hud/agents/run',{method:'POST',body:JSON.stringify({agents:prepared.agents||[],task:prepared.continuationTask})});const summary=(r.review||[]).map(x=>x.chief+': '+(x.assessment||x.status)).join('\n\n')||(r.results||[]).map(x=>x.name+': '+(x.result||x.error)).join('\n\n');$('#activity').innerHTML='<div class="agent-profile"><div class="apname">MISSION CONTINUED</div><div class="apjob">'+e(summary||'No findings returned')+'</div></div>';$('#cs').textContent='CONTINUATION COMPLETE';await speak((summary||'Mission continuation finished.').slice(0,1200));return;}
  const auto=t.match(/^\s*(?:(?:s\.?c\.?o\.?t\.?t\.?y\.?)\s*[,.:]?\s*)?(?:assemble|coordinate|assign)\s+(?:the\s+)?(?:best\s+)?(?:agents|chiefs|team)\s+(?:to|for)\s+(.+)$/i);
