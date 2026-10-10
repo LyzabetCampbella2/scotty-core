@@ -490,20 +490,33 @@ function processOne(p){
 function angleDelta(a,b){let d=a-b;while(d>Math.PI)d-=Math.PI*2;while(d<-Math.PI)d+=Math.PI*2;return d}
 const eyesHandStates=[{pinched:false,frames:0,released:0,target:null},{pinched:false,frames:0,released:0,target:null}];
 function eyesHandPinch(p,index){
- const state=eyesHandStates[index],info=ginfo(p),pt=cursorFromHand(p,index),hovered=hoverNearest(pt.x,pt.y),id=hovered?.dataset?.agent||null;
- const down=info.pinchRatio<.78,up=info.pinchRatio>.96;
- const dot=$('#eyesCursorSurface'+index);if(dot)dot.style.transform=down?'translate(-50%,-50%) scale(.72)':'translate(-50%,-50%)';
+ const state=eyesHandStates[index],info=ginfo(p),pt=cursorFromHand(p,index);
+ const id=hoverNearest(pt.x,pt.y)?.dataset.agent||null;
+ const down=info.pinch,up=info.pinchRatio>.96;
+ if(id&&!down)state.lastTarget=id;
+ const dot=$('#eyesCursorSurface'+index);
+ if(dot)dot.style.transform=down?'translate(-50%,-50%) scale(.72)':'translate(-50%,-50%)';
  if(down){
   state.released=0;
-  if(!state.pinched){state.frames++;if(state.frames>=2){state.pinched=true;state.target=id;if(id){
-   if(eyesMultiMode){if(eyesSelectedNodes.has(id))eyesSelectedNodes.delete(id);else eyesSelectedNodes.add(id);eyesPaintSelection();eyesOpenSelectedNode(id);$('#cs').textContent='OPENED '+id+' • '+eyesSelectedNodes.size+' SELECTED'}
-   else{eyesOpenSelectedNode(id);$('#cs').textContent='PINCH OPENED '+id}
-  }}}
- }else if(up){state.frames=0;if(++state.released>=2){state.pinched=false;state.target=null}}
- return {info,id,down}
+  if(!state.pinched&&++state.frames>=2){
+   const chosen=id||state.lastTarget;
+   if(chosen&&eyesPinchAction(chosen)){state.pinched=true;state.target=chosen}
+  }
+ }else if(up){
+  state.frames=0;
+  if(++state.released>=2){state.pinched=false;state.target=null}
+ }
+ state.wrist={x:p[0].x,y:p[0].y};
+ return {info,id:id||state.lastTarget,down}
 }
 function processTwo(ps){
  if(eyesDrag){eyesSavePositions();resetEyesPinch()}
+ const distW=(p,w)=>w?Math.hypot(p[0].x-w.x,p[0].y-w.y):Infinity;
+ if(eyesHandStates[0].wrist&&eyesHandStates[1].wrist){
+  const same=distW(ps[0],eyesHandStates[0].wrist)+distW(ps[1],eyesHandStates[1].wrist);
+  const swap=distW(ps[0],eyesHandStates[1].wrist)+distW(ps[1],eyesHandStates[0].wrist);
+  if(swap<same)ps=[ps[1],ps[0]]
+ }
  const a=eyesHandPinch(ps[0],0),b=eyesHandPinch(ps[1],1);
  $('#handCursor').classList.toggle('pinch',a.down);$('#handCursor2').classList.toggle('pinch',b.down);
  const pa=ps[0][9],pb=ps[1][9],dx=pb.x-pa.x,dy=pb.y-pa.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx);
