@@ -46,10 +46,12 @@ async function ensure(){
    results jsonb not null default '[]'::jsonb,
    review jsonb not null default '[]'::jsonb,
    progress jsonb not null default '[]'::jsonb,
+   dependencies jsonb not null default '[]'::jsonb,
    unresolved jsonb not null default '[]'::jsonb,
    created_at timestamptz not null default now(),
    updated_at timestamptz not null default now()
   )`;
+  await q`alter table scotty_agent_missions add column if not exists dependencies jsonb not null default '[]'::jsonb`;
   await q`create table if not exists scotty_agent_meta(
    key text primary key,
    value text not null,
@@ -298,12 +300,18 @@ export async function handleCloudAgents(req:Request,u:URL){
   const unresolved=review.filter((x:any)=>x.status!=="completed").map((x:any)=>x.chief+" review incomplete");
   const missionId=crypto.randomUUID();
   const progress=results.map((r:any)=>({agentId:r.id,name:r.name,status:r.status,primarySkill:specialtyAssignments.find((a:any)=>a.agentId===r.id)?.primarySkill||"general",finding:r.status==="completed"?String(r.result||"").slice(0,1500):null,blocker:r.status==="error"?String(r.error||"Unknown error"):null}));
+  const dependencies=progress.map((p:any)=>{
+   const supervisor=ordered.find((a:any)=>a.id===p.agentId);
+   const chiefReview=review.find((r:any)=>r.chiefId===(supervisor?.isChief?supervisor.id:supervisor?.chiefId));
+   const state=p.status==="error"?"blocked":p.status!=="completed"?"in_progress":chiefReview?.status!=="completed"?"awaiting_review":"completed";
+   return {agentId:p.agentId,name:p.name,state,dependsOn:[],reviewerId:supervisor?.isChief?supervisor.id:supervisor?.chiefId||null,blocker:p.blocker||((state==="awaiting_review")?"Chief review not completed":null),updatedAt:new Date().toISOString()};
+  });
   const questions=review.filter((x:any)=>x.status==="completed").map((x:any)=>({chief:x.chief,review:String(x.assessment||"").slice(0,4000)}));
-  try{await db()`insert into scotty_agent_missions(id,task,status,agents,briefing,results,review,progress,unresolved) values(${missionId},${task},${unresolved.length?"needs_attention":"completed"},${db().json(ids)},${db().json(briefing)},${db().json(results)},${db().json(review)},${db().json(progress)},${db().json(unresolved)})`}catch(err){console.warn("mission persistence failed",err)}
-  try{await db()`insert into scotty_activity(source,title,message,metadata) values('SCOTTY','MISSION INTELLIGENCE',${task.slice(0,400)},${db().json({missionId,progress,questions,unresolved,chiefIds})})`}catch{}
+  try{await db()`insert into scotty_agent_missions(id,task,status,agents,briefing,results,review,progress,dependencies,unresolved) values(${missionId},${task},${unresolved.length?"needs_attention":"completed"},${db().json(ids)},${db().json(briefing)},${db().json(results)},${db().json(review)},${db().json(progress)},${db().json(dependencies)},${db().json(unresolved)})`}catch(err){console.warn("mission persistence failed",err)}
+  try{await db()`insert into scotty_activity(source,title,message,metadata) values('SCOTTY','MISSION INTELLIGENCE',${task.slice(0,400)},${db().json({missionId,progress,dependencies,questions,unresolved,chiefIds})})`}catch{}
 
   try{await db()`insert into scotty_memory(scope,kind,text_content,metadata) values('shared','mission-summary',${("Mission: "+task+"\nChief reviews: "+JSON.stringify(review)+"\nUnresolved: "+unresolved.join("; ")).slice(0,24000)},${db().json({agentIds:ids,chiefIds,completed:results.filter((x:any)=>x.status==="completed").length,unresolved})})`}catch{}
-  return json({ok:true,missionId,task,progress,questions,autoAssigned:body?.autoAssign===true,assignments:specialtyAssignments,briefing,results,review,unresolved,completed:results.filter(x=>x.status==="completed").length});
+  return json({ok:true,missionId,task,progress,dependencies,questions,autoAssigned:body?.autoAssign===true,assignments:specialtyAssignments,briefing,results,review,unresolved,completed:results.filter(x=>x.status==="completed").length});
  }
 
  if(req.method==="GET"&&u.pathname==="/api/hud/activity"){
