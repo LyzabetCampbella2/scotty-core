@@ -69,7 +69,7 @@
    if(voiceState==='GENERATING'){
     setStatus('SCOTTISH VOICE GENERATING • '+elapsed+'S');
     const msg=$('#voiceMsg');
-    if(msg)msg.textContent=elapsed<180?'Scottish F5 CPU generating audio ('+elapsed+' seconds).':'Generation is taking unusually long ('+elapsed+' seconds). Check the local worker.';
+    if(msg)msg.textContent=elapsed<180?'Scottish Kokoro + OpenVoice generating audio ('+elapsed+' seconds).':'Generation is taking unusually long ('+elapsed+' seconds). Check the local worker.';
    }
   },1000);
   for(let n=0;n<160;n++){
@@ -78,7 +78,7 @@
    const r=await fetch(base+'/jobs/'+encodeURIComponent(jobId),{credentials:'include',cache:'no-store',signal});
    if(!r.ok)throw await responseError(r);
    const x=await r.json();
-   if(x.state==='error')throw Error(x.error||'Scottish voice generation failed');
+   if(x.state==='error'||x.state==='failed'||x.state==='cancelled')throw Error(x.error||'Scottish voice generation failed');
    if(x.state==='complete'){
     if(acknowledgement){try{acknowledgement.pause()}catch{}acknowledgement=null}
     if(progressTimer){clearInterval(progressTimer);progressTimer=null}
@@ -135,7 +135,7 @@
   const controller=new AbortController();active=controller;
   speaking=true;state('GENERATING');setCommand('SCOTTISH VOICE');
   try{
-   void acknowledge(seq);
+   // No prerecorded acknowledgement: speak only newly generated responses.
    await playScottish(text,seq,controller);
    if(seq===generation){state(voiceArmed?'LISTENING':'READY');setCommand(voiceArmed?'LISTENING':'READY')}
   }catch(e){
@@ -185,7 +185,7 @@
   const input=$('#elVoiceId');if(input){input.style.display='none';const l=input.previousElementSibling;if(l&&l.tagName==='LABEL')l.style.display='none'}
   const oldLibrary=$('#scottyElevenVoiceLibrary');if(oldLibrary)oldLibrary.style.display='none';
   const save=$('#saveVoice');if(save){save.style.display='none'}
-  const msg=$('#voiceMsg');if(msg)msg.textContent='Original Scottish voice only. A prerecorded acknowledgement can play immediately; new sentences are generated on your Windows computer.';
+  const msg=$('#voiceMsg');if(msg)msg.textContent='Original Scottish voice only. Each answer is generated live; new sentences are generated on your Windows computer.';
   const test=$('#testVoice');if(test){test.textContent='TEST SCOTTISH VOICE'}
  }
  const badge=document.createElement('span');badge.id='scottyVoiceQueueStatus';badge.textContent='VOICE: READY';badge.style.cssText='display:inline-block;border:1px solid #28616a;border-radius:8px;padding:5px 8px;color:#92e8e1;font-size:10px;letter-spacing:.08em';const header=document.querySelector('header')||document.querySelector('#vs')?.parentElement;if(header)header.appendChild(badge);
