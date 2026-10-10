@@ -218,6 +218,26 @@ export async function handleCloudAgents(req:Request,u:URL){
   return json({ok:true,departments:departmentSkills,agents:rows.map((r:any)=>({id:r.id,name:r.name,department:r.department,rank:r.rank,isChief:r.isChief,chiefId:r.chiefId,skills:departmentSkills[r.department]?.skills||["analysis","planning","reporting"],capabilities:Array.isArray(r.tools)?r.tools:[]}))});
  }
 
+ if(req.method==="GET"&&u.pathname==="/api/hud/agents/missions"){
+  const rows=await db()`select id,task,status,agents,progress,unresolved,created_at as "createdAt",updated_at as "updatedAt" from scotty_agent_missions order by created_at desc limit 30`;
+  return json({ok:true,missions:rows});
+ }
+ const missionMatch=u.pathname.match(/^\\/api\\/hud\\/agents\\/missions\\/([0-9a-f-]{36})$/i);
+ if(req.method==="GET"&&missionMatch){
+  const rows=await db()`select * from scotty_agent_missions where id=${missionMatch[1]} limit 1`;
+  return rows.length?json({ok:true,mission:rows[0]}):json({ok:false,error:"Mission not found"},404);
+ }
+ if(req.method==="POST"&&missionMatch){
+  const rows=await db()`select * from scotty_agent_missions where id=${missionMatch[1]} limit 1`;
+  if(!rows.length)return json({ok:false,error:"Mission not found"},404);
+  const m=rows[0];const body=await req.json().catch(()=>({}));
+  const feedback=String(body.feedback||"").trim().slice(0,3000);
+  if(!feedback)return json({ok:false,error:"Feedback is required to continue a mission"},400);
+  const previous=JSON.stringify({results:m.results,review:m.review,unresolved:m.unresolved}).slice(0,12000);
+  const updatedTask=String(m.task)+"\\nContinue this mission using previous findings (do not repeat completed work): "+previous+"\\nNew feedback: "+feedback;
+  await db()`update scotty_agent_missions set status='continued',updated_at=now() where id=${m.id}`;
+  return json({ok:true,previousMissionId:m.id,continuationTask:updatedTask,agents:m.agents,readyToRun:true});
+ }
  if(req.method==="GET"&&u.pathname==="/api/hud/agents/status"){
   const c=await db()`select count(*)::int as n,count(*) filter(where is_chief)::int as chiefs from scotty_agents`;
   return json({ok:true,provider:"render-postgres+groq",agents:Number(c[0]?.n||0),chiefs:Number(c[0]?.chiefs||0),source:await rosterSource()});
