@@ -10,7 +10,24 @@
   let j={};try{j=await r.json()}catch{}
   return new Error(String(j.error||j.detail||('HTTP '+r.status)).slice(0,250));
  }
- let generation=0,active=null,player=null,voiceState='READY';
+ let generation=0,active=null,player=null,voiceState='READY',pendingPlayback=null;
+ const audioEl=document.createElement('audio');audioEl.setAttribute('playsinline','');audioEl.style.display='none';document.body.appendChild(audioEl);
+ function showPlayButton(show){
+  let btn=document.getElementById('scottyPlayReadyAudio');
+  if(!btn){btn=document.createElement('button');btn.id='scottyPlayReadyAudio';btn.textContent='▶ PLAY SCOTTISH VOICE';btn.style.cssText='display:none;width:100%;margin-top:8px;background:#12313b;color:#b8f9f0;border:1px solid #58a8b1;padding:10px;border-radius:8px;font-weight:bold';btn.onclick=()=>{if(pendingPlayback)pendingPlayback()};const panel=$('#voiceSettings');if(panel)panel.appendChild(btn)}
+  btn.style.display=show?'block':'none';
+ }
+ // iPad Safari requires audio playback to originate from a user gesture.
+ // A reusable audio element is activated by the TEST tap; delayed playback has a tap-to-play fallback.
+ function primeAudio(){
+  try{
+   audioEl.muted=true;
+   const p=audioEl.play();
+   if(p&&p.then)p.then(()=>{audioEl.pause();audioEl.muted=false}).catch(()=>{audioEl.muted=false});
+  }catch(e){audioEl.muted=false}
+ }
+ document.addEventListener('pointerdown',e=>{if(e.target.closest('#testVoice'))primeAudio()},true);
+
  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
  function state(value){
   voiceState=value;
@@ -20,6 +37,7 @@
   const test=$('#testVoice');if(test)test.textContent=value==='GENERATING'||value==='SPEAKING'||value==='BUSY'?'REPLACE VOICE TEST':'TEST SCOTTISH VOICE';
  }
  function stopCurrent(){
+  pendingPlayback=null;showPlayButton(false);
   if(active){active.abort();active=null}
   if(player){try{player.pause();player.src=''}catch{}player=null}
  }
@@ -57,14 +75,24 @@
     const url=URL.createObjectURL(blob);
     try{
      await new Promise((resolve,reject)=>{
-      const a=new Audio(url);player=a;a.playsInline=true;
+      const a=audioEl;player=a;a.pause();a.src=url;a.muted=false;a.volume=1;
       let done=false;
-      const finish=e=>{if(done)return;done=true;clearTimeout(timer);a.onended=null;a.onerror=null;if(player===a)player=null;e?reject(e):resolve()};
-      const timer=setTimeout(()=>finish(Error('Playback timed out')),120000);
+      const finish=e=>{if(done)return;done=true;clearTimeout(timer);a.onended=null;a.onerror=null;pendingPlayback=null;showPlayButton(false);if(player===a)player=null;e?reject(e):resolve()};
+      const timer=setTimeout(()=>finish(Error('Playback timed out')),180000);
       signal.addEventListener('abort',()=>{a.pause();finish(new DOMException('Superseded','AbortError'))},{once:true});
       a.onended=()=>finish();a.onerror=()=>finish(Error('Playback failed'));
-      state('SPEAKING');setCommand('SPEAKING');
-      const p=a.play();if(p&&p.catch)p.catch(finish);
+      const begin=()=>{
+       if(signal.aborted||seq!==generation)return finish(new DOMException('Superseded','AbortError'));
+       pendingPlayback=null;showPlayButton(false);state('SPEAKING');setCommand('SPEAKING');
+       const p=a.play();
+       if(p&&p.catch)p.catch(e=>{
+        if(e?.name==='NotAllowedError'){
+         state('READY TO PLAY');setCommand('TAP PLAY TO HEAR SCOTTY');
+         pendingPlayback=begin;showPlayButton(true);
+        }else finish(e);
+       });
+      };
+      begin();
      });
     }finally{URL.revokeObjectURL(url)}
     return;
