@@ -410,24 +410,23 @@ function cursorFromHand(p,index=0){
  return{x,y}
 }
 function hoverNearest(x,y){
- const svg=$('#graph'),gr=svg.getBoundingClientRect(),main=$('.main').getBoundingClientRect();
- const rect=gr.width>10&&gr.height>10?gr:main;
- const vb=svg.viewBox.baseVal;
- if(!rect.width||!rect.height||!vb.width||!vb.height)return null;
- const px=(x-rect.left)*vb.width/rect.width+vb.x,py=(y-rect.top)*vb.height/rect.height+vb.y;
- const matrix=$('#graphWorld')?.transform?.baseVal?.consolidate()?.matrix;
- let best=null,bestDistance=115;
+ let best=null,bestDistance=Infinity;
  document.querySelectorAll('#graph g[data-agent]').forEach(g=>{
-  const circle=g.querySelector('circle');if(!circle)return;
-  const cx=Number(circle.getAttribute('cx')),cy=Number(circle.getAttribute('cy'));
-  const gx=matrix?matrix.a*cx+matrix.c*cy+matrix.e:cx;
-  const gy=matrix?matrix.b*cx+matrix.d*cy+matrix.f:cy;
-  const distance=Math.hypot((gx-px)*rect.width/vb.width,(gy-py)*rect.height/vb.height);
-  g.classList.remove('agent-hover');
-  if(distance<bestDistance){best=g;bestDistance=distance}
+  const c=g.querySelector('circle');if(!c)return;
+  let cx,cy;
+  try{
+   const m=c.getScreenCTM();
+   if(m){const x0=Number(c.getAttribute('cx')),y0=Number(c.getAttribute('cy'));cx=m.a*x0+m.c*y0+m.e;cy=m.b*x0+m.d*y0+m.f}
+  }catch{}
+  if(!Number.isFinite(cx)||!Number.isFinite(cy)){
+   const r=g.getBoundingClientRect();if(r.width||r.height){cx=r.left+r.width/2;cy=r.top+r.height/2}
+  }
+  if(!Number.isFinite(cx)||!Number.isFinite(cy))return;
+  const d=Math.hypot(cx-x,cy-y);g.classList.remove('agent-hover');
+  if(d<bestDistance){best=g;bestDistance=d}
  });
- if(best)best.classList.add('agent-hover');
- return best
+ if(best&&bestDistance<140){best.classList.add('agent-hover');return best}
+ return null
 }
 function eyesOpenSelectedNode(id){
  const agent=agents.find(a=>a.id===id);if(!agent)return false;
