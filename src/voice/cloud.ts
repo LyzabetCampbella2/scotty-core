@@ -1,5 +1,34 @@
 const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{"cache-control":"no-store"}});
 
+// Opt-in local Scottish voice tunnel. Disabled until the private bridge is configured.
+async function tryLocalScottishVoice(text:string):Promise<Response|null>{
+ const endpoint=process.env.SCOTTY_SCOTTISH_VOICE_URL?.replace(/\\/$/,"");
+ const token=process.env.SCOTTY_SCOTTISH_VOICE_TOKEN;
+ if(!endpoint||!token)return null;
+ const headers={"authorization":"Bearer "+token,"content-type":"application/json"};
+ try{
+  const start=await fetch(endpoint+"/v1/speak",{method:"POST",headers,body:JSON.stringify({text}),signal:AbortSignal.timeout(10000)});
+  if(!start.ok)return Response.json({ok:false,error:"Scottish speech submission failed"},{status:502});
+  const job:any=await start.json();
+  if(!/^[a-f0-9]{32}$/.test(String(job.job_id||"")))return Response.json({ok:false,error:"Invalid Scottish voice job"},{status:502});
+  const id=job.job_id;
+  const deadline=Date.now()+45000;
+  while(Date.now()<deadline){
+   await Bun.sleep(350);
+   const poll=await fetch(endpoint+"/jobs/"+id,{headers:{authorization:"Bearer "+token},signal:AbortSignal.timeout(8000)});
+   if(!poll.ok)return Response.json({ok:false,error:"Scottish voice status failed"},{status:502});
+   const state:any=await poll.json();
+   if(state.state==="complete"){
+    const audio=await fetch(endpoint+"/jobs/"+id+"/audio",{headers:{authorization:"Bearer "+token},signal:AbortSignal.timeout(10000)});
+    if(!audio.ok)return Response.json({ok:false,error:"Scottish audio unavailable"},{status:502});
+    return new Response(audio.body,{status:200,headers:{"content-type":"audio/wav","cache-control":"no-store"}});
+   }
+   if(state.state==="failed"||state.state==="cancelled")return Response.json({ok:false,error:"Scottish voice generation failed"},{status:502});
+  }
+  return Response.json({ok:false,error:"Scottish voice generation timed out"},{status:504});
+ }catch{return Response.json({ok:false,error:"Scottish voice bridge unavailable"},{status:503})}
+}
+
 const SCOTTISH_BRIDGE="https://scotty-voice-diagnostic-eyes-on-test.up.railway.app";
 async function scottishBridge(req:Request,u:URL){
  const sub=u.pathname.slice("/api/voice/scottish".length);
@@ -38,6 +67,8 @@ export async function handleCloudVoice(req:Request,u:URL){
   const requestedVoice=String(body?.voiceId||"").trim();
   const voiceId=requestedVoice||defaultVoice;
   if(!text)return json({ok:false,error:"Missing text"},400);
+  const local=await tryLocalScottishVoice(text);
+  if(local)return local;
   if(!key||!voiceId)return json({ok:false,error:"ElevenLabs not configured"},503);
   async function synth(id:string){
    return fetch("https://api.elevenlabs.io/v1/text-to-speech/"+encodeURIComponent(id),{
