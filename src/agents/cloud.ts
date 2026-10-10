@@ -179,7 +179,7 @@ export async function runAgent(row:any,task:string,context:string){
  try{
   await db()`update scotty_agents set state='working',current_job=${task.slice(0,1800)},queue_count=queue_count+1,updated_at=now() where id=${id}`;
   await addActivity(name,"AGENT START",task.slice(0,220),{agentId:id});
-  const system=specialistInstructions(row);
+  const system=specialistInstructions(row)+"\nSpecialty focus: "+(departmentSkills[row.department]?.skills||["analysis"])[Math.max(0,Number(String(id).split("-").pop())-1)%(departmentSkills[row.department]?.skills?.length||1)]+". Review your assigned part, identify unresolved questions, and provide evidence-aware findings.";
   const r=await groqThink([{role:"system",content:system+(context?"\n\nSHARED MEMORY:\n"+context:"")},{role:"user",content:task}],750);
   await db()`update scotty_agents set state='idle',current_job=null,queue_count=greatest(queue_count-1,0),last_result=${r.text.slice(0,8000)},last_run_at=now(),memory_links=memory_links+1,updated_at=now() where id=${id}`;
   try{await db()`insert into scotty_memory(scope,kind,agent_id,text_content,metadata) values('shared','agent-result',${id},${name+": "+r.text},${db().json({department:row.department,model:r.model,task:task.slice(0,1000)})})`}catch{}
