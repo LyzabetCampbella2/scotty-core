@@ -38,13 +38,27 @@ async function load(){await Promise.allSettled([loadAgents(),loadResources(),loa
 async function loadAgents(){const d=await api('/api/hud/agents');agents=d.agents||[];$('#ac').textContent=agents.length+' AGENTS';$('#sa').textContent=agents.length;$('#sc').textContent=agents.filter(x=>x.isChief).length;draw();if(selectedAgentId){const a=agents.find(x=>x.id===selectedAgentId);if(a&&!missionPanelPinned)showAgentProfile(a)}}
 async function approveAgentPlan(id){
  missionPanelPinned=true;$('#cs').textContent='EXECUTING APPROVED PLAN';
+ let finished=false;
+ const showLive=async()=>{
+  if(finished)return;
+  try{
+   const r=await api('/api/hud/agents/missions/'+encodeURIComponent(id));
+   if(finished||!r.mission)return;
+   const m=r.mission, deps=Array.isArray(m.dependencies)?m.dependencies:[];
+   const rows=deps.map(x=>'<div class="apjob"><b>'+e(x.name)+' — '+e(String(x.state||'waiting').toUpperCase().replaceAll('_',' '))+'</b><p>'+e((x.dependsOn?.length?'Depends on: '+x.dependsOn.join(', '):'No prerequisites')+(x.blocker?' | '+x.blocker:''))+'</p></div>').join('');
+   $('#activity').innerHTML='<div class="agent-profile"><div class="apname">LIVE MISSION PROGRESS</div><div class="apjob"><b>MISSION</b><p>'+e(m.task)+'</p></div><div class="apjob"><b>PHASE</b><p>'+e(m.status)+'</p></div>'+rows+'</div>';
+  }catch{}
+ };
+ const poll=setInterval(showLive,2500);
  try{
+  await showLive();
   const r=await api('/api/hud/agents/run',{method:'POST',body:JSON.stringify({approvedPlanId:id})});
+  finished=true;clearInterval(poll);
   const review=(r.review||[]).map(x=>x.chief+': '+(x.assessment||x.status)).join('\n\n');
   const findings=(r.results||[]).map(x=>x.name+': '+(x.result||x.error||x.status)).join('\n\n');
   $('#activity').innerHTML='<div class="agent-profile"><div class="apname">APPROVED MISSION RESULTS</div><div class="apjob"><b>CHIEF REVIEWS</b><p>'+e(review)+'</p></div><div class="apjob"><b>AGENT FINDINGS</b><p>'+e(findings)+'</p></div><button type="button" data-scotty-close-missions>BACK TO ACTIVITY</button></div>';
   $('#cs').textContent='MISSION FINISHED';
- }catch(err){$('#cs').textContent='EXECUTION ERROR';$('#activity').textContent='Mission error: '+err.message}
+ }catch(err){finished=true;clearInterval(poll);$('#cs').textContent='EXECUTION ERROR';$('#activity').textContent='Mission error: '+err.message}
 }
 async function continueAgentMission(id){missionPanelPinned=true;
  const feedback=window.prompt('What should S.C.O.T.T.Y. and the agents work on next?','Review unresolved questions and continue the remaining work.');
