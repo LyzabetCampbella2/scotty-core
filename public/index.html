@@ -144,7 +144,7 @@ async function loadActivity(){if(missionPanelPinned)return;try{const d=await api
 function hash(s){let h=0;for(const c of s)h=(Math.imul(h,31)+c.charCodeAt(0))>>>0;return h}
 function applyGraphTransform(){const w=$('#graphWorld');if(!w)return;const c=graphCenter;w.setAttribute('transform','translate('+c.x+' '+c.y+') rotate('+graphRotation+') scale('+graphScale+') translate('+(-c.x)+' '+(-c.y)+')')}
 function showAgentProfile(a){if(missionPanelPinned)return;const chief=a.chiefId?agents.find(x=>x.id===a.chiefId):null,tools=Array.isArray(a.tools)?a.tools:[],collab=Array.isArray(a.collaborators)?a.collaborators:[];$('#activity').innerHTML='<div class="agent-profile"><div class="apname">'+e(a.name)+'</div><div style="color:#7f9eb0;margin:3px 0 8px">'+e(a.department)+' • '+e(a.rank)+'</div><div class="aprow"><span>STATE</span><span>'+e(String(a.state||'idle').toUpperCase())+'</span></div><div class="aprow"><span>CLEARANCE</span><span>L'+e(a.clearance)+'</span></div><div class="aprow"><span>CHIEF</span><span>'+e(chief?.name||'S.C.O.T.T.Y. CORE')+'</span></div><div class="aprow"><span>ROOT</span><span>S.C.O.T.T.Y.</span></div><div class="aprow"><span>MODEL</span><span>'+e(a.model||'local')+'</span></div><div class="aprow"><span>QUEUE</span><span>'+e(a.queueCount||0)+'</span></div><div class="aprow"><span>MEMORY LINKS</span><span>'+e(a.memoryLinks||0)+'</span></div><div class="aprow"><span>VOICE</span><span>'+e(a.voiceMode||'auto')+'</span></div><div class="aptags">'+tools.map(t=>'<span class="aptag">'+e(t.label||t.key)+'</span>').join('')+'</div>'+(a.currentJob?'<div class="apjob"><b>CURRENT JOB</b><br>'+e(a.currentJob)+'</div>':'')+(collab.length?'<div class="apjob"><b>COLLABORATORS</b><br>'+collab.slice(0,8).map(c=>e((agents.find(x=>x.id===c.id)?.name)||c.id)).join(' • ')+'</div>':'')+'</div>'}
-function activateAgent(a){selectedAgentId=a.id;$('#graph g[data-agent]').forEach(g=>g.classList.toggle('agent-selected',g.dataset.agent===a.id));$('#cs').textContent=a.name+' • '+a.department;showAgentProfile(a);setTimeout(()=>{if(selectedAgentId===a.id&&a.state==='idle')$('#cs').textContent='LISTENING'},2500)}
+function activateAgent(a){selectedAgentId=a.id;document.querySelectorAll('#graph g[data-agent]').forEach(g=>g.classList.toggle('agent-selected',g.dataset.agent===a.id));$('#cs').textContent=a.name+' • '+a.department;showAgentProfile(a);setTimeout(()=>{if(selectedAgentId===a.id&&a.state==='idle')$('#cs').textContent='LISTENING'},2500)}
 function cycleNav(dir){const n=$$('.nav');if(!n.length)return;let i=n.findIndex(x=>x.classList.contains('active'));i=i<0?0:i;i=(i+dir+n.length)%n.length;n.forEach((x,k)=>x.classList.toggle('active',k===i));const label=(n[i].textContent||'').trim();$('#cs').textContent='NAV • '+label;setTimeout(()=>$('#cs').textContent='LISTENING',1300)}
 $$('.nav').forEach((n,i)=>n.addEventListener('click',()=>{$$('.nav').forEach((x,k)=>x.classList.toggle('active',k===i))}));
 const eyesNodePositions=(()=>{try{return JSON.parse(localStorage.getItem('scotty-eyes-node-positions-v1')||'{}')}catch{return {}}})();
@@ -153,7 +153,7 @@ function eyesGraphPoint(x,y){const svg=$('#graph'),world=$('#graphWorld'),m=worl
 function eyesMoveNode(id,x,y){const p=eyesGraphPoint(x,y);if(!p)return;const svg=$('#graph'),w=svg.clientWidth||700,h=svg.clientHeight||550;eyesNodePositions[id]={x:Math.max(12,Math.min(w-12,p.x)),y:Math.max(12,Math.min(h-12,p.y))};draw()}
 const eyesMoveHistory=[];
 const eyesSelectedNodes=new Set();let eyesMultiMode=false;
-function eyesPaintSelection(){$('#graph g[data-agent]').forEach(g=>g.classList.toggle('agent-selected',eyesSelectedNodes.has(g.dataset.agent)||(!eyesMultiMode&&g.dataset.agent===selectedAgentId)))}
+function eyesPaintSelection(){document.querySelectorAll('#graph g[data-agent]').forEach(g=>g.classList.toggle('agent-selected',eyesSelectedNodes.has(g.dataset.agent)||(!eyesMultiMode&&g.dataset.agent===selectedAgentId)))}
 function eyesSetMulti(on){if(eyesMultiMode!==on)eyesToggleMulti();else $('#cs').textContent='MULTI-SELECT ALREADY '+(on?'ON':'OFF')}
 function eyesVoiceCommand(t){
  const l=normalizedSpeech(t).replace(/^(scotty|scottie|scoty)\s*/,'').trim();
@@ -376,7 +376,7 @@ async function startHands(){
  if(typeof Hands==='undefined'){ $('#sh').textContent='TRACKER NOT LOADED';$('#gs').textContent='HAND TRACKER UNAVAILABLE';throw Error('hand tracker unavailable')}
  hands=new Hands({locateFile:f=>'https://cdn.jsdelivr.net/npm/@mediapipe/hands/'+f});
  hands.setOptions({maxNumHands:2,modelComplexity:0,minDetectionConfidence:.45,minTrackingConfidence:.45});
- hands.onResults(drawHands);tracking=true;$('#sh').textContent='STARTING';$('#gs').textContent='LOOK AT CAMERA • SHOW YOUR HAND';
+ hands.onResults(result=>{try{drawHands(result)}catch(err){console.error('Eyes On gesture UI error:',err);eyesCursorDiagnostic('GESTURE ERROR: '+String(err?.message||err).slice(0,90));$('#gs').textContent='GESTURE UI ERROR • CAMERA STILL ACTIVE'}});tracking=true;$('#sh').textContent='STARTING';$('#gs').textContent='LOOK AT CAMERA • SHOW YOUR HAND';
  let failures=0;
  const loop=async()=>{if(!tracking||!stream)return;try{const v=$('#video');if(v.readyState>=2){await hands.send({image:v});failures=0}}catch(err){if(++failures===1||failures%30===0){console.warn('Eyes On hand tracker:',err);$('#sh').textContent='TRACKER ERROR';$('#gs').textContent='TRACKER ERROR • CHECK CONNECTION';$('#gl').textContent='HAND TRACKING ERROR: '+String(err?.message||err).slice(0,70)}}finally{if(tracking&&stream)requestAnimationFrame(loop)}};loop()
 }
@@ -416,7 +416,7 @@ function hoverNearest(x,y){
  const svg=$('#graph'),vb=svg.viewBox.baseVal;
  const vx=(x-region.left)/region.width*vb.width+vb.x,vy=(y-region.top)/region.height*vb.height+vb.y;
  const world=$('#graphWorld'),matrix=world?.transform?.baseVal?.consolidate()?.matrix;
- $('#graph g[data-agent]').forEach(g=>{
+ document.querySelectorAll('#graph g[data-agent]').forEach(g=>{
   const circle=g.querySelector('circle');if(!circle)return;
   const px=Number(circle.getAttribute('cx')),py=Number(circle.getAttribute('cy'));
   const gx=matrix?matrix.a*px+matrix.c*py+matrix.e:px,gy=matrix?matrix.b*px+matrix.d*py+matrix.f:py;
