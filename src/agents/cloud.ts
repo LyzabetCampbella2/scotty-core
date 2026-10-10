@@ -226,12 +226,28 @@ export async function handleCloudAgents(req:Request,u:URL){
   const byId=new Map(rows.map((x:any)=>[x.id,x]));
   const ordered=ids.map(id=>byId.get(id)).filter(Boolean);
   const context=await memoryContext();
+  const chiefIds=[...new Set(ordered.map((a:any)=>a.isChief?a.id:a.chiefId).filter(Boolean))];
+  const supervisors=await getAgentsByIds(chiefIds);
+  const briefing=supervisors.length?await Promise.all(supervisors.map(async (chief:any)=>{
+   const teammates=ordered.filter((a:any)=>a.id===chief.id||a.chiefId===chief.id);
+   const brief="Plan and delegate this mission among "+teammates.map((a:any)=>a.name).join(", ")+". Task: "+task+". Give concise assignments, dependencies, and review criteria.";
+   const result=await runAgent(chief,brief,context);
+   return {chiefId:chief.id,chief:chief.name,team:teammates.map((a:any)=>a.id),plan:result.result||"",status:result.status};
+  })): [];
   const results:any[]=[];
   for(let i=0;i<ordered.length;i+=2){
-   const batch=await Promise.all(ordered.slice(i,i+2).map((row:any)=>runAgent(row,task,context)));
+   const batch=await Promise.all(ordered.slice(i,i+2).map((row:any)=>runAgent(row,task+"\nChief briefings: "+briefing.filter((b:any)=>b.team.includes(row.id)).map((b:any)=>b.plan).join("\n"),context)));
    results.push(...batch);
   }
-  return json({ok:true,task,results,completed:results.filter(x=>x.status==="completed").length});
+  const review=await Promise.all(supervisors.map(async (chief:any)=>{
+   const findings=results.filter((r:any)=>ordered.some((a:any)=>a.id===r.id&&(a.chiefId===chief.id||a.id===chief.id)));
+   if(!findings.length)return {chief:chief.name,status:"no-results"};
+   const assessment=await runAgent(chief,"Review these team findings for the mission: "+task+"\n"+JSON.stringify(findings).slice(0,14000)+"\nSummarize completed work, disagreements, gaps, unresolved questions and next steps.",context);
+   return {chief:chief.name,chiefId:chief.id,status:assessment.status,assessment:assessment.result||assessment.error};
+  }));
+  const unresolved=review.filter((x:any)=>x.status!=="completed").map((x:any)=>x.chief+" review incomplete");
+  try{await db()`insert into scotty_memory(scope,kind,text_content,metadata) values('shared','mission-summary',${("Mission: "+task+"\nChief reviews: "+JSON.stringify(review)+"\nUnresolved: "+unresolved.join("; ")).slice(0,24000)},${db().json({agentIds:ids,chiefIds,completed:results.filter((x:any)=>x.status==="completed").length,unresolved})})`}catch{}
+  return json({ok:true,task,briefing,results,review,unresolved,completed:results.filter(x=>x.status==="completed").length});
  }
 
  if(req.method==="GET"&&u.pathname==="/api/hud/activity"){
