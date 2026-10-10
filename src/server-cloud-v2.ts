@@ -26,7 +26,7 @@ async function serveHud(){
   const file=Bun.file("public/index.html");
   if(!(await file.exists()))return null;
   let html=await file.text();
-  if(!html.includes("/render-hotfix.js"))html=html.replace("</body>","<script src=\"/render-hotfix.js?v=3\"></script></body>");
+  if(!html.includes("/render-hotfix.js"))html=html.replace("</body>","<script src=\"/render-hotfix.js?v=4\"></script></body>");
   return new Response(html,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store"}});
  }catch{return null}
 }
