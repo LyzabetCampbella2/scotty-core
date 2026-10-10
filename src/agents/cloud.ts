@@ -219,8 +219,15 @@ export async function handleCloudAgents(req:Request,u:URL){
   let body:any;try{body=await req.json()}catch{return json({ok:false,error:"Invalid JSON"},400)}
   const ids=[...new Set((Array.isArray(body?.agents)?body.agents:[]).map((x:any)=>String(x)))].slice(0,8);
   const task=String(body?.task||"").trim().slice(0,12000);
-  if(!ids.length)return json({ok:false,error:"Select at least one agent"},400);
+  if(!ids.length && body?.autoAssign!==true)return json({ok:false,error:"Select at least one agent or enable autoAssign"},400);
   if(!task)return json({ok:false,error:"Missing agent task"},400);
+  if(body?.autoAssign===true && ids.length===0){
+   const candidates=await db()`select id,name,department,rank,is_chief as "isChief",chief_id as "chiefId",tools from scotty_agents where is_chief=true order by sort_order asc`;
+   const tokens=task.toLowerCase().split(/[^a-z]+/).filter((x:string)=>x.length>3);
+   const ranked=candidates.map((a:any)=>({a,score:(departmentSkills[a.department]?.skills||[]).join(" ").toLowerCase().split(/[^a-z]+/).filter((x:string)=>tokens.includes(x)).length+(a.department.toLowerCase().split(/[^a-z]+/).filter((x:string)=>tokens.includes(x)).length)})).sort((a:any,b:any)=>b.score-a.score);
+   ids.push(...ranked.filter((x:any)=>x.score>0).slice(0,3).map((x:any)=>x.a.id));
+   if(!ids.length)ids.push(...ranked.slice(0,2).map((x:any)=>x.a.id));
+  }
   const rows=await getAgentsByIds(ids);
   if(!rows.length)return json({ok:false,error:"Selected agents were not found"},404);
   const byId=new Map(rows.map((x:any)=>[x.id,x]));
