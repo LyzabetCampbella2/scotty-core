@@ -10,7 +10,7 @@
   let j={};try{j=await r.json()}catch{}
   return new Error(String(j.error||j.detail||('HTTP '+r.status)).slice(0,250));
  }
- let generation=0,active=null,player=null,voiceState='READY',pendingPlayback=null,progressTimer=null,voiceMode='fast';
+ let generation=0,active=null,player=null,voiceState='READY',pendingPlayback=null,progressTimer=null,voiceMode='f5';
  const audioEl=document.createElement('audio');audioEl.setAttribute('playsinline','');audioEl.style.display='none';document.body.appendChild(audioEl);
  function showPlayButton(show){
   let btn=document.getElementById('scottyPlayReadyAudio');
@@ -206,7 +206,7 @@
  };
  const panel=$('#voiceSettings');if(panel)panel.appendChild(preview);
  const modeButton=document.createElement('button');modeButton.id='scottyVoiceMode';modeButton.style.cssText='width:100%;margin-top:8px;background:#12313b;color:#b8f9f0;border:1px solid #58a8b1;padding:10px;border-radius:8px';
- function updateMode(){modeButton.textContent=voiceMode==='fast'?'MODE: FAST (DEVICE VOICE) • SWITCH TO SCOTTISH F5':'MODE: SCOTTISH F5 (SLOW) • SWITCH TO FAST';const msg=$('#voiceMsg');if(msg)msg.textContent=voiceMode==='fast'?'Fast mode speaks using the iPad built-in voice; a Scottish accent is not guaranteed. No paid API or F5 queue.':'Scottish F5 mode preserves the custom voice but may take minutes on the Windows CPU.'}
+ function updateMode(){modeButton.textContent=voiceMode==='fast'?'MODE: DEVICE VOICE (NOT SCOTTISH) • RESTORE SCOTTISH':'MODE: ORIGINAL SCOTTISH F5 • OPTIONAL DEVICE VOICE';const msg=$('#voiceMsg');if(msg)msg.textContent=voiceMode==='fast'?'Device voice is not S.C.O.T.T.Y.’s custom Scottish voice. Tap the mode button to restore his original voice.':'Original Scottish F5 voice selected. Tap HEAR SCOTTISH VOICE NOW for instant prerecorded playback; new sentences may take minutes on the Windows CPU.'}
  modeButton.onclick=()=>{voiceMode=voiceMode==='fast'?'f5':'fast';++generation;stopCurrent();speaking=false;state('READY');updateMode()};
  const voicePanel=$('#voiceSettings');if(voicePanel)voicePanel.appendChild(modeButton);
  updateVoicePanel();updateMode();
