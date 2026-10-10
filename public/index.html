@@ -382,9 +382,9 @@ async function startHands(){
 }
 function ginfo(p){
  const d=(a,b)=>Math.hypot(p[a].x-p[b].x,p[a].y-p[b].y);
- const palm=Math.max(.04,d(5,17)),pinchRatio=d(4,8)/palm;
+ const palm=Math.max(.04,d(0,9),d(5,17)),pinchRatio=d(4,8)/palm;
  const raised=[8,12,16,20].filter(i=>p[i].y<p[i-2].y).length;
- const pinch=pinchRatio<.66;
+ const pinch=pinchRatio<.78;
  return{pinch,pinchRatio,open:raised>=4,point:p[8].y<p[6].y&&raised===1,label:pinch?'PINCH • '+Math.round(pinchRatio*100)+'%':raised>=4?'OPEN PALM':raised===1?'POINT • TARGET':'TRACKING'}
 }
 function eyesSvgPointer(index,x,y){
@@ -410,13 +410,18 @@ function cursorFromHand(p,index=0){
  return{x,y}
 }
 function hoverNearest(x,y){
- let best=null,bestDistance=95;
+ let best=null,bestDistance=100;
+ const svg=$('#graph'),rect=svg.getBoundingClientRect(),vb=svg.viewBox.baseVal;
+ if(!rect.width||!rect.height)return null;
+ const px=(x-rect.left)*vb.width/rect.width+vb.x,py=(y-rect.top)*vb.height/rect.height+vb.y;
+ const world=$('#graphWorld'),transform=world?.transform?.baseVal?.consolidate()?.matrix;
  document.querySelectorAll('#graph g[data-agent]').forEach(g=>{
   const circle=g.querySelector('circle');if(!circle)return;
-  const matrix=circle.getScreenCTM();if(!matrix)return;
   const cx=Number(circle.getAttribute('cx')),cy=Number(circle.getAttribute('cy'));
-  const screen=new DOMPoint(cx,cy).matrixTransform(matrix);
-  const distance=Math.hypot(screen.x-x,screen.y-y);
+  const gx=transform?transform.a*cx+transform.c*cy+transform.e:cx;
+  const gy=transform?transform.b*cx+transform.d*cy+transform.f:cy;
+  const dx=(gx-px)*rect.width/vb.width,dy=(gy-py)*rect.height/vb.height;
+  const distance=Math.hypot(dx,dy);
   g.classList.remove('agent-hover');
   if(distance<bestDistance){bestDistance=distance;best=g}
  });
@@ -447,7 +452,7 @@ function processOne(p){
  eyesHidePointer(1);$('#handCursor2').classList.remove('on');$('#handCursor2').style.display='none';
  const info=ginfo(p),pt=cursorFromHand(p),now=Date.now(),target=hoverNearest(pt.x,pt.y)?.dataset.agent||null,st=eyesOneHand;
  $('#handCursor').classList.toggle('pinch',info.pinch);
- if(target)st.lastTarget=target;
+ if(target&&!info.pinch)st.lastTarget=target;
  if(eyesDrag){
   if(info.pinch){
    if(Math.hypot(pt.x-eyesDrag.startX,pt.y-eyesDrag.startY)>22)eyesDrag.moved=true;
@@ -466,7 +471,7 @@ function processOne(p){
  }
  if(info.pinch){
   st.upFrames=0;st.downFrames++;
-  if(st.armed&&st.downFrames>=2&&now-st.lastOpen>550){
+  if(st.armed&&st.downFrames>=2&&now-st.lastOpen>450){
    const id=target||st.lastTarget;
    if(eyesPinchAction(id)){
     st.lastOpen=now;st.armed=false;
@@ -479,14 +484,14 @@ function processOne(p){
  }else{
   st.downFrames=0;if(++st.upFrames>=2){st.armed=true;st.lastTarget=target}
  }
- if(eyesPointerFrames%6===0)eyesCursorDiagnostic('PINCH '+Math.round(info.pinchRatio*100)+'% • '+(target||'NO TARGET')+' • '+(st.armed?'READY':'RELEASE'));
+ if(eyesPointerFrames%6===0)eyesCursorDiagnostic('PINCH '+Math.round(info.pinchRatio*100)+'% • '+(target||st.lastTarget||'NO TARGET')+' • '+(st.armed?'READY':'RELEASE'));
  return info.pinch?'PINCH DETECTED':target?'TARGET '+target:'MOVE CURSOR OVER NODE'
 }
 function angleDelta(a,b){let d=a-b;while(d>Math.PI)d-=Math.PI*2;while(d<-Math.PI)d+=Math.PI*2;return d}
 const eyesHandStates=[{pinched:false,frames:0,released:0,target:null},{pinched:false,frames:0,released:0,target:null}];
 function eyesHandPinch(p,index){
  const state=eyesHandStates[index],info=ginfo(p),pt=cursorFromHand(p,index),hovered=hoverNearest(pt.x,pt.y),id=hovered?.dataset?.agent||null;
- const down=info.pinchRatio<.66,up=info.pinchRatio>.83;
+ const down=info.pinchRatio<.78,up=info.pinchRatio>.96;
  const dot=$('#eyesCursorSurface'+index);if(dot)dot.style.transform=down?'translate(-50%,-50%) scale(.72)':'translate(-50%,-50%)';
  if(down){
   state.released=0;
