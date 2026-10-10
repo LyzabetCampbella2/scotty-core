@@ -86,7 +86,7 @@ async function confirmInterruptedRecovery(id){
  const p=window.scottyPendingRecovery?.[id];if(!p)return;
  delete window.scottyPendingRecovery[id];$('#cs').textContent='RECOVERING MISSION';
  try{
-  const r=await api('/api/hud/agents/run',{method:'POST',body:JSON.stringify({agents:p.remainingAgents,task:p.task})});
+  const r=await api('/api/hud/agents/run',{method:'POST',body:JSON.stringify({agents:p.remainingAgents,task:p.task,recoverySourceMissionId:id})});
   const findings=(r.results||[]).map(x=>x.name+': '+(x.result||x.error||x.status)).join('\\n\\n');
   $('#activity').innerHTML='<div class="agent-profile"><div class="apname">RECOVERY RESULTS</div><div class="apjob"><b>NEW FINDINGS</b><p>'+e(findings)+'</p></div><button type="button" data-scotty-details="'+e(id)+'">VIEW ORIGINAL MISSION</button></div>';
   $('#cs').textContent='RECOVERY FINISHED';
@@ -96,7 +96,9 @@ async function showAgentMissionDetails(id){missionPanelPinned=true;
  try{
   const r=await api('/api/hud/agents/missions/'+encodeURIComponent(id));const m=r.mission;
   const results=Array.isArray(m.results)?m.results:[],reviews=Array.isArray(m.review)?m.review:[],progress=Array.isArray(m.progress)?m.progress:[],dependencies=Array.isArray(m.dependencies)?m.dependencies:[];
-  $('#activity').innerHTML='<div class="agent-profile"><div class="apname">MISSION FINDINGS</div><div class="apjob"><b>MISSION</b><p>'+e(m.task)+'</p></div><div class="apjob"><b>PROGRESS</b><p>'+e((dependencies.length?dependencies.map(x=>x.name+': '+x.state+(x.dependsOn?.length?' (after '+x.dependsOn.join(', ')+')':'')+(x.blocker?' — '+x.blocker:'')):progress.map(x=>x.name+': '+x.status)).join(' | ')||m.status)+'</p></div><div class="apjob"><b>FINDINGS</b><p>'+e(results.map(x=>x.name+': '+(x.result||x.error||x.status)).join('\n\n'))+'</p></div><div class="apjob"><b>CHIEF REVIEWS</b><p>'+e(reviews.map(x=>x.chief+': '+(x.assessment||x.status)).join('\n\n'))+'</p></div>'+(m.status==="interrupted"?'<button type="button" data-scotty-recover="'+e(id)+'">RESUME INTERRUPTED MISSION</button>':'<button type="button" data-scotty-resume="'+e(id)+'">CONTINUE MISSION</button>')+'</div>';
+  const continuations=Array.isArray(r.continuations)?r.continuations:[];
+  const recovered=continuations.map(c=>'Recovery '+c.id+' ['+c.status+']\\n'+(Array.isArray(c.results)?c.results:[]).map(x=>x.name+': '+(x.result||x.error||x.status)).join('\\n')).join('\\n\\n');
+  $('#activity').innerHTML='<div class="agent-profile"><div class="apname">MISSION FINDINGS</div><div class="apjob"><b>MISSION</b><p>'+e(m.task)+'</p></div><div class="apjob"><b>PROGRESS</b><p>'+e((dependencies.length?dependencies.map(x=>x.name+': '+x.state+(x.dependsOn?.length?' (after '+x.dependsOn.join(', ')+')':'')+(x.blocker?' — '+x.blocker:'')):progress.map(x=>x.name+': '+x.status)).join(' | ')||m.status)+'</p></div><div class="apjob"><b>FINDINGS</b><p>'+e(results.map(x=>x.name+': '+(x.result||x.error||x.status)).join('\n\n')+(recovered?'\n\nRECOVERY FINDINGS\n'+recovered:''))+'</p></div><div class="apjob"><b>CHIEF REVIEWS</b><p>'+e(reviews.map(x=>x.chief+': '+(x.assessment||x.status)).join('\n\n'))+'</p></div>'+(m.status==="interrupted"?'<button type="button" data-scotty-recover="'+e(id)+'">RESUME INTERRUPTED MISSION</button>':'<button type="button" data-scotty-resume="'+e(id)+'">CONTINUE MISSION</button>')+'</div>';
  }catch(err){$('#activity').textContent='Could not load findings: '+err.message}
 }
 document.addEventListener('click',event=>{
