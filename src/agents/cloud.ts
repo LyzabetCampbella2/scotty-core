@@ -326,6 +326,13 @@ export async function handleCloudAgents(req:Request,u:URL){
    const raw=Array.isArray(requestedDependencies[row.id])?requestedDependencies[row.id]:[];
    agentDependencies[row.id]=[...new Set<string>(raw.map((x:any)=>String(x)).filter((x:string)=>x!==row.id&&ordered.some((a:any)=>a.id===x)))];
   }
+  const missionId=approvedPlan?String(approvedPlan.id):crypto.randomUUID();
+  const liveState:Record<string,string>=Object.fromEntries(ordered.map((a:any)=>[a.id,"waiting"]));
+  const saveLive=async(status:string)=>{
+   const items=ordered.map((a:any)=>({agentId:a.id,name:a.name,state:liveState[a.id],dependsOn:agentDependencies[a.id]||[],updatedAt:new Date().toISOString()}));
+   try{await db()`update scotty_agent_missions set status=${status},dependencies=${db().json(items)},updated_at=now() where id=${missionId}`}catch(err){console.warn("live mission update failed",err)}
+  };
+  try{await db()`insert into scotty_agent_missions(id,task,status,agents,briefing,dependencies) values(${missionId},${task},'running',${db().json(ids)},${db().json(briefing)},${db().json(ordered.map((a:any)=>({agentId:a.id,name:a.name,state:"waiting",dependsOn:agentDependencies[a.id]||[]})))}) on conflict(id) do nothing`}catch(err){console.warn("live mission start failed",err)}
   const results:any[]=[];
   const pending=new Map(ordered.map((a:any)=>[a.id,a]));
   while(pending.size){
@@ -336,6 +343,8 @@ export async function handleCloudAgents(req:Request,u:URL){
    }
    const batch=ready.slice(0,2);
    for(const a of batch)pending.delete(a.id);
+   for(const a of batch)liveState[a.id]="working";
+   await saveLive("running");
    const outcomes=await Promise.all(batch.map(async(row:any)=>{
     const upstream=agentDependencies[row.id].map((id:string)=>results.find((r:any)=>r.id===id));
     const failed=upstream.filter((r:any)=>r?.status!=="completed");
@@ -344,7 +353,10 @@ export async function handleCloudAgents(req:Request,u:URL){
     return runAgent(row,task+"\\nChief briefings: "+briefing.filter((b:any)=>b.team.includes(row.id)).map((b:any)=>b.plan).join("\\n")+"\\nUpstream agent findings: "+findings,context);
    }));
    results.push(...outcomes);
+   for(const r of outcomes)liveState[r.id]=r.status==="completed"?"awaiting_review":"blocked";
+   await saveLive("running");
   }
+  await saveLive("reviewing");
   const review=await Promise.all(supervisors.map(async (chief:any)=>{
    const findings=results.filter((r:any)=>ordered.some((a:any)=>a.id===r.id&&(a.chiefId===chief.id||a.id===chief.id)));
    if(!findings.length)return {chief:chief.name,status:"no-results"};
@@ -352,8 +364,7 @@ export async function handleCloudAgents(req:Request,u:URL){
    return {chief:chief.name,chiefId:chief.id,status:assessment.status,assessment:assessment.result||assessment.error};
   }));
   const unresolved=[...review.filter((x:any)=>x.status!=="completed").map((x:any)=>x.chief+" review incomplete"),...results.filter((x:any)=>x.status!=="completed").map((x:any)=>x.name+": "+(x.error||x.status))];
-  const missionId=crypto.randomUUID();
-  const progress=results.map((r:any)=>({agentId:r.id,name:r.name,status:r.status,primarySkill:specialtyAssignments.find((a:any)=>a.agentId===r.id)?.primarySkill||"general",finding:r.status==="completed"?String(r.result||"").slice(0,1500):null,blocker:r.status==="error"?String(r.error||"Unknown error"):null}));
+  const progress=results.map((r:any)=>({agentId:r.id,name:r.name,status:r.status,primarySkill:specialtyAssignments.find((a:any)=>a.agentId===r.id)?.primarySkill||"general",finding:r.status==="completed"?String(r.result||"").slice(0,1500):null,blocker:r.status==="error"||r.status==="blocked"?String(r.error||"Unknown error"):null}));
   const dependencies=progress.map((p:any)=>{
    const supervisor=ordered.find((a:any)=>a.id===p.agentId);
    const chiefReview=review.find((r:any)=>r.chiefId===(supervisor?.isChief?supervisor.id:supervisor?.chiefId));
@@ -361,7 +372,7 @@ export async function handleCloudAgents(req:Request,u:URL){
    return {agentId:p.agentId,name:p.name,state,dependsOn:agentDependencies[p.agentId]||[],reviewerId:supervisor?.isChief?supervisor.id:supervisor?.chiefId||null,blocker:p.blocker||((state==="awaiting_review")?"Chief review not completed":null),updatedAt:new Date().toISOString()};
   });
   const questions=review.filter((x:any)=>x.status==="completed").map((x:any)=>({chief:x.chief,review:String(x.assessment||"").slice(0,4000)}));
-  try{await db()`insert into scotty_agent_missions(id,task,status,agents,briefing,results,review,progress,dependencies,unresolved) values(${missionId},${task},${unresolved.length?"needs_attention":"completed"},${db().json(ids)},${db().json(briefing)},${db().json(results)},${db().json(review)},${db().json(progress)},${db().json(dependencies)},${db().json(unresolved)})`}catch(err){console.warn("mission persistence failed",err)}
+  try{await db()`update scotty_agent_missions set status=${unresolved.length?"needs_attention":"completed"},results=${db().json(results)},review=${db().json(review)},progress=${db().json(progress)},dependencies=${db().json(dependencies)},unresolved=${db().json(unresolved)},updated_at=now() where id=${missionId}`}catch(err){console.warn("mission persistence failed",err)}
   try{await db()`insert into scotty_activity(source,title,message,metadata) values('SCOTTY','MISSION INTELLIGENCE',${task.slice(0,400)},${db().json({missionId,progress,dependencies,questions,unresolved,chiefIds})})`}catch{}
 
   try{await db()`insert into scotty_memory(scope,kind,text_content,metadata) values('shared','mission-summary',${("Mission: "+task+"\nChief reviews: "+JSON.stringify(review)+"\nUnresolved: "+unresolved.join("; ")).slice(0,24000)},${db().json({agentIds:ids,chiefIds,completed:results.filter((x:any)=>x.status==="completed").length,unresolved})})`}catch{}
