@@ -284,6 +284,20 @@ export async function handleCloudAgents(req:Request,u:URL){
     for(const match of ranked.slice(0,2)){if(ids.length<8 && !ids.includes(match.a.id))ids.push(match.a.id)}
    }
   }
+  const rows=await getAgentsByIds(ids);
+  if(!rows.length)return json({ok:false,error:"Selected agents were not found"},404);
+  const byId=new Map(rows.map((x:any)=>[x.id,x]));
+  const ordered=ids.map(id=>byId.get(id)).filter(Boolean);
+  const specialtyAssignments=ordered.map((a:any)=>({agentId:a.id,name:a.name,department:a.department,primarySkill:(departmentSkills[a.department]?.skills||["analysis"])[Math.max(0,Number(String(a.id).split("-").pop())-1)%(departmentSkills[a.department]?.skills?.length||1)],secondarySkills:(departmentSkills[a.department]?.skills||[]).filter((_:string,i:number)=>i!==Math.max(0,Number(String(a.id).split("-").pop())-1)%(departmentSkills[a.department]?.skills?.length||1))}));
+  const context=await memoryContext();
+  const chiefIds=[...new Set(ordered.map((a:any)=>a.isChief?a.id:a.chiefId).filter(Boolean))];
+  const supervisors=await getAgentsByIds(chiefIds);
+  const briefing=supervisors.length?await Promise.all(supervisors.map(async (chief:any)=>{
+   const teammates=ordered.filter((a:any)=>a.id===chief.id||a.chiefId===chief.id);
+   const brief="Plan and delegate this mission among "+teammates.map((a:any)=>a.name).join(", ")+". Task: "+task+". Give concise assignments, dependencies, and review criteria.";
+   const result=await runAgent(chief,brief,context);
+   return {chiefId:chief.id,chief:chief.name,team:teammates.map((a:any)=>a.id),plan:result.result||"",status:result.status};
+  })): [];
   if(body?.planOnly===true && !approvedPlan){
    const proposed:Record<string,string[]>={};
    for(const a of ordered)proposed[a.id]=[];
