@@ -374,7 +374,13 @@ async function startHands(){
  let failures=0;
  const loop=async()=>{if(!tracking||!stream)return;try{const v=$('#video');if(v.readyState>=2){await hands.send({image:v});failures=0}}catch(err){if(++failures===1||failures%30===0){console.warn('Eyes On hand tracker:',err);$('#sh').textContent='TRACKER ERROR';$('#gs').textContent='TRACKER ERROR • CHECK CONNECTION';$('#gl').textContent='HAND TRACKING ERROR: '+String(err?.message||err).slice(0,70)}}finally{if(tracking&&stream)requestAnimationFrame(loop)}};loop()
 }
-function ginfo(p){const d=(a,b)=>Math.hypot(p[a].x-p[b].x,p[a].y-p[b].y),raised=[8,12,16,20].filter(i=>p[i].y<p[i-2].y).length;return{pinch:d(4,8)<.055,open:raised>=4,point:p[8].y<p[6].y&&raised===1,label:d(4,8)<.055?'PINCH • SELECT':raised>=4?'OPEN PALM • HOLD':p[8].y<p[6].y&&raised===1?'POINT • TARGET':'TRACKING'}}
+function ginfo(p){
+ const d=(a,b)=>Math.hypot(p[a].x-p[b].x,p[a].y-p[b].y);
+ const palm=Math.max(.04,d(5,17)),pinchRatio=d(4,8)/palm;
+ const raised=[8,12,16,20].filter(i=>p[i].y<p[i-2].y).length;
+ const pinch=pinchRatio<.43;
+ return{pinch,pinchRatio,open:raised>=4,point:p[8].y<p[6].y&&raised===1,label:pinch?'PINCH • '+Math.round(pinchRatio*100)+'%':raised>=4?'OPEN PALM':raised===1?'POINT • TARGET':'TRACKING'}
+}
 function eyesSvgPointer(index,x,y){
  const svg=$('#graph'),node=$('#eyesPointer'+index),rect=svg?.getBoundingClientRect();
  if(!node||!rect||!rect.width||!rect.height)return;
@@ -397,7 +403,24 @@ function cursorFromHand(p,index=0){
  }
  return{x,y}
 }
-function hoverNearest(x,y){let best=null,bd=74;$$('#graph g[data-agent]').forEach(g=>{const r=g.getBoundingClientRect(),gx=r.left+r.width/2,gy=r.top+r.height/2,d=Math.hypot(gx-x,gy-y);g.classList.remove('agent-hover');if(d<bd){bd=d;best=g}});if(best)best.classList.add('agent-hover');return best}
+function hoverNearest(x,y){
+ let best=null,bd=90;
+ const gr=$('#graph').getBoundingClientRect(),main=$('.main').getBoundingClientRect();
+ const region=gr.width>10&&gr.height>10?gr:main;
+ const svg=$('#graph'),vb=svg.viewBox.baseVal;
+ const vx=(x-region.left)/region.width*vb.width+vb.x,vy=(y-region.top)/region.height*vb.height+vb.y;
+ const world=$('#graphWorld'),matrix=world?.transform?.baseVal?.consolidate()?.matrix;
+ $$(' #graph g[data-agent]').forEach(g=>{
+  const circle=g.querySelector('circle');if(!circle)return;
+  const px=Number(circle.getAttribute('cx')),py=Number(circle.getAttribute('cy'));
+  const gx=matrix?matrix.a*px+matrix.c*py+matrix.e:px,gy=matrix?matrix.b*px+matrix.d*py+matrix.f:py;
+  const dx=(gx-vx)*region.width/vb.width,dy=(gy-vy)*region.height/vb.height,d=Math.hypot(dx,dy);
+  g.classList.remove('agent-hover');
+  if(d<bd){bd=d;best=g}
+ });
+ if(best)best.classList.add('agent-hover');
+ return best
+}
 function pinchSelect(x,y){const g=hoverNearest(x,y);if(!g){$('#cs').textContent='PINCH • NO TARGET';return}const a=agents.find(z=>z.id===g.dataset.agent);if(a){activateAgent(a);$('#cs').textContent='SELECTED • '+a.name}}
 function setHold(on){if(on===holdOn)return;holdOn=on;document.body.classList.toggle('gesture-hold',on);$('#cs').textContent=on?'HOLD • INTERACTIONS PAUSED':'LISTENING'}
 function processSwipe(p,info){const now=Date.now(),x=1-p[9].x;if(!info.open){swipeSeed=null;return}if(now<swipeCooldown)return;if(!swipeSeed){swipeSeed={x,t:now};return}const dx=x-swipeSeed.x,dt=now-swipeSeed.t;if(dt>650){swipeSeed={x,t:now};return}if(Math.abs(dx)>.2){cycleNav(dx>0?1:-1);swipeCooldown=now+900;swipeSeed=null;setHold(false)}}
@@ -405,7 +428,7 @@ let eyesPinchFrames=0,eyesReleaseFrames=0,eyesTargetId=null;
 function resetEyesPinch(){eyesDrag=null;eyesPinchFrames=0;eyesReleaseFrames=0;eyesTargetId=null;pinchLatched=false}
 function processOne(p){
  $('#handCursor2').classList.remove('on');$('#handCursor2').style.display='none';eyesHidePointer(1);const info=ginfo(p),pt=cursorFromHand(p),c=$('#handCursor'),now=Date.now();c.classList.toggle('pinch',info.pinch);
- const hovered=eyesDrag?null:hoverNearest(pt.x,pt.y);if(hovered){const a=agents.find(a=>a.id===hovered.dataset.agent);if(a)$('#gl').textContent='TARGET: '+a.name+' • PINCH TO SELECT'}
+ const hovered=eyesDrag?null:hoverNearest(pt.x,pt.y);if(eyesPointerFrames%8===0)eyesCursorDiagnostic('HAND PINCH '+Math.round(info.pinchRatio*100)+'% • '+(hovered?.dataset.agent||'NO NODE')+' • '+(eyesMultiMode?'MULTI':'SINGLE'));if(hovered){const a=agents.find(a=>a.id===hovered.dataset.agent);if(a)$('#gl').textContent='TARGET: '+a.name+' • PINCH TO SELECT'}
  if(eyesDrag){
   if(info.pinch){
    if(Math.hypot(pt.x-eyesDrag.startX,pt.y-eyesDrag.startY)>18)eyesDrag.moved=true;
