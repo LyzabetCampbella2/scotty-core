@@ -32,11 +32,15 @@ body.eyes-camera-minimized #vision .cam{width:112px;bottom:76px;opacity:.82}
 #handCursor.on,#handCursor2.on{display:block!important}
 
 #eyesCursorDiagnostics{position:absolute;right:12px;bottom:24px;z-index:100;max-width:320px;padding:7px 10px;background:rgba(0,14,25,.92);border:1px solid #5eeaff;border-radius:7px;color:#d8f7ff;font:11px monospace;pointer-events:none}
+
+.main #eyesCursorSurface{position:absolute;inset:0;pointer-events:none;z-index:90;overflow:hidden}
+.main #eyesCursorSurface0,.main #eyesCursorSurface1{display:none;position:absolute;width:40px;height:40px;transform:translate(-50%,-50%);border:4px solid #5eeaff;border-radius:50%;background:rgba(94,234,255,.5);box-shadow:0 0 0 8px rgba(94,234,255,.18),0 0 28px #5eeaff;pointer-events:none}
+.main #eyesCursorSurface1{border-color:#ffd166;background:rgba(255,209,102,.5);box-shadow:0 0 0 8px rgba(255,209,102,.18),0 0 28px #ffd166}
 </style></head><body>
 <div id="gate"><form class="login" id="lf"><h1>S.C.O.T.T.Y.</h1><p id="lc">Authenticate to enter the visual command layer. After login, tap the voice orb once to arm hands-free listening.</p><input id="pw" type="password" placeholder="Owner password"><button>ENTER HUD</button><div class="err" id="le"></div></form></div>
 <div class="hud"><header class="p top"><div class="logo">S.C.O.T.T.Y.<small>VISUAL COMMAND • AGENT NETWORK • PRIVATE VISION</small></div><div class="chips"><span class="chip on" id="net">ONLINE</span><span class="chip">HUD 3/8 • AGENT MATRIX LIVE</span><span class="chip" id="vs">VOICE OFF</span><span class="chip" id="gs">HANDS OFF</span><span class="chip" id="clock">--:--</span></div></header>
 <aside class="p left"><div class="title">Systems</div><button class="nav active"><i></i><span>Agent Matrix</span></button><button class="nav"><i></i><span>Brain</span></button><button class="nav"><i></i><span>Projects</span></button><button class="nav"><i></i><span>Operations</span></button><button class="nav"><i></i><span>Integrations</span></button><button class="nav"><i></i><span>Creative Lab</span></button><button class="nav"><i></i><span>3D Forge</span></button><div class="privacy"><b>VISION PRIVACY LOCK</b><p>Camera is OFF until you say “Scotty, eyes on.”</p><button class="eyes" id="eyes">EYES: LOCKED • SAY “SCOTTY, EYES ON”</button></div></aside>
-<main class="p main"><div class="toolbar"><button class="mode on">AGENT MATRIX</button><button class="mode">LIVE OPS</button><button class="mode">MEMORY MAP</button><span class="chip" id="ac">0 AGENTS</span></div><svg id="graph"></svg><div class="scan"></div><div class="core"><div><b>SCOTTY</b><small id="cs">LISTENING</small></div></div><div class="hint">PINCH = SELECT • OPEN PALM = HOLD • CAMERA NEVER AUTO-STARTS</div></main>
+<main class="p main"><div class="toolbar"><button class="mode on">AGENT MATRIX</button><button class="mode">LIVE OPS</button><button class="mode">MEMORY MAP</button><span class="chip" id="ac">0 AGENTS</span></div><svg id="graph"></svg><div id="eyesCursorSurface" aria-hidden="true"><div id="eyesCursorSurface0"></div><div id="eyesCursorSurface1"></div></div><div class="scan"></div><div class="core"><div><b>SCOTTY</b><small id="cs">LISTENING</small></div></div><div class="hint">PINCH = SELECT • OPEN PALM = HOLD • CAMERA NEVER AUTO-STARTS</div></main>
 <aside class="p right"><div class="title">Telemetry</div><div class="stat"><span>Agents</span><span id="sa">--</span></div><div class="stat"><span>Chiefs</span><span id="sc">--</span></div><div class="stat"><span>Camera</span><span id="sv">LOCKED</span></div><div class="stat"><span>Hands</span><span id="sh">OFF</span></div><div style="display:flex;gap:5px;flex-wrap:wrap;margin:5px 0 9px"><button type="button" id="eyesMultiSelect" style="font-size:10px;padding:5px 8px">MULTI-SELECT: OFF</button><button type="button" id="eyesClearSelection" style="font-size:10px;padding:5px 8px">CLEAR SELECTION</button><button type="button" id="eyesUndoMove" style="font-size:10px;padding:5px 8px">UNDO NODE MOVE</button><button type="button" id="eyesResetLayout" style="font-size:10px;padding:5px 8px">RESET NODE LAYOUT</button></div><div class="title">Live activity</div><button type="button" data-scotty-recovery-test style="font-size:10px;padding:5px 9px;margin:4px 0 8px">RUN SAFE RECOVERY TEST</button><div class="activity" id="activity"></div></aside>
 <section class="p bottom"><div class="cmd"><input id="ci" placeholder="Ask S.C.O.T.T.Y. or say “Scotty on deck.”"><button id="send">SEND</button></div><button class="mic" id="mic">◉</button></section></div>
 <div id="eyesCursorDiagnostics" role="status">EYES CURSOR: WAITING FOR TRACKING</div><div id="handCursor"></div><div id="handCursor2" aria-hidden="true"></div><div id="vision"><div class="cam"><video id="video" playsinline muted></video><canvas id="hc"></canvas><div class="camlabel">VISION ACTIVE • USER AUTHORIZED</div><div class="offmsg">SAY “EYES OFF”</div><div class="gesture" id="gl">HAND TRACKING: STARTING</div></div></div>
@@ -379,16 +383,17 @@ function eyesSvgPointer(index,x,y){
  node.setAttribute('cy',String((y-rect.top)/rect.height*vb.height+vb.y));
  node.setAttribute('visibility','visible');
 }
-function eyesHidePointer(index){const node=$('#eyesPointer'+index);if(node)node.setAttribute('visibility','hidden')}
+function eyesHidePointer(index){const node=$('#eyesPointer'+index);if(node)node.setAttribute('visibility','hidden');const surface=$('#eyesCursorSurface'+index);if(surface)surface.style.display='none'}
 let eyesPointerFrames=0;
 function eyesCursorDiagnostic(message){const el=$('#eyesCursorDiagnostics');if(el)el.textContent=message}
 function cursorFromHand(p,index=0){
- const b=$('#graph').getBoundingClientRect(),pt=p[8],x=b.left+(1-pt.x)*b.width,y=b.top+pt.y*b.height;
+ const graph=$('#graph'),gr=graph.getBoundingClientRect(),main=$('.main').getBoundingClientRect(),b=gr.width>10&&gr.height>10?gr:main,pt=p[8],x=b.left+(1-pt.x)*b.width,y=b.top+pt.y*b.height;
  const c=index===0?$('#handCursor'):$('#handCursor2');
  c.style.left=x+'px';c.style.top=y+'px';c.classList.add('on');c.style.display='block';eyesSvgPointer(index,x,y);
+ const surface=$('#eyesCursorSurface'+index);if(surface){surface.style.left=(x-main.left)+'px';surface.style.top=(y-main.top)+'px';surface.style.display='block'}
  if(index===0&&++eyesPointerFrames%8===0){
   const graph=$('#graph'),rect=graph.getBoundingClientRect(),dot=$('#eyesPointer0');
-  eyesCursorDiagnostic('EYES CURSOR: LIVE • HAND '+Math.round(pt.x*100)+'% / '+Math.round(pt.y*100)+'% • GRAPH '+Math.round(rect.width)+'×'+Math.round(rect.height)+' • DOT '+(dot?.getAttribute('visibility')||'MISSING'));
+  eyesCursorDiagnostic('EYES CURSOR: LIVE • HAND '+Math.round(pt.x*100)+'% / '+Math.round(pt.y*100)+'% • TARGET '+Math.round(b.width)+'×'+Math.round(b.height)+' • GRAPH '+Math.round(rect.width)+'×'+Math.round(rect.height)+' • SURFACE ON');
  }
  return{x,y}
 }
