@@ -222,7 +222,7 @@ export async function handleCloudAgents(req:Request,u:URL){
   const rows=await db()`select id,task,status,agents,progress,unresolved,created_at as "createdAt",updated_at as "updatedAt" from scotty_agent_missions order by created_at desc limit 30`;
   return json({ok:true,missions:rows});
  }
- const missionMatch=u.pathname.match(/^\\/api\\/hud\\/agents\\/missions\\/([0-9a-f-]{36})$/i);
+ const missionMatch=u.pathname.match(/^\/api\/hud\/agents\/missions\/([0-9a-f-]{36})$/i);
  if(req.method==="GET"&&missionMatch){
   const rows=await db()`select * from scotty_agent_missions where id=${missionMatch[1]} limit 1`;
   return rows.length?json({ok:true,mission:rows[0]}):json({ok:false,error:"Mission not found"},404);
