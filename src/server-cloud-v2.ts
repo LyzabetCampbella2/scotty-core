@@ -53,6 +53,7 @@ Bun.serve({port:PORT,async fetch(req){
   u.pathname==="/api/hud/command"||
   u.pathname==="/api/hud/agents"||
   u.pathname==="/api/hud/agents/run"||
+  u.pathname==="/api/hud/agents/recovery-self-test"||
   u.pathname==="/api/hud/agents/skills"||
   u.pathname.startsWith("/api/hud/agents/missions")||
   u.pathname==="/api/hud/activity"||
@@ -71,7 +72,7 @@ Bun.serve({port:PORT,async fetch(req){
  if(protectedRoute&&!(await isCloudAuthenticated(req))) return Response.json({ok:false,error:"Authentication required"},{status:401,headers:{"cache-control":"no-store"}});
  if(u.pathname==="/api/hud/stt") return handleHudStt(req);
  if(u.pathname==="/api/hud/command"||u.pathname==="/api/hud/brain/status") return handleCloudCommand(req,u);
- if(u.pathname==="/api/hud/agents"||u.pathname==="/api/hud/agents/run"||u.pathname==="/api/hud/agents/status"||u.pathname==="/api/hud/agents/skills"||u.pathname.startsWith("/api/hud/agents/missions")||u.pathname==="/api/hud/activity") return handleCloudAgents(req,u);
+ if(u.pathname==="/api/hud/agents"||u.pathname==="/api/hud/agents/run"||u.pathname==="/api/hud/agents/recovery-self-test"||u.pathname==="/api/hud/agents/status"||u.pathname==="/api/hud/agents/skills"||u.pathname.startsWith("/api/hud/agents/missions")||u.pathname==="/api/hud/activity") return handleCloudAgents(req,u);
  if(u.pathname.startsWith("/api/hud/resources")) return handleCloudResources(req,u);
  if(u.pathname.startsWith("/api/missions")||u.pathname.startsWith("/api/approvals")) return handleCloudAutonomy(req,u);
  if(u.pathname.startsWith("/api/providers")) return handleCloudProviders(req,u);
