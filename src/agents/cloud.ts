@@ -233,7 +233,7 @@ export async function handleCloudAgents(req:Request,u:URL){
  }
  const missionMatch=u.pathname.match(/^\/api\/hud\/agents\/missions\/([0-9a-f-]{36})$/i);
  if(req.method==="GET"&&missionMatch){
-  await db()`update scotty_agent_missions set status='interrupted',dependencies=(select coalesce(jsonb_agg(case when item->>'state' in ('working','waiting','awaiting_review') then jsonb_set(item,'{state}',to_jsonb('interrupted'::text),true) else item end),'[]'::jsonb) from jsonb_array_elements(dependencies) as item),updated_at=now() where id=${missionMatch[1]} and status in ('running','reviewing') and updated_at < now()-interval '60 minutes'`;
+  await db()`update scotty_agent_missions set status='interrupted',dependencies=(select coalesce(jsonb_agg(case when item->>'state' in ('working','waiting','awaiting_review') then jsonb_set(item,'{state}',to_jsonb('interrupted'::text),true) else item end),'[]'::jsonb) from jsonb_array_elements(dependencies) as item),updated_at=now() where id=${missionMatch[1]} and status in ('running','reviewing','recovering') and updated_at < now()-interval '60 minutes'`;
   const rows=await db()`select * from scotty_agent_missions where id=${missionMatch[1]} limit 1`;
   if(!rows.length)return json({ok:false,error:"Mission not found"},404);
   const related=await db()`select id,task,status,results,review,created_at as "createdAt" from scotty_agent_missions where parent_mission_id=${rows[0].id} order by created_at asc`;
