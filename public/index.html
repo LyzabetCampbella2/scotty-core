@@ -191,6 +191,14 @@ function draw(){
  const ringCounts=[Math.ceil(others.length/3),Math.ceil((others.length-Math.ceil(others.length/3))/2)];
  const r1=others.slice(0,ringCounts[0]),r2=others.slice(ringCounts[0],ringCounts[0]+ringCounts[1]),r3=others.slice(ringCounts[0]+ringCounts[1]);
  placeRing(r1,min*.31,-Math.PI/2+.06);placeRing(r2,min*.39,-Math.PI/2+.14);placeRing(r3,min*.47,-Math.PI/2+.22);
+ // Apply persisted and gesture-moved coordinates before drawing both links and nodes.
+ for(const [id,custom] of Object.entries(eyesNodePositions)){
+  const point=pos.get(id);
+  if(point&&custom&&Number.isFinite(custom.x)&&Number.isFinite(custom.y)){
+   point.x=Math.max(12,Math.min(w-12,custom.x));
+   point.y=Math.max(12,Math.min(h-12,custom.y))
+  }
+ }
  agents.forEach(a=>{
   const p=pos.get(a.id);if(!p)return;
   const ch=a.chiefId?agents.find(x=>x.id===a.chiefId):null,q=ch&&ch.id!==a.id?pos.get(ch.id):{x:cx,y:cy};
