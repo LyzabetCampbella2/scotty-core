@@ -475,10 +475,33 @@ function processOne(p){
  $('#gs').textContent=info.label;return info.label
 }
 function angleDelta(a,b){let d=a-b;while(d>Math.PI)d-=Math.PI*2;while(d<-Math.PI)d+=Math.PI*2;return d}
-function processTwo(ps){if(eyesDrag){eyesSavePositions();resetEyesPinch()}cursorFromHand(ps[0],0);cursorFromHand(ps[1],1);$('#handCursor').classList.remove('pinch');setHold(false);const a=ps[0][9],b=ps[1][9],ax=1-a.x,bx=1-b.x,dx=bx-ax,dy=b.y-a.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx);if(twoState){const ratio=dist/Math.max(.001,twoState.dist);if(ratio>.86&&ratio<1.16)graphScale=Math.max(.68,Math.min(1.85,graphScale*ratio));graphRotation+=angleDelta(ang,twoState.ang)*180/Math.PI;graphRotation=Math.max(-120,Math.min(120,graphRotation));applyGraphTransform()}twoState={dist,ang};$('#gs').textContent='TWO HANDS • ZOOM / ROTATE';$('#cs').textContent='GESTURE TRANSFORM';return'TWO-HAND • ZOOM / ROTATE'}
+const eyesHandStates=[{pinched:false,frames:0,released:0,target:null},{pinched:false,frames:0,released:0,target:null}];
+function eyesHandPinch(p,index){
+ const state=eyesHandStates[index],info=ginfo(p),pt=cursorFromHand(p,index),hovered=hoverNearest(pt.x,pt.y),id=hovered?.dataset?.agent||null;
+ const down=info.pinchRatio<.52,up=info.pinchRatio>.72;
+ const dot=$('#eyesCursorSurface'+index);if(dot)dot.style.transform=down?'translate(-50%,-50%) scale(.72)':'translate(-50%,-50%)';
+ if(down){
+  state.released=0;
+  if(!state.pinched){state.frames++;if(state.frames>=2){state.pinched=true;state.target=id;if(id){
+   if(eyesMultiMode){if(eyesSelectedNodes.has(id))eyesSelectedNodes.delete(id);else eyesSelectedNodes.add(id);eyesPaintSelection();$('#cs').textContent='SELECTED '+eyesSelectedNodes.size+' AGENT(S)'}
+   else{pinchSelect(pt.x,pt.y);$('#cs').textContent='PINCH SELECTED'}
+  }}}
+ }else if(up){state.frames=0;if(++state.released>=2){state.pinched=false;state.target=null}}
+ return {info,id,down}
+}
+function processTwo(ps){
+ if(eyesDrag){eyesSavePositions();resetEyesPinch()}
+ const a=eyesHandPinch(ps[0],0),b=eyesHandPinch(ps[1],1);
+ $('#handCursor').classList.toggle('pinch',a.down);$('#handCursor2').classList.toggle('pinch',b.down);
+ const pa=ps[0][9],pb=ps[1][9],dx=pb.x-pa.x,dy=pb.y-pa.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx);
+ if(!a.down&&!b.down&&twoState){const ratio=dist/Math.max(.001,twoState.dist);if(ratio>.90&&ratio<1.10)graphScale=Math.max(.68,Math.min(1.85,graphScale*ratio));graphRotation+=angleDelta(ang,twoState.ang)*180/Math.PI;graphRotation=Math.max(-120,Math.min(120,graphRotation));applyGraphTransform()}
+ twoState={dist,ang};setHold(false);
+ const status='LEFT '+Math.round(a.info.pinchRatio*100)+'% '+(a.id||'—')+' • RIGHT '+Math.round(b.info.pinchRatio*100)+'% '+(b.id||'—');
+ eyesCursorDiagnostic(status);$('#gs').textContent='TWO HANDS • PINCH TO SELECT';return status
+}
 function drawHands(r){const c=$('#hc'),b=$('.cam'),w=b.clientWidth||300,h=b.clientHeight||225;if(c.width!==w||c.height!==h){c.width=w;c.height=h}const x=c.getContext('2d');x.clearRect(0,0,w,h);const ps=r.multiHandLandmarks||[];
  if(!ps.length)eyesCursorDiagnostic('EYES CURSOR: NO HAND LANDMARKS • SHOW HAND');
- $('#sh').textContent=ps.length?'TRACKING '+ps.length+' HAND'+(ps.length>1?'S':''):'SEARCHING';let label='NO HAND';for(const p of ps){const inf=ginfo(p);label=inf.label;x.fillStyle=inf.pinch?'#ffd166':'#28d7bd';x.strokeStyle=inf.pinch?'#ffd166':'#5eeaff';x.lineWidth=1.2;p.forEach(q=>{x.beginPath();x.arc((1-q.x)*w,q.y*h,2.4,0,Math.PI*2);x.fill()});[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]].forEach(([a,z])=>{x.beginPath();x.moveTo((1-p[a].x)*w,p[a].y*h);x.lineTo((1-p[z].x)*w,p[z].y*h);x.stroke()})}if(ps.length>=2)label=processTwo(ps);else if(ps.length===1){twoState=null;label=processOne(ps[0])}else{twoState=null;$('#handCursor').className='';$('#handCursor').style.display='none';$('#handCursor2').classList.remove('on');$('#handCursor2').style.display='none';eyesHidePointer(0);eyesHidePointer(1);resetEyesPinch();holdSince=0;setHold(false);swipeSeed=null;$('#gs').textContent='SHOW HAND TO CAMERA • CHECK LIGHTING'}$('#gl').textContent='HAND TRACKING: '+label}
+ $('#sh').textContent=ps.length?'TRACKING '+ps.length+' HAND'+(ps.length>1?'S':''):'SEARCHING';let label='NO HAND';for(const p of ps){const inf=ginfo(p);label=inf.label;x.fillStyle=inf.pinch?'#ffd166':'#28d7bd';x.strokeStyle=inf.pinch?'#ffd166':'#5eeaff';x.lineWidth=1.2;p.forEach(q=>{x.beginPath();x.arc((1-q.x)*w,q.y*h,2.4,0,Math.PI*2);x.fill()});[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]].forEach(([a,z])=>{x.beginPath();x.moveTo((1-p[a].x)*w,p[a].y*h);x.lineTo((1-p[z].x)*w,p[z].y*h);x.stroke()})}if(ps.length>=2)label=processTwo(ps);else if(ps.length===1){twoState=null;eyesHandStates[1]={pinched:false,frames:0,released:0,target:null};label=processOne(ps[0])}else{twoState=null;$('#handCursor').className='';$('#handCursor').style.display='none';$('#handCursor2').classList.remove('on');$('#handCursor2').style.display='none';eyesHidePointer(0);eyesHidePointer(1);resetEyesPinch();eyesHandStates.forEach(st=>{st.pinched=false;st.frames=0;st.released=0;st.target=null});holdSince=0;setHold(false);swipeSeed=null;$('#gs').textContent='SHOW HAND TO CAMERA • CHECK LIGHTING'}$('#gl').textContent='HAND TRACKING: '+label}
 
 $('#eyesMultiSelect').onclick=eyesToggleMulti;$('#eyesClearSelection').onclick=eyesClearSelection;$('#eyesUndoMove').onclick=eyesUndoMove;$('#eyesResetLayout').onclick=eyesResetLayout;
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&stream)stopVision()});addEventListener('beforeunload',stopVision);addEventListener('resize',()=>agents.length&&draw());if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('/hud-sw.js').catch(()=>{}));const wakeLaunch=new URLSearchParams(location.search).get('wake')==='1';if(wakeLaunch){setTimeout(()=>{const v=$('#vs');if(v)v.textContent='TAP ONCE TO WAKE VOICE'},350)};auth();
