@@ -491,7 +491,7 @@ function stopVision(){voiceCamera=false;tracking=false;if(stream){stream.getTrac
 async function startHands(){
  if(typeof Hands==='undefined'){ $('#sh').textContent='TRACKER NOT LOADED';$('#gs').textContent='HAND TRACKER UNAVAILABLE';throw Error('hand tracker unavailable')}
  hands=new Hands({locateFile:f=>'https://cdn.jsdelivr.net/npm/@mediapipe/hands/'+f});
- hands.setOptions({maxNumHands:1,modelComplexity:0,minDetectionConfidence:.45,minTrackingConfidence:.45});
+ hands.setOptions({maxNumHands:2,modelComplexity:0,minDetectionConfidence:.45,minTrackingConfidence:.45});
  hands.onResults(result=>{try{drawHands(result)}catch(err){console.error('Eyes On gesture UI error:',err);eyesCursorDiagnostic('GESTURE ERROR: '+String(err?.message||err).slice(0,90));$('#gs').textContent='GESTURE UI ERROR • CAMERA STILL ACTIVE'}});tracking=true;$('#sh').textContent='STARTING';$('#gs').textContent='LOOK AT CAMERA • SHOW YOUR HAND';
  let failures=0,lastFrame=0;
  const loop=async(timestamp=0)=>{if(!tracking||!stream)return;if(timestamp-lastFrame<85){requestAnimationFrame(loop);return}lastFrame=timestamp;try{const v=$('#video');if(v.readyState>=2){await hands.send({image:v});failures=0}}catch(err){if(++failures===1||failures%30===0){console.warn('Eyes On hand tracker:',err);$('#sh').textContent='TRACKER ERROR';$('#gs').textContent='TRACKER ERROR • CHECK CONNECTION';$('#gl').textContent='HAND TRACKING ERROR: '+String(err?.message||err).slice(0,70)}}finally{if(tracking&&stream)requestAnimationFrame(loop)}};requestAnimationFrame(loop)
@@ -500,8 +500,8 @@ function ginfo(p){
  const d=(a,b)=>Math.hypot(p[a].x-p[b].x,p[a].y-p[b].y);
  const palm=Math.max(.04,d(0,9),d(5,17)),pinchRatio=d(4,8)/palm;
  const raised=[8,12,16,20].filter(i=>p[i].y<p[i-2].y).length;
- const pinch=pinchRatio<.55;
- return{pinch,pinchRatio,open:raised>=4,point:p[8].y<p[6].y&&raised<=2,label:pinch?'PINCH • '+Math.round(pinchRatio*100)+'%':raised>=4?'OPEN PALM':raised===1?'POINT • TARGET':'TRACKING'}
+ const pinch=pinchRatio<.55,fist=raised===0&&d(8,0)<palm*1.55&&d(12,0)<palm*1.65;
+ return{pinch,pinchRatio,fist,open:raised>=4,point:p[8].y<p[6].y&&raised<=2,label:fist?'FIST • GRAB':pinch?'PINCH • '+Math.round(pinchRatio*100)+'%':raised>=4?'OPEN PALM':raised===1?'POINT • TARGET':'TRACKING'}
 }
 function eyesSvgPointer(index,x,y){
  const svg=$('#graph'),node=$('#eyesPointer'+index),rect=svg?.getBoundingClientRect();
@@ -647,9 +647,9 @@ const eyesHandStates=[{pinched:false,frames:0,released:0,target:null},{pinched:f
 function eyesHandPinch(p,index){
  const state=eyesHandStates[index],info=ginfo(p),pt=cursorFromHand(p,index);
  const id=hoverNearest(pt.x,pt.y,index)?.dataset.agent||null;
- const down=info.pinch,up=info.pinchRatio>.96;
+ const down=info.fist,up=!info.fist;
  if(id&&!down)state.lastTarget=id;
- if(!state.pinched)eyesPointToSelect(info,id,index);
+ if(!state.pinched&&!info.fist)eyesPointToSelect(info,id,index);
  const dot=$('#eyesCursorSurface'+index);
  if(dot)dot.style.transform=down?'translate(-50%,-50%) scale(.72)':'translate(-50%,-50%)';
  if(down){
@@ -695,11 +695,15 @@ function eyesHandPinch(p,index){
  return {info,id:id||state.lastTarget,down}
 }
 let eyesPalmResetFrames=0,eyesPalmResetLatched=false;
+let eyesBothPinchSince=0,eyesBothPinchLatched=false;
 function eyesTwoHandResetGesture(ps){
- const left=ginfo(ps[0]),right=ginfo(ps[1]);
- const reset=left.open&&right.open&&!left.pinch&&!right.pinch&&ps[0][0].y<.35&&ps[1][0].y<.35;
- if(reset){eyesTwoGesture.mode=null;eyesTwoGesture.armedAt=0;eyesPalmResetFrames++;if(eyesPalmResetFrames>=24&&!eyesPalmResetLatched){eyesPalmResetLatched=true;eyesFitAll();eyesCursorDiagnostic('BOTH HANDS RAISED • VIEW RESET')}}
- else{eyesPalmResetFrames=0;eyesPalmResetLatched=false}
+ const both=ps.length===2&&ps.every(p=>ginfo(p).pinch);
+ if(!both){eyesBothPinchSince=0;eyesBothPinchLatched=false;return false}
+ if(!eyesBothPinchSince)eyesBothPinchSince=Date.now();
+ if(!eyesBothPinchLatched&&Date.now()-eyesBothPinchSince>=550){
+  eyesBothPinchLatched=true;eyesFitAll();eyesCursorDiagnostic('BOTH PINCHES • VIEW RESET')
+ }
+ return true
 }
 const eyesTwoGesture={mode:null,baseDist:0,baseAngle:0,baseScale:1,baseRotation:0,armedAt:0,lastApplied:0};
 function eyesUpdateTwoPalmGesture(ps,open,dist,ang){
@@ -729,23 +733,22 @@ function processTwo(ps){
   const swap=distW(ps[0],eyesHandStates[1].wrist)+distW(ps[1],eyesHandStates[0].wrist);
   if(swap<same)ps=[ps[1],ps[0]]
  }
- const a=eyesHandPinch(ps[0],0),b=eyesHandPinch(ps[1],1);
+ const resetting=eyesTwoHandResetGesture(ps);
+ const a=resetting?{info:ginfo(ps[0]),id:null,down:false}:eyesHandPinch(ps[0],0),b=resetting?{info:ginfo(ps[1]),id:null,down:false}:eyesHandPinch(ps[1],1);
  // Hands-up alone does not trigger a reset or transform.
  $('#handCursor').classList.toggle('pinch',a.down);$('#handCursor2').classList.toggle('pinch',b.down);
  const pa=ps[0][9],pb=ps[1][9],dx=pb.x-pa.x,dy=pb.y-pa.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx);
  // Safety: merely raising open hands must never move, scale or rotate the graph.
  // Camera landmark jitter previously applied continuous transforms, hiding nodes.
  const palmsOpen=a.info.open&&b.info.open&&!a.down&&!b.down&&!eyesHandStates.some(st=>st.pinched||st.moved);
- eyesTwoHandResetGesture(ps);
- const resetPose=ps[0][0].y<.35&&ps[1][0].y<.35;
- eyesUpdateTwoPalmGesture(ps,palmsOpen&&!resetPose,dist,ang);
+ eyesUpdateTwoPalmGesture(ps,palmsOpen&&!resetting,dist,ang);
  twoState={dist,ang,palmsOpen};setHold(false);
  const status='LEFT '+Math.round(a.info.pinchRatio*100)+'% '+(a.id||'—')+' • RIGHT '+Math.round(b.info.pinchRatio*100)+'% '+(b.id||'—');
- eyesCursorDiagnostic(status);$('#gs').textContent='TWO HANDS • PINCH TO SELECT';return status
+ eyesCursorDiagnostic(status);$('#gs').textContent=resetting?'BOTH PINCHES • RESET':'TWO HANDS • FIST GRAB / OPEN PALM NAVIGATION';return status
 }
 // Right-hand-only calibration: MediaPipe handedness is reported for mirrored selfie input.
 const eyesRightHandOnly=false;
-const eyesLeftHandOnly=true;
+const eyesLeftHandOnly=false;
 function eyesIsRightHand(result,index){
  const label=String(result.multiHandedness?.[index]?.label||'').toLowerCase();
  return label==='right'
@@ -762,8 +765,8 @@ function drawHands(r){const c=$('#hc'),b=$('.cam'),w=b.clientWidth||300,h=b.clie
    eyesOneHand.armed=false;eyesOneHand.downFrames=0;eyesOneHand.upFrames=0;
   }
   eyesHandStates.forEach(st=>{st.pinched=false;st.frames=0;st.released=0;st.target=null;st.wrist=null;st.moved=false});
-  label=processOne(ps[0]);$('#gs').textContent='LEFT HAND ACTIVE • '+label
- }else{eyesTwoGesture.mode=null;eyesTwoGesture.armedAt=0;eyesPointDwell.forEach(st=>{st.id=null;st.since=0;st.latched=false});twoState=null;$('#handCursor').className='';$('#handCursor').style.display='none';$('#handCursor2').classList.remove('on');$('#handCursor2').style.display='none';eyesHidePointer(0);eyesHidePointer(1);resetEyesPinch();eyesHandStates.forEach(st=>{if(st.moved)eyesCommitMove(st.previous);st.pinched=false;st.frames=0;st.released=0;st.target=null;st.wrist=null;st.moved=false});holdSince=0;setHold(false);swipeSeed=null;$('#gs').textContent='SHOW LEFT HAND TO CAMERA • CHECK LIGHTING'}$('#gl').textContent='HAND TRACKING: '+label}
+  label=processOne(ps[0]);$('#gs').textContent='ONE HAND ACTIVE • '+label
+ }else{eyesTwoGesture.mode=null;eyesTwoGesture.armedAt=0;eyesPointDwell.forEach(st=>{st.id=null;st.since=0;st.latched=false});twoState=null;$('#handCursor').className='';$('#handCursor').style.display='none';$('#handCursor2').classList.remove('on');$('#handCursor2').style.display='none';eyesHidePointer(0);eyesHidePointer(1);resetEyesPinch();eyesHandStates.forEach(st=>{if(st.moved)eyesCommitMove(st.previous);st.pinched=false;st.frames=0;st.released=0;st.target=null;st.wrist=null;st.moved=false});holdSince=0;setHold(false);swipeSeed=null;$('#gs').textContent='SHOW HANDS TO CAMERA • CHECK LIGHTING'}$('#gl').textContent='HAND TRACKING: '+label}
 
 $('#eyesMultiSelect').onclick=eyesToggleMulti;$('#eyesClearSelection').onclick=eyesClearSelection;$('#eyesUndoMove').onclick=eyesUndoMove;$('#eyesResetLayout').onclick=eyesResetLayout;
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&stream)stopVision()});addEventListener('beforeunload',stopVision);addEventListener('resize',()=>agents.length&&draw());if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('/hud-sw.js').catch(()=>{}));const wakeLaunch=new URLSearchParams(location.search).get('wake')==='1';if(wakeLaunch){setTimeout(()=>{const v=$('#vs');if(v)v.textContent='TAP ONCE TO WAKE VOICE'},350)};auth();
