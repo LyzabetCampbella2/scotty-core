@@ -162,7 +162,7 @@ function eyesUpdateDraggedNodes(){
  if(!groups.length)return;
  const positions=new Map();
  groups.forEach(g=>{const c=g.querySelector('circle'),id=g.dataset.agent,p=eyesNodePositions[id];if(!c)return;
-  if(p){c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);const t=g.querySelector('text');if(t){const oldX=Number(t.getAttribute('x')),oldY=Number(t.getAttribute('y'));const prev=eyesDragVisualCache.get(id)||{x:Number(c.getAttribute('cx')),y:Number(c.getAttribute('cy'))};t.setAttribute('x',oldX+p.x-prev.x);t.setAttribute('y',oldY+p.y-prev.y)}eyesDragVisualCache.set(id,{x:p.x,y:p.y})}
+  if(p){const prev=eyesDragVisualCache.get(id)||{x:Number(c.getAttribute('cx')),y:Number(c.getAttribute('cy'))};c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);const t=g.querySelector('text');if(t){const oldX=Number(t.getAttribute('x')),oldY=Number(t.getAttribute('y'));t.setAttribute('x',oldX+p.x-prev.x);t.setAttribute('y',oldY+p.y-prev.y)}eyesDragVisualCache.set(id,{x:p.x,y:p.y})}
   positions.set(id,{x:Number(c.getAttribute('cx')),y:Number(c.getAttribute('cy'))})
  });
  const lines=world.querySelectorAll(':scope > line');
