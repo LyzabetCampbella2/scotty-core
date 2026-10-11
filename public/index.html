@@ -772,9 +772,9 @@ function eyesV2Release(i){
    stage 3 enables coordinated gestures after both have passed individual tests. */
 const eyesStage={mode:'right',missing:0};
 function eyesV2Hands(result){
- const c=$('#hc'),b=$('.cam'),w=b.clientWidth||300,h=b.clientHeight||225;
- if(c.width!==w||c.height!==h){c.width=w;c.height=h}
- const ctx=c.getContext('2d');ctx.clearRect(0,0,w,h);
+ const c=$('#hc'),b=$('.cam'),w=b.clientWidth||300,canvasHeight=b.clientHeight||225;
+ if(c.width!==w||c.height!==canvasHeight){c.width=w;c.height=canvasHeight}
+ const ctx=c.getContext('2d');ctx.clearRect(0,0,w,canvasHeight);
  const detected=result.multiHandLandmarks||[];
  const p=detected[0]||null;
  // Isolate one physical hand. Never infer "right" from potentially mirrored labels.
@@ -794,7 +794,7 @@ function eyesV2Hands(result){
  for(const [a,z] of [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20]]){
   ctx.beginPath();ctx.moveTo((1-p[a].x)*w,p[a].y*h);ctx.lineTo((1-p[z].x)*w,p[z].y*h);ctx.stroke()
  }
- p.forEach(q=>{ctx.beginPath();ctx.arc((1-q.x)*w,q.y*h,2.5,0,Math.PI*2);ctx.fill()});
+ p.forEach(q=>{ctx.beginPath();ctx.arc((1-q.x)*w,q.y*canvasHeight,2.5,0,Math.PI*2);ctx.fill()});
  const info=ginfo(p),pt=cursorFromHand(p,1),now=Date.now();
  $('#sh').textContent='STAGE 1 • RIGHT HAND';
  h.wrist={x:p[0].x,y:p[0].y};
