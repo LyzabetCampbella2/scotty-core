@@ -158,6 +158,9 @@ function eyesSetMulti(on){if(eyesMultiMode!==on)eyesToggleMulti();else $('#cs').
 function eyesVoiceCommand(t){
  const l=normalizedSpeech(t).replace(/^(scotty|scottie|scoty)\s*/,'').trim();
  if(/\b(?:multi select|multiple select|group select)\b/.test(l)){eyesSetMulti(!/\b(off|disable|stop)\b/.test(l));return 'Multi-select '+(eyesMultiMode?'on':'off')+'.'}
+ if(/\b(?:focus (?:selected )?node|zoom to selection)\b/.test(l)){return eyesFocusSelected()?'Focused on selected node.':'Select a node first.'}
+ if(/\b(?:fit all|show all nodes|reset zoom)\b/.test(l)){eyesFitAll();return 'Showing all nodes.'}
+ if(/\b(?:select all chiefs|highlight chiefs)\b/.test(l)){eyesSelectChiefs();return 'All chiefs selected.'}
  if(/\b(?:clear selection|deselect all|unselect all)\b/.test(l)){eyesClearSelection();return 'Selection cleared.'}
  if(/\b(?:undo (?:node )?move|undo last move|move undo)\b/.test(l)){eyesUndoMove();return $('#cs').textContent==='LAST NODE MOVE UNDONE'?'Last node move undone.':'No moves to undo.'}
  if(/\b(?:reset (?:node )?layout|restore node layout)\b/.test(l)){eyesResetLayout();return 'Layout reset requested. Please confirm on screen.'}
@@ -171,6 +174,27 @@ function eyesToggleMulti(){
  eyesPaintSelection();$('#cs').textContent=eyesMultiMode?'MULTI-SELECT • PINCH NODES':'SINGLE NODE MODE';
  eyesCursorDiagnostic('MULTI-SELECT '+(eyesMultiMode?'ENABLED':'DISABLED'))}
  catch(err){console.error('Eyes multi-select:',err);eyesCursorDiagnostic('MULTI-SELECT ERROR: '+err.message)}
+}
+function eyesFocusSelected(){
+ const id=[...eyesSelectedNodes][0]||selectedAgentId;
+ const node=id?[...document.querySelectorAll('#graph g[data-agent]')].find(g=>g.dataset.agent===id):null;
+ const circle=node?.querySelector('circle'),svg=$('#graph');if(!circle||!svg)return false;
+ const x=Number(circle.getAttribute('cx')),y=Number(circle.getAttribute('cy'));
+ if(!Number.isFinite(x)||!Number.isFinite(y))return false;
+ graphScale=Math.max(graphScale,1.15);graphCenter={x:svg.clientWidth/2,y:svg.clientHeight/2};
+ const world=$('#graphWorld');
+ if(world){world.style.transformOrigin=x+'px '+y+'px'}
+ applyGraphTransform();
+ $('#cs').textContent='FOCUSED • '+(agents.find(a=>a.id===id)?.name||'NODE');return true
+}
+function eyesFitAll(){
+ graphScale=1;graphRotation=0;graphCenter={x:$('#graph').clientWidth/2,y:$('#graph').clientHeight/2};
+ const world=$('#graphWorld');if(world)world.style.transformOrigin='';
+ applyGraphTransform();$('#cs').textContent='EYES ON • FIT ALL NODES'
+}
+function eyesSelectChiefs(){
+ eyesMultiMode=true;eyesSelectedNodes.clear();agents.filter(a=>a.isChief).forEach(a=>eyesSelectedNodes.add(a.id));
+ $('#eyesMultiSelect').textContent='MULTI-SELECT: ON';eyesPaintSelection();$('#cs').textContent='SELECTED '+eyesSelectedNodes.size+' CHIEFS'
 }
 function eyesClearSelection(){eyesSelectedNodes.clear();eyesPaintSelection();$('#cs').textContent='NODE SELECTION CLEARED'}
 function eyesCommitMove(previous){eyesMoveHistory.push({positions:previous});if(eyesMoveHistory.length>30)eyesMoveHistory.shift();eyesSavePositions()}
