@@ -798,12 +798,12 @@ function eyesV2Hands(result){
  const info=ginfo(p),pt=cursorFromHand(p,1),now=Date.now();
  $('#sh').textContent='STAGE 1 • RIGHT HAND';
  h.wrist={x:p[0].x,y:p[0].y};
- if(!info.fist){
+ if(!info.pinch){
   eyesV2Release(1);
   const target=hoverNearest(pt.x,pt.y,1)?.dataset.agent||null;
   h.id=target;
   $('#gs').textContent='RIGHT '+(info.open?'OPEN PALM':info.point?'POINT':'TRACKING')+' • '+(target||'NO NODE');
-  $('#gl').textContent='RIGHT HAND: TRACKING • FIST TO SELECT';
+  $('#gl').textContent='RIGHT HAND: TRACKING • PINCH TO SELECT';
   return
  }
  h.frames++;
@@ -823,8 +823,8 @@ function eyesV2Hands(result){
    eyesNodePositions[key]={x:Math.max(12,Math.min((svg.clientWidth||700)-12,start.x+current.x-h.origin.x)),y:Math.max(12,Math.min((svg.clientHeight||550)-12,start.y+current.y-h.origin.y))}
   }h.moved=true;eyesUpdateDraggedNodes();eyesV2.lastPaint=now}
  }
- $('#gs').textContent=h.grab?'RIGHT FIST • MOVING '+h.grab:'RIGHT FIST • POINT AT A NODE FIRST';
- $('#gl').textContent='RIGHT HAND: '+(h.grab?'SELECTED':'FIST DETECTED');
+ $('#gs').textContent=h.grab?'RIGHT PINCH • MOVING '+h.grab:'RIGHT PINCH • POINT AT A NODE FIRST';
+ $('#gl').textContent='RIGHT HAND: '+(h.grab?'SELECTED':'PINCH DETECTED');
 }
 function drawHands(r){return eyesV2Hands(r);const c=$('#hc'),b=$('.cam'),w=b.clientWidth||300,h=b.clientHeight||225;if(c.width!==w||c.height!==h){c.width=w;c.height=h}const x=c.getContext('2d');x.clearRect(0,0,w,h);const allHands=r.multiHandLandmarks||[];const ps=eyesLeftHandOnly?allHands.filter((_,i)=>eyesIsLeftHand(r,i)):eyesRightHandOnly?allHands.filter((_,i)=>eyesIsRightHand(r,i)):allHands.slice();if(ps.length===2){const labels=r.multiHandedness||[];if(labels[0]?.label==='Right'&&labels[1]?.label==='Left')ps.reverse();else if(!labels[0]?.label||!labels[1]?.label)ps.sort((a,b)=>b[0].x-a[0].x)}
  if(allHands.length&&!ps.length){$('#sh').textContent='LEFT HAND ONLY';$('#gs').textContent='SHOW YOUR LEFT HAND • RIGHT HAND IGNORED'}
