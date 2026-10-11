@@ -515,7 +515,7 @@ function eyesHidePointer(index){const node=$('#eyesPointer'+index);if(node)node.
 let eyesPointerFrames=0;
 function eyesCursorDiagnostic(message){const el=$('#eyesCursorDiagnostics');if(el)el.textContent=message}
 function cursorFromHand(p,index=0){
- const graph=$('#graph'),gr=graph.getBoundingClientRect(),main=$('.main').getBoundingClientRect(),b=gr.width>10&&gr.height>10?gr:main,tip=p[8],pt={x:tip.x,y:tip.y},x=b.left+(1-pt.x)*b.width,y=b.top+pt.y*b.height;
+ const graph=$('#graph'),gr=graph.getBoundingClientRect(),main=$('.main').getBoundingClientRect(),b=gr.width>10&&gr.height>10?gr:main,tip=p[8],pt=ginfo(p).fist?{x:p[9].x,y:p[9].y}:{x:tip.x,y:tip.y},x=b.left+(1-pt.x)*b.width,y=b.top+pt.y*b.height;
  const c=index===0?$('#handCursor'):$('#handCursor2');
  c.style.left=x+'px';c.style.top=y+'px';c.classList.add('on');c.style.display='block';eyesSvgPointer(index,x,y);
  const surface=$('#eyesCursorSurface'+index);if(surface){surface.style.left=(x-main.left)+'px';surface.style.top=(y-main.top)+'px';surface.style.display='block'}
@@ -605,11 +605,11 @@ function eyesPointToSelect(info,id,index){
 function processOne(p){
  eyesHidePointer(1);$('#handCursor2').classList.remove('on');$('#handCursor2').style.display='none';
  const info=ginfo(p),pt=cursorFromHand(p),now=Date.now(),target=hoverNearest(pt.x,pt.y)?.dataset.agent||null,st=eyesOneHand;
- $('#handCursor').classList.toggle('pinch',info.pinch);
- if(target&&!info.pinch)st.lastTarget=target;
+ $('#handCursor').classList.toggle('pinch',info.fist);
+ if(target&&!info.fist)st.lastTarget=target;
  if(!eyesDrag)eyesPointToSelect(info,target,0);
  if(eyesDrag){
-  if(info.pinch){
+  if(info.fist){
    if(Math.hypot(pt.x-eyesDrag.startX,pt.y-eyesDrag.startY)>22)eyesDrag.moved=true;
    if(eyesDrag.moved&&now-eyesDrag.lastDraw>75){
     const point=eyesGraphPoint(pt.x,pt.y),origin=eyesDrag.origin;
@@ -624,7 +624,7 @@ function processOne(p){
   }
   return 'PINCH • MOVE / RELEASE'
  }
- if(info.pinch){
+ if(info.fist){
   st.upFrames=0;st.downFrames++;
   if(st.armed&&st.downFrames>=2&&now-st.lastOpen>450){
    const id=target||st.lastTarget;
@@ -640,7 +640,7 @@ function processOne(p){
   st.downFrames=0;if(++st.upFrames>=2){st.armed=true;st.lastTarget=target}
  }
  if(eyesPointerFrames%6===0)eyesCursorDiagnostic('PINCH '+Math.round(info.pinchRatio*100)+'% • '+(target||st.lastTarget||'NO TARGET')+' • '+(st.armed?'READY':'RELEASE')+' • GRAPH '+Math.round($('#graph').getBoundingClientRect().width)+'px');
- return info.pinch?'PINCH DETECTED':target?'TARGET '+target:'MOVE CURSOR OVER NODE'
+ return info.fist?'FIST • SELECT / DRAG':target?'TARGET '+target:'MOVE CURSOR OVER NODE'
 }
 function angleDelta(a,b){let d=a-b;while(d>Math.PI)d-=Math.PI*2;while(d<-Math.PI)d+=Math.PI*2;return d}
 const eyesHandStates=[{pinched:false,frames:0,released:0,target:null},{pinched:false,frames:0,released:0,target:null}];
@@ -649,13 +649,14 @@ function eyesHandPinch(p,index){
  const id=hoverNearest(pt.x,pt.y,index)?.dataset.agent||null;
  const down=info.fist,up=!info.fist;
  if(id&&!down)state.lastTarget=id;
+ if(down&&!state.pinched&&state.lastTarget)eyesHoverTracks[index].stable=state.lastTarget;
  if(!state.pinched&&!info.fist)eyesPointToSelect(info,id,index);
  const dot=$('#eyesCursorSurface'+index);
  if(dot)dot.style.transform=down?'translate(-50%,-50%) scale(.72)':'translate(-50%,-50%)';
  if(down){
   state.released=0;
   if(!state.pinched&&++state.frames>=2){
-   const chosen=id||state.lastTarget;
+   const chosen=state.lastTarget||id;
    if(chosen&&!eyesHandStates.some((other,i)=>i!==index&&other.pinched&&other.target===chosen)&&eyesPinchAction(chosen)){
     state.pinched=true;state.target=chosen;
     state.startX=pt.x;state.startY=pt.y;state.lastDraw=0;
@@ -743,7 +744,7 @@ function processTwo(ps){
  const palmsOpen=a.info.open&&b.info.open&&!a.down&&!b.down&&!eyesHandStates.some(st=>st.pinched||st.moved);
  eyesUpdateTwoPalmGesture(ps,palmsOpen&&!resetting,dist,ang);
  twoState={dist,ang,palmsOpen};setHold(false);
- const status='LEFT '+Math.round(a.info.pinchRatio*100)+'% '+(a.id||'—')+' • RIGHT '+Math.round(b.info.pinchRatio*100)+'% '+(b.id||'—');
+ const status='LEFT '+(a.info.fist?'FIST':a.info.open?'OPEN':'POINT')+' '+(a.id||'—')+' • RIGHT '+(b.info.fist?'FIST':b.info.open?'OPEN':'POINT')+' '+(b.id||'—');
  eyesCursorDiagnostic(status);$('#gs').textContent=resetting?'BOTH PINCHES • RESET':'TWO HANDS • FIST GRAB / OPEN PALM NAVIGATION';return status
 }
 // Right-hand-only calibration: MediaPipe handedness is reported for mirrored selfie input.
@@ -754,7 +755,7 @@ function eyesIsRightHand(result,index){
  return label==='right'
 }
 function eyesIsLeftHand(result,index){return String(result.multiHandedness?.[index]?.label||'').toLowerCase()==='left'}
-function drawHands(r){const c=$('#hc'),b=$('.cam'),w=b.clientWidth||300,h=b.clientHeight||225;if(c.width!==w||c.height!==h){c.width=w;c.height=h}const x=c.getContext('2d');x.clearRect(0,0,w,h);const allHands=r.multiHandLandmarks||[];const ps=eyesLeftHandOnly?allHands.filter((_,i)=>eyesIsLeftHand(r,i)):eyesRightHandOnly?allHands.filter((_,i)=>eyesIsRightHand(r,i)):allHands;
+function drawHands(r){const c=$('#hc'),b=$('.cam'),w=b.clientWidth||300,h=b.clientHeight||225;if(c.width!==w||c.height!==h){c.width=w;c.height=h}const x=c.getContext('2d');x.clearRect(0,0,w,h);const allHands=r.multiHandLandmarks||[];const ps=eyesLeftHandOnly?allHands.filter((_,i)=>eyesIsLeftHand(r,i)):eyesRightHandOnly?allHands.filter((_,i)=>eyesIsRightHand(r,i)):allHands.slice();if(ps.length===2){const labels=r.multiHandedness||[];if(labels[0]?.label==='Right'&&labels[1]?.label==='Left')ps.reverse();else if(!labels[0]?.label||!labels[1]?.label)ps.sort((a,b)=>b[0].x-a[0].x)}
  if(allHands.length&&!ps.length){$('#sh').textContent='LEFT HAND ONLY';$('#gs').textContent='SHOW YOUR LEFT HAND • RIGHT HAND IGNORED'}
  if(!ps.length)eyesCursorDiagnostic('EYES CURSOR: NO HAND LANDMARKS • SHOW HAND');
  $('#sh').textContent=ps.length?'TRACKING '+ps.length+' HAND'+(ps.length>1?'S':''):'SEARCHING';let label='NO HAND';for(const p of ps){const inf=ginfo(p);label=inf.label;x.fillStyle=inf.pinch?'#ffd166':'#28d7bd';x.strokeStyle=inf.pinch?'#ffd166':'#5eeaff';x.lineWidth=1.2;p.forEach(q=>{x.beginPath();x.arc((1-q.x)*w,q.y*h,2.4,0,Math.PI*2);x.fill()});[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]].forEach(([a,z])=>{x.beginPath();x.moveTo((1-p[a].x)*w,p[a].y*h);x.lineTo((1-p[z].x)*w,p[z].y*h);x.stroke()})}if(ps.length>=2&&!eyesRightHandOnly&&!eyesLeftHandOnly)label=processTwo(ps);else if(ps.length>=1){
