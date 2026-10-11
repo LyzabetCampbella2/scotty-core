@@ -39,6 +39,9 @@ body.eyes-camera-minimized #vision .cam{width:112px;bottom:76px;opacity:.82}
 </style><style id="scotty-eyes-isolation-css">
 body.eyes-isolate-selection #graph g[data-agent]:not(.agent-selected){opacity:.12;transition:opacity .2s ease}
 body.eyes-isolate-selection #graph g.agent-selected{opacity:1;filter:drop-shadow(0 0 5px #5eeaff)}
+</style><style id="scotty-eyes-dwell-css">
+#graph g.agent-hover circle{stroke-width:3.2!important}
+#graph g.agent-selected circle{stroke:#fff!important;stroke-width:3!important;filter:drop-shadow(0 0 15px #5eeaff)!important}
 </style></head><body>
 <div id="gate"><form class="login" id="lf"><h1>S.C.O.T.T.Y.</h1><p id="lc">Authenticate to enter the visual command layer. After login, tap the voice orb once to arm hands-free listening.</p><input id="pw" type="password" placeholder="Owner password"><button>ENTER HUD</button><div class="err" id="le"></div></form></div>
 <div class="hud"><header class="p top"><div class="logo">S.C.O.T.T.Y.<small>VISUAL COMMAND • AGENT NETWORK • PRIVATE VISION</small></div><div class="chips"><span class="chip on" id="net">ONLINE</span><span class="chip">HUD 3/8 • AGENT MATRIX LIVE</span><span class="chip" id="vs">VOICE OFF</span><span class="chip" id="gs">HANDS OFF</span><span class="chip" id="clock">--:--</span></div></header>
@@ -569,11 +572,25 @@ function eyesPinchAction(id){
  eyesCursorDiagnostic((opened?'OPENED: ':'FAILED: ')+agent.name+' • '+(eyesMultiMode?'MULTI':'SINGLE'));
  return opened
 }
+const eyesPointDwell=[{id:null,since:0,latched:false},{id:null,since:0,latched:false}];
+function eyesPointToSelect(info,id,index){
+ const st=eyesPointDwell[index],now=Date.now();
+ if(!info.point||info.pinch||!id){st.id=null;st.since=0;st.latched=false;return false}
+ if(st.id!==id){st.id=id;st.since=now;st.latched=false;return false}
+ if(!st.latched&&now-st.since>=1250){
+  st.latched=true;
+  const selected=eyesPinchAction(id);
+  if(selected)eyesCursorDiagnostic('POINT & HOLD • SELECTED '+(agents.find(a=>a.id===id)?.name||id));
+  return selected
+ }
+ return false
+}
 function processOne(p){
  eyesHidePointer(1);$('#handCursor2').classList.remove('on');$('#handCursor2').style.display='none';
  const info=ginfo(p),pt=cursorFromHand(p),now=Date.now(),target=hoverNearest(pt.x,pt.y)?.dataset.agent||null,st=eyesOneHand;
  $('#handCursor').classList.toggle('pinch',info.pinch);
  if(target&&!info.pinch)st.lastTarget=target;
+ if(!eyesDrag)eyesPointToSelect(info,target,0);
  if(eyesDrag){
   if(info.pinch){
    if(Math.hypot(pt.x-eyesDrag.startX,pt.y-eyesDrag.startY)>22)eyesDrag.moved=true;
@@ -615,6 +632,7 @@ function eyesHandPinch(p,index){
  const id=hoverNearest(pt.x,pt.y,index)?.dataset.agent||null;
  const down=info.pinch,up=info.pinchRatio>.96;
  if(id&&!down)state.lastTarget=id;
+ if(!state.pinched)eyesPointToSelect(info,id,index);
  const dot=$('#eyesCursorSurface'+index);
  if(dot)dot.style.transform=down?'translate(-50%,-50%) scale(.72)':'translate(-50%,-50%)';
  if(down){
@@ -702,7 +720,7 @@ function drawHands(r){const c=$('#hc'),b=$('.cam'),w=b.clientWidth||300,h=b.clie
   }
   eyesHandStates.forEach(st=>{st.pinched=false;st.frames=0;st.released=0;st.target=null;st.wrist=null;st.moved=false});
   label=processOne(ps[0])
- }else{twoState=null;$('#handCursor').className='';$('#handCursor').style.display='none';$('#handCursor2').classList.remove('on');$('#handCursor2').style.display='none';eyesHidePointer(0);eyesHidePointer(1);resetEyesPinch();eyesHandStates.forEach(st=>{if(st.moved)eyesCommitMove(st.previous);st.pinched=false;st.frames=0;st.released=0;st.target=null;st.wrist=null;st.moved=false});holdSince=0;setHold(false);swipeSeed=null;$('#gs').textContent='SHOW HAND TO CAMERA • CHECK LIGHTING'}$('#gl').textContent='HAND TRACKING: '+label}
+ }else{eyesPointDwell.forEach(st=>{st.id=null;st.since=0;st.latched=false});twoState=null;$('#handCursor').className='';$('#handCursor').style.display='none';$('#handCursor2').classList.remove('on');$('#handCursor2').style.display='none';eyesHidePointer(0);eyesHidePointer(1);resetEyesPinch();eyesHandStates.forEach(st=>{if(st.moved)eyesCommitMove(st.previous);st.pinched=false;st.frames=0;st.released=0;st.target=null;st.wrist=null;st.moved=false});holdSince=0;setHold(false);swipeSeed=null;$('#gs').textContent='SHOW HAND TO CAMERA • CHECK LIGHTING'}$('#gl').textContent='HAND TRACKING: '+label}
 
 $('#eyesMultiSelect').onclick=eyesToggleMulti;$('#eyesClearSelection').onclick=eyesClearSelection;$('#eyesUndoMove').onclick=eyesUndoMove;$('#eyesResetLayout').onclick=eyesResetLayout;
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&stream)stopVision()});addEventListener('beforeunload',stopVision);addEventListener('resize',()=>agents.length&&draw());if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('/hud-sw.js').catch(()=>{}));const wakeLaunch=new URLSearchParams(location.search).get('wake')==='1';if(wakeLaunch){setTimeout(()=>{const v=$('#vs');if(v)v.textContent='TAP ONCE TO WAKE VOICE'},350)};auth();
