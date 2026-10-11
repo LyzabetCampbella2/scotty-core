@@ -417,8 +417,9 @@ function cursorFromHand(p,index=0){
  }
  return{x,y}
 }
-let eyesHoverStableId=null,eyesHoverCandidateId=null,eyesHoverCandidateFrames=0;
-function hoverNearest(x,y){
+const eyesHoverTracks=[{stable:null,candidate:null,frames:0},{stable:null,candidate:null,frames:0}];
+function hoverNearest(x,y,handIndex=0){
+ const track=eyesHoverTracks[handIndex]||eyesHoverTracks[0];
  let best=null,bestDistance=Infinity;
  document.querySelectorAll('#graph g[data-agent]').forEach(g=>{
   const c=g.querySelector('circle');if(!c)return;
@@ -428,16 +429,17 @@ function hoverNearest(x,y){
   if(!Number.isFinite(cx)||!Number.isFinite(cy))return;
   const d=Math.hypot(cx-x,cy-y);if(d<bestDistance){best=g;bestDistance=d}
  });
- const candidate=best&&bestDistance<90?best.dataset.agent:null;
- if(candidate===eyesHoverCandidateId)eyesHoverCandidateFrames++;
- else{eyesHoverCandidateId=candidate;eyesHoverCandidateFrames=1}
- if(eyesHoverCandidateFrames>=3&&candidate!==eyesHoverStableId)eyesHoverStableId=candidate;
- let stable=eyesHoverStableId?document.querySelector('#graph g[data-agent="'+CSS.escape(eyesHoverStableId)+'"]'):null;
- if(stable&&candidate!==eyesHoverStableId){
+ const candidate=best&&bestDistance<105?best.dataset.agent:null;
+ if(candidate===track.candidate)track.frames++;else{track.candidate=candidate;track.frames=1}
+ if(track.frames>=2)track.stable=candidate;
+ let stable=track.stable?document.querySelector('#graph g[data-agent="'+CSS.escape(track.stable)+'"]'):null;
+ if(stable&&candidate!==track.stable){
   const c=stable.querySelector('circle'),m=c?.getScreenCTM();
-  if(m){const x0=Number(c.getAttribute('cx')),y0=Number(c.getAttribute('cy'));if(Math.hypot(m.a*x0+m.c*y0+m.e-x,m.b*x0+m.d*y0+m.f-y)>125&&eyesHoverCandidateFrames>=3){eyesHoverStableId=candidate;stable=candidate?best:null}}
+  if(m){const x0=Number(c.getAttribute('cx')),y0=Number(c.getAttribute('cy'));if(Math.hypot(m.a*x0+m.c*y0+m.e-x,m.b*x0+m.d*y0+m.f-y)>135&&track.frames>=2){track.stable=candidate;stable=candidate?best:null}}
  }
- document.querySelectorAll('#graph g.agent-hover').forEach(g=>{if(g!==stable)g.classList.remove('agent-hover')});
+ document.querySelectorAll('#graph g.agent-hover').forEach(g=>{
+  if(!eyesHoverTracks.some(t=>t.stable===g.dataset.agent))g.classList.remove('agent-hover')
+ });
  if(stable)stable.classList.add('agent-hover');
  return stable;
 }
@@ -472,7 +474,7 @@ function eyesMoveSelectionTogether(id){
 function eyesPinchAction(id){
  if(!id){eyesCursorDiagnostic('PINCH DETECTED • NO NODE UNDER CURSOR');return false}
  const agent=agents.find(a=>a.id===id);if(!agent)return false;
- if(eyesMultiMode)eyesSelectedNodes.add(id)
+ if(eyesMultiMode||eyesHandStates.some(st=>st.pinched))eyesSelectedNodes.add(id)
  else{eyesSelectedNodes.clear();eyesSelectedNodes.add(id)}
  const opened=eyesOpenSelectedNode(id);
  eyesPaintSelection();
@@ -522,7 +524,7 @@ function angleDelta(a,b){let d=a-b;while(d>Math.PI)d-=Math.PI*2;while(d<-Math.PI
 const eyesHandStates=[{pinched:false,frames:0,released:0,target:null},{pinched:false,frames:0,released:0,target:null}];
 function eyesHandPinch(p,index){
  const state=eyesHandStates[index],info=ginfo(p),pt=cursorFromHand(p,index);
- const id=hoverNearest(pt.x,pt.y)?.dataset.agent||null;
+ const id=hoverNearest(pt.x,pt.y,index)?.dataset.agent||null;
  const down=info.pinch,up=info.pinchRatio>.96;
  if(id&&!down)state.lastTarget=id;
  const dot=$('#eyesCursorSurface'+index);
