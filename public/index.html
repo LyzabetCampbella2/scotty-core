@@ -148,7 +148,7 @@ async function loadResources(){try{const d=await api('/api/hud/resources');resou
 let missionPanelPinned=false;
 async function loadActivity(){if(missionPanelPinned)return;try{const d=await api('/api/hud/activity');if(missionPanelPinned)return;$('#activity').innerHTML=(d.items||[]).map(x=>'<div class="evt"><b>'+e(x.source)+' • '+e(x.title)+'</b><p>'+e(x.message)+'</p><time>'+new Date(x.createdAt).toLocaleString()+'</time></div>').join('')||'<div class="evt"><b>SCOTTY</b><p>No new activity.</p></div>'}catch{}}
 function hash(s){let h=0;for(const c of s)h=(Math.imul(h,31)+c.charCodeAt(0))>>>0;return h}
-function applyGraphTransform(){const w=$('#graphWorld');if(!w)return;const c=graphCenter;w.setAttribute('transform','translate('+c.x+' '+c.y+') rotate('+graphRotation+') scale('+graphScale+') translate('+(-c.x)+' '+(-c.y)+')')}
+function applyGraphTransform(){const w=$('#graphWorld');if(!w)return;const c=graphCenter;if(!Number.isFinite(graphScale)||!Number.isFinite(graphRotation)||!Number.isFinite(c?.x)||!Number.isFinite(c?.y)){graphScale=1;graphRotation=0;graphCenter={x:$('#graph').clientWidth/2,y:$('#graph').clientHeight/2}}const p=graphCenter;w.setAttribute('transform','translate('+p.x+' '+p.y+') rotate('+graphRotation+') scale('+graphScale+') translate('+(-p.x)+' '+(-p.y)+')')}
 function showAgentProfile(a){if(missionPanelPinned)return;const chief=a.chiefId?agents.find(x=>x.id===a.chiefId):null,tools=Array.isArray(a.tools)?a.tools:[],collab=Array.isArray(a.collaborators)?a.collaborators:[];$('#activity').innerHTML='<div class="agent-profile"><div class="apname">'+e(a.name)+'</div><div style="color:#7f9eb0;margin:3px 0 8px">'+e(a.department)+' • '+e(a.rank)+'</div><div class="aprow"><span>STATE</span><span>'+e(String(a.state||'idle').toUpperCase())+'</span></div><div class="aprow"><span>CLEARANCE</span><span>L'+e(a.clearance)+'</span></div><div class="aprow"><span>CHIEF</span><span>'+e(chief?.name||'S.C.O.T.T.Y. CORE')+'</span></div><div class="aprow"><span>ROOT</span><span>S.C.O.T.T.Y.</span></div><div class="aprow"><span>MODEL</span><span>'+e(a.model||'local')+'</span></div><div class="aprow"><span>QUEUE</span><span>'+e(a.queueCount||0)+'</span></div><div class="aprow"><span>MEMORY LINKS</span><span>'+e(a.memoryLinks||0)+'</span></div><div class="aprow"><span>VOICE</span><span>'+e(a.voiceMode||'auto')+'</span></div><div class="aptags">'+tools.map(t=>'<span class="aptag">'+e(t.label||t.key)+'</span>').join('')+'</div>'+(a.currentJob?'<div class="apjob"><b>CURRENT JOB</b><br>'+e(a.currentJob)+'</div>':'')+(collab.length?'<div class="apjob"><b>COLLABORATORS</b><br>'+collab.slice(0,8).map(c=>e((agents.find(x=>x.id===c.id)?.name)||c.id)).join(' • ')+'</div>':'')+'</div>'}
 function activateAgent(a){selectedAgentId=a.id;document.querySelectorAll('#graph g[data-agent]').forEach(g=>g.classList.toggle('agent-selected',g.dataset.agent===a.id));$('#cs').textContent=a.name+' • '+a.department;showAgentProfile(a);setTimeout(()=>{if(selectedAgentId===a.id&&a.state==='idle')$('#cs').textContent='LISTENING'},2500)}
 function cycleNav(dir){const n=$$('.nav');if(!n.length)return;let i=n.findIndex(x=>x.classList.contains('active'));i=i<0?0:i;i=(i+dir+n.length)%n.length;n.forEach((x,k)=>x.classList.toggle('active',k===i));const label=(n[i].textContent||'').trim();$('#cs').textContent='NAV • '+label;setTimeout(()=>$('#cs').textContent='LISTENING',1300)}
@@ -710,18 +710,12 @@ function processTwo(ps){
   if(swap<same)ps=[ps[1],ps[0]]
  }
  const a=eyesHandPinch(ps[0],0),b=eyesHandPinch(ps[1],1);
- eyesTwoHandResetGesture(ps);
+ // Hands-up alone does not trigger a reset or transform.
  $('#handCursor').classList.toggle('pinch',a.down);$('#handCursor2').classList.toggle('pinch',b.down);
  const pa=ps[0][9],pb=ps[1][9],dx=pb.x-pa.x,dy=pb.y-pa.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx);
+ // Safety: merely raising open hands must never move, scale or rotate the graph.
+ // Camera landmark jitter previously applied continuous transforms, hiding nodes.
  const palmsOpen=a.info.open&&b.info.open&&!a.down&&!b.down;
- const busy=eyesHandStates.some(st=>st.pinched||st.moved);
- if(palmsOpen&&!busy&&twoState?.palmsOpen){
-  const ratio=dist/Math.max(.001,twoState.dist);
-  if(ratio>.93&&ratio<1.07)graphScale=Math.max(.68,Math.min(1.85,graphScale*ratio));
-  const delta=angleDelta(ang,twoState.ang)*180/Math.PI;
-  if(Math.abs(delta)<9)graphRotation=Math.max(-120,Math.min(120,graphRotation+delta));
-  applyGraphTransform();
- }
  twoState={dist,ang,palmsOpen};setHold(false);
  const status='LEFT '+Math.round(a.info.pinchRatio*100)+'% '+(a.id||'—')+' • RIGHT '+Math.round(b.info.pinchRatio*100)+'% '+(b.id||'—');
  eyesCursorDiagnostic(status);$('#gs').textContent='TWO HANDS • PINCH TO SELECT';return status
