@@ -42,6 +42,7 @@ Bun.serve({port:PORT,async fetch(req){
   if(u.pathname==="/forge"||u.pathname==="/forge/") {const r=await servePublic("public/forge/index.html");if(r)return r}
   if(u.pathname==="/manifest.webmanifest"||u.pathname==="/hud/manifest.json") {const r=await servePublic("public/manifest.webmanifest","application/manifest+json");if(r)return r}
  }
+ if(u.pathname==="/ready") return Response.json({ok:true,service:"scotty-core",status:"ready",time:new Date().toISOString()},{headers:{"cache-control":"no-store"}});
  if(u.pathname==="/health") return handleHealth();
  if(req.method==="GET"&&u.pathname==="/api/connections/setup/status") return Response.json({ok:true,...connectionSetupStatus()},{headers:{"cache-control":"no-store"}});
 
