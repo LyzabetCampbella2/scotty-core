@@ -525,7 +525,7 @@ function eyesHandPinch(p,index){
   state.released=0;
   if(!state.pinched&&++state.frames>=2){
    const chosen=id||state.lastTarget;
-   if(chosen&&eyesPinchAction(chosen)){
+   if(chosen&&!eyesHandStates.some((other,i)=>i!==index&&other.pinched&&other.target===chosen)&&eyesPinchAction(chosen)){
     state.pinched=true;state.target=chosen;
     state.startX=pt.x;state.startY=pt.y;state.lastDraw=0;
     state.previous={};state.starts={};
@@ -581,7 +581,16 @@ function processTwo(ps){
 }
 function drawHands(r){const c=$('#hc'),b=$('.cam'),w=b.clientWidth||300,h=b.clientHeight||225;if(c.width!==w||c.height!==h){c.width=w;c.height=h}const x=c.getContext('2d');x.clearRect(0,0,w,h);const ps=r.multiHandLandmarks||[];
  if(!ps.length)eyesCursorDiagnostic('EYES CURSOR: NO HAND LANDMARKS • SHOW HAND');
- $('#sh').textContent=ps.length?'TRACKING '+ps.length+' HAND'+(ps.length>1?'S':''):'SEARCHING';let label='NO HAND';for(const p of ps){const inf=ginfo(p);label=inf.label;x.fillStyle=inf.pinch?'#ffd166':'#28d7bd';x.strokeStyle=inf.pinch?'#ffd166':'#5eeaff';x.lineWidth=1.2;p.forEach(q=>{x.beginPath();x.arc((1-q.x)*w,q.y*h,2.4,0,Math.PI*2);x.fill()});[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]].forEach(([a,z])=>{x.beginPath();x.moveTo((1-p[a].x)*w,p[a].y*h);x.lineTo((1-p[z].x)*w,p[z].y*h);x.stroke()})}if(ps.length>=2)label=processTwo(ps);else if(ps.length===1){twoState=null;eyesHandStates.forEach(st=>{if(st.moved)eyesCommitMove(st.previous);st.pinched=false;st.frames=0;st.released=0;st.target=null;st.wrist=null;st.moved=false});label=processOne(ps[0])}else{twoState=null;$('#handCursor').className='';$('#handCursor').style.display='none';$('#handCursor2').classList.remove('on');$('#handCursor2').style.display='none';eyesHidePointer(0);eyesHidePointer(1);resetEyesPinch();eyesHandStates.forEach(st=>{if(st.moved)eyesCommitMove(st.previous);st.pinched=false;st.frames=0;st.released=0;st.target=null;st.wrist=null;st.moved=false});holdSince=0;setHold(false);swipeSeed=null;$('#gs').textContent='SHOW HAND TO CAMERA • CHECK LIGHTING'}$('#gl').textContent='HAND TRACKING: '+label}
+ $('#sh').textContent=ps.length?'TRACKING '+ps.length+' HAND'+(ps.length>1?'S':''):'SEARCHING';let label='NO HAND';for(const p of ps){const inf=ginfo(p);label=inf.label;x.fillStyle=inf.pinch?'#ffd166':'#28d7bd';x.strokeStyle=inf.pinch?'#ffd166':'#5eeaff';x.lineWidth=1.2;p.forEach(q=>{x.beginPath();x.arc((1-q.x)*w,q.y*h,2.4,0,Math.PI*2);x.fill()});[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]].forEach(([a,z])=>{x.beginPath();x.moveTo((1-p[a].x)*w,p[a].y*h);x.lineTo((1-p[z].x)*w,p[z].y*h);x.stroke()})}if(ps.length>=2)label=processTwo(ps);else if(ps.length===1){
+  twoState=null;
+  const active=eyesHandStates.find(st=>st.pinched||st.moved);
+  if(active){
+   if(active.moved)eyesCommitMove(active.previous);
+   eyesOneHand.armed=false;eyesOneHand.downFrames=0;eyesOneHand.upFrames=0;
+  }
+  eyesHandStates.forEach(st=>{st.pinched=false;st.frames=0;st.released=0;st.target=null;st.wrist=null;st.moved=false});
+  label=processOne(ps[0])
+ }else{twoState=null;$('#handCursor').className='';$('#handCursor').style.display='none';$('#handCursor2').classList.remove('on');$('#handCursor2').style.display='none';eyesHidePointer(0);eyesHidePointer(1);resetEyesPinch();eyesHandStates.forEach(st=>{if(st.moved)eyesCommitMove(st.previous);st.pinched=false;st.frames=0;st.released=0;st.target=null;st.wrist=null;st.moved=false});holdSince=0;setHold(false);swipeSeed=null;$('#gs').textContent='SHOW HAND TO CAMERA • CHECK LIGHTING'}$('#gl').textContent='HAND TRACKING: '+label}
 
 $('#eyesMultiSelect').onclick=eyesToggleMulti;$('#eyesClearSelection').onclick=eyesClearSelection;$('#eyesUndoMove').onclick=eyesUndoMove;$('#eyesResetLayout').onclick=eyesResetLayout;
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&stream)stopVision()});addEventListener('beforeunload',stopVision);addEventListener('resize',()=>agents.length&&draw());if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('/hud-sw.js').catch(()=>{}));const wakeLaunch=new URLSearchParams(location.search).get('wake')==='1';if(wakeLaunch){setTimeout(()=>{const v=$('#vs');if(v)v.textContent='TAP ONCE TO WAKE VOICE'},350)};auth();
