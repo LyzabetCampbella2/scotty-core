@@ -493,8 +493,8 @@ async function startHands(){
  hands=new Hands({locateFile:f=>'https://cdn.jsdelivr.net/npm/@mediapipe/hands/'+f});
  hands.setOptions({maxNumHands:2,modelComplexity:0,minDetectionConfidence:.45,minTrackingConfidence:.45});
  hands.onResults(result=>{try{drawHands(result)}catch(err){console.error('Eyes On gesture UI error:',err);eyesCursorDiagnostic('GESTURE ERROR: '+String(err?.message||err).slice(0,90));$('#gs').textContent='GESTURE UI ERROR • CAMERA STILL ACTIVE'}});tracking=true;$('#sh').textContent='STARTING';$('#gs').textContent='LOOK AT CAMERA • SHOW YOUR HAND';
- let failures=0;
- const loop=async()=>{if(!tracking||!stream)return;try{const v=$('#video');if(v.readyState>=2){await hands.send({image:v});failures=0}}catch(err){if(++failures===1||failures%30===0){console.warn('Eyes On hand tracker:',err);$('#sh').textContent='TRACKER ERROR';$('#gs').textContent='TRACKER ERROR • CHECK CONNECTION';$('#gl').textContent='HAND TRACKING ERROR: '+String(err?.message||err).slice(0,70)}}finally{if(tracking&&stream)requestAnimationFrame(loop)}};loop()
+ let failures=0,lastFrame=0;
+ const loop=async(timestamp=0)=>{if(!tracking||!stream)return;if(timestamp-lastFrame<85){requestAnimationFrame(loop);return}lastFrame=timestamp;try{const v=$('#video');if(v.readyState>=2){await hands.send({image:v});failures=0}}catch(err){if(++failures===1||failures%30===0){console.warn('Eyes On hand tracker:',err);$('#sh').textContent='TRACKER ERROR';$('#gs').textContent='TRACKER ERROR • CHECK CONNECTION';$('#gl').textContent='HAND TRACKING ERROR: '+String(err?.message||err).slice(0,70)}}finally{if(tracking&&stream)requestAnimationFrame(loop)}};requestAnimationFrame(loop)
 }
 function ginfo(p){
  const d=(a,b)=>Math.hypot(p[a].x-p[b].x,p[a].y-p[b].y);
