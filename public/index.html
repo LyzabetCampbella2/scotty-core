@@ -492,7 +492,7 @@ function stopVision(){voiceCamera=false;tracking=false;if(stream){stream.getTrac
 async function startHands(){
  if(typeof Hands==='undefined'){ $('#sh').textContent='TRACKER NOT LOADED';$('#gs').textContent='HAND TRACKER UNAVAILABLE';throw Error('hand tracker unavailable')}
  hands=new Hands({locateFile:f=>'https://cdn.jsdelivr.net/npm/@mediapipe/hands/'+f});
- hands.setOptions({maxNumHands:2,modelComplexity:0,minDetectionConfidence:.45,minTrackingConfidence:.45});
+ hands.setOptions({maxNumHands:1,modelComplexity:0,minDetectionConfidence:.45,minTrackingConfidence:.45});
  hands.onResults(result=>{try{drawHands(result)}catch(err){console.error('Eyes On gesture UI error:',err);eyesCursorDiagnostic('GESTURE ERROR: '+String(err?.message||err).slice(0,90));$('#gs').textContent='GESTURE UI ERROR • CAMERA STILL ACTIVE'}});tracking=true;$('#sh').textContent='STARTING';$('#gs').textContent='LOOK AT CAMERA • SHOW YOUR HAND';
  let failures=0,lastFrame=0;
  const loop=async(timestamp=0)=>{if(!tracking||!stream)return;if(timestamp-lastFrame<85){requestAnimationFrame(loop);return}lastFrame=timestamp;try{const v=$('#video');if(v.readyState>=2){await hands.send({image:v});failures=0}}catch(err){if(++failures===1||failures%30===0){console.warn('Eyes On hand tracker:',err);$('#sh').textContent='TRACKER ERROR';$('#gs').textContent='TRACKER ERROR • CHECK CONNECTION';$('#gl').textContent='HAND TRACKING ERROR: '+String(err?.message||err).slice(0,70)}}finally{if(tracking&&stream)requestAnimationFrame(loop)}};requestAnimationFrame(loop)
@@ -792,7 +792,7 @@ function eyesV2Hands(result){
  }
  ctx.strokeStyle='#5eeaff';ctx.fillStyle='#28d7bd';ctx.lineWidth=1.4;
  for(const [a,z] of [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20]]){
-  ctx.beginPath();ctx.moveTo((1-p[a].x)*w,p[a].y*h);ctx.lineTo((1-p[z].x)*w,p[z].y*h);ctx.stroke()
+  ctx.beginPath();ctx.moveTo((1-p[a].x)*w,p[a].y*canvasHeight);ctx.lineTo((1-p[z].x)*w,p[z].y*canvasHeight);ctx.stroke()
  }
  p.forEach(q=>{ctx.beginPath();ctx.arc((1-q.x)*w,q.y*canvasHeight,2.5,0,Math.PI*2);ctx.fill()});
  const info=ginfo(p),pt=cursorFromHand(p,1),now=Date.now();
