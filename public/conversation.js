@@ -59,6 +59,8 @@
   db.remember('user',control.text,threadId);render();caption('YOU',control.text);
   try{
    if(recap&&!history.length){const reply='No earlier conversation is recorded in this thread yet.';db.remember('assistant',reply,threadId);await speak(reply);return}
+   const daily=recap?null:await window.SCOTTYDaily?.handleCommand(text,{signal});if(seq!==run||signal.aborted)return;
+   if(daily?.handled){db.pending(null,threadId);db.remember('assistant',daily.reply,threadId);render();await speak(daily.reply);return}
    const canvas=recap?null:eyesVoiceCommand(text);
    if(canvas){const query=text.match(/^(?:find|focus|show|open|go to) (?:my |the )?(agent|chief|project|task|file|folder|node) (?:named |called )?(.+)$/i);db.pending(query&&/^(?:I found|No .+ named)/.test(canvas)?{question:canvas,canvasPrefix:text.slice(0,text.length-query[2].length),options:window.SCOTTYSpatial?.searchNodes(query[2],query[1]==='node'?'all':query[1]).slice(0,6).map(n=>n.name)||[]}:null,threadId);db.remember('assistant',canvas,threadId);await speak(canvas);return}
    const structured=!recap&&!pending&&/^\s*(?:(?:open|show)\s+(?:live ops|missions?|mission control)|(?:start|create|launch)\s+(?:a\s+)?(?:(?:autonomous|auto)\s+)?mission(?:\s+(?:to|for))?|(?:ask|tell|bring in)\s+[^:]+:|(?:approve|approved|approve it|yes approve)|(?:remember|save to memory)\b|(?:show|list|open)\s+(?:my\s+)?(?:agent\s+)?(?:mission\s+history|previous\s+missions)\s*$|(?:continue|resume)\s+(?:agent\s+)?mission\s+[0-9a-f-]{36}\s*:|(?:assemble|coordinate|assign)\s+(?:the\s+)?(?:best\s+)?(?:agents|chiefs|team)\s+(?:to|for)\s+)/i.test(text);

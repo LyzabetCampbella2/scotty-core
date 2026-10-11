@@ -39,7 +39,7 @@ test('reviewed speech produces an editable draft and no request until send',asyn
  const h=hud();await h.run('heard("Scotty, plan my day")');assert.equal(h.posted.length,0);assert.equal(h.els.get('#conversationDraft').value,'plan my day');h.els.get('#conversationDraft').value='plan tomorrow';await h.els.get('#conversationDraftSend').onclick();await new Promise(r=>setImmediate(r));assert.equal(h.posted[0].text,'plan tomorrow');
 });
 test('interruption aborts old request and suppresses its eventual response',async()=>{
- let finish;const h=hud(()=>new Promise(resolve=>{finish=resolve}));const old=h.run('command("old request")');await h.run('command("stop")');finish({ok:true,json:async()=>({ok:true,reply:'obsolete'})});await old;assert.deepEqual(h.speeches,[]);assert.equal(h.els.get('#cs').textContent,'Response stopped.');
+ let finish;const h=hud(()=>new Promise(resolve=>{finish=resolve}));const old=h.run('command("old request")');await new Promise(r=>setImmediate(r));await h.run('command("stop")');finish({ok:true,json:async()=>({ok:true,reply:'obsolete'})});await old;assert.deepEqual(h.speeches,[]);assert.equal(h.els.get('#cs').textContent,'Response stopped.');
 });
 test('spoken stop works during speech, while speaker echo is ignored',async()=>{
  const h=hud();h.ctx.speaking=true;await h.run('heard("generated answer")');assert.equal(h.posted.length,0);assert.equal(h.ctx.speaking,true);await h.run('heard("Scotty, stop")');assert.equal(h.ctx.speaking,false);await h.run('heard("Scotty stop by the store")');assert.equal(h.els.get('#conversationDraft').value,'stop by the store');

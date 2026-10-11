@@ -43,7 +43,7 @@ async function providerInfo(){
  try{googleConnection=(await connectionStatus()).connections.google}catch{}
  return [
   {id:"telegram",label:"Telegram",configured:Boolean(env.TELEGRAM_BOT_TOKEN),operations:["send_message"]},
-  {id:"google",label:"Google",configured:Boolean(googleConnection?.configured||env.GOOGLE_ACCESS_TOKEN),accountEmail:googleConnection?.accountEmail||null,operations:["gmail_send","calendar_create","drive_create_text"],connectionMode:googleConnection?.configured?"oauth":"legacy_or_unconnected"},
+  {id:"google",label:"Google",configured:Boolean(googleConnection?.configured||env.GOOGLE_ACCESS_TOKEN),accountEmail:googleConnection?.accountEmail||null,operations:["gmail_send","calendar_create","calendar_update","drive_create_text"],connectionMode:googleConnection?.configured?"oauth":"legacy_or_unconnected"},
   {id:"github",label:"GitHub",configured:Boolean(env.SCOTTY_GITHUB_TOKEN||env.GITHUB_TOKEN),operations:["create_issue","comment_issue"]},
   {id:"slack",label:"Slack",configured:Boolean(env.SLACK_BOT_TOKEN),operations:["send_message"]},
   {id:"dropbox",label:"Dropbox",configured:Boolean(env.DROPBOX_ACCESS_TOKEN),operations:["upload_text"]},
@@ -104,12 +104,27 @@ async function google(op:string,p:any){
   const d=await fetchJson("https://gmail.googleapis.com/gmail/v1/users/me/messages/send",{method:"POST",headers,body:JSON.stringify({raw:b64url(raw)})});
   return {id:d.id,threadId:d.threadId};
  }
- if(op==="calendar_create"){
+ if(op==="calendar_create"||op==="calendar_update"){
   const summary=String(p.summary||p.title||"").trim(),start=String(p.start||"").trim(),end=String(p.end||"").trim();
   if(!summary||!start||!end)throw new Error("Calendar summary, start, and end are required");
   const event:any={summary,description:String(p.description||""),start:{dateTime:start},end:{dateTime:end}};
   if(p.timeZone){event.start.timeZone=String(p.timeZone);event.end.timeZone=String(p.timeZone)}
-  const d=await fetchJson("https://www.googleapis.com/calendar/v3/calendars/primary/events",{method:"POST",headers,body:JSON.stringify(event)});
+  const base="https://www.googleapis.com/calendar/v3/calendars/primary/events";
+  let d:any;
+  if(op==="calendar_update"||p.requestId){
+   const id=String(op==="calendar_update"?p.eventId:p.requestId||"");
+   if(!/^[a-zA-Z0-9_-]{5,1024}$/.test(id))throw Error("Invalid calendar event ID");
+   if(op==="calendar_create")event.id=id;
+   const r=await fetch(op==="calendar_update"?base+"/"+encodeURIComponent(id):base,{method:op==="calendar_update"?"PATCH":"POST",headers:{...headers,...(op==="calendar_update"&&p.etag?{"If-Match":String(p.etag)}:{})},body:JSON.stringify(event),signal:AbortSignal.timeout(20000)});
+   d=await r.json().catch(()=>({}));
+   if(!r.ok){
+    if((op==="calendar_create"&&r.status===409)||(op==="calendar_update"&&r.status===412)){
+     const old=await fetchJson(base+"/"+encodeURIComponent(id),{method:"GET",headers});
+     if(old.summary===summary&&String(old.description||"")===event.description&&new Date(old.start?.dateTime).getTime()===new Date(start).getTime()&&new Date(old.end?.dateTime).getTime()===new Date(end).getTime())d=old;
+     else throw Error("Calendar event changed. Make a fresh preview before trying again.");
+    }else throw Error(String(d?.error?.message||"Calendar action failed"));
+   }
+  }else d=await fetchJson(base,{method:"POST",headers,body:JSON.stringify(event)});
   return {id:d.id,url:d.htmlLink,summary:d.summary};
  }
  if(op==="drive_create_text"){
