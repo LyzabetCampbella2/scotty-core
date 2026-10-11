@@ -177,11 +177,14 @@ const eyesDragVisualCache=new Map();
 function eyesMoveNode(id,x,y){const p=eyesGraphPoint(x,y);if(!p)return;const svg=$('#graph'),w=svg.clientWidth||700,h=svg.clientHeight||550;eyesNodePositions[id]={x:Math.max(12,Math.min(w-12,p.x)),y:Math.max(12,Math.min(h-12,p.y))};draw()}
 const eyesMoveHistory=[];
 const eyesSelectedNodes=new Set();let eyesMultiMode=false;
-function eyesPaintSelection(){document.querySelectorAll('#graph g[data-agent]').forEach(g=>g.classList.toggle('agent-selected',eyesSelectedNodes.has(g.dataset.agent)||(!eyesMultiMode&&g.dataset.agent===selectedAgentId)))}
+function eyesPaintSelection(){if(window.SCOTTYSpatial){window.SCOTTYSpatial.syncLegacySelection([...eyesSelectedNodes]);return}document.querySelectorAll('#graph g[data-agent]').forEach(g=>g.classList.toggle('agent-selected',eyesSelectedNodes.has(g.dataset.agent)||(!eyesMultiMode&&g.dataset.agent===selectedAgentId)))}
 function eyesSetMulti(on){if(eyesMultiMode!==on)eyesToggleMulti();else $('#cs').textContent='MULTI-SELECT ALREADY '+(on?'ON':'OFF')}
 function eyesVoiceCommand(t){
  const l=normalizedSpeech(t).replace(/^(scotty|scottie|scoty)\s*/,'').trim();
  if(/\b(?:multi select|multiple select|group select)\b/.test(l)){eyesSetMulti(!/\b(off|disable|stop)\b/.test(l));return 'Multi-select '+(eyesMultiMode?'on':'off')+'.'}
+ if(/^(?:spread(?: out)?(?: (?:the )?nodes)?|expand node spacing)$/.test(l)){window.SCOTTYSpatial?.spreadBy(1.25);return 'Nodes spread apart.'}
+ if(/^(?:regroup(?: (?:the )?nodes)?|bring (?:the )?nodes (?:back )?together|reset node spacing)$/.test(l)){window.SCOTTYSpatial?.regroup();return 'Nodes regrouped.'}
+ if(/^(?:call|bring in) (?:the )?selected (?:agents|nodes|team)$/.test(l)){return window.SCOTTYSpatial?.callSelected()||'Select agents first.'}
  if(/\b(?:focus (?:selected )?node|zoom to selection)\b/.test(l)){return eyesFocusSelected()?'Focused on selected node.':'Select a node first.'}
  if(/\b(?:fit all|show all nodes|reset zoom)\b/.test(l)){eyesFitAll();return 'Showing all nodes.'}
  if(/\b(?:select all chiefs|highlight chiefs)\b/.test(l)){eyesSelectChiefs();return 'All chiefs selected.'}
@@ -204,6 +207,7 @@ function eyesVoiceCommand(t){
  return null
 }
 function eyesToggleMulti(){
+ if(window.SCOTTYSpatial){window.SCOTTYSpatial.setMulti(!eyesMultiMode);return}
  try{eyesMultiMode=!eyesMultiMode;if(!eyesMultiMode)eyesSelectedNodes.clear();
  $('#eyesMultiSelect').textContent='MULTI-SELECT: '+(eyesMultiMode?'ON':'OFF');
  eyesPaintSelection();$('#cs').textContent=eyesMultiMode?'MULTI-SELECT • PINCH NODES':'SINGLE NODE MODE';
@@ -249,6 +253,7 @@ function eyesSelectDepartment(){
  $('#cs').textContent='DEPARTMENT • '+agent.department+' • '+eyesSelectedNodes.size+' AGENTS';return true
 }
 function eyesSelectionSummary(){
+ if(window.SCOTTYSpatial)return window.SCOTTYSpatial.selectionSummary();
  const names=[...eyesSelectedNodes].map(id=>agents.find(a=>a.id===id)?.name).filter(Boolean);
  const message=names.length?names.length+' agents selected: '+names.slice(0,5).join(', ')+(names.length>5?' and '+(names.length-5)+' more':'')+'.':'No agents selected.';
  $('#cs').textContent=message;return message
@@ -282,7 +287,7 @@ function eyesHighlightSelectionOnly(on){
  eyesPaintSelection();$('#cs').textContent=on?'EYES ON • ISOLATING SELECTION':'EYES ON • SHOWING ALL AGENTS';
  return on
 }
-function eyesClearSelection(){eyesSelectedNodes.clear();eyesPaintSelection();$('#cs').textContent='NODE SELECTION CLEARED'}
+function eyesClearSelection(){if(window.SCOTTYSpatial){window.SCOTTYSpatial.clearSelection();return}eyesSelectedNodes.clear();eyesPaintSelection();$('#cs').textContent='NODE SELECTION CLEARED'}
 function eyesCommitMove(previous){eyesMoveHistory.push({positions:previous});if(eyesMoveHistory.length>30)eyesMoveHistory.shift();eyesSavePositions()}
 
 function eyesUndoMove(){const last=eyesMoveHistory.pop();if(!last){$('#cs').textContent='NO NODE MOVES TO UNDO';return}for(const [id,previous] of Object.entries(last.positions)){if(previous)eyesNodePositions[id]=previous;else delete eyesNodePositions[id]}eyesSavePositions();draw();$('#cs').textContent='LAST NODE MOVE UNDONE'}
@@ -367,8 +372,9 @@ async function command(t){t=(t||$('#ci').value).trim();if(!t)return;$('#ci').val
   $('#activity').innerHTML='<div class="agent-profile"><div class="apname">CHIEF PLAN — APPROVAL REQUIRED</div><div class="apjob"><b>MISSION</b><p>'+e(plan.task)+'</p></div>'+rows+'<button type="button" data-scotty-approve-plan="'+e(plan.planId)+'">APPROVE & EXECUTE</button> <button type="button" data-scotty-close-missions>CANCEL / BACK</button></div>';
   $('#cs').textContent='AWAITING YOUR APPROVAL';return;
  }
+ const selectedMission=t.match(/^\s*(?:scotty[, ]*)?(?:ask|tell|bring in)\s+(?:the )?selected (?:agents|nodes|team)\s*:\s*(.+)$/i);
  const m=t.match(/^\s*(?:ask|bring in)\s+([^:]+):\s*(.+)$/i);
- if(m){const names=m[1].split(/\s*(?:,|\band\b|\+)\s*/i).map(x=>x.trim().toLowerCase()).filter(Boolean),ids=agents.filter(a=>names.some(n=>a.name.toLowerCase()===n||a.name.toLowerCase().includes(n))).map(a=>a.id).slice(0,8);if(ids.length){$('#cs').textContent='MULTI-AGENT • '+ids.length;const r=await api('/api/hud/agents/run',{method:'POST',body:JSON.stringify({agents:ids,task:m[2]})});await loadAgents();const ok=(r.results||[]).filter(x=>x.status==='completed');const summary=ok.map(x=>x.name+': '+x.result).join('\n\n');window.SCOTTYSpatial?.focusMention?.(summary||m[1]);await speak(summary||'The agent team finished with errors.');return}}
+ if(m||selectedMission){const names=m?m[1].split(/\s*(?:,|\band\b|\+)\s*/i).map(x=>x.trim().toLowerCase()).filter(Boolean):[],ids=selectedMission?(window.SCOTTYSpatial?.selectedAgentIds()||[]):agents.filter(a=>names.some(n=>a.name.toLowerCase()===n||a.name.toLowerCase().includes(n))).map(a=>a.id).slice(0,8);if(selectedMission&&(!ids.length||ids.length>8)){const message=ids.length>8?'Select up to 8 agents for one team mission.':'Select agents first.';$('#cs').textContent=message;return};if(ids.length){$('#cs').textContent='MULTI-AGENT • '+ids.length;const r=await api('/api/hud/agents/run',{method:'POST',body:JSON.stringify({agents:ids,task:selectedMission?selectedMission[1]:m[2]})});await loadAgents();const ok=(r.results||[]).filter(x=>x.status==='completed');const summary=ok.map(x=>x.name+': '+x.result).join('\n\n');window.SCOTTYSpatial?.focusMention?.(summary||(selectedMission?selectedMission[1]:m[1]));await speak(summary||'The agent team finished with errors.');return}}
  window.SCOTTYSpatial?.focusMention?.(t);const r=await api('/api/hud/command',{method:'POST',body:JSON.stringify({text:t})});if(r.focusNode){await loadResources();window.SCOTTYSpatial?.focusId?.(r.focusNode)}else window.SCOTTYSpatial?.focusMention?.(r.reply||t);await speak(r.reply||'Done.');$('#cs').textContent=r.handled?'ACTING':'ROUTING'
 }catch(z){missionPanelPinned=true;$('#cs').textContent='COMMAND ERROR';$('#activity').innerHTML='<div class="agent-profile"><div class="apname">COMMAND ERROR</div><div class="apjob"><b>DETAILS</b><p>'+e(z?.message||'Unknown error')+'</p></div><button type="button" data-scotty-close-missions>BACK TO ACTIVITY</button></div>';try{await speak('Command bridge error. '+(z?.message||'Please review the HUD error panel'))}catch{}}finally{setTimeout(()=>{if(!speaking)$('#cs').textContent=voiceArmed?'LISTENING':'READY'},1800)}}
 $('#send').onclick=()=>command();$('#ci').onkeydown=x=>{if(x.key==='Enter')command()};
@@ -807,16 +813,19 @@ function eyesV2Hands(result){
   h.wrist={x:p[0].x,y:p[0].y};el?.classList.toggle('pinch',infos[i].pinch);
  }
  const dual=assigned.every(Boolean)&&infos.every(i=>i.pinch);
- if(dual&&canvas){
-  if(!eyesV2.nav){
-   hands.forEach((h,i)=>{eyesV2Release(i);h.down=true;h.blocked=true});
+ const bothOpen=assigned.every(Boolean)&&infos.every(i=>i.open&&!i.pinch),navMode=dual?'view':bothOpen?'spread':null;
+ if(navMode&&canvas){
+  if(!eyesV2.nav||eyesV2.nav.mode!==navMode){
+   hands.forEach((h,i)=>{eyesV2Release(i);h.down=infos[i].pinch;h.blocked=true});
    const [a,z]=points;
-   eyesV2.nav={dist:Math.max(30,Math.hypot(z.x-a.x,z.y-a.y)),ang:Math.atan2(z.y-a.y,z.x-a.x),angle:0,view:canvas.handView(),x:(a.x+z.x)/2,y:(a.y+z.y)/2};
+   eyesV2.nav={mode:navMode,dist:Math.max(30,Math.hypot(z.x-a.x,z.y-a.y)),ang:Math.atan2(z.y-a.y,z.x-a.x),angle:0,view:canvas.handView(),x:(a.x+z.x)/2,y:(a.y+z.y)/2};
   }
   const [a,z]=points,n=eyesV2.nav,ang=Math.atan2(z.y-a.y,z.x-a.x);
   n.angle+=angleDelta(ang,n.ang);n.ang=ang;
-  canvas.handTransform(n.view,Math.hypot(z.x-a.x,z.y-a.y)/n.dist,n.angle,(a.x+z.x)/2-n.x,(a.y+z.y)/2-n.y);
-  eyesV2.pan=null;$('#gs').textContent='TWO PINCHES • ZOOM / ROTATE / PAN';
+  const ratio=Math.hypot(z.x-a.x,z.y-a.y)/n.dist;
+  if(navMode==='spread')canvas.handSpread(n.view.spread*ratio);
+  else canvas.handTransform(n.view,ratio,n.angle,(a.x+z.x)/2-n.x,(a.y+z.y)/2-n.y);
+  eyesV2.pan=null;$('#gs').textContent=navMode==='spread'?'TWO OPEN PALMS • SPREAD / REGROUP':'TWO PINCHES • ZOOM / ROTATE / PAN';
  }else{
   if(eyesV2.nav){eyesV2.nav=null;canvas?.handEndView()}
   const open=assigned.filter(Boolean).length===1?infos.findIndex(i=>i?.open&&!i.pinch):-1;
@@ -903,24 +912,46 @@ body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infini
  }
  function groupKey(n){if(n.type==='project')return 'project:'+n.raw?.id;if(n.type==='agent'&&n.raw?.isChief)return 'dept:'+n.raw?.department;return null}
  function toggleGroup(n){const k=groupKey(n);if(!k)return;collapsedSet.has(k)?collapsedSet.delete(k):collapsedSet.add(k);document.querySelector('#cs').textContent=(collapsedSet.has(k)?'COLLAPSED • ':'EXPANDED • ')+n.name;saveViewSoon();synthesize()}
- function renderNodes(){stage.innerHTML='';for(const n of nodes){const b=document.createElement('button');b.type='button';b.className='snode';b.dataset.id=n.id;b.dataset.type=n.type;if(n.type==='agent'&&n.raw?.isChief)b.dataset.chief='1';b.innerHTML='<span class="glyph">'+({agent:(n.raw?.isChief?'C':'A'),project:'P',file:'F',folder:'▰',task:'T',memory:'M'}[n.type])+'</span><span class="nl">'+safe(n.name)+'</span>';b.addEventListener('click',e=>{e.stopPropagation();const now=Date.now(),k=groupKey(n);if(k&&lastGroupNode===n.id&&now-lastGroupTap<650){lastGroupNode=null;lastGroupTap=0;toggleGroup(n);return}lastGroupNode=n.id;lastGroupTap=now;select(n)});b.addEventListener('pointerdown',e=>{e.stopPropagation();grabbed=n;grabMoved=false;grabPoint={x:e.clientX,y:e.clientY};document.body.classList.add('spatial-node-grab');try{b.setPointerCapture(e.pointerId)}catch{}});b.addEventListener('pointermove',e=>{if(grabbed!==n||!grabPoint)return;const dx=e.clientX-grabPoint.x,dy=e.clientY-grabPoint.y;if(Math.hypot(dx,dy)>3)grabMoved=true;n.ox+=dx/Math.max(.55,zoom);n.oy+=dy/Math.max(.55,zoom);grabPoint={x:e.clientX,y:e.clientY}});b.addEventListener('pointerup',()=>{if(grabbed===n)window.SCOTTYSpatial?.release?.()});stage.appendChild(b);n.el=b}}
+ function renderNodes(){stage.innerHTML='';for(const n of nodes){const b=document.createElement('button');b.type='button';b.className='snode';b.dataset.id=n.id;b.classList.toggle('selected',selectedSet.has(n.id));b.dataset.type=n.type;if(n.type==='agent'&&n.raw?.isChief)b.dataset.chief='1';b.innerHTML='<span class="glyph">'+({agent:(n.raw?.isChief?'C':'A'),project:'P',file:'F',folder:'▰',task:'T',memory:'M'}[n.type])+'</span><span class="nl">'+safe(n.name)+'</span>';b.addEventListener('click',e=>{e.stopPropagation();const now=Date.now(),k=groupKey(n);if(k&&!eyesMultiMode&&lastGroupNode===n.id&&now-lastGroupTap<650){lastGroupNode=null;lastGroupTap=0;toggleGroup(n);return}lastGroupNode=n.id;lastGroupTap=now;select(n,eyesMultiMode||e.shiftKey||e.metaKey||e.ctrlKey)});b.addEventListener('pointerdown',e=>{e.stopPropagation();grabbed=n;grabMoved=false;grabPoint={x:e.clientX,y:e.clientY};document.body.classList.add('spatial-node-grab');try{b.setPointerCapture(e.pointerId)}catch{}});b.addEventListener('pointermove',e=>{if(grabbed!==n||!grabPoint)return;const dx=e.clientX-grabPoint.x,dy=e.clientY-grabPoint.y;if(Math.hypot(dx,dy)>3)grabMoved=true;n.ox+=dx/Math.max(.55,zoom);n.oy+=dy/Math.max(.55,zoom);grabPoint={x:e.clientX,y:e.clientY}});b.addEventListener('pointerup',()=>{if(grabbed===n)window.SCOTTYSpatial?.release?.()});stage.appendChild(b);n.el=b}paintSelection(false)}
  function nodeFolders(n){if(n.type==='agent')return[{name:'Memory',desc:'Shared + private context'},{name:'Tasks',desc:'Current and queued work'},{name:'Files',desc:'Agent working files'},{name:'Projects',desc:'Linked projects'},{name:'Reports',desc:'Results and receipts'}];if(n.type==='project')return[{name:'Files',desc:'Project documents'},{name:'Agents',desc:'Assigned agents/chiefs'},{name:'Memory',desc:'Project shared context'},{name:'Tasks',desc:'Project work queue'},{name:'Exports',desc:'Finished outputs'}];if(n.type==='file')return[{name:'Versions',desc:'File history'},{name:'Related',desc:'Linked files'},{name:'Memory',desc:'Context for this file'},{name:'Attachments',desc:'Attached assets'}];if(n.type==='folder')return[{name:'Contents',desc:'Files and subfolders'},{name:'Memory',desc:'Folder context'},{name:'Related',desc:'Linked nodes'}];if(n.type==='task')return[{name:'Agent',desc:'Assigned specialist'},{name:'Project',desc:'Task workspace'},{name:'Memory',desc:'Shared task context'},{name:'Related',desc:'Linked nodes'}];return[{name:'Linked Agents',desc:'Agents sharing this memory'},{name:'Projects',desc:'Projects using this context'},{name:'History',desc:'Recent memory activity'}]}
  function openFolder(n,i){const f=nodeFolders(n)[i],v=nd.querySelector('#folderview');if(!f||!v)return;let body='';if(f.name==='Agents'||f.name==='Linked Agents')body=nodes.filter(x=>x.type==='agent'&&(n.type!=='project'||x.raw.department===n.raw.department)).slice(0,40).map(x=>safe(x.name)).join(' • ')||'No linked agents';else if(f.name==='Memory')body='Connected to S.C.O.T.T.Y. Unified Shared Memory. Changes and useful context can be shared across chiefs and agents.';else if(f.name==='Files'||f.name==='Contents')body=nodes.filter(x=>x.type==='file'||x.type==='folder').slice(0,24).map(x=>safe(x.name)).join(' • ')||'No indexed files yet';else if(f.name==='Projects')body=nodes.filter(x=>x.type==='project').map(x=>safe(x.name)).join(' • ');else body='This folder is ready for '+safe(n.name)+' and will show its '+safe(f.name).toLowerCase()+' here.';v.style.display='block';v.innerHTML='<h4>▰ '+safe(f.name)+'</h4>'+body}
- function paintSelection(){nodes.forEach(x=>x.el.classList.toggle('selected',selectedSet.has(x.id)));const names=nodes.filter(x=>selectedSet.has(x.id)).map(x=>x.name);document.querySelector('#cs').textContent=names.length?(names.length+' SELECTED • '+names.join(' + ')):'LISTENING'}
- function select(n,multi=false){selected=n;if(multi){if(selectedSet.has(n.id))selectedSet.delete(n.id);else selectedSet.add(n.id)}else{selectedSet.clear();selectedSet.add(n.id)}paintSelection();drawer.classList.add('open');const r=n.raw||{};let rows='';
+ function paintSelection(announce=true){
+  nodes.forEach(x=>x.el.classList.toggle('selected',selectedSet.has(x.id)));
+  eyesSelectedNodes.clear();nodes.filter(x=>selectedSet.has(x.id)&&x.type==='agent').forEach(x=>eyesSelectedNodes.add(x.raw.id));
+  if(selected?.type==='agent')selectedAgentId=selected.raw.id;
+  const names=nodes.filter(x=>selectedSet.has(x.id)).map(x=>x.name),count=document.querySelector('#spatialSelectionCount');
+  if(count)count.textContent=names.length+' SELECTED';
+  if(announce)document.querySelector('#cs').textContent=names.length?(names.length+' SELECTED • '+names.join(' + ')):'SELECTION CLEARED';
+ }
+ function setMulti(on){
+  eyesMultiMode=!!on;document.querySelector('#eyesMultiSelect').textContent='MULTI-SELECT: '+(on?'ON':'OFF');
+  if(!on&&selectedSet.size>1){const keep=selectedSet.has(selected?.id)?selected.id:[...selectedSet][0];selectedSet.clear();selectedSet.add(keep)}
+  paintSelection();document.querySelector('#cs').textContent=on?'MULTI-SELECT • PINCH OR TAP NODES TO ADD':'SINGLE NODE MODE';
+ }
+ function clearSelection(){selectedSet.clear();selected=null;paintSelection()}
+ function selectedAgentIds(){return nodes.filter(n=>n.type==='agent'&&selectedSet.has(n.id)).map(n=>n.raw.id)}
+ function selectionSummary(){const names=nodes.filter(n=>selectedSet.has(n.id)).map(n=>n.name);return names.length?names.length+' nodes selected: '+names.join(', ')+'.':'No nodes selected.'}
+ function callSelected(){
+  const ids=selectedAgentIds();if(!ids.length)return document.querySelector('#cs').textContent='Select agents first.';
+  if(ids.length>8)return document.querySelector('#cs').textContent='Select up to 8 agents for one team mission.';
+  const input=document.querySelector('#ci');if(input){input.value='Ask selected agents: ';input.focus()}
+  return document.querySelector('#cs').textContent='CALLED • '+nodes.filter(n=>n.type==='agent'&&selectedSet.has(n.id)).map(n=>n.name).join(' + ')+'. Enter their task below.';
+ }
+ function syncLegacySelection(ids){selectedSet.clear();ids.forEach(id=>{if(nodes.some(n=>n.id==='agent:'+id))selectedSet.add('agent:'+id)});paintSelection()}
+ function select(n,multi=eyesMultiMode,toggle=true){selected=n;if(multi){if(toggle&&selectedSet.has(n.id))selectedSet.delete(n.id);else selectedSet.add(n.id)}else{selectedSet.clear();selectedSet.add(n.id)}paintSelection();drawer.classList.add('open');const r=n.raw||{};let rows='';
    if(n.type==='agent')rows='<div class="ndrow"><b>DEPARTMENT</b>'+safe(r.department)+'</div><div class="ndrow"><b>RANK</b>'+safe(r.rank)+'</div><div class="ndrow"><b>STATE</b>'+safe(r.state||'idle')+'</div><div class="ndrow"><b>MODEL</b>'+safe(r.model||'local')+'</div><div class="ndrow"><b>MEMORY</b>CONNECTED • S.C.O.T.T.Y. UNIFIED SHARED MEMORY</div><div class="ndrow"><b>MEMORY LINKS</b>'+safe(r.memoryLinks||0)+'</div><div class="ndrow"><b>CURRENT JOB</b>'+safe(r.currentJob||'No active job')+'</div>';
    else if(n.type==='file')rows='<div class="ndrow"><b>PATH</b>'+safe(r.path)+'</div><div class="ndrow"><b>PROJECT</b>'+safe(r.projectId||'Unassigned')+'</div><div class="ndrow"><b>STORAGE</b>CLOUD • S.C.O.T.T.Y. RESOURCE GRAPH</div>';
    else if(n.type==='folder')rows='<div class="ndrow"><b>FOLDER PATH</b>'+safe(r.path)+'</div><div class="ndrow"><b>PROJECT</b>'+safe(r.projectId||'Unassigned')+'</div><div class="ndrow"><b>ACCESS</b>Cloud folder connected to S.C.O.T.T.Y. shared resources.</div>';
    else if(n.type==='project')rows='<div class="ndrow"><b>WORKSPACE</b>'+safe(r.department)+'</div><div class="ndrow"><b>STATUS</b>'+safe(String(r.status||'active').toUpperCase())+'</div><div class="ndrow"><b>LINKED NODES</b>'+nodes.filter(x=>(x.type==='file'||x.type==='folder'||x.type==='task')&&x.raw?.projectId===r.id).length+' resources</div>';
    else if(n.type==='task')rows='<div class="ndrow"><b>STATUS</b>'+safe(String(r.status||'queued').toUpperCase())+'</div><div class="ndrow"><b>PROJECT</b>'+safe(r.projectId||'Unassigned')+'</div><div class="ndrow"><b>ASSIGNED AGENT</b>'+safe(r.assignedAgentId||'Unassigned')+'</div><div class="ndrow"><b>NOTES</b>'+safe(r.notes||'No notes')+'</div>';
    else rows='<div class="ndrow"><b>MEMORY SCOPE</b>'+safe(r.scope)+'</div><div class="ndrow"><b>ACCESS</b>Shared memory cluster available to S.C.O.T.T.Y. and linked chiefs/agents.</div>';
-   nd.innerHTML='<div class="ndtype">'+safe(n.type)+' NODE</div><h3>'+safe(n.name)+'</h3><div class="ndrow"><b>SUMMARY</b>'+safe(n.detail)+'</div>'+rows+'<div class="foldergrid">'+nodeFolders(n).map((f,i)=>'<button class="folderbtn" data-fi="'+i+'"><b>▰ '+safe(f.name)+'</b>'+safe(f.desc)+'</button>').join('')+'</div><div id="folderview" class="folderview" style="display:none"></div><div class="ndactions"><button id="ndmulti">+ MULTI SELECT</button><button id="ndcall">CALL SELECTED</button><button id="ndgrab">GRAB NODE</button><button id="ndfocus">FOCUS</button></div>';
-   nd.querySelector('#ndmulti').onclick=()=>select(n,true);nd.querySelector('#ndcall').onclick=()=>{const chosen=nodes.filter(x=>selectedSet.has(x.id)&&x.type==='agent');if(!chosen.length){document.querySelector('#cs').textContent='SELECT AGENTS FIRST';return}const names=chosen.map(x=>x.name).join(' + '),input=document.querySelector('#ci');if(input)input.value='Ask '+names+': ';document.querySelector('#cs').textContent='CALLED • '+names;input?.focus()};nd.querySelector('#ndgrab').onclick=()=>{grabbed=n;document.body.classList.add('spatial-node-grab');document.querySelector('#cs').textContent='GRABBED • '+n.name};
+   nd.innerHTML='<div class="ndtype">'+safe(n.type)+' NODE</div><h3>'+safe(n.name)+'</h3><div class="ndrow"><b>SUMMARY</b>'+safe(n.detail)+'</div>'+rows+'<div class="foldergrid">'+nodeFolders(n).map((f,i)=>'<button class="folderbtn" data-fi="'+i+'"><b>▰ '+safe(f.name)+'</b>'+safe(f.desc)+'</button>').join('')+'</div><div id="folderview" class="folderview" style="display:none"></div><div class="ndactions"><button id="ndmulti">MULTI-SELECT</button><button id="ndcall">CALL SELECTED</button><button id="ndgrab">GRAB NODE</button><button id="ndfocus">FOCUS</button></div>';
+   nd.querySelector('#ndmulti').onclick=()=>setMulti(!eyesMultiMode);nd.querySelector('#ndcall').onclick=callSelected;nd.querySelector('#ndgrab').onclick=()=>{grabbed=n;document.body.classList.add('spatial-node-grab');document.querySelector('#cs').textContent='GRABBED • '+n.name};
    nd.querySelector('#ndfocus').onclick=()=>{n.ox=-Math.cos(n.a)*n.r*.55;n.oz=-Math.sin(n.a)*n.r*.55;n.oy=-n.y*.55;saveNodeLayout(n)};
    nd.querySelectorAll('.folderbtn').forEach(b=>b.onclick=()=>openFolder(n,Number(b.dataset.fi)));
    try{if(n.type==='agent'&&typeof showAgentProfile==='function')showAgentProfile(r)}catch{}
  }
- drawer.querySelector('.ndclose').onclick=()=>{drawer.classList.remove('open');selected=null;nodes.forEach(x=>x.el.classList.remove('selected'))};
+ drawer.querySelector('.ndclose').onclick=()=>{drawer.classList.remove('open');selected=null;paintSelection(false)};
  function project(n,w,h){if(n.type==='memory')return{x:w/2+panX,y:h/2+panY,z:0,sc:clamp(1.15*zoom,.65,2.2)};const a=n.a+orbit,x=Math.cos(a)*n.r*spread+n.ox,z=Math.sin(a)*n.r*spread+n.oz,y=n.y*spread+n.oy;const ct=Math.cos(tilt),st=Math.sin(tilt),yy=y*ct-z*st,zz=y*st+z*ct;const depth=620+zz,sc=clamp((620/depth)*zoom,.42,1.75);return{x:w/2+panX+x*sc,y:h/2+panY+yy*sc,z:zz,sc}}
  function frame(t){const dt=Math.min(.05,(t-last)/1000);last=t;if(auto&&!drag&&!grabbed&&!handGrabs.size&&!matchMedia('(prefers-reduced-motion: reduce)').matches)orbit+=dt*.085;const w=sb.clientWidth,h=sb.clientHeight;const pts=[];for(const n of nodes){const p=project(n,w,h);pts.push([n,p]);n.el.style.transform='translate3d('+(p.x-w/2)+'px,'+(p.y-h/2)+'px,'+p.z+'px) scale('+p.sc+')';n.el.style.opacity=String(clamp(.35+(p.z+320)/650,.38,1));n.el.style.zIndex=String(20+Math.round(p.z+400))}
    svg.setAttribute('viewBox','0 0 '+w+' '+h);let l='';const byId=new Map(pts.map(([n,p])=>[n.id,p])),core={x:w/2+panX,y:h/2+panY};for(const [n,p] of pts){if(n.type==='agent'){if(n.raw?.isChief){l+='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+core.x+'" y2="'+core.y+'" stroke="rgba(255,242,168,.48)" stroke-width="1.3"/>'}else{const q=n.raw?.chiefId?byId.get('agent:'+n.raw.chiefId):null;if(q)l+='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+q.x+'" y2="'+q.y+'" stroke="rgba(94,234,255,.18)" stroke-width=".75"/>'}}else if(n.type==='project'){l+='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+core.x+'" y2="'+core.y+'" stroke="rgba(255,209,102,.3)" stroke-width="1"/>'}else if(n.type==='folder'||n.type==='file'||n.type==='task'){const q=n.raw?.projectId?byId.get('project:'+n.raw.projectId):null;if(q){const c=n.type==='task'?'rgba(255,142,164,.26)':n.type==='folder'?'rgba(255,173,92,.24)':'rgba(123,182,255,.22)';l+='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+q.x+'" y2="'+q.y+'" stroke="'+c+'" stroke-width=".7"/>'}if(n.type==='task'&&n.raw?.assignedAgentId){const a=byId.get('agent:'+n.raw.assignedAgentId);if(a)l+='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+a.x+'" y2="'+a.y+'" stroke="rgba(255,142,164,.34)" stroke-width=".8" stroke-dasharray="3 4"/>'}}}svg.innerHTML=l;requestAnimationFrame(frame)}
@@ -934,7 +965,7 @@ body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infini
  const originalDraw=draw;draw=function(){try{originalDraw.apply(this,arguments)}catch{};synthesize()};
  let grabPoint=null,grabMoved=false,lastSpatialTap=0,lastSpatialNode=null,spatialPinch=false;
  function nearestSpatial(x,y){let best=null,bd=105;for(const n of nodes){const r=n.el.getBoundingClientRect(),d=Math.hypot(r.left+r.width/2-x,r.top+r.height/2-y);if(d<bd){bd=d;best=n}}return best}
- function focusNode(n){if(!n)return null;const w=sb.clientWidth,h=sb.clientHeight,p=project(n,w,h);panX+=w/2-p.x;panY+=h/2-p.y;select(n);return n}
+ function focusNode(n){if(!n)return null;const w=sb.clientWidth,h=sb.clientHeight,p=project(n,w,h);panX+=w/2-p.x;panY+=h/2-p.y;select(n,eyesMultiMode,false);return n}
  function focusId(id){const n=nodes.find(x=>x.id===id);return n?focusNode(n):null}
  function focusMention(text){const raw=String(text||''),low=raw.toLowerCase();const cand=nodes.filter(n=>n.type!=='memory'&&n.name).sort((a,b)=>String(b.name).length-String(a.name).length);const n=cand.find(n=>String(n.name).length<=4?raw.includes(String(n.name)):low.includes(String(n.name).toLowerCase()));if(n){focusNode(n);return n}return null}
  async function saveNodeLayout(source){
@@ -950,7 +981,7 @@ body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infini
  const handGrabs=new Map();
  function handGrab(index,x,y){
   const n=nearestSpatial(x,y);if(!n||[...handGrabs.values()].some(g=>g.node===n))return null;
-  auto=false;select(n,handGrabs.size>0&&!selectedSet.has(n.id));
+  auto=false;select(n,eyesMultiMode||handGrabs.size>0,false);
   handGrabs.set(index,{node:n,x,y,moved:false});return n.id;
  }
  function handMove(index,x,y){
@@ -961,14 +992,17 @@ body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infini
   g.node.ox+=dx/sc;g.node.oy+=dy/(sc*Math.max(.5,Math.cos(tilt)));g.x=x;g.y=y;
  }
  function handRelease(index){const g=handGrabs.get(index);handGrabs.delete(index);if(g?.moved)saveNodeLayout(g.node)}
- function handView(){auto=false;return {zoom,orbit,panX,panY}}
+ function handView(){auto=false;return {zoom,orbit,panX,panY,spread}}
  function handTransform(v,ratio,angle,dx,dy){
   if(![ratio,angle,dx,dy].every(Number.isFinite))return;
   auto=false;zoom=clamp(v.zoom*ratio,.38,3.4);orbit=v.orbit+angle;panX=v.panX+dx;panY=v.panY+dy;
  }
+ function handSpread(value){if(!Number.isFinite(value))return;auto=false;spread=clamp(value,.65,2.8)}
+ function spreadBy(factor){handSpread(spread*factor);saveViewSoon();document.querySelector('#cs').textContent='NODE SPACING • '+Math.round(spread*100)+'%'}
+ function regroup(){handSpread(1);saveViewSoon();document.querySelector('#cs').textContent='NODES REGROUPED'}
  function handFitAll(){auto=false;zoom=.82;orbit=0;tilt=-.12;spread=1;panX=0;panY=0;saveViewSoon()}
  function handEndView(){saveViewSoon()}
- window.SCOTTYSpatial={handGrab,handMove,handRelease,handView,handTransform,handEndView,handFitAll,select,open:select,focus:focusNode,focusId,focusMention,toggleGroup,refresh(){if(!grabbed)synthesize()},release(){const g=grabbed,m=grabMoved;grabbed=null;grabPoint=null;grabMoved=false;document.body.classList.remove('spatial-node-grab');if(g&&m){saveNodeLayout(g);maybeRelate(g)}},grabNearest(x,y){const best=nearestSpatial(x,y);if(best){selected=best;nodes.forEach(q=>q.el.classList.toggle('selected',q===best));grabbed=best;grabMoved=false;grabPoint={x,y};document.body.classList.add('spatial-node-grab');return best}return null},moveGrab(x,y){if(!grabbed||!grabPoint)return;const dx=x-grabPoint.x,dy=y-grabPoint.y;if(Math.hypot(dx,dy)>3)grabMoved=true;grabbed.ox+=dx/Math.max(.55,zoom);grabbed.oy+=dy/Math.max(.55,zoom);grabPoint={x,y}},get grabbed(){return grabbed},nearest:nearestSpatial};
+ window.SCOTTYSpatial={handGrab,handMove,handRelease,handView,handTransform,handEndView,handFitAll,handSpread,spreadBy,regroup,setMulti,clearSelection,selectedAgentIds,selectionSummary,syncLegacySelection,callSelected,select,open:select,focus:focusNode,focusId,focusMention,toggleGroup,refresh(){if(!grabbed)synthesize()},release(){const g=grabbed,m=grabMoved;grabbed=null;grabPoint=null;grabMoved=false;document.body.classList.remove('spatial-node-grab');if(g&&m){saveNodeLayout(g);maybeRelate(g)}},grabNearest(x,y){const best=nearestSpatial(x,y);if(best){selected=best;nodes.forEach(q=>q.el.classList.toggle('selected',q===best));grabbed=best;grabMoved=false;grabPoint={x,y};document.body.classList.add('spatial-node-grab');return best}return null},moveGrab(x,y){if(!grabbed||!grabPoint)return;const dx=x-grabPoint.x,dy=y-grabPoint.y;if(Math.hypot(dx,dy)>3)grabMoved=true;grabbed.ox+=dx/Math.max(.55,zoom);grabbed.oy+=dy/Math.max(.55,zoom);grabPoint={x,y}},get grabbed(){return grabbed},nearest:nearestSpatial};
  pinchSelect=function(x,y){const n=nearestSpatial(x,y);if(n){select(n);document.querySelector('#cs').textContent='OPENED • '+n.name;return}document.querySelector('#cs').textContent='PINCH • NO NODE'};
  processOne=function(p){const info=ginfo(p),pt=cursorFromHand(p),c=document.querySelector('#handCursor'),now=Date.now();c.classList.toggle('pinch',info.pinch);processSwipe(p,info);
    if(info.pinch&&!spatialPinch){const n=nearestSpatial(pt.x,pt.y);if(n){if(lastSpatialNode===n&&now-lastSpatialTap<700){select(n);window.SCOTTYSpatial.release();document.querySelector('#cs').textContent='DOUBLE PINCH • OPEN '+n.name}else{window.SCOTTYSpatial.grabNearest(pt.x,pt.y);document.querySelector('#cs').textContent='PINCH HOLD • DRAG '+n.name}lastSpatialTap=now;lastSpatialNode=n}else document.querySelector('#cs').textContent='PINCH • NO NODE'}
@@ -977,6 +1011,14 @@ body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infini
    if(info.open&&grabbed)window.SCOTTYSpatial.release();
    spatialPinch=info.pinch;pinchLatched=info.pinch;
    document.querySelector('#gs').textContent=info.pinch?(grabbed?'PINCH • DRAG NODE':'DOUBLE PINCH • OPEN'):info.label;return info.label};
+ const tools=document.querySelector('#eyesMultiSelect')?.parentElement;
+ if(tools){
+  const count=document.createElement('span');count.id='spatialSelectionCount';count.textContent='0 SELECTED';count.style.cssText='font-size:10px;align-self:center';tools.appendChild(count);
+  for(const [id,label,action] of [['spatialCallSelected','CALL SELECTED',callSelected],['spatialSpread','SPREAD OUT',()=>spreadBy(1.25)],['spatialRegroup','REGROUP',regroup]]){
+   const button=document.createElement('button');button.type='button';button.id=id;button.textContent=label;button.style.cssText='font-size:10px;padding:5px 8px';button.onclick=action;tools.appendChild(button);
+  }
+ }
+ document.querySelector('#spatialStatus').textContent='PINCH = SELECT / DRAG • TWO PINCHES = ZOOM / ROTATE • TWO PALMS = SPREAD / REGROUP';
  setTimeout(synthesize,300);requestAnimationFrame(frame);
 })();
 </script>
@@ -1110,6 +1152,8 @@ body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infini
  const oldCommand=command;
  command=async function(t){
    t=String(t||'').trim();if(!t)return;
+   const canvasAction=eyesVoiceCommand(t);if(canvasAction){$('#cs').textContent=canvasAction;await speak(canvasAction);return}
+   if(/^\s*(?:scotty[, ]*)?(?:ask|tell|bring in)\s+(?:the )?selected (?:agents|nodes|team)\s*:/i.test(t))return oldCommand(t);
    SCOTTYMemory.remember('user',t);
    const low=t.toLowerCase();
    if(/^(remember|remember that|save to memory)\b/.test(low)){const v=t.replace(/^(remember|remember that|save to memory)\s*/i,'').trim();if(v){const ok=await SCOTTYMemory.save(v,'explicit');await speak(ok?'Remembered. I added that to shared cloud memory.':'Remembered locally. Cloud memory will retry when available.');SCOTTYMemory.remember('assistant','Remembered.');return}}

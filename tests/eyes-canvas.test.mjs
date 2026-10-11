@@ -7,8 +7,8 @@ function harness(){
  const elements=new Map(),calls=[];
  const $=id=>{if(!elements.has(id))elements.set(id,{clientWidth:800,clientHeight:600,width:0,height:0,textContent:'',style:{},classList:{toggle(){},remove(){}},getContext:()=>new Proxy({},{get:()=>()=>{}})});return elements.get(id)};
  const nodes=[{id:'alpha',x:200,y:200},{id:'beta',x:600,y:200}];
- const grabs=new Map();let view={zoom:1,orbit:0,panX:0,panY:0};
- const canvas={handGrab(i,x,y){const n=nodes.find(n=>Math.hypot(n.x-x,n.y-y)<70);if(!n||[...grabs.values()].includes(n))return null;grabs.set(i,n);calls.push(['select',n.id]);return n.id},handMove(i,x,y){const n=grabs.get(i);if(n){n.x=x;n.y=y;calls.push(['move',n.id])}},handRelease(i){grabs.delete(i)},handView(){return {...view}},handTransform(v,r,a,x,y){view={zoom:v.zoom*r,orbit:v.orbit+a,panX:v.panX+x,panY:v.panY+y}},handEndView(){calls.push(['saveView'])}};
+ const grabs=new Map();let view={zoom:1,orbit:0,panX:0,panY:0,spread:1};
+ const canvas={handGrab(i,x,y){const n=nodes.find(n=>Math.hypot(n.x-x,n.y-y)<70);if(!n||[...grabs.values()].includes(n))return null;grabs.set(i,n);calls.push(['select',n.id]);return n.id},handMove(i,x,y){const n=grabs.get(i);if(n){n.x=x;n.y=y;calls.push(['move',n.id])}},handRelease(i){grabs.delete(i)},handView(){return {...view}},handTransform(v,r,a,x,y){view={...view,zoom:v.zoom*r,orbit:v.orbit+a,panX:v.panX+x,panY:v.panY+y}},handSpread(spread){view={...view,spread}},handEndView(){calls.push(['saveView'])}};
  const ctx=vm.createContext({$,window:{SCOTTYSpatial:canvas},ginfo:p=>({pinchRatio:p.ratio,open:p.open}),cursorFromHand:p=>({x:p[8].x*800,y:p[8].y*600}),eyesHidePointer(){},eyesCursorDiagnostic(){},angleDelta:(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b)),Math,Number});
  vm.runInContext(html.slice(html.indexOf('/* SCOTTY_EYES_CANVAS_V3'),html.indexOf('function drawHands(r)')),ctx);
  return{frame(ps){ctx.ps=ps;vm.runInContext('eyesV2Hands({multiHandLandmarks:ps})',ctx)},reset(){vm.runInContext('eyesV2Reset()',ctx)},nodes,grabs,calls,get view(){return view}};
@@ -35,4 +35,11 @@ test('detection order swapping preserves the held hand',()=>{
 test('inline scripts parse and spatial bridge exposes required controls',()=>{
  for(const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi))if(!/\bsrc=/.test(m[1]))new vm.Script(m[2]);
  assert.match(html,/SCOTTYSpatial=\{handGrab,handMove,handRelease,handView,handTransform,handEndView/);
+});
+
+test('two open palms spread and regroup without changing zoom or rotation',()=>{
+ const h=harness();h.frame([hand(200,300,1,true),hand(600,300,1,true)]);h.frame([hand(100,300,1,true),hand(700,300,1,true)]);assert.equal(h.view.spread,1.5);assert.equal(h.view.zoom,1);assert.equal(h.view.orbit,0);h.frame([hand(300,300,1,true),hand(500,300,1,true)]);assert.equal(h.view.spread,.5);
+});
+test('switching palm spacing to pinch zoom starts a fresh baseline',()=>{
+ const h=harness();h.frame([hand(200,300,1,true),hand(600,300,1,true)]);h.frame([hand(100,300,1,true),hand(700,300,1,true)]);h.frame([hand(100,300),hand(700,300)]);assert.equal(h.view.zoom,1);assert.equal(h.view.spread,1.5);h.frame([hand(50,300),hand(750,300)]);assert(h.view.zoom>1);assert.equal(h.view.spread,1.5);
 });
