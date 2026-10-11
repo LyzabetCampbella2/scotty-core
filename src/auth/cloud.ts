@@ -30,7 +30,7 @@ async function ensure(){
     user_agent text
   )`;
   await q`create index if not exists scotty_sessions_expiry_idx on scotty_sessions(expires_at)`;
- })();
+ })().catch(err=>{initPromise=null;throw err});
  return initPromise;
 }
 function cookies(req:Request){
