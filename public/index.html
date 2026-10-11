@@ -501,7 +501,7 @@ function ginfo(p){
  const d=(a,b)=>Math.hypot(p[a].x-p[b].x,p[a].y-p[b].y);
  const palm=Math.max(.04,d(0,9),d(5,17)),pinchRatio=d(4,8)/palm;
  const raised=[8,12,16,20].filter(i=>p[i].y<p[i-2].y).length;
- const pinch=pinchRatio<.72,fist=raised===0&&d(8,0)<palm*1.55&&d(12,0)<palm*1.65;
+ const pinch=pinchRatio<.85,fist=raised===0&&d(8,0)<palm*1.55&&d(12,0)<palm*1.65;
  return{pinch,pinchRatio,fist,open:raised>=4,point:p[8].y<p[6].y&&raised<=2,label:fist?'FIST • GRAB':pinch?'PINCH • '+Math.round(pinchRatio*100)+'%':raised>=4?'OPEN PALM':raised===1?'POINT • TARGET':'TRACKING'}
 }
 function eyesSvgPointer(index,x,y){
@@ -800,7 +800,7 @@ function eyesV2Hands(result){
   }
   p.forEach(q=>{ctx.beginPath();ctx.arc((1-q.x)*w,q.y*hh,2.3,0,Math.PI*2);ctx.fill()})
  }
- const dual=assigned.every(Boolean),bothPinch=dual&&infos.every(i=>i.pinch),bothOpen=dual&&infos.every(i=>i.open&&!i.pinch);
+ const dual=assigned.every(Boolean),bothPinch=dual&&infos.every(i=>i.pinch)&&hands.every(h=>!h.grab&&!h.id),bothOpen=dual&&infos.every(i=>i.open&&!i.pinch);
  const now=Date.now();
  if(bothPinch){
   if(!eyesV2.resetAt)eyesV2.resetAt=now;
@@ -813,7 +813,7 @@ function eyesV2Hands(result){
   const a=assigned[0][9],z=assigned[1][9],dist=distance(a,z),ang=Math.atan2(z.y-a.y,z.x-a.x);
   if(!eyesV2.nav)eyesV2.nav={dist,ang,scale:graphScale,rotation:graphRotation,mode:null};
   const n=eyesV2.nav,ratio=dist/Math.max(.07,n.dist),angle=angleDelta(ang,n.ang)*180/Math.PI;
-  if(!n.mode){if(Math.abs(angle)>18&&Math.abs(ratio-1)<.14)n.mode='rotate';else if(Math.abs(ratio-1)>.055)n.mode='zoom'}
+  if(!n.mode){if(Math.abs(angle)>12&&Math.abs(ratio-1)<.12)n.mode='rotate';else if(Math.abs(ratio-1)>.035)n.mode='zoom'}
   if(n.mode==='zoom')graphScale=Math.max(.55,Math.min(2.5,n.scale*ratio));
   if(n.mode==='rotate')graphRotation=Math.max(-120,Math.min(120,n.rotation+angle));
   if(n.mode)applyGraphTransform();
@@ -832,7 +832,7 @@ function eyesV2Hands(result){
   }
   h.frames++;
   if(!h.grab&&h.frames>=2){
-   const target=h.id||hoverNearest(pt.x,pt.y,i)?.dataset.agent;
+   const target=hoverNearest(pt.x,pt.y,i)?.dataset.agent||h.id;
    if(target&&!hands.some((other,j)=>j!==i&&other.grab===target)&&eyesPinchAction(target)){
     h.grab=target;h.starts={};h.previous={};h.origin=eyesGraphPoint(pt.x,pt.y);h.startX=pt.x;h.startY=pt.y;
     for(const key of eyesMoveSelectionTogether(target)){
@@ -851,7 +851,7 @@ function eyesV2Hands(result){
  $('#sh').textContent='TRACKING '+assigned.filter(Boolean).length+' HAND(S)';
  if(bothPinch)$('#gs').textContent=eyesV2.resetDone?'BOTH PINCHES • VIEW RESET':'HOLD BOTH PINCHES • RESET';
  else if(!bothOpen)$('#gs').textContent=assigned.map((p,i)=>p?(hands[i].grab?'HAND '+(i+1)+' MOVING '+hands[i].grab:infos[i].pinch?'HAND '+(i+1)+' PINCH': 'HAND '+(i+1)+' '+(hands[i].id||'POINT')):'HAND '+(i+1)+' OFF').join(' • ');
- $('#gl').textContent=dual?'TWO HANDS • INDEPENDENT':'ONE HAND • PINCH TO SELECT';
+ $('#gl').textContent=dual?'TWO HANDS • '+infos.map(i=>i.pinch?'PINCH '+Math.round(i.pinchRatio*100)+'%':i.open?'PALM OPEN':'POINT').join(' / '):'ONE HAND • PINCH TO SELECT';
 }
 function drawHands(r){return eyesV2Hands(r);const c=$('#hc'),b=$('.cam'),w=b.clientWidth||300,h=b.clientHeight||225;if(c.width!==w||c.height!==h){c.width=w;c.height=h}const x=c.getContext('2d');x.clearRect(0,0,w,h);const allHands=r.multiHandLandmarks||[];const ps=eyesLeftHandOnly?allHands.filter((_,i)=>eyesIsLeftHand(r,i)):eyesRightHandOnly?allHands.filter((_,i)=>eyesIsRightHand(r,i)):allHands.slice();if(ps.length===2){const labels=r.multiHandedness||[];if(labels[0]?.label==='Right'&&labels[1]?.label==='Left')ps.reverse();else if(!labels[0]?.label||!labels[1]?.label)ps.sort((a,b)=>b[0].x-a[0].x)}
  if(allHands.length&&!ps.length){$('#sh').textContent='LEFT HAND ONLY';$('#gs').textContent='SHOW YOUR LEFT HAND • RIGHT HAND IGNORED'}
