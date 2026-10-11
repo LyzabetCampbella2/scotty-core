@@ -153,7 +153,7 @@ async function getResources(){
  return {
   projects:projects.map(projectRow),
   folders:folders.map(folderRow),
-  files:[...files.map(fileRow),...virtuals.files],
+  files:[...files.map(fileRow),...virtuals.files.filter((v:any)=>!files.some((f:any)=>f.id===v.id))],
   tasks:[...tasks.map(taskRow),...virtuals.tasks],
   layout,
   view:viewRows?.[0]?{orbit:Number(viewRows[0].orbit||0),tilt:Number(viewRows[0].tilt??-0.12),zoom:Number(viewRows[0].zoom||0.82),spread:Number(viewRows[0].spread||1),panX:Number(viewRows[0].panX||0),panY:Number(viewRows[0].panY||0),collapsed:Array.isArray(viewRows[0].collapsed)?viewRows[0].collapsed:[],updatedAt:viewRows[0].updatedAt}:null
@@ -167,12 +167,28 @@ function splitNodeId(v:string){
 async function relate(sourceNode:string,targetNode:string){
  const s=splitNodeId(sourceNode),t=splitNodeId(targetNode);
  if(!s.type||!t.type)throw new Error("Invalid node relationship");
+ const allowed=new Set(['task','file','folder','project','agent','memory']);
+ if(!allowed.has(s.type)||!allowed.has(t.type))throw new Error("Unsupported node type");
+ if(t.type==="agent"){
+  const target=await db()`select id from scotty_agents where id=${t.id}`;
+  if(!target.length)throw new Error("Agent no longer exists. Refresh the canvas.");
+ }
+ if(t.type==="folder"){
+  const target=await db()`select id from scotty_folders where id=${t.id}`;
+  if(!target.length)throw new Error("Folder no longer exists. Refresh the canvas.");
+ }
+ if(t.type==="project"){
+  const target=await db()`select id from scotty_projects where id=${t.id}`;
+  if(!target.length)throw new Error("Project no longer exists. Refresh the canvas.");
+ }
  if(s.type==="task"&&t.type==="agent"){
   if(s.id.startsWith("forge-task-")){
    const job=s.id.slice("forge-task-".length);
-   await db()`update scotty_forge_jobs set agent_ids=${db().json([t.id])},updated_at=now() where id::text=${job}`;
+   const changed=await db()`update scotty_forge_jobs set agent_ids=${db().json([t.id])},updated_at=now() where id::text=${job} returning id`;
+   if(!changed.length)throw new Error("Source node no longer exists. Refresh the canvas.");
   }else{
-   await db()`update scotty_tasks set assigned_agent_id=${t.id},updated_at=now() where id=${s.id}`;
+   const changed=await db()`update scotty_tasks set assigned_agent_id=${t.id},updated_at=now() where id=${s.id} returning id`;
+   if(!changed.length)throw new Error("Source node no longer exists. Refresh the canvas.");
   }
   await addActivity("SCOTTY","TASK REASSIGNED",`${s.id} → ${t.id}`,{sourceNode,targetNode});
   return {relation:"assigned_to",message:"Task assigned to "+t.id};
@@ -180,20 +196,34 @@ async function relate(sourceNode:string,targetNode:string){
  if(s.type==="task"&&t.type==="project"){
   if(s.id.startsWith("forge-task-")){
    const job=s.id.slice("forge-task-".length);
-   await db()`update scotty_forge_jobs set project_id=${t.id},updated_at=now() where id::text=${job}`;
+   const changed=await db()`update scotty_forge_jobs set project_id=${t.id},updated_at=now() where id::text=${job} returning id`;
+   if(!changed.length)throw new Error("Source node no longer exists. Refresh the canvas.");
   }else{
-   await db()`update scotty_tasks set project_id=${t.id},updated_at=now() where id=${s.id}`;
+   const changed=await db()`update scotty_tasks set project_id=${t.id},updated_at=now() where id=${s.id} returning id`;
+   if(!changed.length)throw new Error("Source node no longer exists. Refresh the canvas.");
   }
   await addActivity("SCOTTY","TASK MOVED",`${s.id} → ${t.id}`,{sourceNode,targetNode});
   return {relation:"belongs_to",message:"Task moved to project"};
  }
- if(s.type==="file"&&t.type==="folder"&&!s.id.startsWith("forge-")){
-  await db()`update scotty_files set folder_id=${t.id},updated_at=now() where id=${s.id}`;
+ if(s.type==="file"&&t.type==="folder"){
+  const destination=await db()`select id,project_id as "projectId" from scotty_folders where id=${t.id}`;
+  if(!destination.length)throw new Error("Folder no longer exists. Refresh the canvas.");
+  if(s.id.startsWith("forge-")){
+   const virtuals=await forgeVirtuals(),file=virtuals.files.find((f:any)=>f.id===s.id);
+   if(!file)throw new Error("Forge file is not available. Refresh the canvas.");
+   await db()`insert into scotty_files(id,project_id,folder_id,name,path,mime_type,size_bytes,metadata)
+    values(${file.id},${destination[0].projectId||null},${t.id},${file.name},${file.path},${file.mimeType},${file.sizeBytes},${db().json(file.metadata)})
+    on conflict(id) do update set folder_id=excluded.folder_id,project_id=excluded.project_id,updated_at=now()`;
+  }else{
+   const changed=await db()`update scotty_files set folder_id=${t.id},project_id=${destination[0].projectId||null},updated_at=now() where id=${s.id} returning id`;
+   if(!changed.length)throw new Error("File no longer exists. Refresh the canvas.");
+  }
   await addActivity("SCOTTY","FILE MOVED",`${s.id} → ${t.id}`,{sourceNode,targetNode});
-  return {relation:"contained_in",message:"File moved into folder"};
+  return {relation:"contained_in",message:"File moved into folder",folderId:t.id,projectId:destination[0].projectId||null};
  }
  if(s.type==="folder"&&t.type==="project"){
-  await db()`update scotty_folders set project_id=${t.id},updated_at=now() where id=${s.id}`;
+  const changed=await db()`update scotty_folders set project_id=${t.id},updated_at=now() where id=${s.id} returning id`;
+   if(!changed.length)throw new Error("Source node no longer exists. Refresh the canvas.");
   await addActivity("SCOTTY","FOLDER MOVED",`${s.id} → ${t.id}`,{sourceNode,targetNode});
   return {relation:"belongs_to",message:"Folder moved to project"};
  }
