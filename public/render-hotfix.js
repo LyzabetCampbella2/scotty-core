@@ -90,7 +90,7 @@
     const url=URL.createObjectURL(blob);
     try{
      await new Promise((resolve,reject)=>{
-      const a=audioEl;player=a;a.pause();a.src=url;a.muted=false;a.volume=1;
+      const a=audioEl;player=a;a.pause();a.src=url;a.muted=false;a.volume=1;a.playbackRate=window.SCOTTYConversation?.preferences.speed||1;
       let done=false;
       const finish=e=>{if(done)return;done=true;clearTimeout(timer);a.onended=null;a.onerror=null;pendingPlayback=null;showPlayButton(false);if(player===a)player=null;e?reject(e):resolve()};
       const timer=setTimeout(()=>finish(Error('Playback timed out')),180000);
@@ -136,7 +136,9 @@
   speaking=true;state('GENERATING');setCommand('SCOTTISH VOICE');
   try{
    // No prerecorded acknowledgement: speak only newly generated responses.
-   await playScottish(text,seq,controller);
+   const spoken=window.SCOTTYConversation?.pronounce(text)||text;
+   const parts=window.SCOTTYConversationCore?.chunks(spoken,190)||[spoken.slice(0,190)];
+   for(const part of parts){if(seq!==generation||controller.signal.aborted)throw new DOMException('Superseded','AbortError');await playScottish(part,seq,controller)}
    if(seq===generation){state(voiceArmed?'LISTENING':'READY');setCommand(voiceArmed?'LISTENING':'READY')}
   }catch(e){
    if(seq!==generation||e?.name==='AbortError')return;
@@ -147,27 +149,30 @@
    if(seq===generation){if(progressTimer){clearInterval(progressTimer);progressTimer=null}active=null;speaking=false;try{clearVoiceBuffers()}catch{}}
   }
  };
+ window.SCOTTYVoiceTransport={stop(){++generation;stopCurrent();speaking=false;state(voiceArmed?'LISTENING':'READY')},get state(){return voiceState}};
   const previousCommand=command;
   command=async function(t){
+    const token=window.SCOTTYConversation?.getRun(),thread=window.SCOTTYConversation?.db.state.active;
+    const reply=text=>window.SCOTTYConversation?window.SCOTTYConversation.legacyResponse(text,token,thread):speak(text);
     const n=String(t||'').toLowerCase().replace(/[.!?]+$/,'').trim();
     if(/^(approve|approved|approve it|yes approve|yes approved)$/.test(n)){
       try{
         document.querySelector('#cs').textContent='CHECKING APPROVAL';
         const p=await api('/api/approvals?status=pending');
         const list=(p.approvals||[]).slice().sort((a,b)=>Date.parse(b.createdAt||0)-Date.parse(a.createdAt||0));
-        if(!list.length){await speak('There is no pending action waiting for approval.');return}
+        if(!list.length){await reply('There is no pending action waiting for approval.');return}
         const newest=list[0];
         const age=Date.now()-Date.parse(newest.createdAt||0);
-        if(!(age>=0&&age<15*60*1000)){await speak('The pending actions are not recent enough for me to guess. Open Live Ops and choose the action.');return}
+        if(!(age>=0&&age<15*60*1000)){await reply('The pending actions are not recent enough for me to guess. Open Live Ops and choose the action.');return}
         document.querySelector('#cs').textContent='APPROVING ACTION';
         await api('/api/approvals/'+encodeURIComponent(newest.id)+'/approve',{method:'POST',body:'{}'});
         document.querySelector('#cs').textContent='EXECUTING APPROVED ACTION';
         const r=await api('/api/missions/'+encodeURIComponent(newest.missionId)+'/run',{method:'POST',body:'{}'});
         const last=(r.steps||[]).slice(-1)[0];
         const st=r?.mission?.status||'';
-        if(st==='completed'||last?.status==='completed') await speak('Approved and completed. '+String(last?.result||'The action finished successfully.'));
-        else if(st==='needs_attention'||last?.status==='error') await speak('I approved it, but the provider action needs attention. '+String(last?.result||'Please check Live Ops.'));
-        else await speak('Approved. I am continuing the mission.');
+        if(st==='completed'||last?.status==='completed') await reply('Approved and completed. '+String(last?.result||'The action finished successfully.'));
+        else if(st==='needs_attention'||last?.status==='error') await reply('I approved it, but the provider action needs attention. '+String(last?.result||'Please check Live Ops.'));
+        else await reply('Approved. I am continuing the mission.');
         return;
       }catch(e){
         console.warn('S.C.O.T.T.Y. approval',e);

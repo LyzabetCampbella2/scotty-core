@@ -26,7 +26,7 @@ async function serveHud(){
   const file=Bun.file("public/index.html");
   if(!(await file.exists()))return null;
   let html=await file.text();
-  if(!html.includes("/render-hotfix.js"))html=html.replace("</body>","<script src=\"/render-hotfix.js?v=4\"></script></body>");
+  if(!html.includes("/render-hotfix.js"))html=html.replace("</body>","<script src=\"/render-hotfix.js?v=5\"></script><script src=\"/conversation-core.js?v=1\"></script><script src=\"/conversation.js?v=1\"></script></body>");
   return new Response(html,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store"}});
  }catch{return null}
 }
@@ -34,6 +34,7 @@ async function serveHud(){
 Bun.serve({port:PORT,async fetch(req){
  const u=new URL(req.url);
  if(req.method==="GET"){
+  if(u.pathname==="/conversation-core.js"||u.pathname==="/conversation.js") {const r=await servePublic("public"+u.pathname,"application/javascript; charset=utf-8");if(r)return r}
   if(u.pathname==="/render-hotfix.js") {const r=await servePublic("public/render-hotfix.js","application/javascript; charset=utf-8");if(r)return r}
   if(u.pathname==="/hud"||u.pathname==="/hud/"||u.pathname==="/") {const r=await serveHud();if(r)return r}
   if(u.pathname==="/missions"||u.pathname==="/missions/") {const r=await servePublic("public/missions/index.html");if(r)return r}

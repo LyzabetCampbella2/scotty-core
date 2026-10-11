@@ -335,7 +335,7 @@ function draw(){
  });
  applyGraphTransform()
 }
-async function command(t){t=(t||$('#ci').value).trim();if(!t)return;$('#ci').value='';const eyesAction=eyesVoiceCommand(t);if(eyesAction){$('#cs').textContent=eyesAction;return}$('#cs').textContent='THINKING';try{
+async function command(t){const conversationToken=window.SCOTTYConversation?.getRun(),conversationThread=window.SCOTTYConversation?.db.state.active;const reply=async text=>window.SCOTTYConversation?window.SCOTTYConversation.legacyResponse(text,conversationToken,conversationThread):speak(text);t=(t||$('#ci').value).trim();if(!t)return;$('#ci').value='';const eyesAction=eyesVoiceCommand(t);if(eyesAction){$('#cs').textContent=eyesAction;return}$('#cs').textContent='THINKING';try{
  if(/^\s*(?:open|show)\s+(?:live ops|missions?|mission control)\s*$/i.test(t)){location.href='/missions';return}
  const mm=t.match(/^\s*(?:start|create|launch)\s+(?:a\s+)?(?:(autonomous|auto)\s+)?mission(?:\s+(?:to|for))?\s+(.+)$/i);
  if(mm){
@@ -362,14 +362,14 @@ async function command(t){t=(t||$('#ci').value).trim();if(!t)return;$('#ci').val
     msg='Mission started. I am handling the internal work in the background.';
     $('#cs').textContent='MISSION RUNNING';
   }
-  try{await speak(msg)}catch(e){console.warn('mission voice',e)}
+  try{await reply(msg)}catch(e){console.warn('mission voice',e)}
   if(!speaking)$('#cs').textContent=completed?'MISSION COMPLETE':waiting?'APPROVAL REQUIRED':failed?'MISSION NEEDS ATTENTION':'MISSION RUNNING';
   return
  }
  const history=t.match(/^\s*(?:scotty[, ]+)?(?:show|list|open)\s+(?:my\s+)?(?:agent\s+)?(?:mission\s+history|previous\s+missions)\s*$/i);
  if(history){missionPanelPinned=true;const r=await api('/api/hud/agents/missions');const items=(r.missions||[]).slice(0,15);$('#activity').innerHTML='<div class="agent-profile"><div class="apname">AGENT MISSION HISTORY</div><button type="button" data-scotty-close-missions>BACK TO ACTIVITY</button> <button type="button" data-scotty-recovery-test>RUN SAFE RECOVERY TEST</button>'+items.map((m,i)=>'<div class="apjob"><b>'+e((i+1)+'. '+m.status)+'</b><p>'+e(m.task)+'</p><small>'+e(m.id)+'</small><div style="margin-top:8px"><button type="button" data-scotty-resume="'+e(m.id)+'">CONTINUE MISSION</button> <button type="button" data-scotty-details="'+e(m.id)+'">VIEW FINDINGS</button></div></div>').join('')+'</div>';$('#cs').textContent='MISSION HISTORY';return;}
  const resume=t.match(/^\s*(?:scotty[, ]+)?(?:continue|resume)\s+(?:agent\s+)?mission\s+([0-9a-f-]{36})\s*:\s*(.+)$/i);
- if(resume){$('#cs').textContent='RESUMING MISSION';const prepared=await api('/api/hud/agents/missions/'+encodeURIComponent(resume[1]),{method:'POST',body:JSON.stringify({feedback:resume[2]})});const r=await api('/api/hud/agents/run',{method:'POST',body:JSON.stringify({agents:prepared.agents||[],task:prepared.continuationTask})});const summary=(r.review||[]).map(x=>x.chief+': '+(x.assessment||x.status)).join('\n\n')||(r.results||[]).map(x=>x.name+': '+(x.result||x.error)).join('\n\n');$('#activity').innerHTML='<div class="agent-profile"><div class="apname">MISSION CONTINUED</div><div class="apjob">'+e(summary||'No findings returned')+'</div></div>';$('#cs').textContent='CONTINUATION COMPLETE';await speak((summary||'Mission continuation finished.').slice(0,1200));return;}
+ if(resume){$('#cs').textContent='RESUMING MISSION';const prepared=await api('/api/hud/agents/missions/'+encodeURIComponent(resume[1]),{method:'POST',body:JSON.stringify({feedback:resume[2]})});const r=await api('/api/hud/agents/run',{method:'POST',body:JSON.stringify({agents:prepared.agents||[],task:prepared.continuationTask})});const summary=(r.review||[]).map(x=>x.chief+': '+(x.assessment||x.status)).join('\n\n')||(r.results||[]).map(x=>x.name+': '+(x.result||x.error)).join('\n\n');$('#activity').innerHTML='<div class="agent-profile"><div class="apname">MISSION CONTINUED</div><div class="apjob">'+e(summary||'No findings returned')+'</div></div>';$('#cs').textContent='CONTINUATION COMPLETE';await reply((summary||'Mission continuation finished.').slice(0,1200));return;}
  const auto=t.match(/^\s*(?:(?:s\.?c\.?o\.?t\.?t\.?y\.?)\s*[,.:]?\s*)?(?:assemble|coordinate|assign)\s+(?:the\s+)?(?:best\s+)?(?:agents|chiefs|team)\s+(?:to|for)\s+(.+)$/i);
  if(auto){
   missionPanelPinned=true;$('#cs').textContent='CHIEFS PLANNING';
@@ -381,9 +381,9 @@ async function command(t){t=(t||$('#ci').value).trim();if(!t)return;$('#ci').val
  }
  const selectedMission=t.match(/^\s*(?:scotty[, ]*)?(?:ask|tell|bring in)\s+(?:the )?selected (?:agents|nodes|team)\s*:\s*(.+)$/i);
  const m=t.match(/^\s*(?:ask|bring in)\s+([^:]+):\s*(.+)$/i);
- if(m||selectedMission){const names=m?m[1].split(/\s*(?:,|\band\b|\+)\s*/i).map(x=>x.trim().toLowerCase()).filter(Boolean):[],ids=selectedMission?(window.SCOTTYSpatial?.selectedAgentIds()||[]):agents.filter(a=>names.some(n=>a.name.toLowerCase()===n||a.name.toLowerCase().includes(n))).map(a=>a.id).slice(0,8);if(selectedMission&&(!ids.length||ids.length>8)){const message=ids.length>8?'Select up to 8 agents for one team mission.':'Select agents first.';$('#cs').textContent=message;return};if(ids.length){$('#cs').textContent='MULTI-AGENT • '+ids.length;const r=await api('/api/hud/agents/run',{method:'POST',body:JSON.stringify({agents:ids,task:selectedMission?selectedMission[1]:m[2]})});await loadAgents();const ok=(r.results||[]).filter(x=>x.status==='completed');const summary=ok.map(x=>x.name+': '+x.result).join('\n\n');window.SCOTTYSpatial?.focusMention?.(summary||(selectedMission?selectedMission[1]:m[1]));await speak(summary||'The agent team finished with errors.');return}}
- window.SCOTTYSpatial?.focusMention?.(t);const r=await api('/api/hud/command',{method:'POST',body:JSON.stringify({text:t})});if(r.focusNode){await loadResources();window.SCOTTYSpatial?.focusId?.(r.focusNode)}else window.SCOTTYSpatial?.focusMention?.(r.reply||t);await speak(r.reply||'Done.');$('#cs').textContent=r.handled?'ACTING':'ROUTING'
-}catch(z){missionPanelPinned=true;$('#cs').textContent='COMMAND ERROR';$('#activity').innerHTML='<div class="agent-profile"><div class="apname">COMMAND ERROR</div><div class="apjob"><b>DETAILS</b><p>'+e(z?.message||'Unknown error')+'</p></div><button type="button" data-scotty-close-missions>BACK TO ACTIVITY</button></div>';try{await speak('Command bridge error. '+(z?.message||'Please review the HUD error panel'))}catch{}}finally{setTimeout(()=>{if(!speaking)$('#cs').textContent=voiceArmed?'LISTENING':'READY'},1800)}}
+ if(m||selectedMission){const names=m?m[1].split(/\s*(?:,|\band\b|\+)\s*/i).map(x=>x.trim().toLowerCase()).filter(Boolean):[],ids=selectedMission?(window.SCOTTYSpatial?.selectedAgentIds()||[]):agents.filter(a=>names.some(n=>a.name.toLowerCase()===n||a.name.toLowerCase().includes(n))).map(a=>a.id).slice(0,8);if(selectedMission&&(!ids.length||ids.length>8)){const message=ids.length>8?'Select up to 8 agents for one team mission.':'Select agents first.';$('#cs').textContent=message;return};if(ids.length){$('#cs').textContent='MULTI-AGENT • '+ids.length;const r=await api('/api/hud/agents/run',{method:'POST',body:JSON.stringify({agents:ids,task:selectedMission?selectedMission[1]:m[2]})});await loadAgents();const ok=(r.results||[]).filter(x=>x.status==='completed');const summary=ok.map(x=>x.name+': '+x.result).join('\n\n');window.SCOTTYSpatial?.focusMention?.(summary||(selectedMission?selectedMission[1]:m[1]));await reply(summary||'The agent team finished with errors.');return}}
+ window.SCOTTYSpatial?.focusMention?.(t);const r=await api('/api/hud/command',{method:'POST',body:JSON.stringify({text:t})});if(r.focusNode){await loadResources();window.SCOTTYSpatial?.focusId?.(r.focusNode)}else window.SCOTTYSpatial?.focusMention?.(r.reply||t);await reply(r.reply||'Done.');$('#cs').textContent=r.handled?'ACTING':'ROUTING'
+}catch(z){missionPanelPinned=true;$('#cs').textContent='COMMAND ERROR';$('#activity').innerHTML='<div class="agent-profile"><div class="apname">COMMAND ERROR</div><div class="apjob"><b>DETAILS</b><p>'+e(z?.message||'Unknown error')+'</p></div><button type="button" data-scotty-close-missions>BACK TO ACTIVITY</button></div>';try{await reply('Command bridge error. '+(z?.message||'Please review the HUD error panel'))}catch{}}finally{setTimeout(()=>{if(!speaking)$('#cs').textContent=voiceArmed?'LISTENING':'READY'},1800)}}
 $('#send').onclick=()=>command();$('#ci').onkeydown=x=>{if(x.key==='Enter')command()};
 
 async function unlockAudio(){
@@ -403,21 +403,21 @@ function pcmToWav(chunks,sampleRate){
  let o=44;for(const a of chunks){for(let i=0;i<a.length;i++){let x=Math.max(-1,Math.min(1,a[i]));v.setInt16(o,x<0?x*32768:x*32767,true);o+=2}}
  return new Blob([b],{type:'audio/wav'})
 }
-function clearVoiceBuffers(){localVoiceBuffers=[];localVoiceSamples=0;localVoiceLastFlush=performance.now()}
+function clearVoiceBuffers(){localVoiceBuffers=[];localVoiceSamples=0;localVoiceLastFlush=performance.now();window.SCOTTYConversation?.resetCapture?.()}
 async function sendVoiceChunk(){
- if(localVoiceSending||!voiceArmed||speaking||localVoiceSamples<1)return;
+ if(localVoiceSending||!voiceArmed||(speaking&&!window.SCOTTYConversation?.listenDuringSpeech)||localVoiceSamples<1)return;
  const chunks=localVoiceBuffers;clearVoiceBuffers();localVoiceSending=true;
  try{
   const wav=pcmToWav(chunks,audioCtx?.sampleRate||44100);
   if(wav.size<2000)return;
-  $('#vs').textContent='LISTENING • ANALYZING';
+  if(!speaking)$('#vs').textContent='LISTENING • ANALYZING';
   const r=await fetch('/api/hud/stt',{method:'POST',credentials:'same-origin',headers:{'content-type':'audio/wav'},body:wav});
   const d=await r.json().catch(()=>({}));
   if(!r.ok){$('#vs').textContent='MICROPHONE TRANSCRIPTION ERROR';$('#cs').textContent=d.error||'LOCAL VOICE ERROR';return}
   const text=String(d.text||'').trim(),conf=Number(d.confidence||0);
   if(text&&conf>=.18){
    const norm=normalizedSpeech(text),now=Date.now();
-   if(norm && !(norm===lastHeardText&&now-lastHeardAt<2600)){lastHeardText=norm;lastHeardAt=now;$('#vs').textContent='HEARD • '+Math.round(conf*100)+'%';await heard(text)}
+   if(norm && !(norm===lastHeardText&&now-lastHeardAt<2600)){lastHeardText=norm;lastHeardAt=now;if(!speaking)$('#vs').textContent='HEARD • '+Math.round(conf*100)+'%';Promise.resolve(heard(text)).catch(err=>console.warn('spoken command',err))}
   }else if(voiceArmed&&!speaking){$('#vs').textContent='VOICE ARMED';$('#cs').textContent='LISTENING'}
  }catch(e){console.warn('local stt',e);$('#vs').textContent='MICROPHONE TRANSCRIPTION ERROR';$('#cs').textContent='SPEECH RECOGNITION OFFLINE'}
  finally{localVoiceSending=false}
@@ -433,7 +433,8 @@ async function startLocalVoice(){
   localVoiceGain=audioCtx.createGain();localVoiceGain.gain.value=0;
   clearVoiceBuffers();
   localVoiceProcessor.onaudioprocess=e=>{
-   if(!voiceArmed||speaking)return;
+   if(!voiceArmed||(speaking&&!window.SCOTTYConversation?.listenDuringSpeech))return;
+   if(window.SCOTTYConversation?.captureFrame){window.SCOTTYConversation.captureFrame(e.inputBuffer.getChannelData(0),audioCtx.sampleRate||44100);return}
    const input=e.inputBuffer.getChannelData(0),copy=new Float32Array(input.length);copy.set(input);localVoiceBuffers.push(copy);localVoiceSamples+=copy.length;
    const elapsed=localVoiceSamples/(audioCtx.sampleRate||44100);
    if(elapsed>=2.15&&!localVoiceSending)sendVoiceChunk();
@@ -1223,12 +1224,13 @@ body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infini
  SCOTTYMemory.sync(true).then(()=>{try{const cs=document.querySelector('#cs');if(cs&&/MEMORY|LISTENING|READY/.test(cs.textContent||''))cs.textContent=(voiceArmed?'LISTENING':'READY')+' • CLOUD MEMORY CONNECTED'}catch{}});
  const oldCommand=command;
  command=async function(t){
+   const conversationToken=window.SCOTTYConversation?.getRun(),conversationThread=window.SCOTTYConversation?.db.state.active;
    t=String(t||'').trim();if(!t)return;
    const canvasAction=eyesVoiceCommand(t);if(canvasAction){$('#cs').textContent=canvasAction;await speak(canvasAction);return}
    if(/^\s*(?:scotty[, ]*)?(?:ask|tell|bring in)\s+(?:the )?selected (?:agents|nodes|team)\s*:/i.test(t))return oldCommand(t);
-   SCOTTYMemory.remember('user',t);
+   if(!window.SCOTTYConversation)SCOTTYMemory.remember('user',t);
    const low=t.toLowerCase();
-   if(/^(remember|remember that|save to memory)\b/.test(low)){const v=t.replace(/^(remember|remember that|save to memory)\s*/i,'').trim();if(v){const ok=await SCOTTYMemory.save(v,'explicit');await speak(ok?'Remembered. I added that to shared cloud memory.':'Remembered locally. Cloud memory will retry when available.');SCOTTYMemory.remember('assistant','Remembered.');return}}
+   if(/^(remember|remember that|save to memory)\b/.test(low)){const v=t.replace(/^(remember|remember that|save to memory)\s*/i,'').trim();if(v){const ok=await SCOTTYMemory.save(v,'explicit');const message=ok?'Remembered. I added that to shared cloud memory.':'Remembered locally. Cloud memory will retry when available.';if(window.SCOTTYConversation)await window.SCOTTYConversation.legacyResponse(message,conversationToken,conversationThread);else{await speak(message);SCOTTYMemory.remember('assistant','Remembered.');}return}}
    const structured=/^\s*(?:(?:open|show)\s+(?:live ops|missions?|mission control)|(?:start|create|launch)\s+(?:a\s+)?(?:(?:autonomous|auto)\s+)?mission(?:\s+(?:to|for))?|(?:ask|bring in)\s+[^:]+:)/i.test(t);
    if(structured){return oldCommand(t)}
    await SCOTTYMemory.sync();
