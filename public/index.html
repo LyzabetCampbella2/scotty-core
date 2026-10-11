@@ -659,6 +659,13 @@ function eyesHandPinch(p,index){
  state.wrist={x:p[0].x,y:p[0].y};
  return {info,id:id||state.lastTarget,down}
 }
+let eyesPalmResetFrames=0,eyesPalmResetLatched=false;
+function eyesTwoHandResetGesture(ps){
+ const left=ginfo(ps[0]),right=ginfo(ps[1]);
+ const reset=left.open&&right.open&&!left.pinch&&!right.pinch&&ps[0][0].y<.35&&ps[1][0].y<.35;
+ if(reset){eyesPalmResetFrames++;if(eyesPalmResetFrames>=24&&!eyesPalmResetLatched){eyesPalmResetLatched=true;eyesFitAll();eyesCursorDiagnostic('BOTH HANDS RAISED • VIEW RESET')}}
+ else{eyesPalmResetFrames=0;eyesPalmResetLatched=false}
+}
 function processTwo(ps){
  if(eyesDrag){if(eyesDrag.moved)eyesCommitMove(eyesDrag.previous);resetEyesPinch()}
  const distW=(p,w)=>w?Math.hypot(p[0].x-w.x,p[0].y-w.y):Infinity;
@@ -668,10 +675,19 @@ function processTwo(ps){
   if(swap<same)ps=[ps[1],ps[0]]
  }
  const a=eyesHandPinch(ps[0],0),b=eyesHandPinch(ps[1],1);
+ eyesTwoHandResetGesture(ps);
  $('#handCursor').classList.toggle('pinch',a.down);$('#handCursor2').classList.toggle('pinch',b.down);
  const pa=ps[0][9],pb=ps[1][9],dx=pb.x-pa.x,dy=pb.y-pa.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx);
- if(!a.down&&!b.down&&!eyesHandStates.some(st=>st.pinched||st.moved)&&twoState){const ratio=dist/Math.max(.001,twoState.dist);if(ratio>.90&&ratio<1.10)graphScale=Math.max(.68,Math.min(1.85,graphScale*ratio));graphRotation+=angleDelta(ang,twoState.ang)*180/Math.PI;graphRotation=Math.max(-120,Math.min(120,graphRotation));applyGraphTransform()}
- twoState={dist,ang};setHold(false);
+ const palmsOpen=a.info.open&&b.info.open&&!a.down&&!b.down;
+ const busy=eyesHandStates.some(st=>st.pinched||st.moved);
+ if(palmsOpen&&!busy&&twoState?.palmsOpen){
+  const ratio=dist/Math.max(.001,twoState.dist);
+  if(ratio>.93&&ratio<1.07)graphScale=Math.max(.68,Math.min(1.85,graphScale*ratio));
+  const delta=angleDelta(ang,twoState.ang)*180/Math.PI;
+  if(Math.abs(delta)<9)graphRotation=Math.max(-120,Math.min(120,graphRotation+delta));
+  applyGraphTransform();
+ }
+ twoState={dist,ang,palmsOpen};setHold(false);
  const status='LEFT '+Math.round(a.info.pinchRatio*100)+'% '+(a.id||'—')+' • RIGHT '+Math.round(b.info.pinchRatio*100)+'% '+(b.id||'—');
  eyesCursorDiagnostic(status);$('#gs').textContent='TWO HANDS • PINCH TO SELECT';return status
 }
