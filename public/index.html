@@ -156,6 +156,23 @@ $$('.nav').forEach((n,i)=>n.addEventListener('click',()=>{$$('.nav').forEach((x,
 const eyesNodePositions=(()=>{try{return JSON.parse(localStorage.getItem('scotty-eyes-node-positions-v1')||'{}')}catch{return {}}})();
 let eyesDrag=null;
 function eyesGraphPoint(x,y){const svg=$('#graph'),world=$('#graphWorld'),m=world?.getScreenCTM();if(!m)return null;const p=svg.createSVGPoint();p.x=x;p.y=y;return p.matrixTransform(m.inverse())}
+function eyesUpdateDraggedNodes(){
+ const svg=$('#graph'),world=$('#graphWorld');if(!svg||!world)return;
+ const groups=world.querySelectorAll('g[data-agent]');
+ if(!groups.length)return;
+ const positions=new Map();
+ groups.forEach(g=>{const c=g.querySelector('circle'),id=g.dataset.agent,p=eyesNodePositions[id];if(!c)return;
+  if(p){c.setAttribute('cx',p.x);c.setAttribute('cy',p.y);const t=g.querySelector('text');if(t){const oldX=Number(t.getAttribute('x')),oldY=Number(t.getAttribute('y'));const prev=eyesDragVisualCache.get(id)||{x:Number(c.getAttribute('cx')),y:Number(c.getAttribute('cy'))};t.setAttribute('x',oldX+p.x-prev.x);t.setAttribute('y',oldY+p.y-prev.y)}eyesDragVisualCache.set(id,{x:p.x,y:p.y})}
+  positions.set(id,{x:Number(c.getAttribute('cx')),y:Number(c.getAttribute('cy'))})
+ });
+ const lines=world.querySelectorAll(':scope > line');
+ agents.forEach((a,i)=>{const line=lines[i],p=positions.get(a.id);if(!line||!p)return;
+  const q=a.chiefId&&a.chiefId!==a.id?positions.get(a.chiefId):null;
+  line.setAttribute('x1',p.x);line.setAttribute('y1',p.y);
+  if(q){line.setAttribute('x2',q.x);line.setAttribute('y2',q.y)}
+ });
+}
+const eyesDragVisualCache=new Map();
 function eyesMoveNode(id,x,y){const p=eyesGraphPoint(x,y);if(!p)return;const svg=$('#graph'),w=svg.clientWidth||700,h=svg.clientHeight||550;eyesNodePositions[id]={x:Math.max(12,Math.min(w-12,p.x)),y:Math.max(12,Math.min(h-12,p.y))};draw()}
 const eyesMoveHistory=[];
 const eyesSelectedNodes=new Set();let eyesMultiMode=false;
@@ -271,7 +288,7 @@ function eyesResetLayout(){if(!confirm('Reset all custom agent node positions on
 function eyesSavePositions(){try{localStorage.setItem('scotty-eyes-node-positions-v1',JSON.stringify(eyesNodePositions))}catch{}}
 function draw(){
  const s=$('#graph'),w=s.clientWidth||700,h=s.clientHeight||550,cx=w*.5,cy=h*.54,ns='http://www.w3.org/2000/svg',pal=['#5eeaff','#28d7bd','#d8f7ff','#ffd166','#9db3c5','#7bb6ff','#ff8ea4'];
- graphCenter={x:cx,y:cy};s.setAttribute('viewBox','0 0 '+w+' '+h);s.innerHTML='';
+ eyesDragVisualCache.clear();graphCenter={x:cx,y:cy};s.setAttribute('viewBox','0 0 '+w+' '+h);s.innerHTML='';
  const world=document.createElementNS(ns,'g');world.id='graphWorld';s.appendChild(world);
  const overlay=document.createElementNS(ns,'g');overlay.id='eyesPointerLayer';overlay.setAttribute('pointer-events','none');
  for(let n=0;n<2;n++){const circle=document.createElementNS(ns,'circle');circle.id='eyesPointer'+n;circle.setAttribute('r','17');circle.setAttribute('fill',n?'rgba(255,209,102,.35)':'rgba(94,234,255,.4)');circle.setAttribute('stroke',n?'#ffd166':'#5eeaff');circle.setAttribute('stroke-width','3');circle.setAttribute('visibility','hidden');overlay.appendChild(circle)}
@@ -598,7 +615,7 @@ function processOne(p){
     const point=eyesGraphPoint(pt.x,pt.y),origin=eyesDrag.origin;
     if(point&&origin){const dx=point.x-origin.x,dy=point.y-origin.y,svg=$('#graph'),w=svg.clientWidth||700,h=svg.clientHeight||550;
      for(const [id,start] of Object.entries(eyesDrag.starts))eyesNodePositions[id]={x:Math.max(12,Math.min(w-12,start.x+dx)),y:Math.max(12,Math.min(h-12,start.y+dy))};
-     draw();cursorFromHand(p);eyesDrag.lastDraw=now
+     eyesUpdateDraggedNodes();cursorFromHand(p);eyesDrag.lastDraw=now
     }
    }
   }else if(++eyesReleaseFrames>=2){
@@ -663,7 +680,7 @@ function eyesHandPinch(p,index){
      for(const [key,start] of Object.entries(state.starts||{})){
       eyesNodePositions[key]={x:Math.max(12,Math.min(w-12,start.x+dx)),y:Math.max(12,Math.min(h-12,start.y+dy))}
      }
-     state.moved=true;state.lastDraw=now;draw()
+     state.moved=true;state.lastDraw=now;eyesUpdateDraggedNodes()
     }
    }
   }
