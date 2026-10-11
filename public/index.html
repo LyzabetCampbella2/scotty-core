@@ -161,6 +161,12 @@ function eyesVoiceCommand(t){
  if(/\b(?:focus (?:selected )?node|zoom to selection)\b/.test(l)){return eyesFocusSelected()?'Focused on selected node.':'Select a node first.'}
  if(/\b(?:fit all|show all nodes|reset zoom)\b/.test(l)){eyesFitAll();return 'Showing all nodes.'}
  if(/\b(?:select all chiefs|highlight chiefs)\b/.test(l)){eyesSelectChiefs();return 'All chiefs selected.'}
+ if(/\b(?:zoom in|magnify nodes)\b/.test(l)){eyesZoomBy(1.2);return 'Zoomed in.'}
+ if(/\b(?:zoom out|shrink nodes)\b/.test(l)){eyesZoomBy(1/1.2);return 'Zoomed out.'}
+ if(/\b(?:rotate left|spin left)\b/.test(l)){eyesRotateBy(-15);return 'Rotated left.'}
+ if(/\b(?:rotate right|spin right)\b/.test(l)){eyesRotateBy(15);return 'Rotated right.'}
+ if(/\b(?:select (?:this |the )?department|highlight department)\b/.test(l)){return eyesSelectDepartment()?'Department selected.':'Select an agent first.'}
+ if(/\b(?:what is selected|read selection|selection summary)\b/.test(l)){return eyesSelectionSummary()}
  if(/\b(?:clear selection|deselect all|unselect all)\b/.test(l)){eyesClearSelection();return 'Selection cleared.'}
  if(/\b(?:undo (?:node )?move|undo last move|move undo)\b/.test(l)){eyesUndoMove();return $('#cs').textContent==='LAST NODE MOVE UNDONE'?'Last node move undone.':'No moves to undo.'}
  if(/\b(?:reset (?:node )?layout|restore node layout)\b/.test(l)){eyesResetLayout();return 'Layout reset requested. Please confirm on screen.'}
@@ -195,6 +201,27 @@ function eyesFitAll(){
 function eyesSelectChiefs(){
  eyesMultiMode=true;eyesSelectedNodes.clear();agents.filter(a=>a.isChief).forEach(a=>eyesSelectedNodes.add(a.id));
  $('#eyesMultiSelect').textContent='MULTI-SELECT: ON';eyesPaintSelection();$('#cs').textContent='SELECTED '+eyesSelectedNodes.size+' CHIEFS'
+}
+function eyesZoomBy(factor){
+ graphScale=Math.max(.68,Math.min(1.85,graphScale*factor));applyGraphTransform();
+ $('#cs').textContent='EYES ON • ZOOM '+Math.round(graphScale*100)+'%';
+}
+function eyesRotateBy(degrees){
+ graphRotation=Math.max(-120,Math.min(120,graphRotation+degrees));applyGraphTransform();
+ $('#cs').textContent='EYES ON • ROTATION '+Math.round(graphRotation)+'°';
+}
+function eyesSelectDepartment(){
+ const id=[...eyesSelectedNodes][0]||selectedAgentId,agent=agents.find(a=>a.id===id);
+ if(!agent)return false;
+ eyesMultiMode=true;eyesSelectedNodes.clear();
+ agents.filter(a=>a.department===agent.department).forEach(a=>eyesSelectedNodes.add(a.id));
+ $('#eyesMultiSelect').textContent='MULTI-SELECT: ON';eyesPaintSelection();
+ $('#cs').textContent='DEPARTMENT • '+agent.department+' • '+eyesSelectedNodes.size+' AGENTS';return true
+}
+function eyesSelectionSummary(){
+ const names=[...eyesSelectedNodes].map(id=>agents.find(a=>a.id===id)?.name).filter(Boolean);
+ const message=names.length?names.length+' agents selected: '+names.slice(0,5).join(', ')+(names.length>5?' and '+(names.length-5)+' more':'')+'.':'No agents selected.';
+ $('#cs').textContent=message;return message
 }
 function eyesClearSelection(){eyesSelectedNodes.clear();eyesPaintSelection();$('#cs').textContent='NODE SELECTION CLEARED'}
 function eyesCommitMove(previous){eyesMoveHistory.push({positions:previous});if(eyesMoveHistory.length>30)eyesMoveHistory.shift();eyesSavePositions()}
