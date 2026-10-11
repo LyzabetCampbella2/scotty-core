@@ -754,7 +754,99 @@ function eyesIsRightHand(result,index){
  return label==='right'
 }
 function eyesIsLeftHand(result,index){return String(result.multiHandedness?.[index]?.label||'').toLowerCase()==='left'}
-function drawHands(r){const c=$('#hc'),b=$('.cam'),w=b.clientWidth||300,h=b.clientHeight||225;if(c.width!==w||c.height!==h){c.width=w;c.height=h}const x=c.getContext('2d');x.clearRect(0,0,w,h);const allHands=r.multiHandLandmarks||[];const ps=eyesLeftHandOnly?allHands.filter((_,i)=>eyesIsLeftHand(r,i)):eyesRightHandOnly?allHands.filter((_,i)=>eyesIsRightHand(r,i)):allHands.slice();if(ps.length===2){const labels=r.multiHandedness||[];if(labels[0]?.label==='Right'&&labels[1]?.label==='Left')ps.reverse();else if(!labels[0]?.label||!labels[1]?.label)ps.sort((a,b)=>b[0].x-a[0].x)}
+
+/* Eyes On v2: isolated gesture controller. Legacy gesture handlers are bypassed. */
+const eyesV2={
+ hands:[{id:null,grab:null,frames:0,previous:null,starts:null,origin:null,moved:false,wrist:null},
+        {id:null,grab:null,frames:0,previous:null,starts:null,origin:null,moved:false,wrist:null}],
+ nav:null,resetAt:0,resetDone:false,lastPaint:0
+};
+function eyesV2Release(i){
+ const h=eyesV2.hands[i];
+ if(h.grab&&h.moved&&h.previous)eyesCommitMove(h.previous);
+ h.grab=null;h.frames=0;h.previous=null;h.starts=null;h.origin=null;h.moved=false;
+}
+function eyesV2Hands(result){
+ const c=$('#hc'),b=$('.cam'),w=b.clientWidth||300,h=b.clientHeight||225;
+ if(c.width!==w||c.height!==h){c.width=w;c.height=h}
+ const ctx=c.getContext('2d');ctx.clearRect(0,0,w,h);
+ const found=(result.multiHandLandmarks||[]).map((p,i)=>({p,label:String(result.multiHandedness?.[i]?.label||'').toLowerCase()}));
+ // MediaPipe assumes mirrored selfie imagery. Use landmark continuity to avoid swapped cursors.
+ const last=eyesV2.hands.map(h=>h.wrist);
+ let pair=found.slice(0,2);
+ if(pair.length===2&&last[0]&&last[1]){
+  const cost=(a,b)=>Math.hypot(a.p[0].x-b.x,a.p[0].y-b.y);
+  if(cost(pair[1],last[0])+cost(pair[0],last[1])<cost(pair[0],last[0])+cost(pair[1],last[1]))pair.reverse();
+ }else if(pair.length===2){pair.sort((a,b)=>b.p[0].x-a.p[0].x)}
+ else if(pair.length===1&&last[0]&&last[1]){
+  const p=pair[0].p[0],d=i=>Math.hypot(p.x-last[i].x,p.y-last[i].y);
+  if(d(1)<d(0))pair=[null,pair[0]];
+ }
+ const active=pair.filter(Boolean);
+ $('#sh').textContent='TRACKING '+active.length+' HAND'+(active.length===1?'':'S');
+ for(const item of active){
+  const p=item.p;ctx.strokeStyle='#5eeaff';ctx.fillStyle='#28d7bd';ctx.lineWidth=1.2;
+  for(const [a,z] of [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20]]){
+   ctx.beginPath();ctx.moveTo((1-p[a].x)*w,p[a].y*h);ctx.lineTo((1-p[z].x)*w,p[z].y*h);ctx.stroke();
+  }
+  p.forEach(q=>{ctx.beginPath();ctx.arc((1-q.x)*w,q.y*h,2.5,0,Math.PI*2);ctx.fill()})
+ }
+ const infos=pair.map(item=>item?ginfo(item.p):null);
+ const dual=!!(pair[0]&&pair[1]);
+ const bothPinch=dual&&infos.every(i=>i.pinch&&!i.fist);
+ const bothOpen=dual&&infos.every(i=>i.open&&!i.pinch&&!i.fist);
+ const now=Date.now();
+ if(bothPinch){
+  if(!eyesV2.resetAt)eyesV2.resetAt=now;
+  if(!eyesV2.resetDone&&now-eyesV2.resetAt>=450){
+   eyesV2.hands.forEach((_,i)=>eyesV2Release(i));
+   eyesFitAll();eyesV2.nav=null;eyesV2.resetDone=true;
+  }
+ }else{eyesV2.resetAt=0;eyesV2.resetDone=false}
+ if(bothOpen){
+  const p=pair.map(item=>item.p[9]),dx=p[1].x-p[0].x,dy=p[1].y-p[0].y;
+  const distance=Math.hypot(dx,dy),angle=Math.atan2(dy,dx);
+  eyesV2.hands.forEach((_,i)=>eyesV2Release(i));
+  if(!eyesV2.nav)eyesV2.nav={distance,angle,scale:graphScale,rotation:graphRotation,mode:null};
+  const n=eyesV2.nav,ratio=distance/Math.max(.06,n.distance);
+  const degrees=angleDelta(angle,n.angle)*180/Math.PI;
+  if(!n.mode){if(Math.abs(degrees)>16&&Math.abs(ratio-1)<.13)n.mode='rotate';else if(Math.abs(ratio-1)>.045)n.mode='zoom'}
+  if(n.mode==='zoom')graphScale=Math.max(.55,Math.min(2.5,n.scale*ratio));
+  if(n.mode==='rotate')graphRotation=Math.max(-120,Math.min(120,n.rotation+degrees));
+  if(n.mode)applyGraphTransform();
+  $('#gs').textContent=n.mode==='zoom'?'ZOOM '+Math.round(graphScale*100)+'%':n.mode==='rotate'?'ROTATE '+Math.round(graphRotation)+'°':'OPEN PALMS • MOVE APART OR TOGETHER';
+ }else{eyesV2.nav=null}
+ for(let i=0;i<2;i++){
+  const item=pair[i],h=eyesV2.hands[i];
+  if(!item){eyesV2Release(i);eyesHidePointer(i);const cursor=i?$('#handCursor2'):$('#handCursor');if(cursor)cursor.style.display='none';h.wrist=null;continue}
+  const p=item.p,info=infos[i],pt=cursorFromHand(p,i);
+  h.wrist={x:p[0].x,y:p[0].y};
+  if(bothOpen||bothPinch){eyesV2Release(i);continue}
+  const target=hoverNearest(pt.x,pt.y,i)?.dataset.agent||null;
+  if(!info.fist){eyesV2Release(i);if(target)h.id=target;else h.id=null;continue}
+  h.frames++;
+  if(!h.grab&&h.frames>=2){
+   const chosen=h.id||target;
+   if(chosen&&!eyesV2.hands.some((other,j)=>j!==i&&other.grab===chosen)&&eyesPinchAction(chosen)){
+    h.grab=chosen;h.starts={};h.previous={};h.origin=eyesGraphPoint(pt.x,pt.y);h.startX=pt.x;h.startY=pt.y;
+    for(const key of eyesMoveSelectionTogether(chosen)){
+     const node=[...document.querySelectorAll('#graph g[data-agent]')].find(g=>g.dataset.agent===key)?.querySelector('circle');
+     if(node){h.starts[key]={x:Number(node.getAttribute('cx')),y:Number(node.getAttribute('cy'))};h.previous[key]=eyesNodePositions[key]?{...eyesNodePositions[key]}:null}
+    }
+   }
+  }
+  if(h.grab&&h.origin&&Math.hypot(pt.x-h.startX,pt.y-h.startY)>18&&now-eyesV2.lastPaint>60){
+   const current=eyesGraphPoint(pt.x,pt.y),svg=$('#graph');
+   if(current){for(const [key,start] of Object.entries(h.starts||{})){
+    eyesNodePositions[key]={x:Math.max(12,Math.min((svg.clientWidth||700)-12,start.x+current.x-h.origin.x)),y:Math.max(12,Math.min((svg.clientHeight||550)-12,start.y+current.y-h.origin.y))}
+   }h.moved=true;eyesUpdateDraggedNodes();eyesV2.lastPaint=now}
+  }
+ }
+ if(bothPinch)$('#gs').textContent=eyesV2.resetDone?'VIEW RESET • 100%':'HOLD BOTH PINCHES • RESET';
+ else if(!bothOpen)$('#gs').textContent=active.length?eyesV2.hands.map((h,i)=>pair[i]?(infos[i].fist?(h.grab?'GRABBED '+h.grab:'FIST • AIM AT NODE'):infos[i].open?'OPEN':'POINT '+(h.id||'—')):'—').join(' • '):'SHOW HANDS TO CAMERA';
+ $('#gl').textContent='HAND TRACKING: '+(dual?'TWO INDEPENDENT HANDS':active.length?'ONE HAND':'NO HAND');
+}
+function drawHands(r){return eyesV2Hands(r);const c=$('#hc'),b=$('.cam'),w=b.clientWidth||300,h=b.clientHeight||225;if(c.width!==w||c.height!==h){c.width=w;c.height=h}const x=c.getContext('2d');x.clearRect(0,0,w,h);const allHands=r.multiHandLandmarks||[];const ps=eyesLeftHandOnly?allHands.filter((_,i)=>eyesIsLeftHand(r,i)):eyesRightHandOnly?allHands.filter((_,i)=>eyesIsRightHand(r,i)):allHands.slice();if(ps.length===2){const labels=r.multiHandedness||[];if(labels[0]?.label==='Right'&&labels[1]?.label==='Left')ps.reverse();else if(!labels[0]?.label||!labels[1]?.label)ps.sort((a,b)=>b[0].x-a[0].x)}
  if(allHands.length&&!ps.length){$('#sh').textContent='LEFT HAND ONLY';$('#gs').textContent='SHOW YOUR LEFT HAND • RIGHT HAND IGNORED'}
  if(!ps.length)eyesCursorDiagnostic('EYES CURSOR: NO HAND LANDMARKS • SHOW HAND');
  $('#sh').textContent=ps.length?'TRACKING '+ps.length+' HAND'+(ps.length>1?'S':''):'SEARCHING';let label='NO HAND';for(const p of ps){const inf=ginfo(p);label=inf.label;x.fillStyle=inf.pinch?'#ffd166':'#28d7bd';x.strokeStyle=inf.pinch?'#ffd166':'#5eeaff';x.lineWidth=1.2;p.forEach(q=>{x.beginPath();x.arc((1-q.x)*w,q.y*h,2.4,0,Math.PI*2);x.fill()});[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]].forEach(([a,z])=>{x.beginPath();x.moveTo((1-p[a].x)*w,p[a].y*h);x.lineTo((1-p[z].x)*w,p[z].y*h);x.stroke()})}if(ps.length>=2&&!eyesRightHandOnly&&!eyesLeftHandOnly)label=processTwo(ps);else if(ps.length>=1){
