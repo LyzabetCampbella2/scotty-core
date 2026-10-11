@@ -500,7 +500,7 @@ function ginfo(p){
  const d=(a,b)=>Math.hypot(p[a].x-p[b].x,p[a].y-p[b].y);
  const palm=Math.max(.04,d(0,9),d(5,17)),pinchRatio=d(4,8)/palm;
  const raised=[8,12,16,20].filter(i=>p[i].y<p[i-2].y).length;
- const pinch=pinchRatio<.78;
+ const pinch=pinchRatio<.55;
  return{pinch,pinchRatio,open:raised>=4,point:p[8].y<p[6].y&&raised<=2,label:pinch?'PINCH • '+Math.round(pinchRatio*100)+'%':raised>=4?'OPEN PALM':raised===1?'POINT • TARGET':'TRACKING'}
 }
 function eyesSvgPointer(index,x,y){
@@ -515,7 +515,7 @@ function eyesHidePointer(index){const node=$('#eyesPointer'+index);if(node)node.
 let eyesPointerFrames=0;
 function eyesCursorDiagnostic(message){const el=$('#eyesCursorDiagnostics');if(el)el.textContent=message}
 function cursorFromHand(p,index=0){
- const graph=$('#graph'),gr=graph.getBoundingClientRect(),main=$('.main').getBoundingClientRect(),b=gr.width>10&&gr.height>10?gr:main,tip=p[8],thumb=p[4],pt={x:tip.x,y:tip.y},x=b.left+(1-pt.x)*b.width,y=b.top+pt.y*b.height;
+ const graph=$('#graph'),gr=graph.getBoundingClientRect(),main=$('.main').getBoundingClientRect(),b=gr.width>10&&gr.height>10?gr:main,tip=p[8],pt={x:tip.x,y:tip.y},x=b.left+(1-pt.x)*b.width,y=b.top+pt.y*b.height;
  const c=index===0?$('#handCursor'):$('#handCursor2');
  c.style.left=x+'px';c.style.top=y+'px';c.classList.add('on');c.style.display='block';eyesSvgPointer(index,x,y);
  const surface=$('#eyesCursorSurface'+index);if(surface){surface.style.left=(x-main.left)+'px';surface.style.top=(y-main.top)+'px';surface.style.display='block'}
