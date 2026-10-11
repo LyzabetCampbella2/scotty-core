@@ -223,6 +223,7 @@ function eyesFocusSelected(){
  $('#cs').textContent='FOCUSED • '+(agents.find(a=>a.id===id)?.name||'NODE');return true
 }
 function eyesFitAll(){
+ if(window.SCOTTYSpatial?.handFitAll){eyesV2Reset();window.SCOTTYSpatial.handFitAll();return}
  graphScale=1;graphRotation=0;graphCenter={x:$('#graph').clientWidth/2,y:$('#graph').clientHeight/2};
  const world=$('#graphWorld');if(world)world.style.transformOrigin='';
  applyGraphTransform();$('#cs').textContent='EYES ON • FIT ALL NODES'
@@ -488,7 +489,7 @@ $('#eyes').onclick=()=>{if(!voiceArmed){$('#cs').textContent='ARM VOICE FIRST';r
 async function startVisionVoice(){if(!voiceCamera)return;try{await startVision();await speak('Eyes on. Hand tracking active.')}catch{$('#confirm').style.display='block';await speak('I heard eyes on. Safari needs one confirmation tap before I can open the camera.')}}
 $('#confirmEyes').onclick=async()=>{if(!voiceCamera)return;await unlockAudio();$('#confirm').style.display='none';try{await startVision();await speak('Eyes on. Hand tracking active.')}catch{await speak('Camera permission was not granted.')}};
 async function startVision(){if(!voiceCamera)throw Error('spoken authorization required');if(stream)return;stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false});const v=$('#video');v.srcObject=stream;await v.play();$('#vision').classList.add('on');document.body.classList.add('vision-active');$('#eyes').classList.add('on');$('#eyes').textContent='EYES: ACTIVE • VOICE AUTHORIZED';$('#sv').textContent='ACTIVE';$('#gs').textContent='VISION ACTIVE';$('#cs').textContent='VISION';await startHands()}
-function stopVision(){voiceCamera=false;tracking=false;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$('#video').srcObject=null;$('#vision').classList.remove('on');document.body.classList.remove('vision-active','gesture-hold');$('#handCursor').className='';$('#handCursor').style.display='none';$('#handCursor2').classList.remove('on');$('#handCursor2').style.display='none';eyesHidePointer(0);eyesHidePointer(1);$('#eyes').classList.remove('on');$('#eyes').textContent='EYES: LOCKED • SAY “SCOTTY, EYES ON”';$('#sv').textContent='LOCKED';$('#sh').textContent='OFF';$('#gs').textContent='HANDS OFF';$('#cs').textContent='LISTENING';$('#confirm').style.display='none';twoState=null;swipeSeed=null;resetEyesPinch();holdOn=false}
+function stopVision(){eyesV2Reset();voiceCamera=false;tracking=false;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$('#video').srcObject=null;$('#vision').classList.remove('on');document.body.classList.remove('vision-active','gesture-hold');$('#handCursor').className='';$('#handCursor').style.display='none';$('#handCursor2').classList.remove('on');$('#handCursor2').style.display='none';eyesHidePointer(0);eyesHidePointer(1);$('#eyes').classList.remove('on');$('#eyes').textContent='EYES: LOCKED • SAY “SCOTTY, EYES ON”';$('#sv').textContent='LOCKED';$('#sh').textContent='OFF';$('#gs').textContent='HANDS OFF';$('#cs').textContent='LISTENING';$('#confirm').style.display='none';twoState=null;swipeSeed=null;resetEyesPinch();holdOn=false}
 async function startHands(){
  if(typeof Hands==='undefined'){ $('#sh').textContent='TRACKER NOT LOADED';$('#gs').textContent='HAND TRACKER UNAVAILABLE';throw Error('hand tracker unavailable')}
  hands=new Hands({locateFile:f=>'https://cdn.jsdelivr.net/npm/@mediapipe/hands/'+f});
@@ -501,7 +502,7 @@ function ginfo(p){
  const d=(a,b)=>Math.hypot(p[a].x-p[b].x,p[a].y-p[b].y);
  const palm=Math.max(.04,d(0,9),d(5,17)),pinchRatio=d(4,8)/palm;
  const raised=[8,12,16,20].filter(i=>p[i].y<p[i-2].y).length;
- const pinch=pinchRatio<.85,fist=raised===0&&d(8,0)<palm*1.55&&d(12,0)<palm*1.65;
+ const pinch=pinchRatio<.42,fist=raised===0&&d(8,0)<palm*1.55&&d(12,0)<palm*1.65;
  return{pinch,pinchRatio,fist,open:raised>=4,point:p[8].y<p[6].y&&raised<=2,label:fist?'FIST • GRAB':pinch?'PINCH • '+Math.round(pinchRatio*100)+'%':raised>=4?'OPEN PALM':raised===1?'POINT • TARGET':'TRACKING'}
 }
 function eyesSvgPointer(index,x,y){
@@ -516,7 +517,7 @@ function eyesHidePointer(index){const node=$('#eyesPointer'+index);if(node)node.
 let eyesPointerFrames=0;
 function eyesCursorDiagnostic(message){const el=$('#eyesCursorDiagnostics');if(el)el.textContent=message}
 function cursorFromHand(p,index=0){
- const graph=$('#graph'),gr=graph.getBoundingClientRect(),main=$('.main').getBoundingClientRect(),b=gr.width>10&&gr.height>10?gr:main,tip=p[8],pt=ginfo(p).fist?{x:p[9].x,y:p[9].y}:{x:tip.x,y:tip.y},x=b.left+(1-pt.x)*b.width,y=b.top+pt.y*b.height;
+ const graph=$('#graph'),gr=graph.getBoundingClientRect(),main=$('.main').getBoundingClientRect(),b=gr.width>10&&gr.height>10?gr:main,tip=p[8],pt={x:tip.x,y:tip.y},x=b.left+(1-pt.x)*b.width,y=b.top+pt.y*b.height;
  const c=index===0?$('#handCursor'):$('#handCursor2');
  c.style.left=x+'px';c.style.top=y+'px';c.classList.add('on');c.style.display='block';eyesSvgPointer(index,x,y);
  const surface=$('#eyesCursorSurface'+index);if(surface){surface.style.left=(x-main.left)+'px';surface.style.top=(y-main.top)+'px';surface.style.display='block'}
@@ -756,28 +757,21 @@ function eyesIsRightHand(result,index){
 }
 function eyesIsLeftHand(result,index){return String(result.multiHandedness?.[index]?.label||'').toLowerCase()==='left'}
 
-/* Eyes On v2: isolated gesture controller. Legacy gesture handlers are bypassed. */
-const eyesV2={
- hands:[{id:null,grab:null,frames:0,previous:null,starts:null,origin:null,moved:false,wrist:null},
-        {id:null,grab:null,frames:0,previous:null,starts:null,origin:null,moved:false,wrist:null}],
- nav:null,resetAt:0,resetDone:false,lastPaint:0
-};
+/* SCOTTY_EYES_CANVAS_V3: gestures act on the visible spatial canvas. */
+const eyesV2={hands:[{},{}],nav:null,pan:null};
 function eyesV2Release(i){
- const h=eyesV2.hands[i];
- if(h.grab&&h.moved&&h.previous)eyesCommitMove(h.previous);
- h.grab=null;h.frames=0;h.previous=null;h.starts=null;h.origin=null;h.moved=false;
+ window.SCOTTYSpatial?.handRelease(i);
+ const h=eyesV2.hands[i];h.grab=null;h.frames=0;h.down=false;
 }
-/* Stage 1: right hand only. Do not trust mirrored MediaPipe handedness labels.
-   Present ONLY the right hand during calibration. Stage 2 adds independent left hand;
-   stage 3 enables coordinated gestures after both have passed individual tests. */
-const eyesStage={mode:'right',missing:0};
+function eyesV2Reset(){
+ eyesV2.hands.forEach((h,i)=>{eyesV2Release(i);h.wrist=null;h.blocked=false});
+ eyesV2.nav=null;eyesV2.pan=null;window.SCOTTYSpatial?.handEndView();
+}
 function eyesV2Hands(result){
  const c=$('#hc'),b=$('.cam'),w=b.clientWidth||300,hh=b.clientHeight||225;
  if(c.width!==w||c.height!==hh){c.width=w;c.height=hh}
  const ctx=c.getContext('2d');ctx.clearRect(0,0,w,hh);
- const raw=(result.multiHandLandmarks||[]).slice(0,2);
- eyesCursorDiagnostic('EYES ON • MEDIAPIPE DETECTED '+raw.length+' HAND(S) • '+(raw.length<2?'SHOW BOTH FULL HANDS SEPARATED TO CAMERA':'TWO HANDS VISIBLE'));
- const hands=eyesV2.hands;
+ const raw=(result.multiHandLandmarks||[]).slice(0,2),hands=eyesV2.hands;
  // Assign detections by wrist continuity. No dependence on mirrored handedness labels.
  const distance=(p,q)=>Math.hypot(p.x-q.x,p.y-q.y);
  let assigned=[null,null];
@@ -791,7 +785,13 @@ function eyesV2Hands(result){
   const slot=d0!==Infinity||d1!==Infinity?(d1<d0?1:0):(p.x>.5?0:1);
   assigned[slot]=raw[0];
  }
- const infos=assigned.map(p=>p?ginfo(p):null);
+ const infos=assigned.map((p,i)=>{
+  if(!p)return null;
+  const info=ginfo(p),h=hands[i];
+  // Palm-normalized hysteresis prevents a relaxed hand from becoming a pinch.
+  info.pinch=info.pinchRatio<(h.down?.60:.42);h.down=info.pinch;
+  return info;
+ });
  for(let i=0;i<2;i++){
   const p=assigned[i];if(!p)continue;
   ctx.strokeStyle=i===0?'#28d7bd':'#5eeaff';ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=1.3;
@@ -800,58 +800,45 @@ function eyesV2Hands(result){
   }
   p.forEach(q=>{ctx.beginPath();ctx.arc((1-q.x)*w,q.y*hh,2.3,0,Math.PI*2);ctx.fill()})
  }
- const dual=assigned.every(Boolean),bothPinch=dual&&infos.every(i=>i.pinch)&&hands.every(h=>!h.grab&&!h.id),bothOpen=dual&&infos.every(i=>i.open&&!i.pinch);
- const now=Date.now();
- if(bothPinch){
-  if(!eyesV2.resetAt)eyesV2.resetAt=now;
-  if(!eyesV2.resetDone&&now-eyesV2.resetAt>=550){
-   hands.forEach((_,i)=>eyesV2Release(i));eyesFitAll();eyesV2.resetDone=true;eyesV2.nav=null
-  }
- }else{eyesV2.resetAt=0;eyesV2.resetDone=false}
- if(bothOpen){
-  hands.forEach((_,i)=>eyesV2Release(i));
-  const a=assigned[0][9],z=assigned[1][9],dist=distance(a,z),ang=Math.atan2(z.y-a.y,z.x-a.x);
-  if(!eyesV2.nav)eyesV2.nav={dist,ang,scale:graphScale,rotation:graphRotation,mode:null};
-  const n=eyesV2.nav,ratio=dist/Math.max(.07,n.dist),angle=angleDelta(ang,n.ang)*180/Math.PI;
-  if(!n.mode){if(Math.abs(angle)>12&&Math.abs(ratio-1)<.12)n.mode='rotate';else if(Math.abs(ratio-1)>.035)n.mode='zoom'}
-  if(n.mode==='zoom')graphScale=Math.max(.55,Math.min(2.5,n.scale*ratio));
-  if(n.mode==='rotate')graphRotation=Math.max(-120,Math.min(120,n.rotation+angle));
-  if(n.mode)applyGraphTransform();
-  $('#gs').textContent=n.mode==='zoom'?'BOTH PALMS • ZOOM '+Math.round(graphScale*100)+'%':n.mode==='rotate'?'BOTH PALMS • ROTATE '+Math.round(graphRotation)+'°':'BOTH PALMS • SPREAD / ROTATE';
- }else eyesV2.nav=null;
+ const canvas=window.SCOTTYSpatial,points=assigned.map((p,i)=>p?cursorFromHand(p,i):null);
  for(let i=0;i<2;i++){
-  const p=assigned[i],h=hands[i];
-  if(!p){eyesV2Release(i);h.id=null;h.wrist=null;eyesHidePointer(i);const el=i?$('#handCursor2'):$('#handCursor');if(el)el.style.display='none';continue}
-  h.wrist={x:p[0].x,y:p[0].y};
-  const info=infos[i],pt=cursorFromHand(p,i);
-  if(bothOpen||bothPinch){eyesV2Release(i);continue}
-  if(!info.pinch){
-   eyesV2Release(i);
-   h.id=hoverNearest(pt.x,pt.y,i)?.dataset.agent||null;
-   continue
-  }
-  h.frames++;
-  if(!h.grab&&h.frames>=2){
-   const target=hoverNearest(pt.x,pt.y,i)?.dataset.agent||h.id;
-   if(target&&!hands.some((other,j)=>j!==i&&other.grab===target)&&eyesPinchAction(target)){
-    h.grab=target;h.starts={};h.previous={};h.origin=eyesGraphPoint(pt.x,pt.y);h.startX=pt.x;h.startY=pt.y;
-    for(const key of eyesMoveSelectionTogether(target)){
-     const node=[...document.querySelectorAll('#graph g[data-agent]')].find(g=>g.dataset.agent===key)?.querySelector('circle');
-     if(node){h.starts[key]={x:Number(node.getAttribute('cx')),y:Number(node.getAttribute('cy'))};h.previous[key]=eyesNodePositions[key]?{...eyesNodePositions[key]}:null}
-    }
-   }
-  }
-  if(h.grab&&h.origin&&Math.hypot(pt.x-h.startX,pt.y-h.startY)>18&&now-eyesV2.lastPaint>60){
-   const current=eyesGraphPoint(pt.x,pt.y),svg=$('#graph');
-   if(current){for(const [key,start] of Object.entries(h.starts||{})){
-    eyesNodePositions[key]={x:Math.max(12,Math.min((svg.clientWidth||700)-12,start.x+current.x-h.origin.x)),y:Math.max(12,Math.min((svg.clientHeight||550)-12,start.y+current.y-h.origin.y))}
-   }h.moved=true;eyesUpdateDraggedNodes();eyesV2.lastPaint=now}
-  }
+  const h=hands[i],p=assigned[i],el=i?$('#handCursor2'):$('#handCursor');
+  if(!p){eyesV2Release(i);h.wrist=null;h.blocked=false;eyesHidePointer(i);if(el){el.classList.remove('on');el.style.display='none'}continue}
+  h.wrist={x:p[0].x,y:p[0].y};el?.classList.toggle('pinch',infos[i].pinch);
  }
- $('#sh').textContent='TRACKING '+assigned.filter(Boolean).length+' HAND(S)';
- if(bothPinch)$('#gs').textContent=eyesV2.resetDone?'BOTH PINCHES • VIEW RESET':'HOLD BOTH PINCHES • RESET';
- else if(!bothOpen)$('#gs').textContent=assigned.map((p,i)=>p?(hands[i].grab?'HAND '+(i+1)+' MOVING '+hands[i].grab:infos[i].pinch?'HAND '+(i+1)+' PINCH': 'HAND '+(i+1)+' '+(hands[i].id||'POINT')):'HAND '+(i+1)+' OFF').join(' • ');
- $('#gl').textContent=dual?'TWO HANDS • '+infos.map(i=>i.pinch?'PINCH '+Math.round(i.pinchRatio*100)+'%':i.open?'PALM OPEN':'POINT').join(' / '):'ONE HAND • PINCH TO SELECT';
+ const dual=assigned.every(Boolean)&&infos.every(i=>i.pinch);
+ if(dual&&canvas){
+  if(!eyesV2.nav){
+   hands.forEach((h,i)=>{eyesV2Release(i);h.down=true;h.blocked=true});
+   const [a,z]=points;
+   eyesV2.nav={dist:Math.max(30,Math.hypot(z.x-a.x,z.y-a.y)),ang:Math.atan2(z.y-a.y,z.x-a.x),angle:0,view:canvas.handView(),x:(a.x+z.x)/2,y:(a.y+z.y)/2};
+  }
+  const [a,z]=points,n=eyesV2.nav,ang=Math.atan2(z.y-a.y,z.x-a.x);
+  n.angle+=angleDelta(ang,n.ang);n.ang=ang;
+  canvas.handTransform(n.view,Math.hypot(z.x-a.x,z.y-a.y)/n.dist,n.angle,(a.x+z.x)/2-n.x,(a.y+z.y)/2-n.y);
+  eyesV2.pan=null;$('#gs').textContent='TWO PINCHES • ZOOM / ROTATE / PAN';
+ }else{
+  if(eyesV2.nav){eyesV2.nav=null;canvas?.handEndView()}
+  const open=assigned.filter(Boolean).length===1?infos.findIndex(i=>i?.open&&!i.pinch):-1;
+  if(open>=0&&canvas){
+   const pt=points[open];
+   if(!eyesV2.pan||eyesV2.pan.index!==open)eyesV2.pan={index:open,x:pt.x,y:pt.y,view:canvas.handView()};
+   const n=eyesV2.pan;canvas.handTransform(n.view,1,0,pt.x-n.x,pt.y-n.y);
+   $('#gs').textContent='OPEN PALM • PAN CANVAS';
+  }else if(eyesV2.pan){eyesV2.pan=null;canvas?.handEndView()}
+  for(let i=0;i<2;i++){
+   const h=hands[i],info=infos[i],pt=points[i];if(!info)continue;
+   if(!info.pinch){eyesV2Release(i);h.blocked=false;continue}
+   if(h.blocked)continue;
+   h.frames=(h.frames||0)+1;
+   if(!h.grab&&h.frames===2){h.grab=canvas?.handGrab(i,pt.x,pt.y)||null;if(!h.grab)h.blocked=true}
+   if(h.grab)canvas.handMove(i,pt.x,pt.y);
+  }
+  if(open<0)$('#gs').textContent=infos.map((i,k)=>!i?'HAND '+(k+1)+' OFF':hands[k].grab?'HAND '+(k+1)+' DRAGGING':i.pinch?'PINCH • '+(hands[k].blocked?'RELEASE TO SELECT':'SELECT'):'POINT TO NODE').join(' • ');
+ }
+ $('#sh').textContent='TRACKING '+raw.length+' HAND(S)';
+ $('#gl').textContent='HAND TRACKING: '+$('#gs').textContent;
+ eyesCursorDiagnostic('VISIBLE CANVAS • '+raw.length+' HAND(S) • '+(canvas?'CONNECTED':'WAITING FOR CANVAS'));
 }
 function drawHands(r){return eyesV2Hands(r);const c=$('#hc'),b=$('.cam'),w=b.clientWidth||300,h=b.clientHeight||225;if(c.width!==w||c.height!==h){c.width=w;c.height=h}const x=c.getContext('2d');x.clearRect(0,0,w,h);const allHands=r.multiHandLandmarks||[];const ps=eyesLeftHandOnly?allHands.filter((_,i)=>eyesIsLeftHand(r,i)):eyesRightHandOnly?allHands.filter((_,i)=>eyesIsRightHand(r,i)):allHands.slice();if(ps.length===2){const labels=r.multiHandedness||[];if(labels[0]?.label==='Right'&&labels[1]?.label==='Left')ps.reverse();else if(!labels[0]?.label||!labels[1]?.label)ps.sort((a,b)=>b[0].x-a[0].x)}
  if(allHands.length&&!ps.length){$('#sh').textContent='LEFT HAND ONLY';$('#gs').textContent='SHOW YOUR LEFT HAND • RIGHT HAND IGNORED'}
@@ -898,6 +885,7 @@ body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infini
  function seed(s){let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
  function addNode(o,i,total){const h=seed(o.id||o.name||i),a=(i/Math.max(1,total))*Math.PI*2+(h%97)/97*.35,r=120+(h%190),y=((h>>>8)%260)-130,z=Math.sin(a)*r;nodes.push({...o,a,r,y,z,ox:0,oy:0,oz:0})}
  function synthesize(){
+   if(handGrabs.size||eyesV2.nav||eyesV2.pan)return;
    const A=(typeof agents!=='undefined'&&Array.isArray(agents))?agents:[];
    const R=(typeof resources!=='undefined'&&resources)?resources:{projects:[],folders:[],files:[],tasks:[]};
    const P=Array.isArray(R.projects)?R.projects:[],D=Array.isArray(R.folders)?R.folders:[],F=Array.isArray(R.files)?R.files:[],T=Array.isArray(R.tasks)?R.tasks:[];
@@ -934,7 +922,7 @@ body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infini
  }
  drawer.querySelector('.ndclose').onclick=()=>{drawer.classList.remove('open');selected=null;nodes.forEach(x=>x.el.classList.remove('selected'))};
  function project(n,w,h){if(n.type==='memory')return{x:w/2+panX,y:h/2+panY,z:0,sc:clamp(1.15*zoom,.65,2.2)};const a=n.a+orbit,x=Math.cos(a)*n.r*spread+n.ox,z=Math.sin(a)*n.r*spread+n.oz,y=n.y*spread+n.oy;const ct=Math.cos(tilt),st=Math.sin(tilt),yy=y*ct-z*st,zz=y*st+z*ct;const depth=620+zz,sc=clamp((620/depth)*zoom,.42,1.75);return{x:w/2+panX+x*sc,y:h/2+panY+yy*sc,z:zz,sc}}
- function frame(t){const dt=Math.min(.05,(t-last)/1000);last=t;if(auto&&!drag&&!grabbed&&!matchMedia('(prefers-reduced-motion: reduce)').matches)orbit+=dt*.085;const w=sb.clientWidth,h=sb.clientHeight;const pts=[];for(const n of nodes){const p=project(n,w,h);pts.push([n,p]);n.el.style.transform='translate3d('+(p.x-w/2)+'px,'+(p.y-h/2)+'px,'+p.z+'px) scale('+p.sc+')';n.el.style.opacity=String(clamp(.35+(p.z+320)/650,.38,1));n.el.style.zIndex=String(20+Math.round(p.z+400))}
+ function frame(t){const dt=Math.min(.05,(t-last)/1000);last=t;if(auto&&!drag&&!grabbed&&!handGrabs.size&&!matchMedia('(prefers-reduced-motion: reduce)').matches)orbit+=dt*.085;const w=sb.clientWidth,h=sb.clientHeight;const pts=[];for(const n of nodes){const p=project(n,w,h);pts.push([n,p]);n.el.style.transform='translate3d('+(p.x-w/2)+'px,'+(p.y-h/2)+'px,'+p.z+'px) scale('+p.sc+')';n.el.style.opacity=String(clamp(.35+(p.z+320)/650,.38,1));n.el.style.zIndex=String(20+Math.round(p.z+400))}
    svg.setAttribute('viewBox','0 0 '+w+' '+h);let l='';const byId=new Map(pts.map(([n,p])=>[n.id,p])),core={x:w/2+panX,y:h/2+panY};for(const [n,p] of pts){if(n.type==='agent'){if(n.raw?.isChief){l+='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+core.x+'" y2="'+core.y+'" stroke="rgba(255,242,168,.48)" stroke-width="1.3"/>'}else{const q=n.raw?.chiefId?byId.get('agent:'+n.raw.chiefId):null;if(q)l+='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+q.x+'" y2="'+q.y+'" stroke="rgba(94,234,255,.18)" stroke-width=".75"/>'}}else if(n.type==='project'){l+='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+core.x+'" y2="'+core.y+'" stroke="rgba(255,209,102,.3)" stroke-width="1"/>'}else if(n.type==='folder'||n.type==='file'||n.type==='task'){const q=n.raw?.projectId?byId.get('project:'+n.raw.projectId):null;if(q){const c=n.type==='task'?'rgba(255,142,164,.26)':n.type==='folder'?'rgba(255,173,92,.24)':'rgba(123,182,255,.22)';l+='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+q.x+'" y2="'+q.y+'" stroke="'+c+'" stroke-width=".7"/>'}if(n.type==='task'&&n.raw?.assignedAgentId){const a=byId.get('agent:'+n.raw.assignedAgentId);if(a)l+='<line x1="'+p.x+'" y1="'+p.y+'" x2="'+a.x+'" y2="'+a.y+'" stroke="rgba(255,142,164,.34)" stroke-width=".8" stroke-dasharray="3 4"/>'}}}svg.innerHTML=l;requestAnimationFrame(frame)}
  sb.addEventListener('pointerdown',e=>{if(e.target.closest('.snode')||e.target.closest('#nodeDrawer'))return;if(e.pointerType==='touch'){touches.set(e.pointerId,{x:e.clientX,y:e.clientY});sb.setPointerCapture?.(e.pointerId);if(touches.size===1)drag={mode:'spin',x:e.clientX,y:e.clientY,o:orbit,t:tilt};else if(touches.size===2){const a=[...touches.values()],dist=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);pinchStart={dist,zoom,spread};drag=null}else if(touches.size===3){const a=[...touches.values()],cx=a.reduce((s,p)=>s+p.x,0)/a.length,cy=a.reduce((s,p)=>s+p.y,0)/a.length;drag={mode:'pan',x:cx,y:cy,px:panX,py:panY}}return}drag={mode:'orbit',x:e.clientX,y:e.clientY,o:orbit,t:tilt};sb.classList.add('dragging');sb.setPointerCapture?.(e.pointerId)});
  sb.addEventListener('pointermove',e=>{if(e.pointerType==='touch'&&touches.has(e.pointerId)){touches.set(e.pointerId,{x:e.clientX,y:e.clientY});if(touches.size===2&&pinchStart){const a=[...touches.values()],dist=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),ratio=dist/pinchStart.dist;zoom=clamp(pinchStart.zoom*ratio,.38,3.4);spread=clamp(pinchStart.spread*Math.pow(ratio,.55),.65,2.8)}else if(touches.size===1&&drag?.mode==='spin'){orbit=drag.o+(e.clientX-drag.x)*.009;tilt=clamp(drag.t+(e.clientY-drag.y)*.004,-.7,.7)}else if(touches.size===3&&drag?.mode==='pan'){const a=[...touches.values()],cx=a.reduce((s,p)=>s+p.x,0)/a.length,cy=a.reduce((s,p)=>s+p.y,0)/a.length;panX=drag.px+(cx-drag.x);panY=drag.py+(cy-drag.y)}return}if(!drag||drag.mode!=='orbit')return;orbit=drag.o+(e.clientX-drag.x)*.006;tilt=clamp(drag.t+(e.clientY-drag.y)*.003,-.65,.65)});
@@ -959,7 +947,28 @@ body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infini
    if(!target)return;
    try{const r=await api('/api/hud/resources/relate',{method:'POST',body:JSON.stringify({sourceNode:source.id,targetNode:target.id})});document.querySelector('#cs').textContent=(r.suggested?'SUGGESTED • ':'LINKED • ')+source.name+' → '+target.name;await loadResources();setTimeout(()=>{if(!speaking)document.querySelector('#cs').textContent=voiceArmed?'LISTENING':'READY'},1800)}catch(e){console.warn('node relation',e)}
  }
- window.SCOTTYSpatial={select,open:select,focus:focusNode,focusId,focusMention,toggleGroup,refresh(){if(!grabbed)synthesize()},release(){const g=grabbed,m=grabMoved;grabbed=null;grabPoint=null;grabMoved=false;document.body.classList.remove('spatial-node-grab');if(g&&m){saveNodeLayout(g);maybeRelate(g)}},grabNearest(x,y){const best=nearestSpatial(x,y);if(best){selected=best;nodes.forEach(q=>q.el.classList.toggle('selected',q===best));grabbed=best;grabMoved=false;grabPoint={x,y};document.body.classList.add('spatial-node-grab');return best}return null},moveGrab(x,y){if(!grabbed||!grabPoint)return;const dx=x-grabPoint.x,dy=y-grabPoint.y;if(Math.hypot(dx,dy)>3)grabMoved=true;grabbed.ox+=dx/Math.max(.55,zoom);grabbed.oy+=dy/Math.max(.55,zoom);grabPoint={x,y}},get grabbed(){return grabbed},nearest:nearestSpatial};
+ const handGrabs=new Map();
+ function handGrab(index,x,y){
+  const n=nearestSpatial(x,y);if(!n||[...handGrabs.values()].some(g=>g.node===n))return null;
+  auto=false;select(n,handGrabs.size>0&&!selectedSet.has(n.id));
+  handGrabs.set(index,{node:n,x,y,moved:false});return n.id;
+ }
+ function handMove(index,x,y){
+  const g=handGrabs.get(index);if(!g)return;
+  const dx=x-g.x,dy=y-g.y;
+  if(Math.hypot(dx,dy)>2)g.moved=true;
+  const sc=project(g.node,sb.clientWidth,sb.clientHeight).sc;
+  g.node.ox+=dx/sc;g.node.oy+=dy/(sc*Math.max(.5,Math.cos(tilt)));g.x=x;g.y=y;
+ }
+ function handRelease(index){const g=handGrabs.get(index);handGrabs.delete(index);if(g?.moved)saveNodeLayout(g.node)}
+ function handView(){auto=false;return {zoom,orbit,panX,panY}}
+ function handTransform(v,ratio,angle,dx,dy){
+  if(![ratio,angle,dx,dy].every(Number.isFinite))return;
+  auto=false;zoom=clamp(v.zoom*ratio,.38,3.4);orbit=v.orbit+angle;panX=v.panX+dx;panY=v.panY+dy;
+ }
+ function handFitAll(){auto=false;zoom=.82;orbit=0;tilt=-.12;spread=1;panX=0;panY=0;saveViewSoon()}
+ function handEndView(){saveViewSoon()}
+ window.SCOTTYSpatial={handGrab,handMove,handRelease,handView,handTransform,handEndView,handFitAll,select,open:select,focus:focusNode,focusId,focusMention,toggleGroup,refresh(){if(!grabbed)synthesize()},release(){const g=grabbed,m=grabMoved;grabbed=null;grabPoint=null;grabMoved=false;document.body.classList.remove('spatial-node-grab');if(g&&m){saveNodeLayout(g);maybeRelate(g)}},grabNearest(x,y){const best=nearestSpatial(x,y);if(best){selected=best;nodes.forEach(q=>q.el.classList.toggle('selected',q===best));grabbed=best;grabMoved=false;grabPoint={x,y};document.body.classList.add('spatial-node-grab');return best}return null},moveGrab(x,y){if(!grabbed||!grabPoint)return;const dx=x-grabPoint.x,dy=y-grabPoint.y;if(Math.hypot(dx,dy)>3)grabMoved=true;grabbed.ox+=dx/Math.max(.55,zoom);grabbed.oy+=dy/Math.max(.55,zoom);grabPoint={x,y}},get grabbed(){return grabbed},nearest:nearestSpatial};
  pinchSelect=function(x,y){const n=nearestSpatial(x,y);if(n){select(n);document.querySelector('#cs').textContent='OPENED • '+n.name;return}document.querySelector('#cs').textContent='PINCH • NO NODE'};
  processOne=function(p){const info=ginfo(p),pt=cursorFromHand(p),c=document.querySelector('#handCursor'),now=Date.now();c.classList.toggle('pinch',info.pinch);processSwipe(p,info);
    if(info.pinch&&!spatialPinch){const n=nearestSpatial(pt.x,pt.y);if(n){if(lastSpatialNode===n&&now-lastSpatialTap<700){select(n);window.SCOTTYSpatial.release();document.querySelector('#cs').textContent='DOUBLE PINCH • OPEN '+n.name}else{window.SCOTTYSpatial.grabNearest(pt.x,pt.y);document.querySelector('#cs').textContent='PINCH HOLD • DRAG '+n.name}lastSpatialTap=now;lastSpatialNode=n}else document.querySelector('#cs').textContent='PINCH • NO NODE'}
@@ -1020,7 +1029,7 @@ body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infini
    $('#vision').classList.add('on');document.body.classList.add('vision-active');$('#eyes').classList.add('on');$('#eyes').textContent='EYES: ACTIVE • VOICE AUTHORIZED';$('#sv').textContent='ACTIVE';$('#gs').textContent='VISION ACTIVE';$('#cs').textContent='VISION';await startHands()
  };
  stopVision=function(){
-   voiceCamera=false;tracking=false;stream=null;$('#video').srcObject=null;$('#vision').classList.remove('on');document.body.classList.remove('vision-active','gesture-hold');$('#handCursor').className='';$('#eyes').classList.remove('on');$('#eyes').textContent='EYES: LOCKED • SAY “SCOTTY, EYES ON”';$('#sv').textContent='LOCKED';$('#sh').textContent='OFF';$('#gs').textContent='HANDS OFF';$('#cs').textContent=voiceArmed?'LISTENING':'READY';$('#confirm').style.display='none';twoState=null;swipeSeed=null;pinchLatched=false;holdOn=false
+   eyesV2Reset();voiceCamera=false;tracking=false;stream=null;$('#video').srcObject=null;$('#vision').classList.remove('on');document.body.classList.remove('vision-active','gesture-hold');$('#handCursor').className='';$('#eyes').classList.remove('on');$('#eyes').textContent='EYES: LOCKED • SAY “SCOTTY, EYES ON”';$('#sv').textContent='LOCKED';$('#sh').textContent='OFF';$('#gs').textContent='HANDS OFF';$('#cs').textContent=voiceArmed?'LISTENING':'READY';$('#confirm').style.display='none';twoState=null;swipeSeed=null;pinchLatched=false;holdOn=false
  };
  const oldSpeak=speak;
  speak=async function(t){
