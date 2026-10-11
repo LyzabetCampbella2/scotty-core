@@ -500,7 +500,7 @@ function ginfo(p){
  const d=(a,b)=>Math.hypot(p[a].x-p[b].x,p[a].y-p[b].y);
  const palm=Math.max(.04,d(0,9),d(5,17)),pinchRatio=d(4,8)/palm;
  const raised=[8,12,16,20].filter(i=>p[i].y<p[i-2].y).length;
- const pinch=pinchRatio<.55,fist=raised===0&&d(8,0)<palm*1.55&&d(12,0)<palm*1.65;
+ const pinch=pinchRatio<.72,fist=raised===0&&d(8,0)<palm*1.55&&d(12,0)<palm*1.65;
  return{pinch,pinchRatio,fist,open:raised>=4,point:p[8].y<p[6].y&&raised<=2,label:fist?'FIST • GRAB':pinch?'PINCH • '+Math.round(pinchRatio*100)+'%':raised>=4?'OPEN PALM':raised===1?'POINT • TARGET':'TRACKING'}
 }
 function eyesSvgPointer(index,x,y){
@@ -700,7 +700,7 @@ let eyesBothPinchSince=0,eyesBothPinchLatched=false;
 function eyesTwoHandResetGesture(ps){
  const both=ps.length===2&&ps.every(p=>ginfo(p).pinch);
  if(!both){eyesBothPinchSince=0;eyesBothPinchLatched=false;return false}
- if(!eyesBothPinchSince)eyesBothPinchSince=Date.now();
+ if(!eyesBothPinchSince){eyesBothPinchSince=Date.now();eyesTwoGesture.mode=null;eyesTwoGesture.armedAt=0}
  if(!eyesBothPinchLatched&&Date.now()-eyesBothPinchSince>=550){
   eyesBothPinchLatched=true;eyesFitAll();eyesCursorDiagnostic('BOTH PINCHES • VIEW RESET')
  }
@@ -709,22 +709,21 @@ function eyesTwoHandResetGesture(ps){
 const eyesTwoGesture={mode:null,baseDist:0,baseAngle:0,baseScale:1,baseRotation:0,armedAt:0,lastApplied:0};
 function eyesUpdateTwoPalmGesture(ps,open,dist,ang){
  const g=eyesTwoGesture,now=Date.now();
- if(!open||!Number.isFinite(dist)||dist<.08){
-  g.mode=null;g.armedAt=0;return
- }
- if(!g.armedAt){g.armedAt=now;g.baseDist=dist;g.baseAngle=ang;g.baseScale=graphScale;g.baseRotation=graphRotation;return}
- if(now-g.armedAt<450)return;
+ if(!open||!Number.isFinite(dist)||dist<.08){g.mode=null;g.armedAt=0;return false}
+ if(!g.armedAt){g.armedAt=now;g.baseDist=dist;g.baseAngle=ang;g.baseScale=graphScale;g.baseRotation=graphRotation;return false}
+ if(now-g.armedAt<250)return false;
  const ratio=dist/Math.max(.08,g.baseDist),degrees=angleDelta(ang,g.baseAngle)*180/Math.PI;
  if(!g.mode){
-  if(Math.abs(ratio-1)>.16&&Math.abs(degrees)<22)g.mode='zoom';
-  else if(Math.abs(degrees)>17&&Math.abs(ratio-1)<.22)g.mode='rotate';
-  else return
+  if(Math.abs(degrees)>20&&Math.abs(ratio-1)<.18)g.mode='rotate';
+  else if(Math.abs(ratio-1)>.075)g.mode='zoom';
+  else return false
  }
- if(now-g.lastApplied<90)return;
- if(g.mode==='zoom')graphScale=Math.max(.68,Math.min(1.85,g.baseScale*ratio));
+ if(now-g.lastApplied<85)return true;
+ if(g.mode==='zoom')graphScale=Math.max(.55,Math.min(2.5,g.baseScale*ratio));
  else graphRotation=Math.max(-120,Math.min(120,g.baseRotation+degrees));
  applyGraphTransform();g.lastApplied=now;
- $('#gs').textContent=g.mode==='zoom'?'TWO HAND ZOOM • '+Math.round(graphScale*100)+'%':'TWO HAND ROTATE • '+Math.round(graphRotation)+'°';
+ $('#gs').textContent=g.mode==='zoom'?'ZOOM '+Math.round(graphScale*100)+'%':'ROTATE '+Math.round(graphRotation)+'°';
+ return true
 }
 function processTwo(ps){
  if(eyesDrag){if(eyesDrag.moved)eyesCommitMove(eyesDrag.previous);resetEyesPinch()}
@@ -741,11 +740,11 @@ function processTwo(ps){
  const pa=ps[0][9],pb=ps[1][9],dx=pb.x-pa.x,dy=pb.y-pa.y,dist=Math.hypot(dx,dy),ang=Math.atan2(dy,dx);
  // Safety: merely raising open hands must never move, scale or rotate the graph.
  // Camera landmark jitter previously applied continuous transforms, hiding nodes.
- const palmsOpen=a.info.open&&b.info.open&&!a.down&&!b.down&&!eyesHandStates.some(st=>st.pinched||st.moved);
- eyesUpdateTwoPalmGesture(ps,palmsOpen&&!resetting,dist,ang);
+ const palmsOpen=a.info.open&&b.info.open&&!a.down&&!b.down;
+ const navigating=eyesUpdateTwoPalmGesture(ps,palmsOpen&&!resetting,dist,ang);
  twoState={dist,ang,palmsOpen};setHold(false);
  const status='LEFT '+(a.info.fist?'FIST':a.info.open?'OPEN':'POINT')+' '+(a.id||'—')+' • RIGHT '+(b.info.fist?'FIST':b.info.open?'OPEN':'POINT')+' '+(b.id||'—');
- eyesCursorDiagnostic(status);$('#gs').textContent=resetting?'BOTH PINCHES • RESET':'TWO HANDS • FIST GRAB / OPEN PALM NAVIGATION';return status
+ eyesCursorDiagnostic(status);if(resetting)$('#gs').textContent=eyesBothPinchLatched?'VIEW RESET • 100%':'HOLD BOTH PINCHES TO RESET';else if(!navigating)$('#gs').textContent=palmsOpen?'OPEN PALMS • MOVE APART / TOGETHER':'TWO HANDS • FIST GRAB / OPEN PALM NAVIGATION';return status
 }
 // Right-hand-only calibration: MediaPipe handedness is reported for mirrored selfie input.
 const eyesRightHandOnly=false;
