@@ -492,7 +492,7 @@ function stopVision(){voiceCamera=false;tracking=false;if(stream){stream.getTrac
 async function startHands(){
  if(typeof Hands==='undefined'){ $('#sh').textContent='TRACKER NOT LOADED';$('#gs').textContent='HAND TRACKER UNAVAILABLE';throw Error('hand tracker unavailable')}
  hands=new Hands({locateFile:f=>'https://cdn.jsdelivr.net/npm/@mediapipe/hands/'+f});
- hands.setOptions({maxNumHands:1,modelComplexity:0,minDetectionConfidence:.45,minTrackingConfidence:.45});
+ hands.setOptions({maxNumHands:2,modelComplexity:0,minDetectionConfidence:.45,minTrackingConfidence:.45});
  hands.onResults(result=>{try{drawHands(result)}catch(err){console.error('Eyes On gesture UI error:',err);eyesCursorDiagnostic('GESTURE ERROR: '+String(err?.message||err).slice(0,90));$('#gs').textContent='GESTURE UI ERROR • CAMERA STILL ACTIVE'}});tracking=true;$('#sh').textContent='STARTING';$('#gs').textContent='LOOK AT CAMERA • SHOW YOUR HAND';
  let failures=0,lastFrame=0;
  const loop=async(timestamp=0)=>{if(!tracking||!stream)return;if(timestamp-lastFrame<85){requestAnimationFrame(loop);return}lastFrame=timestamp;try{const v=$('#video');if(v.readyState>=2){await hands.send({image:v});failures=0}}catch(err){if(++failures===1||failures%30===0){console.warn('Eyes On hand tracker:',err);$('#sh').textContent='TRACKER ERROR';$('#gs').textContent='TRACKER ERROR • CHECK CONNECTION';$('#gl').textContent='HAND TRACKING ERROR: '+String(err?.message||err).slice(0,70)}}finally{if(tracking&&stream)requestAnimationFrame(loop)}};requestAnimationFrame(loop)
@@ -772,59 +772,85 @@ function eyesV2Release(i){
    stage 3 enables coordinated gestures after both have passed individual tests. */
 const eyesStage={mode:'right',missing:0};
 function eyesV2Hands(result){
- const c=$('#hc'),b=$('.cam'),w=b.clientWidth||300,canvasHeight=b.clientHeight||225;
- if(c.width!==w||c.height!==canvasHeight){c.width=w;c.height=canvasHeight}
- const ctx=c.getContext('2d');ctx.clearRect(0,0,w,canvasHeight);
- const detected=result.multiHandLandmarks||[];
- const p=detected[0]||null;
- // Isolate one physical hand. Never infer "right" from potentially mirrored labels.
- eyesV2Release(0);eyesHidePointer(0);
- const other=$('#handCursor');if(other)other.style.display='none';
- const h=eyesV2.hands[1];
- if(!p){
-  eyesV2Release(1);eyesHidePointer(1);
-  const cursor=$('#handCursor2');if(cursor)cursor.style.display='none';
-  h.id=null;h.wrist=null;
-  $('#sh').textContent='SEARCHING • RIGHT HAND';
-  $('#gs').textContent='STAGE 1 • SHOW ONLY YOUR RIGHT HAND';
-  $('#gl').textContent='RIGHT HAND: NOT DETECTED';
-  return
+ const c=$('#hc'),b=$('.cam'),w=b.clientWidth||300,hh=b.clientHeight||225;
+ if(c.width!==w||c.height!==hh){c.width=w;c.height=hh}
+ const ctx=c.getContext('2d');ctx.clearRect(0,0,w,hh);
+ const raw=(result.multiHandLandmarks||[]).slice(0,2);
+ const hands=eyesV2.hands;
+ // Assign detections by wrist continuity. No dependence on mirrored handedness labels.
+ const distance=(p,q)=>Math.hypot(p.x-q.x,p.y-q.y);
+ let assigned=[null,null];
+ if(raw.length===2){
+  const direct=hands[0].wrist&&hands[1].wrist?distance(raw[0][0],hands[0].wrist)+distance(raw[1][0],hands[1].wrist):Infinity;
+  const swapped=hands[0].wrist&&hands[1].wrist?distance(raw[1][0],hands[0].wrist)+distance(raw[0][0],hands[1].wrist):Infinity;
+  if(direct!==Infinity)assigned=swapped<direct?[raw[1],raw[0]]:[raw[0],raw[1]];
+  else assigned=raw[0][0].x>raw[1][0].x?[raw[0],raw[1]]:[raw[1],raw[0]];
+ }else if(raw.length===1){
+  const p=raw[0][0],d0=hands[0].wrist?distance(p,hands[0].wrist):Infinity,d1=hands[1].wrist?distance(p,hands[1].wrist):Infinity;
+  const slot=d0!==Infinity||d1!==Infinity?(d1<d0?1:0):1;
+  assigned[slot]=raw[0];
  }
- ctx.strokeStyle='#5eeaff';ctx.fillStyle='#28d7bd';ctx.lineWidth=1.4;
- for(const [a,z] of [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20]]){
-  ctx.beginPath();ctx.moveTo((1-p[a].x)*w,p[a].y*canvasHeight);ctx.lineTo((1-p[z].x)*w,p[z].y*canvasHeight);ctx.stroke()
+ const infos=assigned.map(p=>p?ginfo(p):null);
+ for(let i=0;i<2;i++){
+  const p=assigned[i];if(!p)continue;
+  ctx.strokeStyle=i===0?'#28d7bd':'#5eeaff';ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=1.3;
+  for(const [a,z] of [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20]]){
+   ctx.beginPath();ctx.moveTo((1-p[a].x)*w,p[a].y*hh);ctx.lineTo((1-p[z].x)*w,p[z].y*hh);ctx.stroke()
+  }
+  p.forEach(q=>{ctx.beginPath();ctx.arc((1-q.x)*w,q.y*hh,2.3,0,Math.PI*2);ctx.fill()})
  }
- p.forEach(q=>{ctx.beginPath();ctx.arc((1-q.x)*w,q.y*canvasHeight,2.5,0,Math.PI*2);ctx.fill()});
- const info=ginfo(p),pt=cursorFromHand(p,1),now=Date.now();
- $('#sh').textContent='STAGE 1 • RIGHT HAND';
- h.wrist={x:p[0].x,y:p[0].y};
- if(!info.pinch){
-  eyesV2Release(1);
-  const target=hoverNearest(pt.x,pt.y,1)?.dataset.agent||null;
-  h.id=target;
-  $('#gs').textContent='RIGHT '+(info.open?'OPEN PALM':info.point?'POINT':'TRACKING')+' • '+(target||'NO NODE');
-  $('#gl').textContent='RIGHT HAND: TRACKING • PINCH TO SELECT';
-  return
- }
- h.frames++;
- if(!h.grab&&h.frames>=2){
-  const chosen=h.id||hoverNearest(pt.x,pt.y,1)?.dataset.agent;
-  if(chosen&&eyesPinchAction(chosen)){
-   h.grab=chosen;h.starts={};h.previous={};h.origin=eyesGraphPoint(pt.x,pt.y);h.startX=pt.x;h.startY=pt.y;
-   for(const key of eyesMoveSelectionTogether(chosen)){
-    const node=[...document.querySelectorAll('#graph g[data-agent]')].find(g=>g.dataset.agent===key)?.querySelector('circle');
-    if(node){h.starts[key]={x:Number(node.getAttribute('cx')),y:Number(node.getAttribute('cy'))};h.previous[key]=eyesNodePositions[key]?{...eyesNodePositions[key]}:null}
+ const dual=assigned.every(Boolean),bothPinch=dual&&infos.every(i=>i.pinch),bothOpen=dual&&infos.every(i=>i.open&&!i.pinch);
+ const now=Date.now();
+ if(bothPinch){
+  if(!eyesV2.resetAt)eyesV2.resetAt=now;
+  if(!eyesV2.resetDone&&now-eyesV2.resetAt>=550){
+   hands.forEach((_,i)=>eyesV2Release(i));eyesFitAll();eyesV2.resetDone=true;eyesV2.nav=null
+  }
+ }else{eyesV2.resetAt=0;eyesV2.resetDone=false}
+ if(bothOpen){
+  hands.forEach((_,i)=>eyesV2Release(i));
+  const a=assigned[0][9],z=assigned[1][9],dist=distance(a,z),ang=Math.atan2(z.y-a.y,z.x-a.x);
+  if(!eyesV2.nav)eyesV2.nav={dist,ang,scale:graphScale,rotation:graphRotation,mode:null};
+  const n=eyesV2.nav,ratio=dist/Math.max(.07,n.dist),angle=angleDelta(ang,n.ang)*180/Math.PI;
+  if(!n.mode){if(Math.abs(angle)>18&&Math.abs(ratio-1)<.14)n.mode='rotate';else if(Math.abs(ratio-1)>.055)n.mode='zoom'}
+  if(n.mode==='zoom')graphScale=Math.max(.55,Math.min(2.5,n.scale*ratio));
+  if(n.mode==='rotate')graphRotation=Math.max(-120,Math.min(120,n.rotation+angle));
+  if(n.mode)applyGraphTransform();
+  $('#gs').textContent=n.mode==='zoom'?'BOTH PALMS • ZOOM '+Math.round(graphScale*100)+'%':n.mode==='rotate'?'BOTH PALMS • ROTATE '+Math.round(graphRotation)+'°':'BOTH PALMS • SPREAD / ROTATE';
+ }else eyesV2.nav=null;
+ for(let i=0;i<2;i++){
+  const p=assigned[i],h=hands[i];
+  if(!p){eyesV2Release(i);h.id=null;h.wrist=null;eyesHidePointer(i);const el=i?$('#handCursor2'):$('#handCursor');if(el)el.style.display='none';continue}
+  h.wrist={x:p[0].x,y:p[0].y};
+  const info=infos[i],pt=cursorFromHand(p,i);
+  if(bothOpen||bothPinch){eyesV2Release(i);continue}
+  if(!info.pinch){
+   eyesV2Release(i);
+   h.id=hoverNearest(pt.x,pt.y,i)?.dataset.agent||null;
+   continue
+  }
+  h.frames++;
+  if(!h.grab&&h.frames>=2){
+   const target=h.id||hoverNearest(pt.x,pt.y,i)?.dataset.agent;
+   if(target&&!hands.some((other,j)=>j!==i&&other.grab===target)&&eyesPinchAction(target)){
+    h.grab=target;h.starts={};h.previous={};h.origin=eyesGraphPoint(pt.x,pt.y);h.startX=pt.x;h.startY=pt.y;
+    for(const key of eyesMoveSelectionTogether(target)){
+     const node=[...document.querySelectorAll('#graph g[data-agent]')].find(g=>g.dataset.agent===key)?.querySelector('circle');
+     if(node){h.starts[key]={x:Number(node.getAttribute('cx')),y:Number(node.getAttribute('cy'))};h.previous[key]=eyesNodePositions[key]?{...eyesNodePositions[key]}:null}
+    }
    }
   }
+  if(h.grab&&h.origin&&Math.hypot(pt.x-h.startX,pt.y-h.startY)>18&&now-eyesV2.lastPaint>60){
+   const current=eyesGraphPoint(pt.x,pt.y),svg=$('#graph');
+   if(current){for(const [key,start] of Object.entries(h.starts||{})){
+    eyesNodePositions[key]={x:Math.max(12,Math.min((svg.clientWidth||700)-12,start.x+current.x-h.origin.x)),y:Math.max(12,Math.min((svg.clientHeight||550)-12,start.y+current.y-h.origin.y))}
+   }h.moved=true;eyesUpdateDraggedNodes();eyesV2.lastPaint=now}
+  }
  }
- if(h.grab&&h.origin&&Math.hypot(pt.x-h.startX,pt.y-h.startY)>18&&now-eyesV2.lastPaint>60){
-  const current=eyesGraphPoint(pt.x,pt.y),svg=$('#graph');
-  if(current){for(const [key,start] of Object.entries(h.starts||{})){
-   eyesNodePositions[key]={x:Math.max(12,Math.min((svg.clientWidth||700)-12,start.x+current.x-h.origin.x)),y:Math.max(12,Math.min((svg.clientHeight||550)-12,start.y+current.y-h.origin.y))}
-  }h.moved=true;eyesUpdateDraggedNodes();eyesV2.lastPaint=now}
- }
- $('#gs').textContent=h.grab?'RIGHT PINCH • MOVING '+h.grab:'RIGHT PINCH • POINT AT A NODE FIRST';
- $('#gl').textContent='RIGHT HAND: '+(h.grab?'SELECTED':'PINCH DETECTED');
+ $('#sh').textContent='TRACKING '+assigned.filter(Boolean).length+' HAND(S)';
+ if(bothPinch)$('#gs').textContent=eyesV2.resetDone?'BOTH PINCHES • VIEW RESET':'HOLD BOTH PINCHES • RESET';
+ else if(!bothOpen)$('#gs').textContent=assigned.map((p,i)=>p?(hands[i].grab?'HAND '+(i+1)+' MOVING '+hands[i].grab:infos[i].pinch?'HAND '+(i+1)+' PINCH': 'HAND '+(i+1)+' '+(hands[i].id||'POINT')):'HAND '+(i+1)+' OFF').join(' • ');
+ $('#gl').textContent=dual?'TWO HANDS • INDEPENDENT':'ONE HAND • PINCH TO SELECT';
 }
 function drawHands(r){return eyesV2Hands(r);const c=$('#hc'),b=$('.cam'),w=b.clientWidth||300,h=b.clientHeight||225;if(c.width!==w||c.height!==h){c.width=w;c.height=h}const x=c.getContext('2d');x.clearRect(0,0,w,h);const allHands=r.multiHandLandmarks||[];const ps=eyesLeftHandOnly?allHands.filter((_,i)=>eyesIsLeftHand(r,i)):eyesRightHandOnly?allHands.filter((_,i)=>eyesIsRightHand(r,i)):allHands.slice();if(ps.length===2){const labels=r.multiHandedness||[];if(labels[0]?.label==='Right'&&labels[1]?.label==='Left')ps.reverse();else if(!labels[0]?.label||!labels[1]?.label)ps.sort((a,b)=>b[0].x-a[0].x)}
  if(allHands.length&&!ps.length){$('#sh').textContent='LEFT HAND ONLY';$('#gs').textContent='SHOW YOUR LEFT HAND • RIGHT HAND IGNORED'}
