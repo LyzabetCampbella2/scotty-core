@@ -36,6 +36,9 @@ body.eyes-camera-minimized #vision .cam{width:112px;bottom:76px;opacity:.82}
 .main #eyesCursorSurface{position:absolute;inset:0;pointer-events:none;z-index:90;overflow:hidden}
 .main #eyesCursorSurface0,.main #eyesCursorSurface1{display:none;position:absolute;width:40px;height:40px;transform:translate(-50%,-50%);border:4px solid #5eeaff;border-radius:50%;background:rgba(94,234,255,.5);box-shadow:0 0 0 8px rgba(94,234,255,.18),0 0 28px #5eeaff;pointer-events:none}
 .main #eyesCursorSurface1{border-color:#ffd166;background:rgba(255,209,102,.5);box-shadow:0 0 0 8px rgba(255,209,102,.18),0 0 28px #ffd166}
+</style><style id="scotty-eyes-isolation-css">
+body.eyes-isolate-selection #graph g[data-agent]:not(.agent-selected){opacity:.12;transition:opacity .2s ease}
+body.eyes-isolate-selection #graph g.agent-selected{opacity:1;filter:drop-shadow(0 0 5px #5eeaff)}
 </style></head><body>
 <div id="gate"><form class="login" id="lf"><h1>S.C.O.T.T.Y.</h1><p id="lc">Authenticate to enter the visual command layer. After login, tap the voice orb once to arm hands-free listening.</p><input id="pw" type="password" placeholder="Owner password"><button>ENTER HUD</button><div class="err" id="le"></div></form></div>
 <div class="hud"><header class="p top"><div class="logo">S.C.O.T.T.Y.<small>VISUAL COMMAND • AGENT NETWORK • PRIVATE VISION</small></div><div class="chips"><span class="chip on" id="net">ONLINE</span><span class="chip">HUD 3/8 • AGENT MATRIX LIVE</span><span class="chip" id="vs">VOICE OFF</span><span class="chip" id="gs">HANDS OFF</span><span class="chip" id="clock">--:--</span></div></header>
@@ -167,6 +170,11 @@ function eyesVoiceCommand(t){
  if(/\b(?:rotate right|spin right)\b/.test(l)){eyesRotateBy(15);return 'Rotated right.'}
  if(/\b(?:select (?:this |the )?department|highlight department)\b/.test(l)){return eyesSelectDepartment()?'Department selected.':'Select an agent first.'}
  if(/\b(?:what is selected|read selection|selection summary)\b/.test(l)){return eyesSelectionSummary()}
+ if(/\b(?:select (?:all )?(?:working|thinking|idle|waiting|error) agents)\b/.test(l)){const status=l.match(/\b(working|thinking|idle|waiting|error)\b/)[1];return eyesSelectByStatus(status)+' '+status+' agents selected.'}
+ if(/\b(?:invert selection|select opposite)\b/.test(l)){return eyesInvertSelection()+' agents selected.'}
+ if(/\b(?:isolate selection|hide unselected)\b/.test(l)){eyesHighlightSelectionOnly(true);return 'Showing selected agents prominently.'}
+ if(/\b(?:show all agents|end isolation)\b/.test(l)){eyesHighlightSelectionOnly(false);return 'Showing all agents.'}
+ if(/^find agent\s+/.test(l)){const a=eyesFindAgent(l.replace(/^find agent\s+/,''));return a?'Selected '+a.name+'.':'Agent not found.'}
  if(/\b(?:clear selection|deselect all|unselect all)\b/.test(l)){eyesClearSelection();return 'Selection cleared.'}
  if(/\b(?:undo (?:node )?move|undo last move|move undo)\b/.test(l)){eyesUndoMove();return $('#cs').textContent==='LAST NODE MOVE UNDONE'?'Last node move undone.':'No moves to undo.'}
  if(/\b(?:reset (?:node )?layout|restore node layout)\b/.test(l)){eyesResetLayout();return 'Layout reset requested. Please confirm on screen.'}
@@ -222,6 +230,35 @@ function eyesSelectionSummary(){
  const names=[...eyesSelectedNodes].map(id=>agents.find(a=>a.id===id)?.name).filter(Boolean);
  const message=names.length?names.length+' agents selected: '+names.slice(0,5).join(', ')+(names.length>5?' and '+(names.length-5)+' more':'')+'.':'No agents selected.';
  $('#cs').textContent=message;return message
+}
+function eyesSelectByStatus(status){
+ const matches=agents.filter(a=>String(a.state||'idle').toLowerCase()===status);
+ eyesMultiMode=true;eyesSelectedNodes.clear();matches.forEach(a=>eyesSelectedNodes.add(a.id));
+ $('#eyesMultiSelect').textContent='MULTI-SELECT: ON';eyesPaintSelection();
+ $('#cs').textContent='EYES ON • '+matches.length+' '+status.toUpperCase()+' AGENTS';
+ return matches.length
+}
+function eyesInvertSelection(){
+ const before=new Set(eyesSelectedNodes);
+ if(!before.size&&selectedAgentId)before.add(selectedAgentId);
+ eyesMultiMode=true;eyesSelectedNodes.clear();
+ agents.forEach(a=>{if(!before.has(a.id))eyesSelectedNodes.add(a.id)});
+ $('#eyesMultiSelect').textContent='MULTI-SELECT: ON';eyesPaintSelection();
+ $('#cs').textContent='EYES ON • '+eyesSelectedNodes.size+' INVERTED SELECTIONS';
+ return eyesSelectedNodes.size
+}
+function eyesFindAgent(name){
+ const q=String(name||'').trim().toLowerCase();if(!q)return null;
+ const match=agents.find(a=>a.name.toLowerCase()===q)||agents.find(a=>a.name.toLowerCase().includes(q));
+ if(!match)return null;
+ eyesSelectedNodes.clear();eyesSelectedNodes.add(match.id);eyesMultiMode=false;
+ $('#eyesMultiSelect').textContent='MULTI-SELECT: OFF';
+ eyesOpenSelectedNode(match.id);eyesPaintSelection();return match
+}
+function eyesHighlightSelectionOnly(on){
+ document.body.classList.toggle('eyes-isolate-selection',on);
+ eyesPaintSelection();$('#cs').textContent=on?'EYES ON • ISOLATING SELECTION':'EYES ON • SHOWING ALL AGENTS';
+ return on
 }
 function eyesClearSelection(){eyesSelectedNodes.clear();eyesPaintSelection();$('#cs').textContent='NODE SELECTION CLEARED'}
 function eyesCommitMove(previous){eyesMoveHistory.push({positions:previous});if(eyesMoveHistory.length>30)eyesMoveHistory.shift();eyesSavePositions()}
