@@ -257,7 +257,7 @@ async function executeStep(mission:any,step:any){
  await db()`update scotty_mission_steps set status='working',updated_at=now() where id=${step.id}`;
  await db()`update scotty_missions set status='running',updated_at=now() where id=${mission.id}`;
  await addActivity("SCOTTY","MISSION STEP START",step.title,{missionId:mission.id,stepId:step.id});
- const results=await Promise.all(rows.map((row:any)=>runAgent(row,`MISSION: ${mission.title}\nGOAL: ${mission.goal}\nSTEP: ${step.title}\nINSTRUCTION: ${step.instruction}`,context)));
+ const results=await Promise.all(rows.map((row:any)=>runAgent(row,`MISSION: ${mission.title}\nGOAL: ${mission.goal}\nSTEP: ${step.title}\nINSTRUCTION: ${step.instruction}`,context,{projectId:mission.project_id||null})));
  const good=results.filter((x:any)=>x.status==="completed");
  if(!good.length)throw new Error("Mission agents did not complete this step");
  const raw=good.map((x:any)=>`${x.name}: ${x.result}`).join("\n\n");
