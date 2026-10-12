@@ -61,6 +61,8 @@
   remember('user',control.text);render();caption('YOU',control.text);
   try{
    if(recap&&!history.length){const reply='No earlier conversation is recorded in this thread and memory space yet.';remember('assistant',reply);await speak(reply);return}
+   const apps=recap?null:await window.SCOTTYApps?.handleCommand(text,{signal});if(seq!==run||signal.aborted)return;
+   if(apps?.handled){db.pending(null,threadId);remember('assistant',apps.reply);render();await speak(apps.reply);return}
    const team=recap?null:await window.SCOTTYTeamwork?.handleCommand(text,{signal});if(seq!==run||signal.aborted)return;
    if(team?.handled){db.pending(null,threadId);remember('assistant',team.reply);render();await speak(team.reply);return}
    const knowledge=recap?null:await window.SCOTTYKnowledge?.handleCommand(text,{signal});if(seq!==run||signal.aborted)return;

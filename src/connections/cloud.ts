@@ -123,7 +123,8 @@ async function googleUser(accessToken:string){
  if(!r.ok)throw new Error(String(d?.error_description||d?.error||"Google profile lookup failed"));
  return d;
 }
-async function startGoogle(){
+export function requestedGoogleScopes(inboxSearch=false){return [...googleScopes,...(inboxSearch?['https://www.googleapis.com/auth/gmail.readonly']:[])]}
+async function startGoogle(inboxSearch=false){
  await ensure();
  const cfg=connectionSetupStatus();
  if(!cfg.vaultConfigured)throw new Error("Connection Vault is not configured");
@@ -136,7 +137,7 @@ async function startGoogle(){
   client_id:String(process.env.GOOGLE_OAUTH_CLIENT_ID),
   redirect_uri:googleRedirectUri(),
   response_type:"code",
-  scope:googleScopes.join(" "),
+  scope:requestedGoogleScopes(inboxSearch).join(" "),
   access_type:"offline",
   prompt:"consent",
   include_granted_scopes:"true",
@@ -222,7 +223,7 @@ export async function handleCloudConnections(req:Request,u:URL){
  const json=(data:unknown,status=200,headers:Record<string,string>={})=>Response.json(data,{status,headers:{"cache-control":"no-store",...headers}});
  if(req.method==="GET"&&u.pathname==="/api/connections")return json({ok:true,...await connectionStatus()});
  if(req.method==="GET"&&u.pathname==="/api/connections/google/start"){
-  try{return new Response(null,{status:302,headers:{location:await startGoogle(),"cache-control":"no-store"}})}
+  try{return new Response(null,{status:302,headers:{location:await startGoogle(u.searchParams.get('gmailSearch')==='1'),"cache-control":"no-store"}})}
   catch(e:any){return json({ok:false,error:String(e?.message||"Unable to start Google connection"),setup:connectionSetupStatus()},503)}
  }
  if(req.method==="GET"&&u.pathname==="/api/connections/google/callback"){

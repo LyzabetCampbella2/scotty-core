@@ -1,6 +1,7 @@
 import {handleDaily,dailyTick} from "./daily/cloud.ts";
 import {handleKnowledge,ensureKnowledge} from './memory/knowledge.ts';
 import {handleTeamwork,teamTick,ensureTeamwork} from './agents/teamwork.ts';
+import {handleApps,ensureApps} from './providers/apps.ts';
 import { handleEyesOn } from "./eyes/index.ts";
 import { handleHudStt } from "./voice/hud-stt.ts";
 import { handleCloudVoice } from "./voice/cloud.ts";
@@ -29,7 +30,7 @@ async function serveHud(){
   const file=Bun.file("public/index.html");
   if(!(await file.exists()))return null;
   let html=await file.text();
-  if(!html.includes("/render-hotfix.js"))html=html.replace("</body>","<script src=\"/render-hotfix.js?v=5\"></script><script src=\"/conversation-core.js?v=2\"></script><script src=\"/conversation.js?v=4\"></script><script src=\"/daily-life.js?v=1\"></script><script src=\"/knowledge.js?v=1\"></script><script src=\"/teamwork.js?v=1\"></script></body>");
+  if(!html.includes("/render-hotfix.js"))html=html.replace("</body>","<script src=\"/render-hotfix.js?v=5\"></script><script src=\"/conversation-core.js?v=2\"></script><script src=\"/conversation.js?v=5\"></script><script src=\"/daily-life.js?v=1\"></script><script src=\"/knowledge.js?v=1\"></script><script src=\"/teamwork.js?v=1\"></script><script src=\"/apps-actions.js?v=1\"></script></body>");
   return new Response(html,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store"}});
  }catch{return null}
 }
@@ -37,7 +38,7 @@ async function serveHud(){
 Bun.serve({port:PORT,async fetch(req){
  const u=new URL(req.url);
  if(req.method==="GET"){
-  if(u.pathname==="/conversation-core.js"||u.pathname==="/conversation.js"||u.pathname==="/daily-life.js"||u.pathname==="/knowledge.js"||u.pathname==="/teamwork.js") {const r=await servePublic("public"+u.pathname,"application/javascript; charset=utf-8");if(r)return r}
+  if(u.pathname==="/conversation-core.js"||u.pathname==="/conversation.js"||u.pathname==="/daily-life.js"||u.pathname==="/knowledge.js"||u.pathname==="/teamwork.js"||u.pathname==="/apps-actions.js") {const r=await servePublic("public"+u.pathname,"application/javascript; charset=utf-8");if(r)return r}
   if(u.pathname==="/render-hotfix.js") {const r=await servePublic("public/render-hotfix.js","application/javascript; charset=utf-8");if(r)return r}
   if(u.pathname==="/hud"||u.pathname==="/hud/"||u.pathname==="/") {const r=await serveHud();if(r)return r}
   if(u.pathname==="/missions"||u.pathname==="/missions/") {const r=await servePublic("public/missions/index.html");if(r)return r}
@@ -57,6 +58,7 @@ Bun.serve({port:PORT,async fetch(req){
   u.pathname.startsWith("/api/daily")||
   u.pathname.startsWith('/api/knowledge')||
   (u.pathname.startsWith('/api/teamwork')&&u.pathname!='/api/teamwork/status')||
+  (u.pathname.startsWith('/api/apps')&&u.pathname!='/api/apps/status')||
   u.pathname==="/api/hud/stt"||
   u.pathname==="/api/hud/command"||
   u.pathname==="/api/hud/agents"||
@@ -82,6 +84,8 @@ Bun.serve({port:PORT,async fetch(req){
  if(u.pathname.startsWith('/api/knowledge'))return handleKnowledge(req,u);
  if(u.pathname==='/api/teamwork/status'&&req.method==='GET'){try{await ensureTeamwork();return Response.json({ok:true,feature:'teamwork',ready:true},{headers:{'cache-control':'no-store'}})}catch{return Response.json({ok:true,feature:'teamwork',ready:false},{status:503,headers:{'cache-control':'no-store'}})}}
  if(u.pathname.startsWith('/api/teamwork'))return handleTeamwork(req,u);
+ if(u.pathname==='/api/apps/status'&&req.method==='GET'){try{await ensureApps();return Response.json({ok:true,feature:'apps',ready:true},{headers:{'cache-control':'no-store'}})}catch{return Response.json({ok:true,feature:'apps',ready:false},{status:503,headers:{'cache-control':'no-store'}})}}
+ if(u.pathname.startsWith('/api/apps'))return handleApps(req,u);
  if(u.pathname==="/api/hud/stt") return handleHudStt(req);
  if(u.pathname==="/api/hud/command"||u.pathname==="/api/hud/brain/status") return handleCloudCommand(req,u);
  if(u.pathname==="/api/hud/agents"||u.pathname==="/api/hud/agents/run"||u.pathname==="/api/hud/agents/recovery-self-test"||u.pathname==="/api/hud/agents/status"||u.pathname==="/api/hud/agents/skills"||u.pathname.startsWith("/api/hud/agents/missions")||u.pathname==="/api/hud/activity") return handleCloudAgents(req,u);
@@ -128,3 +132,4 @@ setInterval(()=>dailyTick(),20000);
 setTimeout(()=>ensureKnowledge().then(()=>console.info('Memory & Knowledge schema ready')).catch(e=>console.warn('Memory & Knowledge initialization:',e.message)),5000);
 setTimeout(()=>teamTick(),10000);
 setInterval(()=>teamTick(),15000);
+setTimeout(()=>ensureApps().catch(e=>console.warn('Connected Apps initialization:',e.message)),12000);
