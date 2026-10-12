@@ -301,3 +301,5 @@ export async function handleCloudResources(req:Request,u:URL){
  }
  return json({ok:false,error:"Resource route not found"},404);
 }
+
+export {relate};

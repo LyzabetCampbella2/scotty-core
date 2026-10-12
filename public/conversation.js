@@ -25,7 +25,7 @@
  }
  function cancelDraft(){draft='';$('#conversationReviewBox').hidden=true}
  function showDraft(text){draft=text;caption('YOU • REVIEW BEFORE SENDING',text);$('#conversationDraft').value=text;$('#conversationReviewBox').hidden=false;status('REVIEW SPOKEN REQUEST');}
- window.SCOTTYConversation={get listenDuringSpeech(){return true},get preferences(){return {...prefs}},caption,interrupt,db};
+ window.SCOTTYConversation={get listenDuringSpeech(){return true},get preferences(){return {...prefs}},caption,interrupt,db,setResponseLength(length){prefs=core.preferences({...prefs,length});fillPrefs();try{localStorage.setItem(core.prefsKey,JSON.stringify(prefs))}catch{$('#conversationNotice').textContent='Response depth applies now, but could not be saved on this device.';}return prefs.length;}};
  // Route all legacy memory history access through the active thread.
  if(window.SCOTTYMemory){SCOTTYMemory.remember=(role,text)=>{db.remember(role,text);render()};SCOTTYMemory.recall=()=>db.history()}
  const priorSpeak=speak;
@@ -38,6 +38,7 @@
   const n=String(raw||'').trim().replace(/^(?:hey\s+)?(?:scotty|scottie|scoty|scotti)[,.:;\s-]*/i,'').trim();
   if(/^(?:stop|stop speaking|quiet|cancel (?:that|response)|pause speech)[.!?]*$/i.test(n)){interrupt();cancelDraft();return {done:true}}
   const change=n.match(/^(?:change that|instead)[,:\s-]*(.*)$/i);if(change){interrupt();cancelDraft();if(!change[1]){status('WHAT SHOULD I CHANGE?');caption('YOU','Tell me what to change.');return {done:true}}return {text:change[1]}}
+  if(window.SCOTTYVoiceControl?.isInterruption(n)){interrupt('VOICE COMMAND RECEIVED');return {text:n}}
   return {text:n};
  }
  async function bridge(text,body,signal){
@@ -102,7 +103,7 @@
   if(/^(?:eyes|vision) (?:on|off)[.!?]*$/i.test(cleaned)||/^(?:on deck)[.!?]*$/i.test(cleaned)){caption('YOU',raw);return priorHeard(raw)}
   if(prefs.review){showDraft(cleaned);return}await command(cleaned);
  };
- function controlsPreview(raw){const n=String(raw).replace(/^(?:hey\s+)?(?:scotty|scottie|scoty|scotti)[,.:;\s-]*/i,'').trim();return /^(?:stop(?: speaking)?|quiet|cancel (?:that|response)|pause speech)[.!?]*$/i.test(n)||/^(?:change that|instead)\b/i.test(n)}
+ function controlsPreview(raw){const n=String(raw).replace(/^(?:hey\s+)?(?:scotty|scottie|scoty|scotti)[,.:;\s-]*/i,'').trim();return /^(?:stop(?: speaking)?|quiet|cancel (?:that|response)|pause speech)[.!?]*$/i.test(n)||/^(?:change that|instead)\b/i.test(n)||!!window.SCOTTYVoiceControl?.isInterruption(n)}
  let voiced=false,quiet=0,total=0;
  window.SCOTTYConversation.captureFrame=function(input,sampleRate){
   const seconds=input.length/sampleRate;let power=0;for(const n of input)power+=n*n;const rms=Math.sqrt(power/input.length);
