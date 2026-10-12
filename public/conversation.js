@@ -21,7 +21,7 @@
  function fillPrefs(){for(const [id,key] of [['Speed','speed'],['Length','length'],['Tone','tone'],['Pronunciation','pronunciations']])$('#conversation'+id).value=prefs[key];$('#conversationReview').checked=prefs.review;$('#conversationSpeedValue').textContent=prefs.speed.toFixed(2)+'×'}
  function savePrefs(){prefs=core.preferences({speed:$('#conversationSpeed').value,length:$('#conversationLength').value,tone:$('#conversationTone').value,review:$('#conversationReview').checked,pronunciations:$('#conversationPronunciation').value});try{localStorage.setItem(core.prefsKey,JSON.stringify(prefs));$('#conversationNotice').textContent='Preferences saved.'}catch{$('#conversationNotice').textContent='Preferences apply now, but could not be saved.'}fillPrefs()}
  function interrupt(message='Response stopped.'){
-  ++run;++speechRun;request?.abort();request=null;busy=false;window.SCOTTYVoiceTransport?.stop();speaking=false;try{clearVoiceBuffers()}catch{}status(message);return run;
+  ++run;++speechRun;window.SCOTTYVoiceControl?.cancelMotion();request?.abort();request=null;busy=false;window.SCOTTYVoiceTransport?.stop();speaking=false;try{clearVoiceBuffers()}catch{}status(message);return run;
  }
  function cancelDraft(){draft='';$('#conversationReviewBox').hidden=true}
  function showDraft(text){draft=text;caption('YOU • REVIEW BEFORE SENDING',text);$('#conversationDraft').value=text;$('#conversationReviewBox').hidden=false;status('REVIEW SPOKEN REQUEST');}
@@ -61,6 +61,8 @@
   remember('user',control.text);render();caption('YOU',control.text);
   try{
    if(recap&&!history.length){const reply='No earlier conversation is recorded in this thread and memory space yet.';remember('assistant',reply);await speak(reply);return}
+   const controlResult=recap?null:await window.SCOTTYVoiceControl?.handleCommand(text,{signal});if(seq!==run||signal.aborted)return;
+   if(controlResult?.handled){db.pending(null,threadId);remember('assistant',controlResult.reply);render();await speak(controlResult.reply);return}
    const creative=recap?null:await window.SCOTTYCreative?.handleCommand(text,{signal});if(seq!==run||signal.aborted)return;
    if(creative?.handled){db.pending(null,threadId);remember('assistant',creative.reply);render();await speak(creative.reply);return}
    const spatial=recap?null:await window.SCOTTYSpatialTools?.handleCommand(text,{signal});if(seq!==run||signal.aborted)return;

@@ -1,3 +1,4 @@
+import {handleControl,ensureControl} from './control/cloud.ts';
 import {handleCreative,ensureCreative} from './creative/cloud.ts';
 import {handleDaily,dailyTick} from "./daily/cloud.ts";
 import {handleKnowledge,ensureKnowledge} from './memory/knowledge.ts';
@@ -34,7 +35,7 @@ async function serveHud(){
   if(!(await file.exists()))return null;
   let html=await file.text();
   html=html.replace("</head>",'<script type="importmap">{"imports":{"three":"/vendor/three/three.module.js"}}</script></head>');
-  if(!html.includes("/render-hotfix.js"))html=html.replace("</body>","<script src=\"/render-hotfix.js?v=8\"></script><script src=\"/conversation-core.js?v=2\"></script><script src=\"/conversation.js?v=8\"></script><script src=\"/daily-life.js?v=1\"></script><script src=\"/knowledge.js?v=1\"></script><script src=\"/teamwork.js?v=1\"></script><script src=\"/apps-actions.js?v=2\"></script><script src=\"/creative.js?v=1\"></script><script src=\"/workspace.js?v=1\"></script><script src=\"/spatial-tools-core.js?v=1\"></script><script src=\"/spatial-tools.js?v=1\"></script></body>");
+  if(!html.includes("/render-hotfix.js"))html=html.replace("</body>","<script src=\"/render-hotfix.js?v=8\"></script><script src=\"/conversation-core.js?v=2\"></script><script src=\"/conversation.js?v=9\"></script><script src=\"/daily-life.js?v=1\"></script><script src=\"/knowledge.js?v=1\"></script><script src=\"/teamwork.js?v=1\"></script><script src=\"/apps-actions.js?v=2\"></script><script src=\"/creative.js?v=1\"></script><script src=\"/workspace.js?v=1\"></script><script src=\"/spatial-tools-core.js?v=1\"></script><script src=\"/spatial-tools.js?v=1\"></script><script src=\"/voice-control-core.js?v=1\"></script><script src=\"/voice-control.js?v=1\"></script></body>");
   return new Response(html,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store"}});
  }catch{return null}
 }
@@ -44,7 +45,7 @@ Bun.serve({port:PORT,async fetch(req){
  if(req.method==="GET"){
   if(u.pathname.startsWith('/vendor/')){let path='';if(u.pathname==='/vendor/pdfjs/pdf.mjs')path='node_modules/pdfjs-dist/build/pdf.mjs';else if(u.pathname==='/vendor/pdfjs/pdf.worker.mjs')path='node_modules/pdfjs-dist/build/pdf.worker.mjs';else if(/^\/vendor\/three\/three\.(?:module|core)\.js$/.test(u.pathname))path='node_modules/three/build/'+u.pathname.split('/').pop();else if(/^\/vendor\/three\/addons\/[a-zA-Z0-9_/-]+\.js$/.test(u.pathname))path='node_modules/three/examples/jsm/'+u.pathname.slice('/vendor/three/addons/'.length);if(path){const r=await servePublic(path,'application/javascript; charset=utf-8');if(r)return r}return Response.json({ok:false,error:'Viewer asset not found'},{status:404})}
 
-  if(u.pathname==="/creative.js"||u.pathname==="/spatial-tools.js"||u.pathname==="/spatial-tools-core.js"||u.pathname==="/workspace.js"||u.pathname==="/workspace-viewer.js"||u.pathname==="/conversation-core.js"||u.pathname==="/conversation.js"||u.pathname==="/daily-life.js"||u.pathname==="/knowledge.js"||u.pathname==="/teamwork.js"||u.pathname==="/apps-actions.js") {const r=await servePublic("public"+u.pathname,"application/javascript; charset=utf-8");if(r)return r}
+  if(u.pathname==="/voice-control.js"||u.pathname==="/voice-control-core.js"||u.pathname==="/creative.js"||u.pathname==="/spatial-tools.js"||u.pathname==="/spatial-tools-core.js"||u.pathname==="/workspace.js"||u.pathname==="/workspace-viewer.js"||u.pathname==="/conversation-core.js"||u.pathname==="/conversation.js"||u.pathname==="/daily-life.js"||u.pathname==="/knowledge.js"||u.pathname==="/teamwork.js"||u.pathname==="/apps-actions.js") {const r=await servePublic("public"+u.pathname,"application/javascript; charset=utf-8");if(r)return r}
   if(u.pathname==="/render-hotfix.js") {const r=await servePublic("public/render-hotfix.js","application/javascript; charset=utf-8");if(r)return r}
   if(u.pathname==="/hud"||u.pathname==="/hud/"||u.pathname==="/") {const r=await serveHud();if(r)return r}
   if(u.pathname==="/missions"||u.pathname==="/missions/") {const r=await servePublic("public/missions/index.html");if(r)return r}
@@ -61,6 +62,7 @@ Bun.serve({port:PORT,async fetch(req){
  if(u.pathname==="/api/connections/google/callback") return handleCloudConnections(req,u);
 
  const protectedRoute=
+  (u.pathname.startsWith('/api/control')&&!(u.pathname==='/api/control/status'&&req.method==='GET'))||
   (u.pathname.startsWith('/api/creative')&&!(u.pathname==='/api/creative/status'&&req.method==='GET'))||
   (u.pathname.startsWith('/api/spatial')&&!(u.pathname==='/api/spatial/status'&&req.method==='GET'))||
   (u.pathname.startsWith('/api/workspace')&&!(u.pathname==='/api/workspace/status'&&req.method==='GET'))||
@@ -92,6 +94,7 @@ Bun.serve({port:PORT,async fetch(req){
  if(u.pathname==='/api/spatial/status'&&req.method==='GET'){try{await bootstrapResources();await ensureSpatial();return Response.json({ok:true,feature:'spatial',ready:true},{headers:{'cache-control':'no-store'}})}catch{return Response.json({ok:true,feature:'spatial',ready:false},{status:503,headers:{'cache-control':'no-store'}})}}
  if(u.pathname.startsWith('/api/spatial'))return handleSpatial(req,u);
  if(u.pathname==='/api/workspace/status'&&req.method==='GET'){try{await ensureWorkspace();return Response.json({ok:true,feature:'workspace',ready:true},{headers:{'cache-control':'no-store'}})}catch{return Response.json({ok:true,feature:'workspace',ready:false},{status:503,headers:{'cache-control':'no-store'}})}}
+ if(u.pathname.startsWith('/api/control'))return handleControl(req,u);
  if(u.pathname.startsWith('/api/creative'))return handleCreative(req,u);
  if(u.pathname.startsWith('/api/workspace'))return handleWorkspace(req,u);
  if(u.pathname.startsWith("/api/daily"))return handleDaily(req,u);
@@ -153,3 +156,5 @@ setTimeout(()=>ensureWorkspace().catch(e=>console.warn('Workspace initialization
 setTimeout(()=>ensureSpatial().catch(e=>console.warn('Spatial tools initialization:',e.message)),20000);
 
 setTimeout(()=>ensureCreative().catch(e=>console.warn('Creative initialization:',e.message)),20000);
+
+setTimeout(()=>ensureControl().catch(e=>console.warn('Voice control initialization:',e.message)),22000);
