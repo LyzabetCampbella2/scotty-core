@@ -49,26 +49,31 @@
   const control=controls(raw);if(control.done)return;let text=control.text;
   const threadMatch=text.match(/^(?:switch to|open|resume) (?:the )?(?:conversation |thread )?(.+?) (?:thread|conversation)$/i);
   if(threadMatch){const t=db.state.threads.find(t=>t.name.toLowerCase()===threadMatch[1].toLowerCase());if(t){interrupt();cancelDraft();db.switch(t.id);render();caption('THREAD',t.name);return}caption('THREAD','No thread named '+threadMatch[1]+'. Create one in Conversation.');return}
-  const seq=interrupt('THINKING'),threadId=db.state.active,t=db.get(threadId),history=db.history(threadId);cancelDraft();busy=true;request=new AbortController();const signal=request.signal;
+  const memorySpace=window.SCOTTYKnowledge?.space()||'shared';
+  const seq=interrupt('THINKING'),threadId=db.state.active,t=db.get(threadId),history=db.history(threadId,memorySpace);cancelDraft();busy=true;request=new AbortController();const signal=request.signal;
+  const remember=(role,text)=>db.remember(role,text,threadId,{memorySpace});
   const recap=/^(?:what did we decide|recap(?: this| our| the)?(?: conversation| thread)?|summari[sz]e (?:this|our|the) (?:conversation|thread))[?!.]*$/i.test(text);
   const pending=/^(?:cancel clarification|never mind|start over)[.!?]*$/i.test(text)?null:t.pending;
   if(!pending&&t.pending){db.pending(null,threadId);busy=false;render();caption('SCOTTY','Clarification cancelled. Tell me your new request.');return}
   let resolutions=[];
   if(pending?.canvasPrefix&&!recap){text=pending.canvasPrefix+text}
   else if(pending?.original&&pending?.kind&&!recap){resolutions=[...(pending.resolutions||[]).filter(x=>!(x.kind===pending.kind&&x.query===pending.query)),{kind:pending.kind,query:pending.query,answer:text}];text=pending.original}
-  db.remember('user',control.text,threadId);render();caption('YOU',control.text);
+  remember('user',control.text);render();caption('YOU',control.text);
   try{
-   if(recap&&!history.length){const reply='No earlier conversation is recorded in this thread yet.';db.remember('assistant',reply,threadId);await speak(reply);return}
+   if(recap&&!history.length){const reply='No earlier conversation is recorded in this thread and memory space yet.';remember('assistant',reply);await speak(reply);return}
+   const knowledge=recap?null:await window.SCOTTYKnowledge?.handleCommand(text,{signal});if(seq!==run||signal.aborted)return;
+   if(knowledge?.handled){db.pending(null,threadId);remember('assistant',knowledge.reply);render();await speak(knowledge.reply);return}
    const daily=recap?null:await window.SCOTTYDaily?.handleCommand(text,{signal});if(seq!==run||signal.aborted)return;
-   if(daily?.handled){db.pending(null,threadId);db.remember('assistant',daily.reply,threadId);render();await speak(daily.reply);return}
+   if(daily?.handled){db.pending(null,threadId);remember('assistant',daily.reply);render();await speak(daily.reply);return}
    const canvas=recap?null:eyesVoiceCommand(text);
-   if(canvas){const query=text.match(/^(?:find|focus|show|open|go to) (?:my |the )?(agent|chief|project|task|file|folder|node) (?:named |called )?(.+)$/i);db.pending(query&&/^(?:I found|No .+ named)/.test(canvas)?{question:canvas,canvasPrefix:text.slice(0,text.length-query[2].length),options:window.SCOTTYSpatial?.searchNodes(query[2],query[1]==='node'?'all':query[1]).slice(0,6).map(n=>n.name)||[]}:null,threadId);db.remember('assistant',canvas,threadId);await speak(canvas);return}
+   if(canvas){const query=text.match(/^(?:find|focus|show|open|go to) (?:my |the )?(agent|chief|project|task|file|folder|node) (?:named |called )?(.+)$/i);db.pending(query&&/^(?:I found|No .+ named)/.test(canvas)?{question:canvas,canvasPrefix:text.slice(0,text.length-query[2].length),options:window.SCOTTYSpatial?.searchNodes(query[2],query[1]==='node'?'all':query[1]).slice(0,6).map(n=>n.name)||[]}:null,threadId);remember('assistant',canvas);await speak(canvas);return}
    const structured=!recap&&!pending&&/^\s*(?:(?:open|show)\s+(?:live ops|missions?|mission control)|(?:start|create|launch)\s+(?:a\s+)?(?:(?:autonomous|auto)\s+)?mission(?:\s+(?:to|for))?|(?:ask|tell|bring in)\s+[^:]+:|(?:approve|approved|approve it|yes approve)|(?:remember|save to memory)\b|(?:show|list|open)\s+(?:my\s+)?(?:agent\s+)?(?:mission\s+history|previous\s+missions)\s*$|(?:continue|resume)\s+(?:agent\s+)?mission\s+[0-9a-f-]{36}\s*:|(?:assemble|coordinate|assign)\s+(?:the\s+)?(?:best\s+)?(?:agents|chiefs|team)\s+(?:to|for)\s+)/i.test(text);
    if(structured){await priorCommand(text);return}
-   const r=await bridge(text,{history,preferences:prefs,mode:recap?'recap':'conversation',resolutions},signal);
+   const r=await bridge(text,{history,preferences:prefs,mode:recap?'recap':'conversation',resolutions,memorySpace:window.SCOTTYKnowledge?.space()||'shared'},signal);
    if(seq!==run||signal.aborted)return;
-   db.pending(r.clarification?{...r.clarification,resolutions}:null,threadId);db.remember('assistant',r.reply||'No response returned.',threadId);
+   db.pending(r.clarification?{...r.clarification,resolutions}:null,threadId);remember('assistant',r.reply||'No response returned.');
    if(r.focusNode){await loadResources();if(seq!==run)return;window.SCOTTYSpatial?.refresh();window.SCOTTYSpatial?.focusId(r.focusNode)}
+   window.SCOTTYKnowledge?.showSources(r.sources||[]);
    status(r.clarification?'CLARIFICATION NEEDED':'RESPONSE READY');render();await speak(r.reply||'No response returned.');
   }catch(e){if(seq!==run||signal.aborted)return;caption('CONVERSATION ERROR',e.message);status('CONVERSATION ERROR')}
   finally{if(seq===run){busy=false;request=null;render()}}
@@ -101,6 +106,6 @@
  $('#conversationDraftSend').onclick=()=>{const text=$('#conversationDraft').value.trim();cancelDraft();if(text)command(text)};$('#conversationDraftCancel').onclick=()=>{cancelDraft();caption('YOU','Spoken request cancelled.');status('LISTENING')};
  window.SCOTTYConversation.resetCapture=()=>{voiced=false;quiet=0;total=0};
  window.SCOTTYConversation.pronounce=text=>core.pronounce(text,prefs.pronunciations);window.SCOTTYConversation.controls=controls;window.SCOTTYConversation.getRun=()=>run;
- window.SCOTTYConversation.legacyResponse=async(text,token,threadId)=>{if(token!==run)return;db.remember('assistant',text,threadId);render();await speak(text)};
+ window.SCOTTYConversation.legacyResponse=async(text,token,threadId)=>{if(token!==run)return;db.remember('assistant',text,threadId,{memorySpace:window.SCOTTYKnowledge?.space()||'shared'});render();await speak(text)};
  render();fillPrefs();
 })();

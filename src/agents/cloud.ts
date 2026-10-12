@@ -1,6 +1,7 @@
 import postgres from "postgres";
 import { groqThink,addActivity } from "../brain/cloud.ts";
 import { specialistInstructions,departmentSkills } from "./skills.ts";
+import {knowledgeContext,spaceAccess} from '../memory/knowledge.ts';
 
 let sql:any=null,initPromise:Promise<void>|null=null,lastImportTry=0;
 function db(){
@@ -188,16 +189,18 @@ export async function getAgentsByIds(ids:string[]){
   from scotty_agents where id in ${db()(ids)} order by sort_order asc`;
 }
 
-export async function memoryContext(){
+export async function memoryContext(agentId:any='scotty',query='',scope='shared'){
  try{
-  const rows=await db()`select kind,agent_id as "agentId",text_content as text from scotty_memory order by created_at desc limit 20`;
-  return rows.reverse().map((x:any)=>`[${x.kind||"memory"}${x.agentId?" · "+x.agentId:""}] ${x.text}`).join("\n");
+  const ids=Array.isArray(agentId)?agentId:[agentId];if(!await spaceAccess(scope,ids))return '';
+  return (await knowledgeContext(query,scope,ids[0]||'scotty',20)).text;
  }catch{return ""}
 }
 
 export async function runAgent(row:any,task:string,context:string){
  const id=String(row.id),name=String(row.name);
  try{
+  // Fetch for the actual consumer; never reuse an owner's broader context.
+  if(!await spaceAccess('shared',[id]))context='';
   await db()`update scotty_agents set state='working',current_job=${task.slice(0,1800)},queue_count=queue_count+1,updated_at=now() where id=${id}`;
   await addActivity(name,"AGENT START",task.slice(0,220),{agentId:id});
   const system=specialistInstructions(row)+"\nSpecialty focus: "+(departmentSkills[row.department]?.skills||["analysis"])[Math.max(0,Number(String(id).split("-").pop())-1)%(departmentSkills[row.department]?.skills?.length||1)]+". Review your assigned part, identify unresolved questions, and provide evidence-aware findings.";
@@ -344,8 +347,8 @@ export async function handleCloudAgents(req:Request,u:URL){
   const byId=new Map(rows.map((x:any)=>[x.id,x]));
   const ordered=ids.map(id=>byId.get(id)).filter(Boolean);
   const specialtyAssignments=ordered.map((a:any)=>({agentId:a.id,name:a.name,department:a.department,primarySkill:(departmentSkills[a.department]?.skills||["analysis"])[Math.max(0,Number(String(a.id).split("-").pop())-1)%(departmentSkills[a.department]?.skills?.length||1)],secondarySkills:(departmentSkills[a.department]?.skills||[]).filter((_:string,i:number)=>i!==Math.max(0,Number(String(a.id).split("-").pop())-1)%(departmentSkills[a.department]?.skills?.length||1))}));
-  const context=await memoryContext();
   const chiefIds=[...new Set(ordered.map((a:any)=>a.isChief?a.id:a.chiefId).filter(Boolean))];
+  const context=await memoryContext([...ids,...chiefIds],task);
   const supervisors=await getAgentsByIds(chiefIds);
   const briefing=supervisors.length?await Promise.all(supervisors.map(async (chief:any)=>{
    const teammates=ordered.filter((a:any)=>a.id===chief.id||a.chiefId===chief.id);

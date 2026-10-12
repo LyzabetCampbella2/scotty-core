@@ -253,7 +253,7 @@ async function completeMission(mission:any){
 async function executeStep(mission:any,step:any){
  const rows=await assignedRows(step);
  if(!rows.length)throw new Error("No assigned mission agents available");
- const context=await memoryContext();
+ const context=await memoryContext(rows.map((r:any)=>r.id),mission.goal+' '+step.instruction);
  await db()`update scotty_mission_steps set status='working',updated_at=now() where id=${step.id}`;
  await db()`update scotty_missions set status='running',updated_at=now() where id=${mission.id}`;
  await addActivity("SCOTTY","MISSION STEP START",step.title,{missionId:mission.id,stepId:step.id});

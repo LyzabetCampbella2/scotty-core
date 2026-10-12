@@ -59,7 +59,7 @@ test('speech capture waits for voice and silence rather than fixed sentence cuto
 function backend(rows=[],reply='{"reply":"Which date?","clarification":{"question":"Which date?"}}'){
  const writes=[],queries=[],model=[];
  const sql=(strings,...values)=>{const q=strings.join('?');queries.push(q);if(/select id,title as name,title,'task'/.test(q))return Promise.resolve([{id:'t',name:'Draft',title:'Draft',type:'task'}]);if(/select id,name from scotty_agents/.test(q))return Promise.resolve(rows);if(/insert into scotty_tasks|update scotty_tasks/.test(q)){writes.push(values);return Promise.resolve([{id:'t'}])}return Promise.resolve([])};sql.json=x=>x;
- const ctx=vm.createContext({postgres:()=>sql,process:{env:{DATABASE_URL:'test'}},Response,Request,URL,AbortSignal,crypto:{randomUUID:()=> 'id'}});
+ const ctx=vm.createContext({postgres:()=>sql,knowledgeContext:async(text,space)=>{queries.push('memory space '+space);return {text:'',sources:[]}},supportingSources:()=>[],process:{env:{DATABASE_URL:'test'}},Response,Request,URL,AbortSignal,crypto:{randomUUID:()=> 'id'}});
  const helpers=stripTypeScriptTypes(read('src/brain/conversation.ts')).replace(/export /g,'');
  const source=stripTypeScriptTypes(read('src/brain/cloud.ts')).replace(/^import .*;\n/gm,'').replace(/export /g,'');
  vm.runInContext(helpers+'\n'+source,ctx);ctx.mockThink=async(messages,tokens,signal)=>{model.push({messages,tokens,signal});return {text:reply,model:'stub'}};vm.runInContext('groqThink=mockThink',ctx);
@@ -75,7 +75,12 @@ test('recap requests never execute native resource instructions',async()=>{
  const h=backend([], 'Decisions: None recorded.');const r=await h.handle({text:'create task Unsafe',mode:'recap',history:[{role:'user',text:'discuss plans'}]});assert.equal(r.status,200);assert.equal(h.writes.length,0);assert.equal(h.model.length,1);assert.ok(!h.queries.some(q=>/select scope,kind/.test(q)));
 });
 test('brain passes cancellation signal and preference token limit to model',async()=>{
- const h=backend();const r=await h.handle({text:'Plan something',preferences:{length:'brief'}});const j=await r.json();assert.equal(j.clarification.question,'Which date?');assert.equal(h.model[0].tokens,350);assert.ok(h.model[0].signal);assert.ok(h.queries.some(q=>q.includes("where scope='shared'")));
+ const h=backend();const r=await h.handle({text:'Plan something',preferences:{length:'brief'}});const j=await r.json();assert.equal(j.clarification.question,'Which date?');assert.equal(h.model[0].tokens,350);assert.ok(h.model[0].signal);assert.ok(h.queries.includes('memory space shared'));
+});
+test('brain uses only the selected memory space and attaches supporting passage citations',async()=>{
+ const h=backend([],'{"reply":"The recorded tone is calm [M12].","clarification":null}'),calls=[];
+ h.ctx.knowledgeContext=async(query,space)=>{calls.push({query,space});return {text:'[M12 | owner-stated] Tone is calm.',sources:[{id:'M12',passage:'Tone is calm.',url:'https://example.com/source'}]}};
+ h.ctx.supportingSources=(reply,sources)=>sources.filter(s=>reply.includes(s.id));const r=await h.handle({text:'What is my tone?',memorySpace:'personal'}),j=await r.json();assert.equal(calls[0].space,'personal');assert.equal(j.sources[0].passage,'Tone is calm.');assert.match(h.model[0].messages[0].content,/not independently verified/);assert.match(h.model[0].messages[0].content,/M12/);
 });
 function transport(fetcher){
  const els=new Map(),audio=[],sent=[];let created=0;

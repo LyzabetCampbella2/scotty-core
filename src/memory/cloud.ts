@@ -1,4 +1,5 @@
 import postgres from "postgres";
+import {ensureKnowledge,rememberKnowledge} from './knowledge.ts';
 
 type MemoryInput={scope?:string;kind?:string;agentId?:string;projectId?:string;text?:string;metadata?:unknown};
 let sql:any=null;
@@ -15,7 +16,7 @@ function db(){
 async function ensure(){
  if(initPromise)return initPromise;
  initPromise=(async()=>{
-  const q=db();
+  await ensureKnowledge();const q=db();
   await q`
    create table if not exists scotty_memory (
     id bigserial primary key,
@@ -29,7 +30,7 @@ async function ensure(){
    )
   `;
   await q`create index if not exists scotty_memory_scope_created_idx on scotty_memory(scope,created_at desc)`;
- })();
+  })().catch(e=>{initPromise=null;throw e});
  return initPromise;
 }
 const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{"cache-control":"no-store"}});
@@ -48,9 +49,8 @@ export async function handleCloudMemory(req:Request,u:URL){
   const scope=String(body?.scope||"shared").slice(0,120),kind=String(body?.kind||"note").slice(0,80);
   const agentId=body?.agentId?String(body.agentId).slice(0,160):null,projectId=body?.projectId?String(body.projectId).slice(0,160):null;
   const metadata=body?.metadata&&typeof body.metadata==="object"?body.metadata:{};
-  const r=await db()`insert into scotty_memory(scope,kind,agent_id,project_id,text_content,metadata)
-    values(${scope},${kind},${agentId},${projectId},${text},${db().json(metadata)}) returning id,created_at`;
-  return json({ok:true,id:r[0].id,createdAt:r[0].created_at},201);
+  const r=await rememberKnowledge({scope,kind,agentId,projectId,text,metadata,sourceTitle:'Owner memory command'});
+  return json({ok:true,...r},201);
  }
  if(u.pathname==="/api/memory/recall"&&req.method==="GET"){
   const scope=String(u.searchParams.get("scope")||"shared").slice(0,120);
@@ -58,15 +58,15 @@ export async function handleCloudMemory(req:Request,u:URL){
   const limit=Math.max(1,Math.min(50,Number(u.searchParams.get("limit")||20)||20));
   const rows=q
    ? await db()`select id,scope,kind,agent_id as "agentId",project_id as "projectId",text_content as text,metadata,created_at as "createdAt"
-       from scotty_memory where scope=${scope} and text_content ilike ${"%"+q+"%"} order by created_at desc limit ${limit}`
+       from scotty_memory where status='active' and scope=${scope} and text_content ilike ${"%"+q+"%"} order by created_at desc limit ${limit}`
    : await db()`select id,scope,kind,agent_id as "agentId",project_id as "projectId",text_content as text,metadata,created_at as "createdAt"
-       from scotty_memory where scope=${scope} order by created_at desc limit ${limit}`;
+       from scotty_memory where status='active' and scope=${scope} order by created_at desc limit ${limit}`;
   return json({ok:true,memories:rows});
  }
  if(u.pathname==="/api/memory/recent"&&req.method==="GET"){
   const limit=Math.max(1,Math.min(100,Number(u.searchParams.get("limit")||30)||30));
   const rows=await db()`select id,scope,kind,agent_id as "agentId",project_id as "projectId",text_content as text,metadata,created_at as "createdAt"
-    from scotty_memory order by created_at desc limit ${limit}`;
+    from scotty_memory where status='active' order by created_at desc limit ${limit}`;
   return json({ok:true,memories:rows});
  }
  return json({ok:false,error:"Memory route not found"},404);
