@@ -47,7 +47,7 @@ body.eyes-isolate-selection #graph g.agent-selected{opacity:1;filter:drop-shadow
 <div class="hud"><header class="p top"><div class="logo">S.C.O.T.T.Y.<small>VISUAL COMMAND • AGENT NETWORK • PRIVATE VISION</small></div><div class="chips"><span class="chip on" id="net">ONLINE</span><span class="chip">HUD 3/8 • AGENT MATRIX LIVE</span><span class="chip" id="vs">VOICE OFF</span><span class="chip" id="gs">HANDS OFF</span><span class="chip" id="clock">--:--</span></div></header>
 <aside class="p left"><div class="title">Systems</div><button class="nav active"><i></i><span>Agent Matrix</span></button><button class="nav"><i></i><span>Brain</span></button><button class="nav"><i></i><span>Projects</span></button><button class="nav"><i></i><span>Operations</span></button><button class="nav"><i></i><span>Integrations</span></button><button class="nav"><i></i><span>Creative Lab</span></button><button class="nav"><i></i><span>3D Forge</span></button><div class="privacy"><b>VISION PRIVACY LOCK</b><p>Camera is OFF until you say “Scotty, eyes on.”</p><button class="eyes" id="eyes">EYES: LOCKED • SAY “SCOTTY, EYES ON”</button></div></aside>
 <main class="p main"><div class="toolbar"><button class="mode on">AGENT MATRIX</button><button class="mode">LIVE OPS</button><button class="mode">MEMORY MAP</button><span class="chip" id="ac">0 AGENTS</span></div><svg id="graph"></svg><div id="eyesCursorSurface" aria-hidden="true"><div id="eyesCursorSurface0"></div><div id="eyesCursorSurface1"></div></div><div class="scan"></div><div class="core"><div><b>SCOTTY</b><small id="cs">LISTENING</small></div></div><div class="hint">PINCH = SELECT • OPEN PALM = HOLD • CAMERA NEVER AUTO-STARTS</div></main>
-<aside class="p right"><div class="title">Telemetry</div><div class="stat"><span>Agents</span><span id="sa">--</span></div><div class="stat"><span>Chiefs</span><span id="sc">--</span></div><div class="stat"><span>Camera</span><span id="sv">LOCKED</span></div><div class="stat"><span>Hands</span><span id="sh">OFF</span></div><div style="display:flex;gap:5px;flex-wrap:wrap;margin:5px 0 9px"><button type="button" id="eyesMultiSelect" style="font-size:10px;padding:5px 8px">MULTI-SELECT: OFF</button><button type="button" id="eyesClearSelection" style="font-size:10px;padding:5px 8px">CLEAR SELECTION</button><button type="button" id="eyesUndoMove" style="font-size:10px;padding:5px 8px">UNDO NODE MOVE</button><button type="button" id="eyesResetLayout" style="font-size:10px;padding:5px 8px">RESET NODE LAYOUT</button></div><div class="title">Live activity</div><button type="button" data-scotty-recovery-test style="font-size:10px;padding:5px 9px;margin:4px 0 8px">RUN SAFE RECOVERY TEST</button><div class="activity" id="activity"></div></aside>
+<aside class="p right"><div class="title">Telemetry</div><div class="stat"><span>Agents</span><span id="sa">--</span></div><div class="stat"><span>Chiefs</span><span id="sc">--</span></div><div class="stat"><span>Camera</span><span id="sv">LOCKED</span></div><div class="stat"><span>Hands</span><span id="sh">OFF</span></div><div style="display:flex;gap:5px;flex-wrap:wrap;margin:5px 0 9px"><button type="button" id="eyesHandMode" aria-pressed="false" style="font-size:10px;padding:5px 8px">HANDS: SELECT / DRAG</button><button type="button" id="eyesMultiSelect" style="font-size:10px;padding:5px 8px">MULTI-SELECT: OFF</button><button type="button" id="eyesClearSelection" style="font-size:10px;padding:5px 8px">CLEAR SELECTION</button><button type="button" id="eyesUndoMove" style="font-size:10px;padding:5px 8px">UNDO NODE MOVE</button><button type="button" id="eyesResetLayout" style="font-size:10px;padding:5px 8px">RESET NODE LAYOUT</button></div><div class="title">Live activity</div><button type="button" data-scotty-recovery-test style="font-size:10px;padding:5px 9px;margin:4px 0 8px">RUN SAFE RECOVERY TEST</button><div class="activity" id="activity"></div></aside>
 <section class="p bottom"><div class="cmd"><input id="ci" placeholder="Ask S.C.O.T.T.Y. or say “Scotty on deck.”"><button id="send">SEND</button></div><button class="mic" id="mic">◉</button></section></div>
 <div id="eyesCursorDiagnostics" role="status">EYES CURSOR: WAITING FOR TRACKING</div><div id="handCursor"></div><div id="handCursor2" aria-hidden="true"></div><div id="vision"><div class="cam"><video id="video" playsinline muted></video><canvas id="hc"></canvas><div class="camlabel">VISION ACTIVE • USER AUTHORIZED</div><div class="offmsg">SAY “EYES OFF”</div><div class="gesture" id="gl">HAND TRACKING: STARTING</div></div></div>
 <div id="confirm"><div class="cc">You said “Eyes on.”<br><small>The browser needs a tap before opening the camera.</small><br><button id="confirmEyes">CONFIRM SPOKEN CAMERA REQUEST</button></div></div>
@@ -503,7 +503,7 @@ $('#eyes').onclick=()=>{if(!voiceArmed){$('#cs').textContent='ARM VOICE FIRST';r
 async function startVisionVoice(){if(!voiceCamera)return;try{await startVision();await speak('Eyes on. Hand tracking active.')}catch{$('#confirm').style.display='block';await speak('I heard eyes on. Safari needs one confirmation tap before I can open the camera.')}}
 $('#confirmEyes').onclick=async()=>{if(!voiceCamera)return;await unlockAudio();$('#confirm').style.display='none';try{await startVision();await speak('Eyes on. Hand tracking active.')}catch{await speak('Camera permission was not granted.')}};
 async function startVision(){if(!voiceCamera)throw Error('spoken authorization required');if(stream)return;stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false});const v=$('#video');v.srcObject=stream;await v.play();$('#vision').classList.add('on');document.body.classList.add('vision-active');$('#eyes').classList.add('on');$('#eyes').textContent='EYES: ACTIVE • VOICE AUTHORIZED';$('#sv').textContent='ACTIVE';$('#gs').textContent='VISION ACTIVE';$('#cs').textContent='VISION';await startHands()}
-function stopVision(){eyesV2Reset();voiceCamera=false;tracking=false;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$('#video').srcObject=null;$('#vision').classList.remove('on');document.body.classList.remove('vision-active','gesture-hold');$('#handCursor').className='';$('#handCursor').style.display='none';$('#handCursor2').classList.remove('on');$('#handCursor2').style.display='none';eyesHidePointer(0);eyesHidePointer(1);$('#eyes').classList.remove('on');$('#eyes').textContent='EYES: LOCKED • SAY “SCOTTY, EYES ON”';$('#sv').textContent='LOCKED';$('#sh').textContent='OFF';$('#gs').textContent='HANDS OFF';$('#cs').textContent='LISTENING';$('#confirm').style.display='none';twoState=null;swipeSeed=null;resetEyesPinch();holdOn=false}
+function stopVision(){setEyesHandMode('select');voiceCamera=false;tracking=false;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$('#video').srcObject=null;$('#vision').classList.remove('on');document.body.classList.remove('vision-active','gesture-hold');$('#handCursor').className='';$('#handCursor').style.display='none';$('#handCursor2').classList.remove('on');$('#handCursor2').style.display='none';eyesHidePointer(0);eyesHidePointer(1);$('#eyes').classList.remove('on');$('#eyes').textContent='EYES: LOCKED • SAY “SCOTTY, EYES ON”';$('#sv').textContent='LOCKED';$('#sh').textContent='OFF';$('#gs').textContent='HANDS OFF';$('#cs').textContent='LISTENING';$('#confirm').style.display='none';twoState=null;swipeSeed=null;resetEyesPinch();holdOn=false}
 async function startHands(){
  if(typeof Hands==='undefined'){ $('#sh').textContent='TRACKER NOT LOADED';$('#gs').textContent='HAND TRACKER UNAVAILABLE';throw Error('hand tracker unavailable')}
  hands=new Hands({locateFile:f=>'https://cdn.jsdelivr.net/npm/@mediapipe/hands/'+f});
@@ -772,7 +772,9 @@ function eyesIsRightHand(result,index){
 function eyesIsLeftHand(result,index){return String(result.multiHandedness?.[index]?.label||'').toLowerCase()==='left'}
 
 /* SCOTTY_EYES_CANVAS_V3: gestures act on the visible spatial canvas. */
-const eyesV2={hands:[{},{}],nav:null,pan:null};
+const eyesV2={hands:[{},{}],nav:null,pan:null,mode:'select'};
+function setEyesHandMode(mode){eyesV2Reset();eyesV2.mode=mode==='navigate'?'navigate':'select';eyesV2.hands.forEach(h=>h.blocked=true);const navigate=eyesV2.mode==='navigate';$('#eyesHandMode').textContent=navigate?'HANDS: ZOOM / NAVIGATE':'HANDS: SELECT / DRAG';$('#eyesHandMode').setAttribute?.('aria-pressed',String(navigate));$('#spatialStatus').textContent=navigate?'NAVIGATE MODE • TWO PINCHES = ZOOM / ROTATE • OPEN PALMS = PAN / SPREAD':'SELECT MODE • PINCH EITHER HAND = SELECT / DRAG • HAND ZOOM IS OFF';$('#cs').textContent=navigate?'HAND NAVIGATION ON • RELEASE PINCHES, THEN ZOOM':'HAND SELECTION ON • RELEASE PINCHES, THEN SELECT';}
+
 function eyesV2Release(i,commitDrop=false){
  window.SCOTTYSpatial?.handRelease(i,commitDrop);
  const h=eyesV2.hands[i];h.grab=null;h.frames=0;h.down=false;
@@ -821,8 +823,9 @@ function eyesV2Hands(result){
   h.wrist={x:p[0].x,y:p[0].y};el?.classList.toggle('pinch',infos[i].pinch);
  }
  if(window.SCOTTYGestureCalibration?.isCapturing?.()){hands.forEach((h,i)=>{eyesV2Release(i,false);h.blocked=true});eyesV2.nav=null;eyesV2.pan=null;$('#sh').textContent='CALIBRATION • '+raw.length+' HAND(S)';$('#gs').textContent='CALIBRATION • CANVAS GESTURES PAUSED';return}
- const dual=assigned.every(Boolean)&&infos.every(i=>i.pinch);
- const bothOpen=assigned.every(Boolean)&&infos.every(i=>i.open&&!i.pinch),navMode=dual?'view':bothOpen?'spread':null;
+ const navigate=eyesV2.mode==='navigate';for(let i=0;i<2;i++)if(infos[i]&&!infos[i].pinch)hands[i].blocked=false;const ready=!!eyesV2.nav||hands.every((h,i)=>!assigned[i]||!h.blocked);
+ const dual=navigate&&ready&&assigned.every(Boolean)&&infos.every(i=>i.pinch);
+ const bothOpen=navigate&&ready&&assigned.every(Boolean)&&infos.every(i=>i.open&&!i.pinch),navMode=dual?'view':bothOpen?'spread':null;
  if(navMode&&canvas){
   if(!eyesV2.nav||eyesV2.nav.mode!==navMode){
    hands.forEach((h,i)=>{eyesV2Release(i);h.down=infos[i].pinch;h.blocked=true});
@@ -837,7 +840,7 @@ function eyesV2Hands(result){
   eyesV2.pan=null;$('#gs').textContent=navMode==='spread'?'TWO OPEN PALMS • SPREAD / REGROUP':'TWO PINCHES • ZOOM / ROTATE / PAN';
  }else{
   if(eyesV2.nav){eyesV2.nav=null;canvas?.handEndView()}
-  const open=assigned.filter(Boolean).length===1?infos.findIndex(i=>i?.open&&!i.pinch):-1;
+  const open=navigate&&ready&&assigned.filter(Boolean).length===1?infos.findIndex(i=>i?.open&&!i.pinch):-1;
   if(open>=0&&canvas){
    const pt=points[open];
    if(!eyesV2.pan||eyesV2.pan.index!==open)eyesV2.pan={index:open,x:pt.x,y:pt.y,view:canvas.handView()};
@@ -846,6 +849,7 @@ function eyesV2Hands(result){
   }else if(eyesV2.pan){eyesV2.pan=null;canvas?.handEndView()}
   for(let i=0;i<2;i++){
    const h=hands[i],info=infos[i],pt=points[i];if(!info)continue;
+   if(navigate){const waiting=h.blocked;eyesV2Release(i,false);h.down=info.pinch;h.blocked=waiting;continue}
    if(!info.pinch){eyesV2Release(i,true);h.blocked=false;continue}
    if(h.blocked)continue;
    h.frames=(h.frames||0)+1;
@@ -872,7 +876,7 @@ function drawHands(r){return eyesV2Hands(r);const c=$('#hc'),b=$('.cam'),w=b.cli
   label=processOne(ps[0]);$('#gs').textContent='ONE HAND ACTIVE • '+label
  }else{eyesTwoGesture.mode=null;eyesTwoGesture.armedAt=0;eyesPointDwell.forEach(st=>{st.id=null;st.since=0;st.latched=false});twoState=null;$('#handCursor').className='';$('#handCursor').style.display='none';$('#handCursor2').classList.remove('on');$('#handCursor2').style.display='none';eyesHidePointer(0);eyesHidePointer(1);resetEyesPinch();eyesHandStates.forEach(st=>{if(st.moved)eyesCommitMove(st.previous);st.pinched=false;st.frames=0;st.released=0;st.target=null;st.wrist=null;st.moved=false});holdSince=0;setHold(false);swipeSeed=null;$('#gs').textContent='SHOW HANDS TO CAMERA • CHECK LIGHTING'}$('#gl').textContent='HAND TRACKING: '+label}
 
-$('#eyesMultiSelect').onclick=eyesToggleMulti;$('#eyesClearSelection').onclick=eyesClearSelection;$('#eyesUndoMove').onclick=eyesUndoMove;$('#eyesResetLayout').onclick=eyesResetLayout;
+$('#eyesHandMode').onclick=()=>setEyesHandMode(eyesV2.mode==='select'?'navigate':'select');$('#eyesMultiSelect').onclick=eyesToggleMulti;$('#eyesClearSelection').onclick=eyesClearSelection;$('#eyesUndoMove').onclick=eyesUndoMove;$('#eyesResetLayout').onclick=eyesResetLayout;
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&stream)stopVision()});addEventListener('beforeunload',stopVision);addEventListener('resize',()=>agents.length&&draw());if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('/hud-sw.js').catch(()=>{}));const wakeLaunch=new URLSearchParams(location.search).get('wake')==='1';if(wakeLaunch){setTimeout(()=>{const v=$('#vs');if(v)v.textContent='TAP ONCE TO WAKE VOICE'},350)};auth();
 </script><style id="scotty-spatial-css">
 .main{perspective:1100px;overflow:hidden!important}.toolbar{z-index:15!important}.core{pointer-events:none}
@@ -1101,7 +1105,7 @@ body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infini
    const button=document.createElement('button');button.type='button';button.id=id;button.textContent=label;button.style.cssText='font-size:10px;padding:5px 8px';button.onclick=action;tools.appendChild(button);
   }
  }
- document.querySelector('#spatialStatus').textContent='PINCH = SELECT / DRAG • TWO PINCHES = ZOOM / ROTATE • TWO PALMS = SPREAD / REGROUP';
+ document.querySelector('#spatialStatus').textContent='SELECT MODE • PINCH EITHER HAND = SELECT / DRAG • USE HANDS BUTTON FOR ZOOM';
  setTimeout(synthesize,300);requestAnimationFrame(frame);
 })();
 </script>
@@ -1154,7 +1158,7 @@ body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infini
    $('#vision').classList.add('on');document.body.classList.add('vision-active');$('#eyes').classList.add('on');$('#eyes').textContent='EYES: ACTIVE • VOICE AUTHORIZED';$('#sv').textContent='ACTIVE';$('#gs').textContent='VISION ACTIVE';$('#cs').textContent='VISION';await startHands()
  };
  stopVision=function(){
-   eyesV2Reset();voiceCamera=false;tracking=false;stream=null;$('#video').srcObject=null;$('#vision').classList.remove('on');document.body.classList.remove('vision-active','gesture-hold');$('#handCursor').className='';$('#eyes').classList.remove('on');$('#eyes').textContent='EYES: LOCKED • SAY “SCOTTY, EYES ON”';$('#sv').textContent='LOCKED';$('#sh').textContent='OFF';$('#gs').textContent='HANDS OFF';$('#cs').textContent=voiceArmed?'LISTENING':'READY';$('#confirm').style.display='none';twoState=null;swipeSeed=null;pinchLatched=false;holdOn=false
+   setEyesHandMode('select');voiceCamera=false;tracking=false;stream=null;$('#video').srcObject=null;$('#vision').classList.remove('on');document.body.classList.remove('vision-active','gesture-hold');$('#handCursor').className='';$('#eyes').classList.remove('on');$('#eyes').textContent='EYES: LOCKED • SAY “SCOTTY, EYES ON”';$('#sv').textContent='LOCKED';$('#sh').textContent='OFF';$('#gs').textContent='HANDS OFF';$('#cs').textContent=voiceArmed?'LISTENING':'READY';$('#confirm').style.display='none';twoState=null;swipeSeed=null;pinchLatched=false;holdOn=false
  };
  const oldSpeak=speak;
  speak=async function(t){
