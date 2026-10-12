@@ -516,7 +516,7 @@ function ginfo(p){
  const d=(a,b)=>Math.hypot(p[a].x-p[b].x,p[a].y-p[b].y);
  const palm=Math.max(.04,d(0,9),d(5,17)),pinchRatio=d(4,8)/palm;
  const raised=[8,12,16,20].filter(i=>p[i].y<p[i-2].y).length;
- const pinch=pinchRatio<.42,fist=raised===0&&d(8,0)<palm*1.55&&d(12,0)<palm*1.65;
+ const pinch=pinchRatio<(window.SCOTTYGestureCalibration?.settings?.().pinchClose??.42),fist=raised===0&&d(8,0)<palm*1.55&&d(12,0)<palm*1.65;
  return{pinch,pinchRatio,fist,open:raised>=4,point:p[8].y<p[6].y&&raised<=2,label:fist?'FIST • GRAB':pinch?'PINCH • '+Math.round(pinchRatio*100)+'%':raised>=4?'OPEN PALM':raised===1?'POINT • TARGET':'TRACKING'}
 }
 function eyesSvgPointer(index,x,y){
@@ -531,7 +531,7 @@ function eyesHidePointer(index){const node=$('#eyesPointer'+index);if(node)node.
 let eyesPointerFrames=0;
 function eyesCursorDiagnostic(message){const el=$('#eyesCursorDiagnostics');if(el)el.textContent=message}
 function cursorFromHand(p,index=0){
- const graph=$('#graph'),gr=graph.getBoundingClientRect(),main=$('.main').getBoundingClientRect(),b=gr.width>10&&gr.height>10?gr:main,tip=p[8],pt={x:tip.x,y:tip.y},x=b.left+(1-pt.x)*b.width,y=b.top+pt.y*b.height;
+ const graph=$('#graph'),gr=graph.getBoundingClientRect(),main=$('.main').getBoundingClientRect(),b=gr.width>10&&gr.height>10?gr:main,tip=p[8],pt={x:tip.x,y:tip.y},mapped=window.SCOTTYGestureCalibration?.map?.(pt,index)||pt,x=b.left+(1-mapped.x)*b.width,y=b.top+mapped.y*b.height;
  const c=index===0?$('#handCursor'):$('#handCursor2');
  c.style.left=x+'px';c.style.top=y+'px';c.classList.add('on');c.style.display='block';eyesSvgPointer(index,x,y);
  const surface=$('#eyesCursorSurface'+index);if(surface){surface.style.left=(x-main.left)+'px';surface.style.top=(y-main.top)+'px';surface.style.display='block'}
@@ -779,7 +779,7 @@ function eyesV2Release(i,commitDrop=false){
 }
 function eyesV2Reset(){
  eyesV2.hands.forEach((h,i)=>{eyesV2Release(i);h.wrist=null;h.blocked=false});
- eyesV2.nav=null;eyesV2.pan=null;window.SCOTTYSpatial?.handEndView();
+ eyesV2.nav=null;eyesV2.pan=null;window.SCOTTYGestureCalibration?.resetCursor?.();window.SCOTTYSpatial?.handEndView();
 }
 function eyesV2Hands(result){
  const c=$('#hc'),b=$('.cam'),w=b.clientWidth||300,hh=b.clientHeight||225;
@@ -803,7 +803,7 @@ function eyesV2Hands(result){
   if(!p)return null;
   const info=ginfo(p),h=hands[i];
   // Palm-normalized hysteresis prevents a relaxed hand from becoming a pinch.
-  info.pinch=info.pinchRatio<(h.down?.60:.42);h.down=info.pinch;
+  const cal=window.SCOTTYGestureCalibration?.settings?.();info.pinch=info.pinchRatio<(h.down?(cal?.pinchOpen??.60):(cal?.pinchClose??.42));h.down=info.pinch;window.SCOTTYGestureCalibration?.sample?.(p,info,i);
   return info;
  });
  for(let i=0;i<2;i++){
@@ -820,6 +820,7 @@ function eyesV2Hands(result){
   if(!p){eyesV2Release(i);h.wrist=null;h.blocked=false;eyesHidePointer(i);if(el){el.classList.remove('on');el.style.display='none'}continue}
   h.wrist={x:p[0].x,y:p[0].y};el?.classList.toggle('pinch',infos[i].pinch);
  }
+ if(window.SCOTTYGestureCalibration?.isCapturing?.()){hands.forEach((h,i)=>{eyesV2Release(i,false);h.blocked=true});eyesV2.nav=null;eyesV2.pan=null;$('#sh').textContent='CALIBRATION • '+raw.length+' HAND(S)';$('#gs').textContent='CALIBRATION • CANVAS GESTURES PAUSED';return}
  const dual=assigned.every(Boolean)&&infos.every(i=>i.pinch);
  const bothOpen=assigned.every(Boolean)&&infos.every(i=>i.open&&!i.pinch),navMode=dual?'view':bothOpen?'spread':null;
  if(navMode&&canvas){
@@ -904,7 +905,7 @@ body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infini
  function seed(s){let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
  function addNode(o,i,total){const h=seed(o.id||o.name||i),a=(i/Math.max(1,total))*Math.PI*2+(h%97)/97*.35,r=120+(h%190),y=((h>>>8)%260)-130,z=Math.sin(a)*r;nodes.push({...o,a,r,y,z,ox:0,oy:0,oz:0})}
  function synthesize(){
-   if(handGrabs.size||eyesV2.nav||eyesV2.pan)return;
+   if(grabbed||window.SCOTTYSpatialTools?.busy?.()||handGrabs.size||eyesV2.nav||eyesV2.pan)return;
    const A=(typeof agents!=='undefined'&&Array.isArray(agents))?agents:[];
    const R=(typeof resources!=='undefined'&&resources)?resources:{projects:[],folders:[],files:[],tasks:[]};
    const P=Array.isArray(R.projects)?R.projects:[],D=Array.isArray(R.folders)?R.folders:[],F=Array.isArray(R.files)?R.files:[],T=Array.isArray(R.tasks)?R.tasks:[];
@@ -923,7 +924,7 @@ body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infini
  }
  function groupKey(n){if(n.type==='project')return 'project:'+n.raw?.id;if(n.type==='agent'&&n.raw?.isChief)return 'dept:'+n.raw?.department;return null}
  function toggleGroup(n){const k=groupKey(n);if(!k)return;collapsedSet.has(k)?collapsedSet.delete(k):collapsedSet.add(k);document.querySelector('#cs').textContent=(collapsedSet.has(k)?'COLLAPSED • ':'EXPANDED • ')+n.name;saveViewSoon();synthesize()}
- function renderNodes(){stage.innerHTML='';for(const n of nodes){const b=document.createElement('button');b.type='button';b.className='snode';b.dataset.id=n.id;b.classList.toggle('selected',selectedSet.has(n.id));b.dataset.type=n.type;if(n.type==='agent'&&n.raw?.isChief)b.dataset.chief='1';b.innerHTML='<span class="glyph">'+({agent:(n.raw?.isChief?'C':'A'),project:'P',file:'F',folder:'▰',task:'T',memory:'M'}[n.type])+'</span><span class="nl">'+safe(n.name)+'</span>';b.addEventListener('click',e=>{e.stopPropagation();const now=Date.now(),k=groupKey(n);if(k&&!eyesMultiMode&&lastGroupNode===n.id&&now-lastGroupTap<650){lastGroupNode=null;lastGroupTap=0;toggleGroup(n);return}lastGroupNode=n.id;lastGroupTap=now;select(n,eyesMultiMode||e.shiftKey||e.metaKey||e.ctrlKey)});b.addEventListener('pointerdown',e=>{e.stopPropagation();grabbed=n;grabMoved=false;grabPoint={x:e.clientX,y:e.clientY};document.body.classList.add('spatial-node-grab');try{b.setPointerCapture(e.pointerId)}catch{}});b.addEventListener('pointermove',e=>{if(grabbed!==n||!grabPoint)return;const dx=e.clientX-grabPoint.x,dy=e.clientY-grabPoint.y;if(Math.hypot(dx,dy)>3)grabMoved=true;n.ox+=dx/Math.max(.55,zoom);n.oy+=dy/Math.max(.55,zoom);grabPoint={x:e.clientX,y:e.clientY};updateDropTarget(n,e.clientX,e.clientY)});b.addEventListener('pointercancel',()=>window.SCOTTYSpatial?.release?.(false));b.addEventListener('pointerup',()=>{if(grabbed===n)window.SCOTTYSpatial?.release?.()});stage.appendChild(b);n.el=b}paintSelection(false)}
+ function renderNodes(){stage.innerHTML='';for(const n of nodes){const b=document.createElement('button');b.type='button';b.className='snode';b.dataset.id=n.id;b.classList.toggle('selected',selectedSet.has(n.id));b.dataset.type=n.type;if(n.type==='agent'&&n.raw?.isChief)b.dataset.chief='1';b.innerHTML='<span class="glyph">'+({agent:(n.raw?.isChief?'C':'A'),project:'P',file:'F',folder:'▰',task:'T',memory:'M'}[n.type])+'</span><span class="nl">'+safe(n.name)+'</span>';b.addEventListener('click',e=>{e.stopPropagation();const now=Date.now(),k=groupKey(n);if(k&&!eyesMultiMode&&lastGroupNode===n.id&&now-lastGroupTap<650){lastGroupNode=null;lastGroupTap=0;toggleGroup(n);return}lastGroupNode=n.id;lastGroupTap=now;select(n,eyesMultiMode||e.shiftKey||e.metaKey||e.ctrlKey)});b.addEventListener('pointerdown',e=>{e.stopPropagation();grabbed=n;grabMoved=false;grabPoint={x:e.clientX,y:e.clientY};window.SCOTTYSpatialTools?.beginGroup?.(n,e.clientX,e.clientY);document.body.classList.add('spatial-node-grab');try{b.setPointerCapture(e.pointerId)}catch{}});b.addEventListener('pointermove',e=>{if(grabbed!==n||!grabPoint)return;if(window.SCOTTYSpatialTools?.moveGroup?.(n,e.clientX,e.clientY))return;const dx=e.clientX-grabPoint.x,dy=e.clientY-grabPoint.y;if(Math.hypot(dx,dy)>3)grabMoved=true;n.ox+=dx/Math.max(.55,zoom);n.oy+=dy/Math.max(.55,zoom);grabPoint={x:e.clientX,y:e.clientY};updateDropTarget(n,e.clientX,e.clientY)});b.addEventListener('pointercancel',()=>window.SCOTTYSpatial?.release?.(false));b.addEventListener('pointerup',()=>{if(grabbed===n)window.SCOTTYSpatial?.release?.()});stage.appendChild(b);n.el=b}paintSelection(false)}
  function nodeFolders(n){if(n.type==='agent')return[{name:'Memory',desc:'Shared + private context'},{name:'Tasks',desc:'Current and queued work'},{name:'Files',desc:'Agent working files'},{name:'Projects',desc:'Linked projects'},{name:'Reports',desc:'Results and receipts'}];if(n.type==='project')return[{name:'Files',desc:'Project documents'},{name:'Agents',desc:'Assigned agents/chiefs'},{name:'Memory',desc:'Project shared context'},{name:'Tasks',desc:'Project work queue'},{name:'Exports',desc:'Finished outputs'}];if(n.type==='file')return[{name:'Versions',desc:'File history'},{name:'Related',desc:'Linked files'},{name:'Memory',desc:'Context for this file'},{name:'Attachments',desc:'Attached assets'}];if(n.type==='folder')return[{name:'Contents',desc:'Files and subfolders'},{name:'Memory',desc:'Folder context'},{name:'Related',desc:'Linked nodes'}];if(n.type==='task')return[{name:'Agent',desc:'Assigned specialist'},{name:'Project',desc:'Task workspace'},{name:'Memory',desc:'Shared task context'},{name:'Related',desc:'Linked nodes'}];return[{name:'Linked Agents',desc:'Agents sharing this memory'},{name:'Projects',desc:'Projects using this context'},{name:'History',desc:'Recent memory activity'}]}
  function openFolder(n,i){const f=nodeFolders(n)[i],v=nd.querySelector('#folderview');if(!f||!v)return;let body='';if(f.name==='Agents'||f.name==='Linked Agents')body=nodes.filter(x=>x.type==='agent'&&(n.type!=='project'||x.raw.department===n.raw.department)).slice(0,40).map(x=>safe(x.name)).join(' • ')||'No linked agents';else if(f.name==='Memory')body='Connected to S.C.O.T.T.Y. Unified Shared Memory. Changes and useful context can be shared across chiefs and agents.';else if(f.name==='Files'||f.name==='Contents')body=allNodes.filter(x=>(x.type==='file'||x.type==='folder')&&(n.type==='folder'?(x.raw?.folderId===n.raw?.id||x.raw?.parentFolderId===n.raw?.id):n.type==='project'?x.raw?.projectId===n.raw?.id:true)).slice(0,24).map(x=>safe(x.name)).join(' • ')||'No indexed files yet';else if(f.name==='Projects')body=nodes.filter(x=>x.type==='project').map(x=>safe(x.name)).join(' • ');else body='This folder is ready for '+safe(n.name)+' and will show its '+safe(f.name).toLowerCase()+' here.';v.style.display='block';v.innerHTML='<h4>▰ '+safe(f.name)+'</h4>'+body}
  function paintSelection(announce=true){
@@ -1004,9 +1005,10 @@ body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infini
   }).filter(x=>terms.every(t=>x.text.includes(t))).sort((a,b)=>a.score-b.score||String(a.node.name).localeCompare(String(b.node.name))||a.node.id.localeCompare(b.node.id)).map(x=>x.node);
  }
  async function saveNodeLayout(source){
-   if(!source?.id)return;
-   try{await api('/api/hud/resources/layout',{method:'POST',body:JSON.stringify({nodeId:source.id,ox:source.ox||0,oy:source.oy||0,oz:source.oz||0})})}catch(e){console.warn('save node position',e)}
+  if(!source?.id)return;const value={ox:source.ox||0,oy:source.oy||0,oz:source.oz||0};const previous=typeof resources!=='undefined'?resources.layout?.[source.id]:null;if(typeof resources!=='undefined'){resources.layout=resources.layout||{};resources.layout[source.id]=value}
+  try{const r=await api('/api/hud/resources/layout',{method:'POST',body:JSON.stringify({nodeId:source.id,...value})});if(r.nodes?.[0]){const saved=r.nodes[0];Object.assign(source,{ox:saved.ox,oy:saved.oy,oz:saved.oz});if(typeof resources!=='undefined')resources.layout[source.id]={ox:saved.ox,oy:saved.oy,oz:saved.oz}}window.SCOTTYSpatialTools?.refresh?.()}catch(e){if(typeof resources!=='undefined'){if(previous)resources.layout[source.id]=previous;else delete resources.layout[source.id]}document.querySelector('#cs').textContent='POSITION NOT SAVED • '+e.message;console.warn('save node position',e)}
  }
+
  const dropHover=new Map();
  function acceptsDrop(source,target){return source!==target&&((source.type==='task'&&(target.type==='agent'||target.type==='project'))||(source.type==='file'&&target.type==='folder')||(source.type==='folder'&&target.type==='project'))}
  function paintDropTargets(){nodes.forEach(n=>n.el.classList.toggle('drop-target',[...dropHover.values()].some(h=>h.target.id===n.id)))}
@@ -1033,16 +1035,16 @@ body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infini
  function handGrab(index,x,y){
   const n=nearestSpatial(x,y);if(!n||[...handGrabs.values()].some(g=>g.node===n))return null;
   auto=false;select(n,eyesMultiMode||handGrabs.size>0,false);
-  handGrabs.set(index,{node:n,x,y,moved:false});return n.id;
+  handGrabs.set(index,{node:n,x,y,moved:false});window.SCOTTYSpatialTools?.beginGroup?.(n,x,y,index);return n.id;
  }
  function handMove(index,x,y){
-  const g=handGrabs.get(index);if(!g)return;
+  const g=handGrabs.get(index);if(!g)return;if(window.SCOTTYSpatialTools?.moveGroup?.(g.node,x,y,index))return;
   const dx=x-g.x,dy=y-g.y;
   if(Math.hypot(dx,dy)>2)g.moved=true;
   const sc=project(g.node,sb.clientWidth,sb.clientHeight).sc;
   g.node.ox+=dx/sc;g.node.oy+=dy/(sc*Math.max(.5,Math.cos(tilt)));g.x=x;g.y=y;updateDropTarget(g.node,x,y);
  }
- function handRelease(index,commitDrop=true){const g=handGrabs.get(index);handGrabs.delete(index);if(g?.moved){saveNodeLayout(g.node);maybeRelate(g.node,commitDrop)}else if(g){dropHover.delete(g.node.id);paintDropTargets()}}
+ function handRelease(index,commitDrop=true){const g=handGrabs.get(index);handGrabs.delete(index);if(g&&window.SCOTTYSpatialTools?.endGroup?.(g.node,index))return;if(g?.moved){saveNodeLayout(g.node);maybeRelate(g.node,commitDrop)}else if(g){dropHover.delete(g.node.id);paintDropTargets()}}
  function handView(){auto=false;return {zoom,orbit,panX,panY,spread}}
  function handTransform(v,ratio,angle,dx,dy){
   if(![ratio,angle,dx,dy].every(Number.isFinite))return;
@@ -1053,7 +1055,14 @@ body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infini
  function regroup(){handSpread(1);saveViewSoon();document.querySelector('#cs').textContent='NODES REGROUPED'}
  function handFitAll(){auto=false;zoom=.82;orbit=0;tilt=-.12;spread=1;panX=0;panY=0;saveViewSoon()}
  function handEndView(){saveViewSoon()}
- window.SCOTTYSpatial={handGrab,handMove,handRelease,handView,handTransform,handEndView,handFitAll,navigateNode,focusSelected,searchNodes,handSpread,spreadBy,regroup,setMulti,clearSelection,selectedAgentIds,selectionSummary,syncLegacySelection,callSelected,select,open:select,focus:focusNode,focusId,focusMention,toggleGroup,refresh(){if(!grabbed)synthesize()},release(commitDrop=true){const g=grabbed,m=grabMoved;grabbed=null;grabPoint=null;grabMoved=false;document.body.classList.remove('spatial-node-grab');if(g){if(m)saveNodeLayout(g);maybeRelate(g,commitDrop&&m)}},grabNearest(x,y){const best=nearestSpatial(x,y);if(best){selected=best;nodes.forEach(q=>q.el.classList.toggle('selected',q===best));grabbed=best;grabMoved=false;grabPoint={x,y};document.body.classList.add('spatial-node-grab');return best}return null},moveGrab(x,y){if(!grabbed||!grabPoint)return;const dx=x-grabPoint.x,dy=y-grabPoint.y;if(Math.hypot(dx,dy)>3)grabMoved=true;grabbed.ox+=dx/Math.max(.55,zoom);grabbed.oy+=dy/Math.max(.55,zoom);grabPoint={x,y};updateDropTarget(grabbed,x,y)},get grabbed(){return grabbed},nearest:nearestSpatial};
+ window.SCOTTYSpatial={handGrab,handMove,handRelease,handView,handTransform,handEndView,handFitAll,navigateNode,focusSelected,searchNodes,handSpread,spreadBy,regroup,setMulti,clearSelection,selectedAgentIds,selectionSummary,syncLegacySelection,callSelected,select,open:select,focus:focusNode,focusId,focusMention,toggleGroup,refresh(){if(!grabbed)synthesize()},release(commitDrop=true){const g=grabbed,m=grabMoved;const grouped=g&&window.SCOTTYSpatialTools?.endGroup?.(g);grabbed=null;grabPoint=null;grabMoved=false;document.body.classList.remove('spatial-node-grab');if(g&&!grouped){if(m)saveNodeLayout(g);maybeRelate(g,commitDrop&&m)}},grabNearest(x,y){const best=nearestSpatial(x,y);if(best){selected=best;nodes.forEach(q=>q.el.classList.toggle('selected',q===best));grabbed=best;grabMoved=false;grabPoint={x,y};document.body.classList.add('spatial-node-grab');return best}return null},moveGrab(x,y){if(!grabbed||!grabPoint)return;const dx=x-grabPoint.x,dy=y-grabPoint.y;if(Math.hypot(dx,dy)>3)grabMoved=true;grabbed.ox+=dx/Math.max(.55,zoom);grabbed.oy+=dy/Math.max(.55,zoom);grabPoint={x,y};updateDropTarget(grabbed,x,y)},get grabbed(){return grabbed},nearest:nearestSpatial,
+ snapshot(){return {view:{orbit,tilt,zoom,spread,panX,panY,collapsed:[...collapsedSet],focus:selected?.id||''},nodes:allNodes.map(n=>({id:n.id,ox:n.ox,oy:n.oy,oz:n.oz})),selection:[...selectedSet]}},
+ nodeList(){return allNodes.map(n=>({id:n.id,type:n.type,name:n.name,raw:n.raw}))},
+ screenNodes(){return nodes.map(n=>{const r=n.el.getBoundingClientRect();return {id:n.id,x:r.left+r.width/2,y:r.top+r.height/2}})},
+ setSelection(ids,add=false){if(!add)selectedSet.clear();for(const id of ids)if(nodes.some(n=>n.id===id))selectedSet.add(id);paintSelection()},
+ offsetGroup(ids,dx,dy,anchor){const n=nodes.find(n=>n.id===anchor),sc=n?project(n,sb.clientWidth,sb.clientHeight).sc:zoom;const groupNodes=nodes.filter(n=>ids.includes(n.id));if(!groupNodes.length)return;const mx=clamp(dx/sc,Math.max(...groupNodes.map(n=>-5000-n.ox)),Math.min(...groupNodes.map(n=>5000-n.ox))),my=clamp(dy/(sc*Math.max(.5,Math.cos(tilt))),Math.max(...groupNodes.map(n=>-5000-n.oy)),Math.min(...groupNodes.map(n=>5000-n.oy)));for(const node of groupNodes){node.ox+=mx;node.oy+=my}},
+ restore(data){eyesV2Reset();auto=false;clearTimeout(viewSaveTimer);const v=data.view;if(v){orbit=v.orbit;tilt=v.tilt;zoom=v.zoom;spread=v.spread;panX=v.panX;panY=v.panY;collapsedSet=new Set(v.collapsed||[])}for(const n of data.nodes||[]){if(typeof resources!=='undefined'){resources.layout=resources.layout||{};resources.layout[n.id]={ox:n.ox,oy:n.oy,oz:n.oz}}for(const existing of allNodes.filter(x=>x.id===n.id)){existing.ox=n.ox;existing.oy=n.oy;existing.oz=n.oz}}synthesize();if(v?.focus){const n=nodes.find(n=>n.id===v.focus);if(n)select(n,false,false)}saveViewSoon()}
+ };
  pinchSelect=function(x,y){const n=nearestSpatial(x,y);if(n){select(n);document.querySelector('#cs').textContent='OPENED • '+n.name;return}document.querySelector('#cs').textContent='PINCH • NO NODE'};
  processOne=function(p){const info=ginfo(p),pt=cursorFromHand(p),c=document.querySelector('#handCursor'),now=Date.now();c.classList.toggle('pinch',info.pinch);processSwipe(p,info);
    if(info.pinch&&!spatialPinch){const n=nearestSpatial(pt.x,pt.y);if(n){if(lastSpatialNode===n&&now-lastSpatialTap<700){select(n);window.SCOTTYSpatial.release();document.querySelector('#cs').textContent='DOUBLE PINCH • OPEN '+n.name}else{window.SCOTTYSpatial.grabNearest(pt.x,pt.y);document.querySelector('#cs').textContent='PINCH HOLD • DRAG '+n.name}lastSpatialTap=now;lastSpatialNode=n}else document.querySelector('#cs').textContent='PINCH • NO NODE'}

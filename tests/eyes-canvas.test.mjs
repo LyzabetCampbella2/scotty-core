@@ -11,7 +11,7 @@ function harness(){
  const canvas={handGrab(i,x,y){const n=nodes.find(n=>Math.hypot(n.x-x,n.y-y)<70);if(!n||[...grabs.values()].includes(n))return null;grabs.set(i,n);calls.push(['select',n.id]);return n.id},handMove(i,x,y){const n=grabs.get(i);if(n){n.x=x;n.y=y;calls.push(['move',n.id])}},handRelease(i){grabs.delete(i)},handView(){return {...view}},handTransform(v,r,a,x,y){view={...view,zoom:v.zoom*r,orbit:v.orbit+a,panX:v.panX+x,panY:v.panY+y}},handSpread(spread){view={...view,spread}},handEndView(){calls.push(['saveView'])}};
  const ctx=vm.createContext({$,window:{SCOTTYSpatial:canvas},ginfo:p=>({pinchRatio:p.ratio,open:p.open}),cursorFromHand:p=>({x:p[8].x*800,y:p[8].y*600}),eyesHidePointer(){},eyesCursorDiagnostic(){},angleDelta:(a,b)=>Math.atan2(Math.sin(a-b),Math.cos(a-b)),Math,Number});
  vm.runInContext(html.slice(html.indexOf('/* SCOTTY_EYES_CANVAS_V3'),html.indexOf('function drawHands(r)')),ctx);
- return{frame(ps){ctx.ps=ps;vm.runInContext('eyesV2Hands({multiHandLandmarks:ps})',ctx)},reset(){vm.runInContext('eyesV2Reset()',ctx)},nodes,grabs,calls,get view(){return view}};
+ return{calibrating(value){ctx.window.SCOTTYGestureCalibration={isCapturing:()=>value}},frame(ps){ctx.ps=ps;vm.runInContext('eyesV2Hands({multiHandLandmarks:ps})',ctx)},reset(){vm.runInContext('eyesV2Reset()',ctx)},nodes,grabs,calls,get view(){return view}};
 }
 function hand(x,y,ratio=.1,open=false){const p=Array.from({length:21},()=>({x:x/800,y:y/600}));p.ratio=ratio;p.open=open;return p}
 test('either hand selects and moves a visible node then releases',()=>{
@@ -43,3 +43,5 @@ test('two open palms spread and regroup without changing zoom or rotation',()=>{
 test('switching palm spacing to pinch zoom starts a fresh baseline',()=>{
  const h=harness();h.frame([hand(200,300,1,true),hand(600,300,1,true)]);h.frame([hand(100,300,1,true),hand(700,300,1,true)]);h.frame([hand(100,300),hand(700,300)]);assert.equal(h.view.zoom,1);assert.equal(h.view.spread,1.5);h.frame([hand(50,300),hand(750,300)]);assert(h.view.zoom>1);assert.equal(h.view.spread,1.5);
 });
+
+test('calibration collects poses without grabbing or transforming canvas and requires a release afterward',()=>{const h=harness();h.calibrating(true);h.frame([hand(200,200)]);h.frame([hand(200,200)]);assert.equal(h.grabs.size,0);h.frame([hand(100,300),hand(700,300)]);assert.equal(h.view.zoom,1);h.calibrating(false);h.frame([hand(200,200)]);assert.equal(h.grabs.size,0);h.frame([hand(200,200,1)]);h.frame([hand(200,200)]);h.frame([hand(200,200)]);assert.equal(h.grabs.size,1)});
