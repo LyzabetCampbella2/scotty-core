@@ -9,7 +9,7 @@ if(/^(?:show|open|read) (?:my |the )?revision notes$/i.test(text))return {type:'
 if((m=text.match(/^(?:select|highlight) (?:the |my )?(?:(all|two|three|\d+) )?(agents?|chiefs?|projects?|files?|folders?|tasks?|nodes?)\s*(.*)$/i)))return {type:'select',kind:m[2].toLowerCase().replace(/s$/,''),count:m[1]&&m[1]!=='all'?({two:2,three:3}[m[1]]||Number(m[1])):null,query:unquote(m[3].replace(/^(?:named|called)\s+/i,''))};
 if((m=text.match(/^select (.+)$/i)))return {type:'select',kind:'node',query:unquote(m[1])};
 if(/^(?:clear selection|deselect all)$/.test(n))return {type:'clear'};
-if((m=n.match(/^(?:zoom (in|out))(?: (\d+(?:\.\d+)?)\s*(?:percent|%))?$/)))return {type:'canvas',zoomFactor:Math.pow(1+Math.min(100,Number(m[2])||20)/100,m[1]==='in'?1:-1)};
+if((m=n.match(/^(?:zoom (in|out))(?: (\d+(?:\.\d+)?)\s*(?:percent|%))?$/)))return {type:'canvas',zoomFactor:m[1]==='in'?1+Math.min(100,Number(m[2])||20)/100:Math.max(.1,1-Math.min(100,Number(m[2])||20)/100)};
 if((m=n.match(/^(?:rotate|spin) (left|right)(?: (slowly|quickly))?(?: (\d+(?:\.\d+)?) degrees?)?(?: (?:and )?until (.+?) (?:is )?(?:centered|in view))?$/)))return {type:'canvas',degrees:(m[1]==='left'?-1:1)*Math.min(360,Number(m[3])||15),duration:m[2]==='slowly'?3000:m[2]==='quickly'?500:0,target:m[4]||null};
 if((m=n.match(/^pan (left|right|up|down)(?: (\d+) (?:pixels?))?$/)))return {type:'canvas',pan:m[1],pixels:Math.min(1000,Number(m[2])||100)};
 if((m=n.match(/^stop when (.+?) (?:is )?centered$/)))return {type:'canvas',ambient:false,target:m[1]};
