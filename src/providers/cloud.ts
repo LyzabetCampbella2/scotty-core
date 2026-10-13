@@ -1,3 +1,4 @@
+import {assertProviderBoundary} from '../control/boundaries.ts';
 import postgres from "postgres";
 import { getGoogleAccessToken,connectionStatus } from "../connections/cloud.ts";
 import {executeAttachment} from './artifacts.ts';
@@ -186,6 +187,7 @@ async function instagram(op:string,p:any){
 export async function executeProviderAction(input:any){
  await ensure();
  const provider=String(input?.provider||"").toLowerCase(),operation=String(input?.operation||"").toLowerCase(),payload=input?.payload&&typeof input.payload==="object"?input.payload:{},id=crypto.randomUUID(),missionId=input?.missionId||null,stepId=input?.stepId||null;
+ try{await assertProviderBoundary(provider,operation)}catch(e:any){return {ok:false,provider,operation,status:'error',error:e.message}}
  const key=provider+':'+operation+':'+String(input.requestId||payload.requestId||(missionId&&stepId?missionId+':'+stepId:id));
  const claimed=await db()`insert into scotty_action_receipts(id,mission_id,step_id,provider,operation,status,request_summary,request_key) values(${id},${missionId},${stepId},${provider},${operation},'processing',${db().json(redact(payload))},${key}) on conflict do nothing returning id`;
  if(!claimed.length){const old=(await db()`select * from scotty_action_receipts where request_key=${key}`)[0];return {ok:old.status==='completed',id:old.id,provider,operation,status:old.status,result:old.response_summary,error:old.status==='completed'?null:old.error||'This action was already attempted. Verify its provider state before preparing another preview.'}}
