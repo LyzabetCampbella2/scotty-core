@@ -1,3 +1,4 @@
+import {languageCode} from '../control/workspace-voice-model.ts';
 // Cloud speech-to-text endpoint for S.C.O.T.T.Y.
 // Uses Groq Whisper so the HUD no longer depends on OpenAI API credits or a Windows PC.
 const MAX_AUDIO=8*1024*1024;
@@ -5,6 +6,7 @@ const MAX_AUDIO=8*1024*1024;
 export async function handleHudStt(req:Request):Promise<Response>{
  const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{"cache-control":"no-store"}});
  if(req.method!=="POST")return json({error:"POST audio/wav required"},405);
+ let language:string;try{language=languageCode(new URL(req.url).searchParams.get('language')||'en',true)}catch{return json({error:'Unsupported transcription language'},400)}
  const type=req.headers.get("content-type")||"";
  if(!type.includes("audio/wav")&&!type.includes("audio/x-wav"))return json({error:"Expected audio/wav"},415);
  const len=Number(req.headers.get("content-length")||0);
@@ -20,7 +22,7 @@ export async function handleHudStt(req:Request):Promise<Response>{
  form.append("file",new Blob([bytes],{type:"audio/wav"}),"speech.wav");
  form.append("model",process.env.SCOTTY_STT_MODEL_GROQ||"whisper-large-v3-turbo");
  form.append("response_format","json");
- form.append("language","en");
+ if(language!=='auto')form.append("language",language);
 
  try{
   const controller=new AbortController();

@@ -411,7 +411,7 @@ async function sendVoiceChunk(){
   const wav=pcmToWav(chunks,audioCtx?.sampleRate||44100);
   if(wav.size<2000)return;
   if(!speaking)$('#vs').textContent='LISTENING • ANALYZING';
-  const r=await fetch('/api/hud/stt',{method:'POST',credentials:'same-origin',headers:{'content-type':'audio/wav'},body:wav});
+  const r=await fetch('/api/hud/stt?language='+encodeURIComponent(window.SCOTTYVoiceWorkspace?.recognitionLanguage||'en'),{method:'POST',credentials:'same-origin',headers:{'content-type':'audio/wav'},body:wav});
   const d=await r.json().catch(()=>({}));
   if(!r.ok){$('#vs').textContent='MICROPHONE TRANSCRIPTION ERROR';$('#cs').textContent=d.error||'LOCAL VOICE ERROR';return}
   const text=String(d.text||'').trim(),conf=Number(d.confidence||0);

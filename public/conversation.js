@@ -25,12 +25,12 @@
  }
  function cancelDraft(){draft='';$('#conversationReviewBox').hidden=true}
  function showDraft(text){draft=text;caption('YOU • REVIEW BEFORE SENDING',text);$('#conversationDraft').value=text;$('#conversationReviewBox').hidden=false;status('REVIEW SPOKEN REQUEST');}
- window.SCOTTYConversation={get listenDuringSpeech(){return true},get preferences(){return {...prefs}},caption,interrupt,db,setResponseLength(length){prefs=core.preferences({...prefs,length});fillPrefs();try{localStorage.setItem(core.prefsKey,JSON.stringify(prefs))}catch{$('#conversationNotice').textContent='Response depth applies now, but could not be saved on this device.';}return prefs.length;}};
+ window.SCOTTYConversation={get listenDuringSpeech(){return true},get preferences(){return {...prefs}},caption,interrupt,db,importHandoff(thread){const t=db.add(thread.name+' • handoff');for(const turn of thread.turns)db.remember(turn.role,turn.text,t.id,{memorySpace:turn.memorySpace||'shared'});db.pending(null,t.id);render();return t;},setResponseLength(length){prefs=core.preferences({...prefs,length});fillPrefs();try{localStorage.setItem(core.prefsKey,JSON.stringify(prefs))}catch{$('#conversationNotice').textContent='Response depth applies now, but could not be saved on this device.';}return prefs.length;}};
  // Route all legacy memory history access through the active thread.
  if(window.SCOTTYMemory){SCOTTYMemory.remember=(role,text)=>{db.remember(role,text);render()};SCOTTYMemory.recall=()=>db.history()}
  const priorSpeak=speak;
  speak=async function(text){
-  const seq=++speechRun;spokenText=String(text||'');caption('SCOTTY',spokenText);await priorSpeak(text);
+  const seq=++speechRun;spokenText=String(text||'');caption('SCOTTY',spokenText);if(window.SCOTTYVoiceWorkspace?.usesAlternateSpeech())await window.SCOTTYVoiceWorkspace.speakAlternate(text);else await priorSpeak(text);
   if(seq===speechRun){convoUntil=Date.now()+90000;$('#conversationCaptionLabel').textContent='SCOTTY • LAST RESPONSE';spokenText=''}
  };
  const priorCommand=command,priorHeard=heard;
@@ -62,6 +62,7 @@
   remember('user',control.text);render();caption('YOU',control.text);
   try{
    if(recap&&!history.length){const reply='No earlier conversation is recorded in this thread and memory space yet.';remember('assistant',reply);await speak(reply);return}
+   const voiceWorkspace=await window.SCOTTYVoiceWorkspace?.handleCommand(text,{signal});if(seq!==run||signal.aborted)return;if(voiceWorkspace?.handled){db.pending(null,threadId);remember('assistant',voiceWorkspace.reply);status('RESPONSE READY');render();await speak(voiceWorkspace.reply);return;}
    const room=recap?null:await window.SCOTTYCommandRoom?.handleCommand(text,{signal});if(seq!==run||signal.aborted)return;
    if(room?.handled){db.pending(null,threadId);remember('assistant',room.reply);render();await speak(room.reply);return}
    const controlResult=recap?null:await window.SCOTTYVoiceControl?.handleCommand(text,{signal});if(seq!==run||signal.aborted)return;
@@ -84,7 +85,7 @@
    if(canvas){const query=text.match(/^(?:find|focus|show|open|go to) (?:my |the )?(agent|chief|project|task|file|folder|node) (?:named |called )?(.+)$/i);db.pending(query&&/^(?:I found|No .+ named)/.test(canvas)?{question:canvas,canvasPrefix:text.slice(0,text.length-query[2].length),options:window.SCOTTYSpatial?.searchNodes(query[2],query[1]==='node'?'all':query[1]).slice(0,6).map(n=>n.name)||[]}:null,threadId);remember('assistant',canvas);await speak(canvas);return}
    const structured=!recap&&!pending&&/^\s*(?:(?:open|show)\s+(?:live ops|missions?|mission control)|(?:start|create|launch)\s+(?:a\s+)?(?:(?:autonomous|auto)\s+)?mission(?:\s+(?:to|for))?|(?:ask|tell|bring in)\s+[^:]+:|(?:approve|approved|approve it|yes approve)|(?:remember|save to memory)\b|(?:show|list|open)\s+(?:my\s+)?(?:agent\s+)?(?:mission\s+history|previous\s+missions)\s*$|(?:continue|resume)\s+(?:agent\s+)?mission\s+[0-9a-f-]{36}\s*:|(?:assemble|coordinate|assign)\s+(?:the\s+)?(?:best\s+)?(?:agents|chiefs|team)\s+(?:to|for)\s+)/i.test(text);
    if(structured){await priorCommand(text);return}
-   const r=await bridge(text,{history,preferences:prefs,mode:recap?'recap':'conversation',resolutions,memorySpace:window.SCOTTYKnowledge?.space()||'shared'},signal);
+   const r=await bridge(text,{history,responseLanguage:window.SCOTTYVoiceWorkspace?.responseLanguage||'en',preferences:prefs,mode:recap?'recap':'conversation',resolutions,memorySpace:window.SCOTTYKnowledge?.space()||'shared'},signal);
    if(seq!==run||signal.aborted)return;
    db.pending(r.clarification?{...r.clarification,resolutions}:null,threadId);remember('assistant',r.reply||'No response returned.');
    if(r.focusNode){await loadResources();if(seq!==run)return;window.SCOTTYSpatial?.refresh();window.SCOTTYSpatial?.focusId(r.focusNode)}
