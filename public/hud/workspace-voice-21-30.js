@@ -1,0 +1,38 @@
+/* S.C.O.T.T.Y. conversational workspace features 21–30; no external actions without existing approvals. */
+(function(){
+const KEY='scotty_voice_workspace_21_30';
+const read=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch{return {}}};
+const state=Object.assign({aliases:{},lastItem:'',lastProject:'',checkpoint:null,goal:'',questions:[],pending:null,history:[]},read());
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(state))}catch{}};
+const say=(message)=>{const panel=document.getElementById('scottyVoiceWorkspaceStatus');if(panel)panel.textContent=message;window.dispatchEvent(new CustomEvent('scotty:workspace-response',{detail:{text:message}}));return true};
+const norm=s=>String(s||'').trim().toLowerCase().replace(/\\s+/g,' ');
+const clean=s=>String(s||'').trim().slice(0,240);
+const buttons=()=>[...document.querySelectorAll('button')].filter(b=>!b.disabled&&b.offsetParent!==null&&!b.closest('#gate')&&!b.closest('#confirm')&&!b.closest('#scottyPrivateCalls'));
+const findButton=phrase=>buttons().find(b=>norm(b.textContent)===norm(phrase))||buttons().find(b=>norm(b.textContent).includes(norm(phrase)));
+const focus=()=>{const el=document.activeElement;const selection=document.querySelector('[aria-selected="true"],.selected,[data-selected="true"]');return clean(selection?.getAttribute('aria-label')||selection?.getAttribute('data-node-id')||selection?.textContent||el?.getAttribute('aria-label')||state.lastItem)};
+const queue=(description,fn)=>{state.pending={description:clean(description),createdAt:Date.now()};save();window.SCOTTYWorkspaceVoice.pendingFn=fn||null;return say('Prepared: '+description+'. Say read the request back to me, confirm workspace action, or cancel workspace action.')};
+const execute=(input)=>{
+ const raw=clean(input).replace(/^(?:hey\\s+)?scotty[,\\s]*/i,'').replace(/^please\\s+/i,'');const q=norm(raw);if(!q)return false;
+ if(/^(what can i do here|what commands can i use|help with this screen|show voice commands)$/.test(q)){const names=buttons().map(b=>clean(b.textContent)).filter(Boolean).slice(0,12);return say('On this screen, available actions include: '+(names.join(', ')||'workspace navigation')+'. You can also say writing time, mark where we left off, read the request back to me, or stay with me while I outline this chapter.')}
+ let m=raw.match(/^when i say ['“"]?(.+?)['”"]?,?\\s*(?:then\\s+)?(.+)$/i);if(m){const phrase=norm(m[1]),target=clean(m[2]);if(!phrase||phrase.length>80)return say('Choose a shorter custom phrase.');state.aliases[phrase]=target;save();return say('Saved custom phrase '+phrase+' for '+target+'.')}
+ if(state.aliases[q])return execute(state.aliases[q]);
+ if(/^(open that one|select that one|open it)$/.test(q)){const item=focus();if(!item)return say('Select a node or item first, then ask me to open it.');return queue('Open selected item '+item,()=>{const b=findButton(item);if(b)b.click();else say('The selected item does not expose a safe open action yet.')})}
+ m=raw.match(/^(?:move (?:it|that|this)(?: to| into)|move selected(?: item)? to)\\s+(.+)$/i);if(m){const item=focus();if(!item)return say('Select the item you want to move first.');state.lastProject=clean(m[1]);save();return queue('Move '+item+' to '+state.lastProject+' (preview only; no file move connector)',()=>say('Move reviewed. A file or node move connector is still required.'))}
+ m=raw.match(/^actually,?\\s*(?:use|open|choose)\\s+(.+)$/i);if(m){state.lastProject=clean(m[1]);if(state.pending)state.pending.description=state.pending.description.replace(/(?:to|in|into) [^,]+$/i,'to '+state.lastProject);save();return say('Correction noted: '+state.lastProject+'. '+(state.pending?'Pending request is now: '+state.pending.description:'No action has been executed.'))}
+ if(/^(read (?:the|my) request back to me|read it back|what are you about to do)$/.test(q))return say(state.pending?'Proposed action: '+state.pending.description+'. Nothing has run yet.':'There is no pending workspace action.');
+ if(/^(cancel workspace action|discard that request|cancel that action)$/.test(q)){state.pending=null;window.SCOTTYWorkspaceVoice.pendingFn=null;save();return say('Pending workspace action cancelled.')}
+ if(/^(confirm workspace action|approve workspace action)$/.test(q)){if(!state.pending)return say('There is no pending workspace action.');const description=state.pending.description,fn=window.SCOTTYWorkspaceVoice.pendingFn;state.pending=null;window.SCOTTYWorkspaceVoice.pendingFn=null;save();if(fn)fn();return say('Confirmed workspace request: '+description+'. Only supported local actions were attempted.')}
+ if(/^(undo (?:the )?(?:last )?(?:node move|canvas change|layout change)|undo that)$/.test(q)){const b=findButton('undo canvas change')||findButton('undo node move');if(!b)return say('No supported node undo control is available on this screen.');b.click();return say('Requested undo through the existing canvas undo control.')}
+ if(/^(mark where we left off|save my place|checkpoint this session)$/.test(q)){state.checkpoint={item:focus(),project:state.lastProject,goal:state.goal,time:new Date().toISOString()};save();return say('Checkpoint saved on this device. Current item: '+(state.checkpoint.item||'none selected')+'. Goal: '+(state.goal||'not specified')+'.')}
+ if(/^(where did we leave off|resume my checkpoint|resume writing session)$/.test(q)){const cp=state.checkpoint;return say(cp?'Last checkpoint: '+(cp.item||'no item')+'. Goal: '+(cp.goal||'not specified')+'. Saved '+new Date(cp.time).toLocaleString()+'.':'No checkpoint has been saved yet.')}
+ m=raw.match(/^(?:stay with me while i|help me)\\s+(?:outline|write|revise)\\s+(.+)$/i);if(m){state.goal='Work on '+clean(m[1]);save();return say('Writing session goal saved: '+state.goal+'. Tell me an unanswered question or say mark where we left off.')}
+ m=raw.match(/^(?:remember (?:this )?question|unanswered question)[:\\s]+(.+)$/i);if(m){state.questions.push(clean(m[1]));state.questions=state.questions.slice(-30);save();return say('Saved unanswered question: '+clean(m[1]));}
+ if(/^(what questions are left|list unanswered questions)$/.test(q))return say(state.questions.length?'Unanswered questions: '+state.questions.join('; '):'No unanswered questions saved yet.');
+ m=raw.match(/^find (?:the )?paragraph about (.+?)(?: and show a rewrite)?$/i);if(m)return say('Document editing is in review mode. Search requested for '+clean(m[1])+'. Open the document and select the passage first; I will not overwrite text without a reviewable editor connection.');
+ if(/^(?:find my chapter,? open it,? and prepare revision notes|prepare revision notes for my chapter)$/.test(q))return queue('Find the current chapter, open it, then prepare revision notes for review (no document edits)',()=>say('Revision-note workflow approved for review; document search and editing need a connected document workspace.'));
+ return false;
+};
+window.SCOTTYWorkspaceVoice={execute,pendingFn:null,state};
+const install=()=>{const left=document.querySelector('aside.left');if(!left||document.getElementById('scottyVoiceWorkspaceStatus'))return;const panel=document.createElement('div');panel.id='scottyVoiceWorkspaceStatus';panel.setAttribute('role','status');panel.setAttribute('aria-live','polite');panel.style.cssText='font-size:10px;line-height:1.5;color:#8da8ba;padding:9px;border:1px solid rgba(94,234,255,.2);border-radius:7px;white-space:pre-wrap';panel.textContent='Voice workspace ready · Ask “Scotty, what can I do here?”';left.append(panel)};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
+})();
