@@ -31,13 +31,15 @@ Account authorization, credentials, bot installation and companion/device pairin
 | 25 | Trello | Allowed-board read/card/comment adapter built |
 | 26 | Stripe | Restricted-key read-only invoice/payment/balance adapter built |
 | 27 | Square | Scoped read-only order/invoice/payment adapter built |
-| 28 | Smart lights, plugs & thermostats | Planned |
-| 29 | Raspberry Pi & ESP32 devices | Planned |
-| 30 | NFC tags | Planned |
-| 31 | Stream Deck or programmable buttons | Planned |
-| 32 | Printers & scanners | Planned |
-| 33 | Windows or Mac companion app | Planned |
-| 34 | Blender desktop companion | Planned |
-| 35 | Manuscript-forensics app | Planned |
+| 28 | Smart lights, plugs & thermostats | Scoped Home Assistant hub wrapper built |
+| 29 | Raspberry Pi & ESP32 devices | Local output/sensor bridge and ESP32 LED endpoint built |
+| 30 | NFC tags | Registered project/recipe navigation built |
+| 31 | Stream Deck or programmable buttons | Registered project/recipe navigation built |
+| 32 | Printers & scanners | CUPS PDF printing and selected scan import built |
+| 33 | Windows or Mac companion app | Selected-file imports and approved app launch helper built |
+| 34 | Blender desktop companion | Checksum-bound local frame-render helper built |
+| 35 | Manuscript-forensics app | Scoped selected-project export/import bridge built |
 
 The current local study companion is `scripts/scotty-study-companion.py`. It requires a restricted device pairing token and explicit local folder/deck allowlists. It does not install AnkiConnect, expose the vault publicly, replay expired jobs, or execute arbitrary shell commands.
+
+Connections 28–35 use registered navigation, the existing Home Assistant hub, or `scripts/scotty-local-companion.py`. Printing supports CUPS on Mac/Linux; scanner capture stays in the existing scanner app. Blender requires packed resources and scenes up to 64 MB. Manuscript support is selected JSON project exports, not direct live account access. Hardware drivers beyond the supplied one-output ESP32 LED endpoint require a compatible local endpoint. Setup examples are in `docs/local-companion-setup.md`.
