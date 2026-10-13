@@ -10,6 +10,18 @@ function init(){
  [...main.querySelectorAll('.toolbar button')].forEach(move);
  ['eyesMultiSelect','eyesClearSelection','eyesUndoMove','eyesResetLayout'].forEach(id=>move(document.getElementById(id)));
  move(right.querySelector('[data-scotty-recovery-test]'));
+ // Also move toolbar controls injected after initial load by other HUD modules.
+ const relocate=()=>{
+  const toolbar=main.querySelector('.toolbar');
+  if(toolbar)[...toolbar.querySelectorAll('button')].forEach(move);
+  const actionLabels=/^(?:call selected|spread out|regroup|box select|group move|clear selection|undo canvas change|reset node layout|multi.select)/i;
+  [...right.querySelectorAll('button')].filter(b=>actionLabels.test(b.textContent.trim())).forEach(move);
+ };
+ relocate();
+ let pending=false;
+ const watcher=new MutationObserver(()=>{if(pending)return;pending=true;requestAnimationFrame(()=>{pending=false;relocate()})});
+ watcher.observe(main,{childList:true,subtree:true});
+ watcher.observe(right,{childList:true,subtree:true});
  const privacy=left.querySelector('.privacy');left.insertBefore(holder,privacy||null);
  const style=document.createElement('style');style.textContent=`
  aside.left{overflow-y:auto!important;overscroll-behavior:contain}
