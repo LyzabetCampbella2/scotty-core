@@ -66,14 +66,14 @@ async function vaultKey(){
  const raw=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(secret));
  return crypto.subtle.importKey("raw",raw,"AES-GCM",false,["encrypt","decrypt"]);
 }
-async function seal(value:any){
+export async function seal(value:any){
  const iv=crypto.getRandomValues(new Uint8Array(12));
  const key=await vaultKey();
  const plain=new TextEncoder().encode(JSON.stringify(value));
  const encrypted=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,plain);
  return "v1."+bytesToB64(iv)+"."+bytesToB64(new Uint8Array(encrypted));
 }
-async function unseal(value:string){
+export async function unseal(value:string){
  const parts=String(value||"").split(".");
  if(parts.length!==3||parts[0]!=="v1")throw new Error("Unsupported connection token format");
  const key=await vaultKey(),iv=b64ToBytes(parts[1]),data=b64ToBytes(parts[2]);

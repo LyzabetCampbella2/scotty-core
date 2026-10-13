@@ -278,8 +278,8 @@ async function executeExternalStep(mission:any,step:any){
  await db()`update scotty_missions set status='running',updated_at=now() where id=${mission.id}`;
  await addActivity("SCOTTY","EXTERNAL ACTION START",`${provider} • ${operation}`,{missionId:mission.id,stepId:step.id,provider,operation});
  const receipt=await executeProviderAction({provider,operation,payload:step.actionPayload||{},missionId:mission.id,stepId:step.id});
- if(!receipt.ok){
-  const msg=String(receipt.error||"Provider action failed").slice(0,3000);
+ if(!receipt.ok||String(receipt.status||'').startsWith('queued_device')||receipt.status==='device_reported'){
+  const msg=String(String(receipt.status||'').startsWith('queued_device')?'Approved command queued for the paired device. Execution remains unconfirmed; review its device report.':receipt.status==='device_reported'?'Paired device reported an outcome. Review the device report before treating this mission step as complete.':receipt.error||"Provider action failed").slice(0,3000);
   await db()`update scotty_mission_steps set status='error',result=${msg},updated_at=now() where id=${step.id}`;
   await db()`update scotty_missions set status='needs_attention',updated_at=now() where id=${mission.id}`;
   await addActivity("SCOTTY","EXTERNAL ACTION ERROR",msg.slice(0,260),{missionId:mission.id,stepId:step.id,provider,operation,receiptId:receipt.id});

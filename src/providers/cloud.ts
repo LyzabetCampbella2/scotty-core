@@ -1,3 +1,6 @@
+import {addonStatus} from '../connectors/store.ts';
+import {executeAddon} from '../connectors/adapters.ts';
+import {expireDeviceJobs} from '../connectors/devices.ts';
 import {assertProviderBoundary} from '../control/boundaries.ts';
 import postgres from "postgres";
 import { getGoogleAccessToken,connectionStatus } from "../connections/cloud.ts";
@@ -47,6 +50,7 @@ async function providerInfo(){
  let googleConnection:any=null;
  try{googleConnection=(await connectionStatus()).connections.google}catch{}
  return [
+  ...await addonStatus(),
   {id:"telegram",label:"Telegram",configured:Boolean(env.TELEGRAM_BOT_TOKEN),operations:["send_message","send_document"]},
   {id:"google",label:"Google",configured:Boolean(googleConnection?.configured||env.GOOGLE_ACCESS_TOKEN),accountEmail:googleConnection?.accountEmail||null,operations:["gmail_send","gmail_send_attachment","calendar_create","calendar_update","drive_create_text","drive_upload"],connectionMode:googleConnection?.configured?"oauth":"legacy_or_unconnected"},
   {id:"github",label:"GitHub",configured:Boolean(env.SCOTTY_GITHUB_TOKEN||env.GITHUB_TOKEN),operations:["create_issue","comment_issue"]},
@@ -194,6 +198,7 @@ export async function executeProviderAction(input:any){
  let result:any;
  try{
   if(['gmail_send_attachment','drive_upload','upload_file','send_document'].includes(operation))result=await executeAttachment(provider,operation,payload,getGoogleAccessToken);
+  else if(['shortcuts','homeassistant','notion','todoist','spotify','wix'].includes(provider))result=await executeAddon(provider,operation,payload,id);
   else if(provider==="telegram")result=await telegram(operation,payload);
   else if(provider==="github")result=await github(operation,payload);
   else if(provider==="google")result=await google(operation,payload);
@@ -205,12 +210,13 @@ export async function executeProviderAction(input:any){
   else throw new Error("Unknown provider: "+provider);
   if(!result?.id&&!result?.number&&!result?.messageId&&!result?.ts)throw Error('Provider did not return a confirmation identifier.');
  }catch(e:any){const error=String(e?.message||'Provider action failed').slice(0,3000),status=e?.definitive===true?'error':'unknown';await db()`update scotty_action_receipts set status=${status},error=${error} where id=${id}`;return {ok:false,id,provider,operation,status,error}}
+ if(result.pendingDevice){try{const saved=await db()`update scotty_action_receipts set status='queued_device',response_summary=${db().json(redact(result))},error=null where id=${id} and status='processing' returning id`;if(!saved.length){const current=(await db()`select * from scotty_action_receipts where id=${id}`)[0];return {ok:false,id,provider,operation,status:current.status,result:current.response_summary,error:current.error};}return {ok:true,id,provider,operation,result,status:'queued_device'};}catch{return {ok:true,id,provider,operation,result,status:'queued_device_receipt_unsaved',warning:'Command queued; receipt update failed. Do not repeat it.'};}}
  try{await db()`update scotty_action_receipts set status='completed',response_summary=${db().json(redact(result))},error=null where id=${id}`}
  catch{return {ok:true,id,provider,operation,result,status:'provider_confirmed_receipt_unsaved',warning:'Provider confirmed the action, but its durable receipt could not be saved. Do not repeat it.'}}
  return {ok:true,id,provider,operation,result,status:'completed'};
 }
 export async function providerStatus(){
- await ensure();
+ await ensure();await expireDeviceJobs();
  await db()`update scotty_action_receipts set status='unknown',error='The provider outcome was not saved. Verify before attempting another action.' where status='processing' and created_at<now()-interval '3 minutes'`;
  const providers=await providerInfo();
  const receipts=await db()`select id,mission_id as "missionId",step_id as "stepId",provider,operation,status,response_summary as "responseSummary",error,created_at as "createdAt" from scotty_action_receipts order by created_at desc limit 30`;
