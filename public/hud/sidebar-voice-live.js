@@ -27,8 +27,8 @@ function init(){
  const calls=document.createElement('section');calls.id='scottyPrivateCalls';calls.innerHTML='<div class="title">Private Calls</div><button type="button" id="scottyCallMe">CALL S.C.O.T.T.Y.</button><button type="button" id="scottyEndCall" disabled>END CALL</button><input id="scottyContactName" aria-label="Contact name" placeholder="Contact name" autocomplete="off"><input id="scottyContactPhone" aria-label="Phone number" placeholder="Phone number to save" type="tel"><button type="button" id="scottySaveContact">SAVE CONTACT</button><button type="button" id="scottyCallContact">CALL BY NAME</button><div id="scottyContactConfirm" hidden><div id="scottyContactPreview"></div><button type="button" id="scottyApproveContact">CONFIRM REQUEST</button><button type="button" id="scottyCancelContact">CANCEL</button></div><div id="scottyCallStatus" role="status" aria-live="polite">Ready · Owner initiated only</div><div class="scotty-call-note">Telephone dialing is not connected. S.C.O.T.T.Y. cannot place calls without your approval.</div>';left.insertBefore(calls,holder);
  const start=calls.querySelector('#scottyCallMe'),end=calls.querySelector('#scottyEndCall'),status=calls.querySelector('#scottyCallStatus');
  const setCall=(active,msg)=>{start.disabled=active;end.disabled=!active;status.textContent=msg};
- start.addEventListener('click',()=>{const mic=document.getElementById('mic');if(!mic){setCall(false,'Voice microphone unavailable');return}if(!mic.classList.contains('listening'))mic.click();setCall(true,'In-app voice requested · use END CALL to stop')});
- end.addEventListener('click',()=>{const mic=document.getElementById('mic');if(mic&&mic.classList.contains('listening'))mic.click();setCall(false,'Call ended · Ready')});
+ start.addEventListener('click',()=>{if(window.SCOTTYCalls){window.SCOTTYCalls.start().catch(e=>status.textContent=e.message);return}const mic=document.getElementById('mic');if(!mic){setCall(false,'Voice microphone unavailable');return}if(!mic.classList.contains('listening'))mic.click();setCall(true,'In-app voice requested · use END CALL to stop')});
+ end.addEventListener('click',()=>{if(window.SCOTTYCalls){window.SCOTTYCalls.end();return}const mic=document.getElementById('mic');if(mic&&mic.classList.contains('listening'))mic.click();setCall(false,'Call ended · Ready')});
  const nameInput=calls.querySelector('#scottyContactName'),phoneInput=calls.querySelector('#scottyContactPhone'),confirmBox=calls.querySelector('#scottyContactConfirm'),preview=calls.querySelector('#scottyContactPreview');
  const key='scotty_owner_phone_contacts_v1';
  const speechHint=document.createElement('div');speechHint.className='scotty-call-note';speechHint.textContent='Voice: “Scotty, call Mom”, “save contact Mom at 555 123 4567”, “confirm call”, “cancel call”, “call Scotty”, or “end call”.';calls.append(speechHint);
@@ -58,6 +58,7 @@ function init(){
  'run a safe recovery test':'run safe recovery test','stop what you are doing':'stop','show my brain':'brain'};
  const targets=()=>[...document.querySelectorAll('button')].filter(b=>!b.closest('#confirm')&&!b.closest('#gate')&&!b.closest('#nodeDrawer')&&!b.closest('#eyesHandPalette')&&!b.disabled&&b.id!=='mic'&&b.id!=='send'&&b.id!=='eyes');
  const action=(raw)=>{
+  if(window.SCOTTYCalls?.execute(raw))return true;
   const utterance=String(raw||'').trim().replace(/^(?:(?:hey\s+)?scotty[,\s]+)?(?:please\s+)?/i,'').trim();
   if(/^(?:call scotty|start (?:private )?call|talk to scotty)$/i.test(utterance)){start.click();return true}
   if(/^(?:end (?:the )?call|hang up|stop (?:private )?call)$/i.test(utterance)){end.click();return true}
