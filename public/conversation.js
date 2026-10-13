@@ -25,7 +25,7 @@
  }
  function cancelDraft(){draft='';$('#conversationReviewBox').hidden=true}
  function showDraft(text){draft=text;caption('YOU • REVIEW BEFORE SENDING',text);$('#conversationDraft').value=text;$('#conversationReviewBox').hidden=false;status('REVIEW SPOKEN REQUEST');}
- window.SCOTTYConversation={get listenDuringSpeech(){return true},get preferences(){return {...prefs}},caption,interrupt,db,consumeCaptureOrigin(){const value=capturedDuringSpeech;capturedDuringSpeech=false;return value;},importHandoff(thread){const t=db.add(thread.name+' • handoff');for(const turn of thread.turns)db.remember(turn.role,turn.text,t.id,{memorySpace:turn.memorySpace||'shared'});db.pending(null,t.id);render();return t;},setResponseLength(length){prefs=core.preferences({...prefs,length});fillPrefs();try{localStorage.setItem(core.prefsKey,JSON.stringify(prefs))}catch{$('#conversationNotice').textContent='Response depth applies now, but could not be saved on this device.';}return prefs.length;}};
+ window.SCOTTYConversation={refresh:render,get listenDuringSpeech(){return true},get preferences(){return {...prefs}},caption,interrupt,db,consumeCaptureOrigin(){const value=capturedDuringSpeech;capturedDuringSpeech=false;return value;},importHandoff(thread){const t=db.add(thread.name+' • handoff');for(const turn of thread.turns)db.remember(turn.role,turn.text,t.id,{memorySpace:turn.memorySpace||'shared'});db.pending(null,t.id);render();return t;},setResponseLength(length){prefs=core.preferences({...prefs,length});fillPrefs();try{localStorage.setItem(core.prefsKey,JSON.stringify(prefs))}catch{$('#conversationNotice').textContent='Response depth applies now, but could not be saved on this device.';}return prefs.length;}};
  // Route all legacy memory history access through the active thread.
  if(window.SCOTTYMemory){SCOTTYMemory.remember=(role,text)=>{db.remember(role,text);render()};SCOTTYMemory.recall=()=>db.history()}
  const priorSpeak=speak;
@@ -92,7 +92,7 @@
    if(r.focusNode){await loadResources();if(seq!==run)return;window.SCOTTYSpatial?.refresh();window.SCOTTYSpatial?.focusId(r.focusNode)}
    window.SCOTTYKnowledge?.showSources(r.sources||[]);
    status(r.clarification?'CLARIFICATION NEEDED':'RESPONSE READY');render();await speak(r.reply||'No response returned.');
-  }catch(e){if(seq!==run||signal.aborted)return;caption('CONVERSATION ERROR',e.message);status('CONVERSATION ERROR')}
+  }catch(e){if(seq!==run||signal.aborted)return;caption('CONVERSATION ERROR',e.message);status('CONVERSATION ERROR');window.SCOTTYCallSession?.connectionError('Scotty server request failed. The last request was not replayed.')}
   finally{if(seq===run){busy=false;request=null;render()}}
  };
  heard=async function(raw,meta={}){
