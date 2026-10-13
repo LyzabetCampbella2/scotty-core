@@ -29,6 +29,7 @@ function init(){
  end.addEventListener('click',()=>{const mic=document.getElementById('mic');if(mic&&mic.classList.contains('listening'))mic.click();setCall(false,'Call ended · Ready')});
  const nameInput=calls.querySelector('#scottyContactName'),phoneInput=calls.querySelector('#scottyContactPhone'),confirmBox=calls.querySelector('#scottyContactConfirm'),preview=calls.querySelector('#scottyContactPreview');
  const key='scotty_owner_phone_contacts_v1';
+ const speechHint=document.createElement('div');speechHint.className='scotty-call-note';speechHint.textContent='Voice: “Scotty, call Mom”, “save contact Mom at 555 123 4567”, “confirm call”, “cancel call”, “call Scotty”, or “end call”.';calls.append(speechHint);
  const getContacts=()=>{try{return JSON.parse(localStorage.getItem(key)||'{}')}catch{return {}}};
  const cleanName=s=>String(s||'').trim().replace(/\\s+/g,' ').slice(0,80);
  const lookup=()=>{const name=cleanName(nameInput.value);return {name,number:getContacts()[name.toLowerCase()]}};
@@ -41,7 +42,7 @@ function init(){
  const privacy=left.querySelector('.privacy');left.insertBefore(holder,privacy||null);
  const style=document.createElement('style');style.textContent=`
  aside.left{overflow-y:auto!important;overscroll-behavior:contain}\n #scottyPrivateCalls{border-top:1px solid rgba(94,234,255,.2);padding:9px 0} #scottyPrivateCalls button{width:100%;background:rgba(94,234,255,.08);border:1px solid rgba(94,234,255,.3);border-radius:7px;color:#ddf8ff;padding:9px;margin:3px 0;font-size:10px} #scottyPrivateCalls button:disabled{opacity:.45} #scottyCallStatus,.scotty-call-note{font-size:9px;color:#8da8ba;line-height:1.4;margin:5px 0}
- #scottyPrivateCalls input{width:100%;box-sizing:border-box;background:#020a13;border:1px solid rgba(94,234,255,.25);border-radius:6px;color:white;padding:8px;margin:3px 0;font-size:11px} #scottyContactConfirm{border:1px solid rgba(94,234,255,.35);border-radius:7px;padding:7px;font-size:10px} #scottyContactConfirm[hidden]{display:none!important}\n #scottyActionSidebar{border-top:1px solid rgba(94,234,255,.2);padding:10px 0 14px}
+ #scottyPrivateCalls input,#scottyPrivateCalls button:not(#scottyEndCall){display:none!important} #scottyPrivateCalls #scottyContactConfirm button{display:none!important} #scottyPrivateCalls #scottyCallStatus{display:block!important} #scottyPrivateCalls input{width:100%;box-sizing:border-box;background:#020a13;border:1px solid rgba(94,234,255,.25);border-radius:6px;color:white;padding:8px;margin:3px 0;font-size:11px} #scottyContactConfirm{border:1px solid rgba(94,234,255,.35);border-radius:7px;padding:7px;font-size:10px} #scottyContactConfirm[hidden]{display:none!important}\n #scottyActionSidebar{border-top:1px solid rgba(94,234,255,.2);padding:10px 0 14px}
  #scottyActionSidebar>.title{margin-bottom:8px}
  #scottyActionSidebar .scotty-sidebar-action{display:block!important;position:static!important;width:100%!important;max-width:100%!important;min-height:32px!important;margin:4px 0!important;padding:7px 8px!important;white-space:normal!important;text-align:left!important;transform:none!important;font-size:10px!important;float:none!important}
  .main .toolbar{display:none!important}
@@ -54,7 +55,16 @@ function init(){
  'clear my selection':'clear selection','reset the layout':'reset node layout','call those agents':'call selected',
  'run a safe recovery test':'run safe recovery test','stop what you are doing':'stop','show my brain':'brain'};
  const targets=()=>[...document.querySelectorAll('button')].filter(b=>!b.closest('#confirm')&&!b.closest('#gate')&&!b.closest('#nodeDrawer')&&!b.closest('#eyesHandPalette')&&!b.disabled&&b.id!=='mic'&&b.id!=='send'&&b.id!=='eyes');
- const action=(raw)=>{\n  const contactMatch=String(raw||'').trim().match(/^(?:(?:hey\\s+)?scotty[,\\s]+)?(?:please\\s+)?call\\s+(?:contact\\s+)?(.+?)\\s*$/i);\n  if(contactMatch&&window.SCOTTYContactCalls?.request(contactMatch[1]))return true;
+ const action=(raw)=>{
+  const utterance=String(raw||'').trim().replace(/^(?:(?:hey\\s+)?scotty[,\\s]+)?(?:please\\s+)?/i,'').trim();
+  if(/^(?:call scotty|start (?:private )?call|talk to scotty)$/i.test(utterance)){start.click();return true}
+  if(/^(?:end (?:the )?call|hang up|stop (?:private )?call)$/i.test(utterance)){end.click();return true}
+  const save=utterance.match(/^(?:save|add|remember)\\s+(?:contact\\s+)?(.+?)\\s+(?:at|number|phone number|as)\\s+(\\+?[0-9(). -]{7,24})$/i);
+  if(save){nameInput.value=save[1].trim();phoneInput.value=save[2].trim();calls.querySelector('#scottySaveContact').click();return true}
+  if(/^(?:confirm|approve|yes call|confirm call)$/i.test(utterance)&&!confirmBox.hidden){calls.querySelector('#scottyApproveContact').click();return true}
+  if(/^(?:cancel|cancel call|don't call|do not call)$/i.test(utterance)&&!confirmBox.hidden){calls.querySelector('#scottyCancelContact').click();return true}
+  const contactMatch=String(raw||'').trim().match(/^(?:(?:hey\\s+)?scotty[,\\s]+)?(?:please\\s+)?call\\s+(?:contact\\s+)?(.+?)\\s*$/i);
+  if(contactMatch&&window.SCOTTYContactCalls?.request(contactMatch[1]))return true;
   let q=normalize(raw).replace(/^(hey )?(scotty|scottie|scoty) /,'').replace(/^(please |can you |could you |would you )/,'');
   q=aliases[q]||q;
   q=q.replace(/^(please |open |show |display |go to |take me to |switch to |activate |enable |turn on |select |press |click |run |start )/,'');
