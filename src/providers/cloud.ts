@@ -198,7 +198,7 @@ export async function executeProviderAction(input:any){
  let result:any;
  try{
   if(['gmail_send_attachment','drive_upload','upload_file','send_document'].includes(operation))result=await executeAttachment(provider,operation,payload,getGoogleAccessToken);
-  else if(['shortcuts','homeassistant','notion','todoist','spotify','wix','googledocs','outlook','onedrive','appleplanner','googlephotos','applephotos','canva','figma','obsidian','zotero','anki','canvaslms','discord','whatsapp'].includes(provider))result=await executeAddon(provider,operation,payload,id);
+  else if(['shortcuts','homeassistant','notion','todoist','spotify','wix','googledocs','outlook','onedrive','appleplanner','googlephotos','applephotos','canva','figma','obsidian','zotero','anki','canvaslms','discord','whatsapp','zoom','youtube','pinterest','airtable','trello','stripe','square'].includes(provider))result=await executeAddon(provider,operation,payload,id);
   else if(provider==="telegram")result=await telegram(operation,payload);
   else if(provider==="github")result=await github(operation,payload);
   else if(provider==="google")result=await google(operation,payload);

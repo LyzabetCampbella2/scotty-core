@@ -24,13 +24,13 @@ Account authorization, credentials, bot installation and companion/device pairin
 | 18 | Canvas LMS | School-authorized, read-only course/assignment adapter built |
 | 19 | Discord | Bot read/approved-message adapter built |
 | 20 | WhatsApp Business | Allowlisted approved static-template adapter built |
-| 21 | Zoom | Planned |
-| 22 | YouTube | Planned |
-| 23 | Pinterest | Planned |
-| 24 | Airtable | Planned |
-| 25 | Trello | Planned |
-| 26 | Stripe | Planned |
-| 27 | Square | Planned |
+| 21 | Zoom | Scheduled-meeting and recording-metadata adapter built |
+| 22 | YouTube | Channel read and reviewed private MP4 upload adapter built |
+| 23 | Pinterest | Allowed-board read and reviewed image-pin adapter built |
+| 24 | Airtable | Scoped record read/create adapter built |
+| 25 | Trello | Allowed-board read/card/comment adapter built |
+| 26 | Stripe | Restricted-key read-only invoice/payment/balance adapter built |
+| 27 | Square | Scoped read-only order/invoice/payment adapter built |
 | 28 | Smart lights, plugs & thermostats | Planned |
 | 29 | Raspberry Pi & ESP32 devices | Planned |
 | 30 | NFC tags | Planned |
