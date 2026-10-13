@@ -38,7 +38,7 @@ async function serveHud(){
   if(!(await file.exists()))return null;
   let html=await file.text();
   html=html.replace("</head>",'<script type="importmap">{"imports":{"three":"/vendor/three/three.module.js"}}</script></head>');
-  if(!html.includes("/render-hotfix.js"))html=html.replace("</body>","<script src=\"/render-hotfix.js?v=8\"></script><script src=\"/conversation-core.js?v=2\"></script><script src=\"/conversation.js?v=14\"></script><script src=\"/daily-life.js?v=1\"></script><script src=\"/knowledge.js?v=1\"></script><script src=\"/teamwork.js?v=1\"></script><script src=\"/apps-actions.js?v=3\"></script><script src=\"/creative.js?v=1\"></script><script src=\"/workspace.js?v=2\"></script><script src=\"/spatial-tools-core.js?v=1\"></script><script src=\"/spatial-tools.js?v=1\"></script><script src=\"/voice-control-core.js?v=2\"></script><script src=\"/voice-control.js?v=4\"></script><script src=\"/command-room.js?v=2\"></script><script src=\"/voice-workspace-core.js?v=1\"></script><script src=\"/voice-workspace.js?v=2\"></script><script src=\"/connectors.js?v=1\"></script></body>");
+  if(!html.includes("/render-hotfix.js"))html=html.replace("</body>","<script src=\"/render-hotfix.js?v=8\"></script><script src=\"/conversation-core.js?v=2\"></script><script src=\"/conversation.js?v=14\"></script><script src=\"/daily-life.js?v=1\"></script><script src=\"/knowledge.js?v=1\"></script><script src=\"/teamwork.js?v=1\"></script><script src=\"/apps-actions.js?v=3\"></script><script src=\"/creative.js?v=1\"></script><script src=\"/workspace.js?v=2\"></script><script src=\"/spatial-tools-core.js?v=1\"></script><script src=\"/spatial-tools.js?v=1\"></script><script src=\"/voice-control-core.js?v=2\"></script><script src=\"/voice-control.js?v=4\"></script><script src=\"/command-room.js?v=2\"></script><script src=\"/voice-workspace-core.js?v=1\"></script><script src=\"/voice-workspace.js?v=2\"></script><script src=\"/connectors.js?v=2\"></script></body>");
   return new Response(html,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store"}});
  }catch{return null}
 }
@@ -65,7 +65,7 @@ Bun.serve({port:PORT,async fetch(req){
  if(u.pathname==="/api/connections/google/callback") return handleCloudConnections(req,u);
 
  const protectedRoute=
-  (u.pathname.startsWith('/api/connectors')&&!(u.pathname==='/api/connectors/status'&&req.method==='GET')&&u.pathname!=='/api/connectors/spotify/callback'&&!u.pathname.startsWith('/api/connectors/device/'))||
+  (u.pathname.startsWith('/api/connectors')&&!(u.pathname==='/api/connectors/status'&&req.method==='GET')&&u.pathname!=='/api/connectors/spotify/callback'&&!/^\/api\/connectors\/oauth\/(googledocs|outlook|onedrive|googlephotos)\/callback$/.test(u.pathname)&&!u.pathname.startsWith('/api/connectors/device/'))||
   (u.pathname.startsWith('/api/voice-workspace')&&!(u.pathname==='/api/voice-workspace/status'&&req.method==='GET'))||
   (u.pathname.startsWith('/api/command-room')&&!(u.pathname==='/api/command-room/status'&&req.method==='GET'))||
   (u.pathname.startsWith('/api/control')&&!(u.pathname==='/api/control/status'&&req.method==='GET'))||
