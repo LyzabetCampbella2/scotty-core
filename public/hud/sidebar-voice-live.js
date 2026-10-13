@@ -22,9 +22,14 @@ function init(){
  const watcher=new MutationObserver(()=>{if(pending)return;pending=true;requestAnimationFrame(()=>{pending=false;relocate()})});
  watcher.observe(main,{childList:true,subtree:true});
  watcher.observe(right,{childList:true,subtree:true});
+ const calls=document.createElement('section');calls.id='scottyPrivateCalls';calls.innerHTML='<div class="title">Private Calls</div><button type="button" id="scottyCallMe">CALL S.C.O.T.T.Y.</button><button type="button" id="scottyEndCall" disabled>END CALL</button><div id="scottyCallStatus" role="status" aria-live="polite">Ready · Owner initiated only</div><div class="scotty-call-note">Telephone dialing is not connected. S.C.O.T.T.Y. cannot place calls without your approval.</div>';left.insertBefore(calls,holder);
+ const start=calls.querySelector('#scottyCallMe'),end=calls.querySelector('#scottyEndCall'),status=calls.querySelector('#scottyCallStatus');
+ const setCall=(active,msg)=>{start.disabled=active;end.disabled=!active;status.textContent=msg};
+ start.addEventListener('click',()=>{const mic=document.getElementById('mic');if(!mic){setCall(false,'Voice microphone unavailable');return}if(!mic.classList.contains('listening'))mic.click();setCall(true,'In-app voice requested · use END CALL to stop')});
+ end.addEventListener('click',()=>{const mic=document.getElementById('mic');if(mic&&mic.classList.contains('listening'))mic.click();setCall(false,'Call ended · Ready')});
  const privacy=left.querySelector('.privacy');left.insertBefore(holder,privacy||null);
  const style=document.createElement('style');style.textContent=`
- aside.left{overflow-y:auto!important;overscroll-behavior:contain}
+ aside.left{overflow-y:auto!important;overscroll-behavior:contain}\n #scottyPrivateCalls{border-top:1px solid rgba(94,234,255,.2);padding:9px 0} #scottyPrivateCalls button{width:100%;background:rgba(94,234,255,.08);border:1px solid rgba(94,234,255,.3);border-radius:7px;color:#ddf8ff;padding:9px;margin:3px 0;font-size:10px} #scottyPrivateCalls button:disabled{opacity:.45} #scottyCallStatus,.scotty-call-note{font-size:9px;color:#8da8ba;line-height:1.4;margin:5px 0}
  #scottyActionSidebar{border-top:1px solid rgba(94,234,255,.2);padding:10px 0 14px}
  #scottyActionSidebar>.title{margin-bottom:8px}
  #scottyActionSidebar .scotty-sidebar-action{display:block!important;position:static!important;width:100%!important;max-width:100%!important;min-height:32px!important;margin:4px 0!important;padding:7px 8px!important;white-space:normal!important;text-align:left!important;transform:none!important;font-size:10px!important;float:none!important}
