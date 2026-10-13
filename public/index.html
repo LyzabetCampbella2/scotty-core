@@ -406,7 +406,7 @@ function pcmToWav(chunks,sampleRate){
 function clearVoiceBuffers(){localVoiceBuffers=[];localVoiceSamples=0;localVoiceLastFlush=performance.now();window.SCOTTYConversation?.resetCapture?.()}
 async function sendVoiceChunk(){
  if(localVoiceSending||!voiceArmed||(speaking&&!window.SCOTTYConversation?.listenDuringSpeech)||localVoiceSamples<1)return;
- const chunks=localVoiceBuffers;clearVoiceBuffers();localVoiceSending=true;
+ const chunks=localVoiceBuffers,captureMeta={capturedDuringSpeech:window.SCOTTYConversation?.consumeCaptureOrigin?.()??!!speaking};clearVoiceBuffers();localVoiceSending=true;
  try{
   const wav=pcmToWav(chunks,audioCtx?.sampleRate||44100);
   if(wav.size<2000)return;
@@ -417,7 +417,7 @@ async function sendVoiceChunk(){
   const text=String(d.text||'').trim(),conf=Number(d.confidence||0);
   if(text&&conf>=.18){
    const norm=normalizedSpeech(text),now=Date.now();
-   if(norm && !(norm===lastHeardText&&now-lastHeardAt<2600)){lastHeardText=norm;lastHeardAt=now;if(!speaking)$('#vs').textContent='HEARD • '+Math.round(conf*100)+'%';Promise.resolve(heard(text)).catch(err=>console.warn('spoken command',err))}
+   if(norm && !(norm===lastHeardText&&now-lastHeardAt<2600)){lastHeardText=norm;lastHeardAt=now;if(!speaking)$('#vs').textContent='HEARD • '+Math.round(conf*100)+'%';Promise.resolve(heard(text,captureMeta)).catch(err=>console.warn('spoken command',err))}
   }else if(voiceArmed&&!speaking){$('#vs').textContent='VOICE ARMED';$('#cs').textContent='LISTENING'}
  }catch(e){console.warn('local stt',e);$('#vs').textContent='MICROPHONE TRANSCRIPTION ERROR';$('#cs').textContent='SPEECH RECOGNITION OFFLINE'}
  finally{localVoiceSending=false}

@@ -25,7 +25,7 @@
  }
  function cancelDraft(){draft='';$('#conversationReviewBox').hidden=true}
  function showDraft(text){draft=text;caption('YOU • REVIEW BEFORE SENDING',text);$('#conversationDraft').value=text;$('#conversationReviewBox').hidden=false;status('REVIEW SPOKEN REQUEST');}
- window.SCOTTYConversation={get listenDuringSpeech(){return true},get preferences(){return {...prefs}},caption,interrupt,db,importHandoff(thread){const t=db.add(thread.name+' • handoff');for(const turn of thread.turns)db.remember(turn.role,turn.text,t.id,{memorySpace:turn.memorySpace||'shared'});db.pending(null,t.id);render();return t;},setResponseLength(length){prefs=core.preferences({...prefs,length});fillPrefs();try{localStorage.setItem(core.prefsKey,JSON.stringify(prefs))}catch{$('#conversationNotice').textContent='Response depth applies now, but could not be saved on this device.';}return prefs.length;}};
+ window.SCOTTYConversation={get listenDuringSpeech(){return true},get preferences(){return {...prefs}},caption,interrupt,db,consumeCaptureOrigin(){const value=capturedDuringSpeech;capturedDuringSpeech=false;return value;},importHandoff(thread){const t=db.add(thread.name+' • handoff');for(const turn of thread.turns)db.remember(turn.role,turn.text,t.id,{memorySpace:turn.memorySpace||'shared'});db.pending(null,t.id);render();return t;},setResponseLength(length){prefs=core.preferences({...prefs,length});fillPrefs();try{localStorage.setItem(core.prefsKey,JSON.stringify(prefs))}catch{$('#conversationNotice').textContent='Response depth applies now, but could not be saved on this device.';}return prefs.length;}};
  // Route all legacy memory history access through the active thread.
  if(window.SCOTTYMemory){SCOTTYMemory.remember=(role,text)=>{db.remember(role,text);render()};SCOTTYMemory.recall=()=>db.history()}
  const priorSpeak=speak;
@@ -35,10 +35,10 @@
  };
  const priorCommand=command,priorHeard=heard;
  function controls(raw){
-  const n=String(raw||'').trim().replace(/^(?:hey\s+)?(?:scotty|scottie|scoty|scotti)[,.:;\s-]*/i,'').trim();
-  if(/^(?:stop|stop speaking|quiet|cancel (?:that|response)|pause speech)[.!?]*$/i.test(n)){interrupt();cancelDraft();return {done:true}}
+  const stripped=window.SCOTTYVoiceWorkspace?.stripWake(raw)??String(raw||'').trim().replace(/^(?:hey\s+)?(?:scotty|scottie|scoty|scotti)[,.:;\s-]*/i,'').trim(),n=window.SCOTTYVoiceWorkspace?.normalizeCommand(stripped)??stripped;
+  if(/^(?:stop|stop speaking|quiet|cancel (?:that|response)|pause speech)[.!?]*$/i.test(n)){interrupt();cancelDraft();window.SCOTTYVoiceWorkspace?.cancelPending();return {done:true}}
   const change=n.match(/^(?:change that|instead)[,:\s-]*(.*)$/i);if(change){interrupt();cancelDraft();if(!change[1]){status('WHAT SHOULD I CHANGE?');caption('YOU','Tell me what to change.');return {done:true}}return {text:change[1]}}
-  if(window.SCOTTYVoiceControl?.isInterruption(n)){interrupt('VOICE COMMAND RECEIVED');return {text:n}}
+  if(window.SCOTTYVoiceControl?.isInterruption(n)||window.SCOTTYVoiceWorkspace?.isInterruption(n)){interrupt('VOICE COMMAND RECEIVED');return {text:n}}
   return {text:n};
  }
  async function bridge(text,body,signal){
@@ -47,7 +47,7 @@
  }
  command=async function(raw){
   raw=String(raw||$('#ci').value||'').trim();if(!raw)return;convoUntil=Date.now()+90000;$('#ci').value='';
-  const control=controls(raw);if(control.done)return;let text=control.text;
+  const control=controls(raw);if(control.done)return;let text=control.text;if(!text)return;
   const threadMatch=text.match(/^(?:switch to|open|resume) (?:the )?(?:conversation |thread )?(.+?) (?:thread|conversation)$/i);
   if(threadMatch){const t=db.state.threads.find(t=>t.name.toLowerCase()===threadMatch[1].toLowerCase());if(t){interrupt();cancelDraft();db.switch(t.id);render();caption('THREAD',t.name);return}caption('THREAD','No thread named '+threadMatch[1]+'. Create one in Conversation.');return}
   const memorySpace=window.SCOTTYKnowledge?.space()||'shared';
@@ -94,24 +94,24 @@
   }catch(e){if(seq!==run||signal.aborted)return;caption('CONVERSATION ERROR',e.message);status('CONVERSATION ERROR')}
   finally{if(seq===run){busy=false;request=null;render()}}
  };
- heard=async function(raw){
+ heard=async function(raw,meta={}){
   raw=String(raw||'').trim();if(!raw)return;
-  const named=/^(?:hey\s+)?(?:scotty|scottie|scoty|scotti)\b/i.test(raw),control=controlsPreview(raw);
+  const named=window.SCOTTYVoiceWorkspace?.hasWake(raw)||/^(?:hey\s+)?(?:scotty|scottie|scoty|scotti)\b/i.test(raw),control=controlsPreview(raw);
   // While audio is playing, require the wake name and an explicit interruption to avoid acting on speaker echo.
-  if(speaking||busy){if(named&&control){const c=controls(raw);if(c.text){if(prefs.review)showDraft(c.text);else await command(c.text)}return}return}
+  if(speaking||busy||meta.capturedDuringSpeech){if(named&&control){const c=controls(raw);if(c.text){if(prefs.review)showDraft(c.text);else await command(c.text)}return}return}
   if(control){const c=controls(raw);if(c.text){if(prefs.review)showDraft(c.text);else await command(c.text)}return}
   if(!named&&Date.now()>=convoUntil)return;
   convoUntil=Date.now()+90000;
-  const cleaned=raw.replace(/^(?:hey\s+)?(?:scotty|scottie|scoty|scotti)[,.:;\s-]*/i,'').trim();
+  const cleaned=window.SCOTTYVoiceWorkspace?.stripWake(raw)??raw.replace(/^(?:hey\s+)?(?:scotty|scottie|scoty|scotti)[,.:;\s-]*/i,'').trim();if(!cleaned)return;
   if(/^(?:eyes|vision) (?:on|off)[.!?]*$/i.test(cleaned)||/^(?:on deck)[.!?]*$/i.test(cleaned)){caption('YOU',raw);return priorHeard(raw)}
   if(prefs.review){showDraft(cleaned);return}await command(cleaned);
  };
- function controlsPreview(raw){const n=String(raw).replace(/^(?:hey\s+)?(?:scotty|scottie|scoty|scotti)[,.:;\s-]*/i,'').trim();return /^(?:stop(?: speaking)?|quiet|cancel (?:that|response)|pause speech)[.!?]*$/i.test(n)||/^(?:change that|instead)\b/i.test(n)||!!window.SCOTTYVoiceControl?.isInterruption(n)}
- let voiced=false,quiet=0,total=0;
+ function controlsPreview(raw){const stripped=window.SCOTTYVoiceWorkspace?.stripWake(raw)??String(raw).replace(/^(?:hey\s+)?(?:scotty|scottie|scoty|scotti)[,.:;\s-]*/i,'').trim(),n=window.SCOTTYVoiceWorkspace?.normalizeCommand(stripped)??stripped;return /^(?:stop(?: speaking)?|quiet|cancel (?:that|response)|pause speech)[.!?]*$/i.test(n)||/^(?:change that|instead)\b/i.test(n)||!!window.SCOTTYVoiceControl?.isInterruption(n)||!!window.SCOTTYVoiceWorkspace?.isInterruption(n)}
+ let voiced=false,quiet=0,total=0,capturedDuringSpeech=false;
  window.SCOTTYConversation.captureFrame=function(input,sampleRate){
   const seconds=input.length/sampleRate;let power=0;for(const n of input)power+=n*n;const rms=Math.sqrt(power/input.length);
-  if(rms>.012)voiced=true;
-  if(!voiced)return;
+  if(rms>.012&&!voiced){voiced=true;capturedDuringSpeech=!!(speaking||busy);}
+  if(!voiced)return;capturedDuringSpeech=capturedDuringSpeech||!!(speaking||busy);
   const copy=new Float32Array(input.length);copy.set(input);localVoiceBuffers.push(copy);localVoiceSamples+=copy.length;total+=seconds;quiet=rms>.012?0:quiet+seconds;
   if((quiet>=.55&&total>=.35)||total>=10){voiced=false;quiet=0;total=0;if(!localVoiceSending)sendVoiceChunk();else clearVoiceBuffers()}
  };
