@@ -22,3 +22,11 @@ Explicit authenticated agent service identities and request provenance are requi
 - Both `SCOTTY_AGENT_REQUESTS_ENABLED=true` and `SCOTTY_AGENT_BRAINS_ENABLED=true` must be explicitly set. Neither is enabled in production.
 - The only enabled agent action is proposing a **pending** handoff. Actual delivery still requires an owner session approval and re-checking both agents' project grants.
 - Do not enable until a trusted agent runtime can securely receive credentials, rate-limiting is in place, and deployed end-to-end tests pass.
+
+## Stage 5: quota and knowledge provenance
+- Authenticated agent-runtime requests are limited to 20 submissions per agent, per project, per rolling hour. A PostgreSQL transaction advisory lock serializes quota checks to block concurrent bursts.
+- Owner-created handoffs are not subject to the agent-runtime quota; both paths still require owner approval before delivery.
+- Recipient knowledge views return source agent ID/name, source reference, approving reviewer, memory creation date and sharing date.
+- Views recheck project membership, approved learning status, project-scoped memory classification and active share status.
+- These metadata fields are evidence of stored provenance, not independent verification of source truth.
+- Agent runtime feature switches remain disabled by default. Trusted secret provisioning, distributed abuse controls, isolated hosting, and full owner-login browser QA remain pending.
