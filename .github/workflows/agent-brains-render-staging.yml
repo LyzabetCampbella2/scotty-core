@@ -6,6 +6,8 @@ on:
       - 'src/agents/brain.test.ts'
       - 'src/agents/postgres-store.ts'
       - 'src/agents/postgres.integration.test.ts'
+      - 'src/agents/collaboration.ts'
+      - 'src/agents/collaboration-api.ts'
       - 'src/agents/api.ts'
       - 'src/agents/render-bridge.ts'
       - 'src/agents/render-bridge.test.ts'
