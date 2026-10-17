@@ -23,3 +23,16 @@ Add database persistence and row-level authorization; migrate existing chief/age
 
 ## Validation still required
 Run `bun test src/agents` in an environment with Bun installed. The code has not yet been exercised against a live database or connected to the existing agent registry. Never put the admin token in browser JavaScript. The Phase 1 API is disabled by default and must be exposed only through authenticated server-side routes.
+
+## Phase 1 completion gate
+- [x] Agent brain schema and scoped memory checks authored
+- [x] SQLite persistence and atomic review writes authored
+- [x] Learning review API and read-only interface scaffold authored
+- [x] Dry-run registry importer authored
+- [x] CI workflow authored
+- [ ] CI tests pass (verify GitHub Actions result)
+- [ ] Real existing agent registry exported and migration verified
+- [ ] Server-side owner session, CSRF protections and UI approve/reject controls
+- [ ] Deploy to persistent volume with backup/restore test
+- [ ] Live HUD node and voice integration
+Do not merge or deploy until these checks pass. The browser review screen is read-only and is not yet mounted; it intentionally does not expose the administrator bearer token.
