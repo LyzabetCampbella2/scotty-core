@@ -32,7 +32,10 @@ Run `bun test src/agents` in an environment with Bun installed. The code has not
 - [x] CI workflow authored
 - [ ] CI tests pass (verify GitHub Actions result)
 - [ ] Real existing agent registry exported and migration verified
-- [ ] Server-side owner session, CSRF protections and UI approve/reject controls
+- [x] Prototype owner session check, CSRF protections and UI approve/reject controls (production login integration pending)
 - [ ] Deploy to persistent volume with backup/restore test
 - [ ] Live HUD node and voice integration
 Do not merge or deploy until these checks pass. The browser review screen is read-only and is not yet mounted; it intentionally does not expose the administrator bearer token.
+
+## Learning Review browser integration
+The route `/agents/learning-review` is mounted behind the disabled-by-default feature flag and checks a server-issued `scotty_owner_session` cookie. The review API also accepts this cookie with origin and CSRF-header checks for POST requests. The login system must issue an unpredictable Secure, HttpOnly, SameSite=Strict cookie and validate the user server-side. A static environment session token is an interim prototype, not production authentication; rotate it and replace with short-lived signed server sessions before enabling. The admin bearer token must remain server-only. Review actions require confirmation and are auditable in SQLite.
