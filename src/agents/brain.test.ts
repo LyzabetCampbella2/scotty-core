@@ -1,0 +1,12 @@
+import { test,expect } from "bun:test";
+import {canRead,type MemoryEntry,type Actor} from "./brain.ts";
+const memory:MemoryEntry={id:"m1",agentId:"writer",text:"private decision",scope:"private",createdAt:"2026-01-01",approvedBy:"owner",department:"creative",projectId:"book"};
+const owner:Actor={id:"owner",role:"owner"};
+const writer:Actor={id:"writer",role:"agent",department:"creative",projectIds:["book"]};
+const engineer:Actor={id:"engineer",role:"agent",department:"engineering",projectIds:["app"]};
+test("owner and originating agent can read private memory",()=>{expect(canRead(owner,memory)).toBe(true);expect(canRead(writer,memory)).toBe(true);});
+test("other agent cannot read private memory",()=>expect(canRead(engineer,memory)).toBe(false));
+test("project access requires matching project",()=>{const m={...memory,scope:"project" as const};expect(canRead(writer,m)).toBe(true);expect(canRead(engineer,m)).toBe(false);});
+test("department access requires matching department",()=>{const m={...memory,scope:"department" as const};expect(canRead({...engineer,department:"creative"},m)).toBe(true);expect(canRead(engineer,m)).toBe(false);});
+test("network memory is readable by agents",()=>expect(canRead(engineer,{...memory,scope:"network"})).toBe(true));
+test("external scope does not automatically grant agent access",()=>expect(canRead(engineer,{...memory,scope:"external"})).toBe(false));
