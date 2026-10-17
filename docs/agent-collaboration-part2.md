@@ -30,3 +30,11 @@ Explicit authenticated agent service identities and request provenance are requi
 - Views recheck project membership, approved learning status, project-scoped memory classification and active share status.
 - These metadata fields are evidence of stored provenance, not independent verification of source truth.
 - Agent runtime feature switches remain disabled by default. Trusted secret provisioning, distributed abuse controls, isolated hosting, and full owner-login browser QA remain pending.
+
+## Final Part 2 safety handoff
+- **Browser credential issuance is disabled**. Only server-side trusted provisioning may call issueAgentCredential; delivering that one-time secret to an approved runtime remains a deployment prerequisite.
+- On project membership revocation, all matching scoped credentials are explicitly revoked in the same transaction as the membership removal, preventing old credentials from working after a later re-grant.
+- Owner notifications are available as metadata-only JSON at `GET /api/agent-brains/collaboration-notifications` (no private request summaries). The owner inbox has a manual Refresh control and pending count.
+- All these routes require the Render owner login and the SCOTTY_AGENT_BRAINS_ENABLED feature flag. Agent-runtime requests also require SCOTTY_AGENT_REQUESTS_ENABLED.
+- No browser notifications or background push service are installed; the owner opens or refreshes the inbox.
+- **Development complete is not deployment complete:** hosted staging, verified production database backups, secret delivery to trusted server-side agents, abuse monitoring, and live user-acceptance testing still need to happen before enabling the feature.
