@@ -50,5 +50,6 @@
  if(c.kind==='doc'){const f=folder(c.parent);await api('/reference',{type:'google-doc',folderId:f.id,name:'Google Doc',url:c.url},signal);await refreshGraph();await show(f.id);reply='Google Doc link saved in '+f.name+'.';}
  if(c.kind==='connected'){const f=folder(c.parent),rows=await sourceRows(c.provider,signal),item=core.resolve(rows,c.name);await addSource(c.provider,item,f.id,signal);reply='Added '+item.name+' to '+f.name+' as a reference. The original is unchanged.';}
  return {handled:true,reply};}
- window.SCOTTYFolders={show,refresh,handleCommand,openFile};
+ function namingReply(text){return !!(pendingName&&pendingName.thread===(window.SCOTTYConversation?.db?.state?.active||null)&&Date.now()<=pendingName.expires&&/^(?:(?:call|name|label) (?:it|the (?:folder|project)) |the name is |it is called |it's called )/i.test(String(text).trim().replace(/^scotty[,!:. ]+/i,'')));}
+ window.SCOTTYFolders={show,refresh,handleCommand,openFile,namingReply};
 })();
