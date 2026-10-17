@@ -1,7 +1,7 @@
 import postgres from 'postgres';
 import {bootstrapResources} from '../resources/cloud.ts';
 import {addonRead} from '../connectors/adapters.ts';
-import {folderName,assertFolderMove,googleDocumentURL} from './folders-model.ts';
+import {folderName,assertFolderMove,googleDocumentURL,noteInput} from './folders-model.ts';
 let sql:any;const db=()=>sql||(sql=postgres(process.env.DATABASE_URL||'',{max:3,ssl:'require',connect_timeout:12,idle_timeout:20}));
 const json=(data:any,status=200)=>Response.json(data,{status,headers:{'cache-control':'no-store'}});
 export async function moveFolder(q:any,id:string,parentId:string|null,projectId?:string|null){
@@ -44,6 +44,10 @@ export async function handleFolders(req:Request,u:URL){try{
    await t`update scotty_folders set name=${name},updated_at=now() where id=${id}`;return {id,name};
   }
   const folder=(await t`select id,project_id from scotty_folders where id=${String(b.folderId||'')}`)[0];if(!folder)throw Error('Choose an existing destination folder.');
+  if(path==='/note'){
+   const {name,text}=noteInput(b),id='file-'+crypto.randomUUID(),metadata={source:'scotty-note',text};
+   await t`insert into scotty_files(id,name,path,project_id,folder_id,mime_type,size_bytes,metadata) values(${id},${name},${''},${folder.project_id},${folder.id},${'text/plain'},${Buffer.byteLength(text,'utf8')},${t.json(metadata)})`;return {id,name};
+  }
   if(path==='/file-move'){
    const rows=await t`update scotty_files set folder_id=${folder.id},project_id=${folder.project_id},updated_at=now() where id=${String(b.id)} returning id`;if(!rows.length)throw Error('Saved file not found. Import it first.');return {id:rows[0].id};
   }

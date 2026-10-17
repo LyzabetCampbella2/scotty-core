@@ -46,3 +46,17 @@ Run `node --test tests/*.test.mjs`. Folder tests cover ancestor loops, subtree p
 “Create a folder” and “create a project” ask for a name. The next response can be a plain name or “call it NAME”; it expires after two minutes and is scoped to the conversation. Opening another command cancels the naming prompt. Boundary quotation marks from transcription are removed from labels.
 
 Unknown conversational requests do not run the strict command-chain quote validator. Explicit saved chains retain strict parsing. Scottish speech generation has a 20-second deadline per chunk; an unavailable worker sets Voice Unavailable and releases the command path instead of remaining Busy. A wake-name command can replace waiting voice generation; approval/send/publish/delete requests still require their existing review path. Actual playback continues to suppress non-interruption echo. Check Voice Connection in Voice settings performs a bounded gateway health check without changing the selected voice.
+
+
+## Conversational folders
+
+Voice creation selects the orange node and keeps the form closed. Scotty asks what to add next: a note, photos/files, a saved file, a Google Doc, an Apple Calendar reference, or a subfolder. The Folders sidebar button still opens manual controls deliberately.
+
+- Say `Add info to folder Writing`. Scotty asks for the note title, then text. Add more sentences with `Add more …`, use `Read note draft`, and finish with `Save note`. Nothing is saved until that request. `Cancel` discards the draft. Notes are capped at 20,000 characters and support preview/export as text. `Read note Plot Ideas in folder Writing` reads saved text.
+- Say `Add Google Doc to folder Writing`, give its name, and choose a listed result by number. Pasting an HTTPS docs.google.com document link is also supported. Google authorization is still required to discover documents or open originals.
+- Say `Add calendar reference to folder Writing`, give an event name from the authorized Apple bridge export, and choose a listed result. This saves a snapshot reference and does not create or modify an Apple event.
+- Say `Add saved file to folder Writing`, give its name, and choose a result. This moves the existing Scotty file index entry into the folder; provider originals are unchanged.
+- Say `Add photos to folder Writing`. A compact chooser prompt appears instead of the form. Tap Choose Photos or Files (required by iPad), select files, then say `Save selected files`. Maximum 8 MB per file. The destination is pinned when the upload is requested.
+- If no folder is selected, Scotty asks which one. Ambiguous folder labels require a full folder path. `A subfolder` after creation asks its name and nests it in the folder just created.
+
+Draft conversations are limited to their originating thread and expire after five minutes. They remain in memory only until saved or cancelled. The Scottish gateway must be available for audible questions; the same questions remain visible in captions and accept typed responses when speech generation is unavailable.

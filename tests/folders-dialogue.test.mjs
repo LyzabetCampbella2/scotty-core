@@ -1,0 +1,28 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+const source=fs.readFileSync(new URL('../public/folders.js',import.meta.url),'utf8');
+function harness(){
+ const writes=[],state={folders:[{id:'writing',name:'Writing'},{id:'other',name:'Other'}],files:[{id:'file-1',name:'Chapter.pdf',folderId:'other'}],projects:[]};let open=false,serial=0,now=1000;
+ const ctx=vm.createContext({console,Date:{now:()=>now},pendingName:null,dialogue:null,active:null,pendingUpload:null,state,signal:undefined,
+  panel:{classList:{remove(){open=false},contains(){return open},add(){open=true}}},window:{SCOTTYConversation:{db:{state:{active:'thread1'}}},SCOTTYSpatial:{focusId(){}},SCOTTYVoiceControl:{context:()=>({})}},
+  path:id=>state.folders.find(f=>f.id===id)?.name,
+  folder:name=>{const f=state.folders.find(f=>f.id===name||f.name.toLowerCase()===String(name).toLowerCase()||name==='this'&&f.id===ctx.active);if(!f)throw Error('Folder not found.');return f;},
+  refresh:async()=>{},refreshGraph:async()=>{},show:async()=>{open=true},
+  api:async(route,b)=>{writes.push({route,b});return {ok:true,id:'new'}},
+  create:async(name,parent)=>{const f={id:'new'+(++serial),name,parentFolderId:parent};state.folders.push(f);writes.push({route:'/create',b:f});return f;},
+  prepareUpload:id=>{ctx.pendingUpload=id;return {handled:true,reply:'Tap Choose Photos or Files'};},
+  sourceRows:async provider=>provider==='googledocs'?[{id:'doc1',name:'Chapter Report',url:'https://docs.google.com/document/d/doc1/edit'},{id:'doc2',name:'Chapter Report Revised',url:'https://docs.google.com/document/d/doc2/edit'}]:[{id:'event1',name:'Writing Session',deviceId:'device1'}],
+  addSource:async(provider,item,id)=>writes.push({route:'/reference',provider,item,id}),
+ });ctx.window.SCOTTYFoldersCore=undefined;
+ vm.runInContext(fs.readFileSync(new URL('../public/folders-core.js',import.meta.url),'utf8'),ctx);ctx.core=ctx.window.SCOTTYFoldersCore;
+ vm.runInContext(source.slice(source.indexOf(' async function handleCommand'),source.indexOf(' const uploadPrompt'))+source.slice(source.indexOf(' const contentQuestion='),source.indexOf(' window.SCOTTYFolders=')),ctx);
+ return {ctx,state,writes,handle:text=>ctx.handleCommand(text),isOpen:()=>open,advance:ms=>now+=ms};
+}
+test('folder creation asks follow-up questions without opening forms and nests a subfolder',async()=>{const h=harness();let r=await h.handle('create a folder');assert.match(r.reply,/What should I call/);r=await h.handle('Call it “Research');assert.match(r.reply,/What would you like to add/);assert.equal(h.isOpen(),false);r=await h.handle('a subfolder');assert.match(r.reply,/What should I call/);r=await h.handle('Sources');assert.equal(h.state.folders.at(-1).parentFolderId,'new1');assert.equal(h.isOpen(),false);});
+test('dictation is drafted, appended, read back and saved only on request into a pinned folder',async()=>{const h=harness();let r=await h.handle('add info to folder Writing');assert.match(r.reply,/title/);await h.handle('Call it Plot Ideas');await h.handle('The first scene takes place indoors.');await h.handle('add more The second scene is outside!');assert.equal(h.writes.length,0);r=await h.handle('read note draft');assert.equal(r.reply,'The first scene takes place indoors.\nThe second scene is outside!');h.ctx.active='other';r=await h.handle('save note');assert.equal(h.writes[0].route,'/note');assert.equal(h.writes[0].b.folderId,'writing');assert.equal(h.writes[0].b.name,'Plot Ideas');assert.match(h.writes[0].b.text,/outside!/);assert.equal(h.isOpen(),false);});
+test('cancellation, thread switching and expiry prevent stale drafts from being saved',async()=>{for(const change of ['cancel','thread','expiry']){const h=harness();await h.handle('add note to folder Writing');await h.handle('Draft');await h.handle('Unfinished');if(change==='cancel')await h.handle('cancel');if(change==='thread')h.ctx.window.SCOTTYConversation.db.state.active='thread2';if(change==='expiry')h.advance(300001);const r=await h.handle('save note');assert.match(r.reply,/no active note draft/);assert.equal(h.writes.length,0);}});
+test('authorized document and event choices require a listed selection and preserve the source',async()=>{const h=harness();await h.handle('add Google Doc to folder Writing');let r=await h.handle('Chapter Report');assert.match(r.reply,/1: Chapter Report/);assert.equal(h.writes.length,0);r=await h.handle('choose ten');assert.match(r.reply,/listed number/);await h.handle('choose one');assert.equal(h.writes[0].item.id,'doc1');assert.equal(h.writes[0].id,'writing');assert.equal(h.isOpen(),false);await h.handle('add calendar reference to folder Writing');await h.handle('Writing Session');await h.handle('choose one');assert.equal(h.writes[1].provider,'appleplanner');});
+test('saved files and media are distinguished and local media requests do not read device files',async()=>{const h=harness();await h.handle('add saved file to folder Writing');await h.handle('Chapter.pdf');await h.handle('choose one');assert.equal(h.writes[0].route,'/file-move');assert.equal(h.writes[0].b.id,'file-1');assert.equal(h.writes[0].b.folderId,'writing');const r=await h.handle('add photos to folder Writing');assert.match(r.reply,/Tap Choose/);assert.equal(h.ctx.pendingUpload,'writing');assert.equal(h.writes.length,1);});
+test('without a selected folder Scotty asks for the destination first',async()=>{const h=harness();let r=await h.handle('add a note');assert.match(r.reply,/Which folder/);r=await h.handle('Missing');assert.match(r.reply,/Which folder/);r=await h.handle('Writing');assert.match(r.reply,/title/);assert.equal(h.writes.length,0);});

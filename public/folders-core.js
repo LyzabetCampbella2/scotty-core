@@ -5,7 +5,7 @@
  function parse(text){const s=String(text).trim().replace(/^(?:hey\s+)?scott(?:y|ie)[,\s]+/i,'').replace(/[.!?]+$/,'').replace(/ (inside|in|under) this folder$/i,' $1 folder this').replace(/^(create|make|add) (?:a |an )?new /i,'$1 ');let m;
  if((m=s.match(/^(?:create|make|add) (?:a |an |new )?(?:project )?folder(?: called| named)? (.+?)(?: (?:inside|in|under) (?:the )?folder (.+)| in (?:the )?project (.+))?$/i)))return {kind:'create',name:m[1],parent:m[2],project:m[3]};
  if((m=s.match(/^(?:create|make|add) (?:a |new )?project(?: called| named)? (.+)$/i)))return {kind:'project',name:m[1]};
- if(/^(?:create|make|add) (?:a |new )?(project|folder)$/i.test(s))return {kind:'name-needed',type:/project$/i.test(s)?'project':'folder'};
+ if(/^(?:create|make|add) (?:a |new )?(project folder|project|folder)$/i.test(s))return {kind:'name-needed',type:/project$/i.test(s)?'project':'folder'};
  if((m=s.match(/^(?:rename|label) (?:the )?(?:folder (.+?)|this(?: folder)?) (?:to|as) (.+)$/i)))return {kind:'rename',source:m[1]||'this',name:m[2]};
  if((m=s.match(/^(?:move|put) (?:the )?(folder|file) (.+?) (?:into|inside|in|to) (?:the )?folder (.+)$/i)))return {kind:'move',type:m[1].toLowerCase(),source:m[2],parent:m[3]};
  if((m=s.match(/^(?:move|put) (?:this|it|that)(?: item| folder| file)? (?:into|inside|in|to) (?:the )?folder (.+)$/i)))return {kind:'move',type:'selected',source:'this',parent:m[1]};
