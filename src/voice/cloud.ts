@@ -13,7 +13,7 @@ async function scottishBridge(req:Request,u:URL){
    method:req.method,
    headers:{"authorization":"Bearer "+SCOTTISH_TOKEN,...(sub==="/speak"?{"content-type":"application/json"}:{})},
    body:sub==="/speak"?await req.text():undefined,
-   signal:AbortSignal.timeout(20000)
+   signal:AbortSignal.timeout(90000)
   });
   return new Response(response.body,{status:response.status,headers:{"content-type":response.headers.get("content-type")||"application/json","cache-control":"no-store"}});
  }catch{return json({ok:false,error:"Scottish voice gateway unreachable"},503)}

@@ -1,1 +1,4 @@
 node_modules/
+
+voice-service/models/
+voice-service/__pycache__/
