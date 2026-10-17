@@ -20,7 +20,7 @@ export async function handleRenderAgentBrains(
   return renderReviewPage();
  }
  // Internal API adapter retains existing reviewed endpoint paths.
- if(u.pathname.startsWith("/api/agent-brains/collaboration/"))return handleCollaboration(req,u);
+ if(u.pathname.startsWith("/api/agent-brains/collaboration/")||u.pathname==="/api/agent-brains/collaboration-requests"||u.pathname.startsWith("/api/agent-brains/collaboration-requests/"))return handleCollaboration(req,u);
  const adapted=new URL(u);
  adapted.pathname=u.pathname.replace(/^\/api\/agent-brains(?=\/|$)/,"/api/agents");
  return handleAgents(req,adapted,true);
