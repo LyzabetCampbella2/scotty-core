@@ -114,5 +114,5 @@
  }
  function contentQuestionAfter(id){begin('content',{folderId:id});return contentQuestion();}
  function namingReply(text){const d=currentDialogue();if(d&&d.step!=='content')return true;return !!(pendingName&&pendingName.thread===(window.SCOTTYConversation?.db?.state?.active||null)&&Date.now()<=pendingName.expires&&/^(?:(?:call|name|label) (?:it|the (?:folder|project)) |the name is |it is called |it's called )/i.test(String(text).trim().replace(/^scotty[,!:. ]+/i,'')));}
- window.SCOTTYFolders={show,refresh,handleCommand,openFile,namingReply};
+ window.SCOTTYFolders={show,refresh,handleCommand,openFile,namingReply,enterFolder(id){active=id;pendingName=null;dialogue=null;panel.classList.remove('open');}};
 })();
