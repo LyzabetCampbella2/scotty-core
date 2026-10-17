@@ -1,8 +1,21 @@
+import {issueAgentCredential,revokeAgentCredentials} from "./agent-credentials.ts";
 import {requestHandoff,pendingRequests,decideRequest} from "./collaboration-requests.ts";
 import {grant,revoke,message,share,list,revokeShare,sharedFor} from "./collaboration.ts";
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers:{"Cache-Control":"no-store"}});
 const id=(s:unknown)=>typeof s==="string"&&s.length>0&&s.length<=160&&/^[\w-]+$/.test(s);
 export async function handleCollaboration(req:Request,u:URL):Promise<Response>{
+ const keyRoute=u.pathname==="/api/agent-brains/agent-credentials";
+ if(keyRoute){
+  if(req.method!=="POST")return json({error:"Method not allowed"},405);
+  if(req.headers.get("origin")!==u.origin||req.headers.get("x-scotty-csrf")!=="1")return json({error:"Origin/CSRF verification failed"},403);
+  try{
+   const b=await req.json();
+   if(!id(b.agentId)||!id(b.projectId))return json({error:"Invalid agent/project"},400);
+   if(b.decision==="issue")return json({ok:true,...await issueAgentCredential(b.agentId,b.projectId,b.ttlMinutes??60)},201);
+   if(b.decision==="revoke")return json({ok:true,...await revokeAgentCredentials(b.agentId,b.projectId)});
+   return json({error:"Invalid action"},400);
+  }catch(e){return json({ok:false,error:e instanceof Error?e.message:"Credential request failed"},400);}
+ }
  const queueRoute=u.pathname==="/api/agent-brains/collaboration-requests";
  const decisionRoute=u.pathname.match(/^\/api\/agent-brains\/collaboration-requests\/([0-9a-f-]{36})$/i);
  if(queueRoute||decisionRoute){
