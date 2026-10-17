@@ -39,3 +39,6 @@ Do not merge or deploy until these checks pass. The browser review screen is rea
 
 ## Learning Review browser integration
 The route `/agents/learning-review` is mounted behind the disabled-by-default feature flag and checks a server-issued `scotty_owner_session` cookie. The review API also accepts this cookie with origin and CSRF-header checks for POST requests. The login system must issue an unpredictable Secure, HttpOnly, SameSite=Strict cookie and validate the user server-side. A static environment session token is an interim prototype, not production authentication; rotate it and replace with short-lived signed server sessions before enabling. The admin bearer token must remain server-only. Review actions require confirmation and are auditable in SQLite.
+
+## Registry migration procedure
+Export the actual current registry as a JSON array with id, name, department, optional specialty, instructions, knowledgeSources. Review it for private data before transfer. Run `bun run src/agents/registry-import.ts /secure/path/agents.json` for a no-write dry run. Only after reviewing output, use `SCOTTY_AGENT_IMPORT_CONFIRMED=yes bun run src/agents/registry-import.ts /secure/path/agents.json --apply` on the intended persistent volume. The importer does not overwrite existing agents and rejects identity conflicts. Back up SQLite first.
