@@ -69,3 +69,22 @@ test("Part 2: grants gate messages and memory sharing, with revocation",async()=
  const snapshot=await list("book-test");expect(snapshot.messages.length).toBe(1);
  expect(snapshot.audit.some((x:any)=>x.action==="revoke")).toBe(true);
 });
+
+test("Part 2: handoff review queue blocks dispatch until owner approval",async()=>{
+ const {requestHandoff,pendingRequests,decideRequest}=await import("./collaboration-requests.ts");
+ await sql`insert into scotty_projects(id) values('handoff-test') on conflict do nothing`;
+ const {grant,list}=await import("./collaboration.ts");
+ await grant("handoff-test","chief-0");
+ await grant("handoff-test","agent-12");
+ const waiting=await requestHandoff("handoff-test","chief-0","agent-12","Review architecture","Only approved project information");
+ expect(waiting.status).toBe("pending");
+ expect((await list("handoff-test")).messages.length).toBe(0);
+ expect((await pendingRequests("handoff-test")).some((x:any)=>x.id===waiting.id)).toBe(true);
+ const approved=await decideRequest(waiting.id,"approved");
+ expect(approved.delivered).toBe(true);
+ expect((await list("handoff-test")).messages.length).toBe(1);
+ expect(decideRequest(waiting.id,"approved")).rejects.toThrow();
+ const declined=await requestHandoff("handoff-test","chief-0","agent-12","Decline this","Private decision");
+ expect((await decideRequest(declined.id,"rejected")).status).toBe("rejected");
+ expect((await list("handoff-test")).messages.length).toBe(1);
+});
