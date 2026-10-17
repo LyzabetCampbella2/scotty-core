@@ -9,7 +9,16 @@ export async function handleAgents(req:Request,u:URL):Promise<Response>{
  const token=process.env.SCOTTY_BRAIN_ADMIN_TOKEN;
  if(!token)return json({ok:false,error:"Brain API disabled until admin token is configured"},503);
  const auth=req.headers.get("authorization");
- if(!auth||auth!==`Bearer ${token}`)return json({ok:false,error:"Unauthorized"},401);
+ const direct=auth===`Bearer ${token}`;
+ const session=process.env.SCOTTY_BRAIN_OWNER_SESSION_TOKEN;
+ const cookie=req.headers.get("cookie")?.split(";").map(x=>x.trim()).find(x=>x.startsWith("scotty_owner_session="))?.slice("scotty_owner_session=".length);
+ const viaCookie=Boolean(session&&cookie===session);
+ if(!direct&&!viaCookie)return json({ok:false,error:"Unauthorized"},401);
+ if(viaCookie&&req.method!=="GET"){
+  const origin=req.headers.get("origin");
+  if(!origin||origin!==u.origin)return json({ok:false,error:"Cross-origin write blocked"},403);
+  if(req.headers.get("x-scotty-csrf")!=="1")return json({ok:false,error:"CSRF header required"},403);
+ }
  // Phase 1 intentionally exposes only owner-authorized administration.
  const actor:Actor={id:"owner",role:"owner"};
  try{
