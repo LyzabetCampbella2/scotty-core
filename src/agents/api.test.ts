@@ -1,0 +1,4 @@
+import {test,expect} from "bun:test";
+import {handleAgents} from "./api.ts";
+test("agent API disabled when no admin token is configured",async()=>{const old=process.env.SCOTTY_BRAIN_ADMIN_TOKEN;delete process.env.SCOTTY_BRAIN_ADMIN_TOKEN;try{const url=new URL("http://localhost/api/agents");const res=await handleAgents(new Request(url),url);expect(res.status).toBe(503);}finally{if(old!==undefined)process.env.SCOTTY_BRAIN_ADMIN_TOKEN=old;}});
+test("rejects unauthorized requests",async()=>{const old=process.env.SCOTTY_BRAIN_ADMIN_TOKEN;process.env.SCOTTY_BRAIN_ADMIN_TOKEN="test-secret";try{const url=new URL("http://localhost/api/agents");const res=await handleAgents(new Request(url),url);expect(res.status).toBe(401);}finally{if(old===undefined)delete process.env.SCOTTY_BRAIN_ADMIN_TOKEN;else process.env.SCOTTY_BRAIN_ADMIN_TOKEN=old;}});
