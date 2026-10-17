@@ -62,6 +62,7 @@
   remember('user',control.text);render();caption('YOU',control.text);
   try{
    if(recap&&!history.length){const reply='No earlier conversation is recorded in this thread and memory space yet.';remember('assistant',reply);await speak(reply);return}
+   const features=recap?null:await window.SCOTTYVoiceFeatures?.handleCommand(text,{signal});if(seq!==run||signal.aborted)return;if(features?.handled){db.pending(null,threadId);remember('assistant',features.reply);status('RESPONSE READY');render();await speak(features.reply);return;}
    const connectorResult=await window.SCOTTYConnectors?.handleCommand(text,{signal});if(seq!==run||signal.aborted)return;if(connectorResult?.handled){db.pending(null,threadId);remember('assistant',connectorResult.reply);status('RESPONSE READY');render();await speak(connectorResult.reply);return;}
    const voiceWorkspace=await window.SCOTTYVoiceWorkspace?.handleCommand(text,{signal});if(seq!==run||signal.aborted)return;if(voiceWorkspace?.handled){db.pending(null,threadId);remember('assistant',voiceWorkspace.reply);status('RESPONSE READY');render();await speak(voiceWorkspace.reply);return;}
    const room=recap?null:await window.SCOTTYCommandRoom?.handleCommand(text,{signal});if(seq!==run||signal.aborted)return;

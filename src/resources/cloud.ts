@@ -222,11 +222,10 @@ async function relate(sourceNode:string,targetNode:string,q=db(),record=true){
   if(record)await addActivity("SCOTTY","FILE MOVED",`${s.id} → ${t.id}`,{sourceNode,targetNode});
   return {relation:"contained_in",message:"File moved into folder",folderId:t.id,projectId:destination[0].projectId||null};
  }
- if(s.type==="folder"&&t.type==="project"){
-  const changed=await q`update scotty_folders set project_id=${t.id},updated_at=now() where id=${s.id} returning id`;
-   if(!changed.length)throw new Error("Source node no longer exists. Refresh the canvas.");
-  if(record)await addActivity("SCOTTY","FOLDER MOVED",`${s.id} → ${t.id}`,{sourceNode,targetNode});
-  return {relation:"belongs_to",message:"Folder moved to project"};
+ if(s.type==="folder"&&(t.type==="project"||t.type==="folder")){
+  const {moveFolder}=await import('../workspace/folders.ts');
+  const moved=await moveFolder(q,s.id,t.type==='folder'?t.id:null,t.type==='project'?t.id:undefined);
+  return {...moved,relation:t.type==='folder'?'contained_in':'belongs_to',message:'Folder moved with its contents'};
  }
  await q`insert into scotty_resource_links(source_type,source_id,target_type,target_id,relation,status)
   values(${s.type},${s.id},${t.type},${t.id},'related_to','suggested')

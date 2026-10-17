@@ -1,0 +1,23 @@
+(function(){
+ if(window.SCOTTYVoiceFeatures)return;
+ const normalize=s=>String(s||'').trim().replace(/[.!?]+$/,'').toLowerCase(),visible=e=>!!e.getClientRects().length&&!e.closest('[hidden]')&&!e.disabled;
+ const label=e=>e.getAttribute('aria-label')||e.labels?.[0]?.textContent?.trim()||e.getAttribute('placeholder')||e.textContent?.trim()||'';
+ const dangerous=/\b(approve|acknowledge|confirm|execute|send|publish|delete|disconnect|revoke|pair|authorize|sign in|log in|password|token|secret|api key|credential)\b/i;
+ function buttons(){return [...document.querySelectorAll('button,[role="tab"],summary')].filter(visible).filter(e=>!e.closest('#spatialStage')&&!e.closest('#spatialSearchResults'));}
+ function fields(){return [...document.querySelectorAll('input,textarea,select')].filter(visible);}
+ function unique(rows,query,nameOf=label){const matches=rows.filter(e=>normalize(nameOf(e))===normalize(query));if(matches.length!==1)throw Error(matches.length?'More than one control has that name. Open the specific panel first.':'No visible control named '+query+'. Say what controls are available.');return matches[0];}
+ function setField(e,value){if(e.type==='password'||e.type==='file'||dangerous.test(label(e)))throw Error('Enter private credentials or choose local files directly using the secure control.');if(e.readOnly)throw Error('That field is read-only.');if(e.tagName==='SELECT'){const options=[...e.options].filter(o=>normalize(o.textContent)===normalize(value)||o.value===value);if(options.length!==1)throw Error('Choose an exact option: '+[...e.options].map(o=>o.textContent).join(', '));e.value=options[0].value;}else{if(['checkbox','radio'].includes(e.type))throw Error('Use the checkbox directly.');const setter=Object.getOwnPropertyDescriptor(e.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:HTMLInputElement.prototype,'value')?.set;if(setter)setter.call(e,value);else e.value=value;}e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));e.focus();}
+ async function handleCommand(text,options={}){
+ const folder=await window.SCOTTYFolders?.handleCommand(text,options);if(folder?.handled)return folder;
+ const s=String(text).trim().replace(/[.!?]+$/,'');let m,reply;
+ if(/^(?:what (?:controls|commands|features) (?:are available|can I use)(?: here)?|what can I do here|list (?:screen )?controls)$/i.test(s)){const names=[...new Set(buttons().map(label).filter(Boolean))];reply='Visible controls: '+names.slice(0,45).join(', ')+'. Say press followed by an exact control name. Say set followed by a field name, then to and its value. Folder commands include create folder, open folder, rename this folder, and move this into folder.';}
+ else if((m=s.match(/^(?:press|tap|click|activate)(?: the)? (.+)$/i))){const e=unique(buttons(),m[1]);if(dangerous.test(label(e)))throw Error('Use the existing exact preview and approval flow for '+label(e)+'. Credentials and device pairing require their secure controls.');e.click();reply='Activated '+label(e)+'. Check the displayed result; an action may still need its inputs or review.';}
+ else if((m=s.match(/^(?:set|fill)(?: the)? (.+?) (?:to|with) ([\s\S]+)$/i))){const e=unique(fields(),m[1]);setField(e,m[2]);reply=label(e)+' filled. Say the exact Save or Preview control when ready.';}
+ else if((m=s.match(/^choose (.+?) for (.+)$/i))){const e=unique(fields().filter(e=>e.tagName==='SELECT'),m[2]);setField(e,m[1]);reply='Selected '+m[1]+' for '+label(e)+'.';}
+ else if(/^(?:read (?:this|the) screen|read current panel)$/i.test(s)){const panels=[...document.querySelectorAll('.main section.open,.main [id$="Panel"].open')].filter(visible),panel=panels.at(-1);if(panel&&/PAIRING TOKEN|SHOWN ONCE|DEVICE TOKEN|CLIENT SECRET/i.test(panel.innerText))throw Error('This panel contains private setup information. Open a different view before reading it aloud.');reply=panel?panel.innerText.slice(0,5000):'No feature panel is open. Say open folders, or press a navigation control.';}
+ else if((m=s.match(/^scroll (up|down)$/i))){const panels=[...document.querySelectorAll('.main section.open,.main [id$="Panel"].open')].filter(visible),panel=panels.at(-1);if(!panel)throw Error('Open a feature panel first.');panel.scrollBy({top:(m[1].toLowerCase()==='down'?1:-1)*panel.clientHeight*.7,behavior:'smooth'});reply='Scrolled '+m[1]+'.';}
+ else if((m=s.match(/^(?:open|show) (?:the )?(.+?) (?:screen|feature|section)$/i))){const e=unique(buttons(),m[1]);if(dangerous.test(label(e)))throw Error('Use the secure control for this feature.');e.click();reply='Opened '+label(e)+'.';}
+ else return {handled:false};return {handled:true,reply};
+ }
+ window.SCOTTYVoiceFeatures={handleCommand};
+})();
