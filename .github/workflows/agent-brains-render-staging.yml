@@ -5,6 +5,7 @@ on:
       - 'src/agents/brain.ts'
       - 'src/agents/brain.test.ts'
       - 'src/agents/postgres-store.ts'
+      - 'src/agents/postgres.integration.test.ts'
       - 'src/agents/api.ts'
       - 'src/agents/render-bridge.ts'
       - 'src/agents/render-bridge.test.ts'
@@ -17,6 +18,20 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: scotty_ci
+          POSTGRES_PASSWORD: scotty_ci_password
+          POSTGRES_DB: scotty_brain_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U scotty_ci -d scotty_brain_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -28,5 +43,11 @@ jobs:
           ln -s /tmp/scotty-agent-ci/node_modules node_modules
       - name: Unit tests for access isolation and fail-closed Render bridge
         run: bun test src/agents/brain.test.ts src/agents/render-bridge.test.ts
+      - name: End-to-end PostgreSQL data integrity and learning reviews
+        env:
+          SCOTTY_BRAIN_TEST_DB: disposable
+          DATABASE_URL: postgres://scotty_ci:scotty_ci_password@127.0.0.1:5432/scotty_brain_ci
+          SCOTTY_BRAIN_DB_SSL: disable
+        run: bun test src/agents/postgres.integration.test.ts
       - name: Import-check production router and Agent Brain storage
         run: bun -e "await import('./src/agents/postgres-store.ts'); await import('./src/agents/render-bridge.ts')"
