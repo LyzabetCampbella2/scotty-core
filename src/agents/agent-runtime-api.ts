@@ -3,7 +3,7 @@ import {requestHandoff} from "./collaboration-requests.ts";
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers:{"Cache-Control":"no-store"}});
 const id=(s:unknown)=>typeof s==="string"&&/^[A-Za-z0-9][A-Za-z0-9_-]{0,159}$/.test(s);
 export async function handleAgentSubmit(req:Request,u:URL):Promise<Response>{
- if(process.env.SCOTTY_AGENT_REQUESTS_ENABLED!=="true")return json({ok:false,error:"Agent submission disabled"},503);
+ if(process.env.SCOTTY_AGENT_REQUESTS_ENABLED!=="true"||process.env.SCOTTY_AGENT_BRAINS_ENABLED!=="true")return json({ok:false,error:"Agent submission disabled"},503);
  if(req.method!=="POST")return json({error:"Method not allowed"},405);
  if(!req.headers.get("content-type")?.toLowerCase().startsWith("application/json"))return json({error:"JSON required"},415);
  const projectId=u.pathname.match(/^\/api\/agent-runtime\/projects\/([A-Za-z0-9_-]+)\/requests$/)?.[1];
