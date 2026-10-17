@@ -88,3 +88,19 @@ test("Part 2: handoff review queue blocks dispatch until owner approval",async()
  expect((await decideRequest(declined.id,"rejected")).status).toBe("rejected");
  expect((await list("handoff-test")).messages.length).toBe(1);
 });
+
+test("Part 2: revoked membership blocks approval without consuming pending request",async()=>{
+ const {grant,revoke,list}=await import("./collaboration.ts");
+ const {requestHandoff,decideRequest,pendingRequests}=await import("./collaboration-requests.ts");
+ await sql`insert into scotty_projects(id) values('revoked-handoff') on conflict do nothing`;
+ await grant("revoked-handoff","chief-0");
+ await grant("revoked-handoff","agent-12");
+ const r=await requestHandoff("revoked-handoff","chief-0","agent-12","Restricted","Grant must still exist at review time");
+ await revoke("revoked-handoff","agent-12");
+ expect(decideRequest(r.id,"approved")).rejects.toThrow("Project membership was revoked");
+ expect((await list("revoked-handoff")).messages).toHaveLength(0);
+ expect((await pendingRequests("revoked-handoff")).some((x:any)=>x.id===r.id)).toBe(true);
+ await grant("revoked-handoff","agent-12");
+ expect((await decideRequest(r.id,"approved")).delivered).toBe(true);
+ expect((await list("revoked-handoff")).messages).toHaveLength(1);
+});
