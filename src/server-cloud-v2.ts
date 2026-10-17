@@ -1,3 +1,4 @@
+import {handleRenderAgentBrains} from "./agents/render-bridge.ts";
 import {handleFolders} from './workspace/folders.ts';
 import {handleCalls} from './calls/routes.ts';
 import {handleConnectors} from './connectors/routes.ts';
@@ -135,6 +136,8 @@ Bun.serve({port:PORT,async fetch(req){
  if(u.pathname.startsWith("/api/eyes")) return handleEyesOn(req,u);
  if(u.pathname==="/api/tts"||u.pathname.startsWith("/api/voice")) return handleCloudVoice(req,u);
  if(u.pathname.startsWith("/api/memory")) return handleCloudMemory(req,u);
+ const agentBrainsResponse=await handleRenderAgentBrains(req,u,isCloudAuthenticated);
+ if(agentBrainsResponse)return agentBrainsResponse;
  if(u.pathname.startsWith("/api/")) return Response.json({ok:false,error:"S.C.O.T.T.Y. cloud route not found"},{status:404,headers:{"cache-control":"no-store"}});
 
  return Response.json({service:"S.C.O.T.T.Y.",status:"online",architecture:"cloud-gateway-v3",native:["brain","agents","activity","resources","missions","approvals","providers","connections","eyes","stt","voice","memory","forge-control","release-status"]});
