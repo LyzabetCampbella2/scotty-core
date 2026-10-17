@@ -13,3 +13,12 @@ GitHub CI runs with disposable PostgreSQL, never the Render production database.
 
 ## Known next steps
 Explicit authenticated agent service identities and request provenance are required before allowing autonomous proposals. Add project knowledge provenance display, notification routing and paginated inbox before activating agent-to-agent automation.
+
+## Stage 4: agent service identities
+- Credentials are random 256-bit bearer secrets, stored only as SHA-256 hashes in `scotty_collab_credentials`.
+- Each secret is bound to an existing agent and one authorized project, with a maximum 24-hour expiry and explicit revocation.
+- Owner-only issuance/revocation: `POST /api/agent-brains/agent-credentials` with CSRF and existing owner session. Treat the raw credential as a one-time secret; it must be provisioned only to a trusted server-side agent runtime, never exposed through HUD scripts or shared logs.
+- Agent-only submissions: `POST /api/agent-runtime/projects/<projectId>/requests` with scoped Authorization bearer. The authenticated identity is derived from the token, never from the submitted `senderId`.
+- Both `SCOTTY_AGENT_REQUESTS_ENABLED=true` and `SCOTTY_AGENT_BRAINS_ENABLED=true` must be explicitly set. Neither is enabled in production.
+- The only enabled agent action is proposing a **pending** handoff. Actual delivery still requires an owner session approval and re-checking both agents' project grants.
+- Do not enable until a trusted agent runtime can securely receive credentials, rate-limiting is in place, and deployed end-to-end tests pass.
