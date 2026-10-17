@@ -1,4 +1,4 @@
-import {issueAgentCredential,revokeAgentCredentials} from "./agent-credentials.ts";
+import {revokeAgentCredentials} from "./agent-credentials.ts";
 import {requestHandoff,pendingRequests,decideRequest} from "./collaboration-requests.ts";
 import {grant,revoke,message,share,list,revokeShare,sharedFor} from "./collaboration.ts";
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers:{"Cache-Control":"no-store"}});
@@ -11,10 +11,16 @@ export async function handleCollaboration(req:Request,u:URL):Promise<Response>{
   try{
    const b=await req.json();
    if(!id(b.agentId)||!id(b.projectId))return json({error:"Invalid agent/project"},400);
-   if(b.decision==="issue")return json({ok:true,...await issueAgentCredential(b.agentId,b.projectId,b.ttlMinutes??60)},201);
+   if(b.decision==="issue")return json({ok:false,error:"Credential issuance requires trusted server-side provisioning; browser issuance is disabled"},403);
    if(b.decision==="revoke")return json({ok:true,...await revokeAgentCredentials(b.agentId,b.projectId)});
    return json({error:"Invalid action"},400);
   }catch(e){return json({ok:false,error:e instanceof Error?e.message:"Credential request failed"},400);}
+ }
+ const notificationRoute=u.pathname==="/api/agent-brains/collaboration-notifications";
+ if(notificationRoute){
+  if(req.method!=="GET")return json({error:"Method not allowed"},405);
+  const pending=await pendingRequests();
+  return json({ok:true,pendingCount:pending.length,latest:pending.slice(-5).reverse().map(x=>({id:x.id,projectId:x.project_id,kind:x.kind,title:x.title,sourceAgentId:x.source_agent_id,recipientAgentId:x.recipient_agent_id,createdAt:x.created_at})),limited:pending.length===100});
  }
  const queueRoute=u.pathname==="/api/agent-brains/collaboration-requests";
  const decisionRoute=u.pathname.match(/^\/api\/agent-brains\/collaboration-requests\/([0-9a-f-]{36})$/i);
