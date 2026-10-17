@@ -12,7 +12,7 @@ async function ensure(){await ensureCollaboration();if(!ready)ready=(async()=>{c
  reviewed_by text,reviewed_at timestamptz,created_at timestamptz default now(),
  check(source_agent_id<>recipient_agent_id),check(length(summary) between 1 and 12000))`;
  await q`create index if not exists scotty_collab_requests_queue on scotty_collab_requests(status,created_at)`;})().catch(e=>{ready=undefined;throw e});return ready;}
-export async function requestHandoff(p:string,source:string,recipient:string,title:string,summary:string,memoryId?:string){
+export async function requestHandoff(p:string,source:string,recipient:string,title:string,summary:string,memoryId?:string,agentRuntime=false){
  await ensure();const q=db();
  if(source===recipient)throw Error("Distinct agents required");
  const kind=memoryId?"share_memory":"handoff";
@@ -20,6 +20,14 @@ export async function requestHandoff(p:string,source:string,recipient:string,tit
  const a=await tx`select id from scotty_projects where id=${p}`;
  const g=await tx`select agent_id from scotty_collab_grants where project_id=${p} and agent_id in ${tx([source,recipient])}`;
  if(!a.length||g.length!==2)throw Error("Project membership is required");
+ if(agentRuntime){
+   // Serialize quota checks per agent+project to prevent parallel request bursts.
+   await tx`select pg_advisory_xact_lock(hashtext(${p}),hashtext(${source}))`;
+   const counts=await tx`select count(*)::int as n from scotty_collab_requests
+    where project_id=${p} and source_agent_id=${source}
+    and created_at>now()-interval '1 hour'`;
+   if(Number(counts[0]?.n||0)>=20)throw Error("Agent request limit reached: 20 per hour per project");
+ }
  const id=crypto.randomUUID();
  await tx`insert into scotty_collab_requests(id,project_id,source_agent_id,recipient_agent_id,kind,title,summary,memory_id)
  values(${id},${p},${source},${recipient},${kind},${title},${summary},${memoryId??null})`;
