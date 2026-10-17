@@ -60,7 +60,7 @@
  const contentQuestion=()=> 'What would you like to add: a note, photos or files, a saved file, a Google Doc, a calendar reference, or a subfolder? Say done if that is all.';
  function begin(step,data={}){pendingName=null;dialogue={...data,step,thread:window.SCOTTYConversation?.db?.state?.active||null,expires:Date.now()+300000};}
  function currentDialogue(){if(dialogue&&(dialogue.thread!==(window.SCOTTYConversation?.db?.state?.active||null)||Date.now()>dialogue.expires))dialogue=null;return dialogue;}
- function addition(text){const s=text.toLowerCase().replace(/[.!?]+$/,'').replace(/^(?:i want to |please )?(?:add|put|attach|include|save|dictate) (?:some |a |an |my )?/,'').replace(/^(?:a |an |some |my )/,'');if(/^(?:info(?:rmation)?|notes?|details|description)$/.test(s))return 'note';if(/^(?:photos?|pictures?|videos?|media|files?|documents?|docs?|photos or files)$/.test(s))return 'upload';if(/^(?:saved|existing) files?$/.test(s))return 'file';if(/^google (?:doc|document)s?$/.test(s))return 'google';if(/^(?:apple )?calendar(?: event| reference)?$/.test(s))return 'calendar';if(/^(?:subfolder|nested folder|folder inside this folder)$/.test(s))return 'subfolder';return null;}
+ function addition(text){const s=text.toLowerCase().replace(/[.!?]+$/,'').replace(/^(?:i want to |please )?(?:add|put|attach|include|save|dictate|upload|choose) (?:some |a |an |my )?/,'').replace(/^(?:a |an |some |my )/,'');if(/^(?:info(?:rmation)?|notes?|details|description)$/.test(s))return 'note';if(/^(?:photos?|pictures?|videos?|media|files?|documents?|docs?|photos or files)$/.test(s))return 'upload';if(/^(?:saved|existing) files?$/.test(s))return 'file';if(/^google (?:doc|document)s?$/.test(s))return 'google';if(/^(?:apple )?calendar(?: event| reference)?$/.test(s))return 'calendar';if(/^(?:subfolder|nested folder|folder inside this folder)$/.test(s))return 'subfolder';return null;}
  async function requestAddition(type,id,signal){
   if(type==='upload'){dialogue=null;return prepareUpload(id);}
   if(type==='subfolder'){dialogue=null;pendingName={type:'folder',thread:window.SCOTTYConversation?.db?.state?.active||null,expires:Date.now()+120000,parent:path(id)};return {handled:true,reply:'What should I call the subfolder?'};}
@@ -70,6 +70,7 @@
  async function guide(text,signal){
   let d=currentDialogue(),answer=core.cleanName(text),m;const out=reply=>({handled:true,reply});
   if(/^(?:cancel(?: folder setup| adding| note)?|never mind|nevermind|done|that is all|nothing else|no thanks)$/i.test(answer)&&d){dialogue=null;return out('Folder conversation finished. Nothing else was saved.');}
+  if(pendingUpload&&/^(?:cancel(?: (?:the )?upload)?|never mind|nevermind)$/i.test(answer)){pendingUpload=null;picker.value='';uploadPrompt.hidden=true;return out('Upload cancelled. No selected files were saved.');}
   if(/^(?:save (?:the )?(?:selected|chosen) files|save (?:my )?uploads)$/i.test(answer)&&pendingUpload){active=pendingUpload;await saveUploads(pendingUpload);uploadPrompt.hidden=true;pendingUpload=null;return out(notice.textContent);}
   if(d&&d.step!=='content'&&d.step!=='note-body'&&d.step!=='note-more'&&/^(?:open|show|create|make|move|rename|delete|send|publish|approve|call)\b/i.test(answer)&&! /^(?:call|name|label) it /i.test(answer)){dialogue=null;d=null;}
   if(d&&d.step==='content'){
@@ -102,7 +103,7 @@
   if((m=text.match(/^(?:read|repeat) (?:the )?note draft$/i))&&currentDialogue()?.body)return out(dialogue.body);
   if((m=text.match(/^(?:read|show) note (.+?) (?:in|from) (?:the )?folder (.+)$/i))){await refresh();const f=folder(m[2]),note=core.resolve(state.files.filter(x=>x.folderId===f.id&&x.metadata?.source==='scotty-note'),m[1]);return out(note.name+': '+note.metadata.text);}
   let type=addition(text),target=null;
-  if((m=text.match(/^(?:add|attach|put|dictate) (.+?) (?:to|in|into) (?:the )?(?:folder (.+)|this folder)$/i))){type=addition(m[1]);target=m[2]||'this';}
+  if((m=text.match(/^(?:add|attach|put|dictate|upload|choose) (.+?) (?:to|in|into) (?:the )?(?:folder (.+)|this folder)$/i))){type=addition(m[1]);target=m[2]||'this';}
   if(type){await refresh();let f;if(target)f=folder(target);else {try{f=folder('this');}catch{}}
    if(!f){begin('destination',{type});return out('Which folder should I add it to? Say its name or full folder path.');}return requestAddition(type,f.id,signal);
   }
