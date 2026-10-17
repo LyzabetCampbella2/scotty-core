@@ -1,20 +1,20 @@
-import { createBrain,getBrain,listBrains,listMemories,listProposals,propose,review } from "./store.ts";
+import { createBrain,getBrain,listBrains,listMemories,listProposals,propose,review } from "./postgres-store.ts";
 import type { Actor,Scope } from "./brain.ts";
 const scopes=["private","project","department","network"];
 const validId=(v:unknown)=>typeof v==="string"&&/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}$/.test(v);
 const validText=(v:unknown,max:number)=>typeof v==="string"&&v.trim().length>0&&v.length<=max;
 const validSources=(v:unknown)=>Array.isArray(v)&&v.length<=50&&v.every(x=>typeof x==="string"&&x.length<=2048);
 function json(data:unknown,status=200){return Response.json(data,{status,headers:{"Cache-Control":"no-store"}});}
-export async function handleAgents(req:Request,u:URL):Promise<Response>{
+export async function handleAgents(req:Request,u:URL,ownerSessionVerified=false):Promise<Response>{
  const token=process.env.SCOTTY_BRAIN_ADMIN_TOKEN;
- if(!token)return json({ok:false,error:"Brain API disabled until admin token is configured"},503);
+ if(!token&&!ownerSessionVerified)return json({ok:false,error:"Brain API disabled until admin token is configured"},503);
  const auth=req.headers.get("authorization");
- const direct=auth===`Bearer ${token}`;
+ const direct=Boolean(token&&auth===`Bearer ${token}`);
  const session=process.env.SCOTTY_BRAIN_OWNER_SESSION_TOKEN;
  const cookie=req.headers.get("cookie")?.split(";").map(x=>x.trim()).find(x=>x.startsWith("scotty_owner_session="))?.slice("scotty_owner_session=".length);
  const viaCookie=Boolean(session&&cookie===session);
- if(!direct&&!viaCookie)return json({ok:false,error:"Unauthorized"},401);
- if(viaCookie&&req.method!=="GET"){
+ if(!direct&&!viaCookie&&!ownerSessionVerified)return json({ok:false,error:"Unauthorized"},401);
+ if((viaCookie||ownerSessionVerified)&&req.method!=="GET"){
   const origin=req.headers.get("origin");
   if(!origin||origin!==u.origin)return json({ok:false,error:"Cross-origin write blocked"},403);
   if(req.headers.get("x-scotty-csrf")!=="1")return json({ok:false,error:"CSRF header required"},403);
