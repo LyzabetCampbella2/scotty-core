@@ -5,12 +5,14 @@ import { createBrain,getBrain } from "./store.ts";
 type Legacy={id:string;name:string;department:string;specialty?:string;instructions?:string;knowledgeSources?:string[]};
 const file=process.argv[2];
 const apply=process.argv.includes("--apply");
+if(apply&&process.env.SCOTTY_AGENT_IMPORT_CONFIRMED!=="yes")throw new Error("Set SCOTTY_AGENT_IMPORT_CONFIRMED=yes only after reviewing the dry run");
 if(!file)throw new Error("Usage: bun run src/agents/registry-import.ts <reviewed-export.json> [--apply]");
 const records:unknown=JSON.parse(await readFile(file,"utf8"));
 if(!Array.isArray(records))throw new Error("Expected JSON array");
 const seen=new Set<string>();
 for(const r of records as Legacy[]){
  if(!r||typeof r.id!=="string"||!r.id.trim()||typeof r.name!=="string"||!r.name.trim()||typeof r.department!=="string"||!r.department.trim()||seen.has(r.id))throw new Error("Invalid or duplicate agent record");
+ if(r.knowledgeSources!==undefined&&(!Array.isArray(r.knowledgeSources)||!r.knowledgeSources.every(x=>typeof x==="string")))throw new Error("Invalid knowledge sources for "+r.id);
  seen.add(r.id);
 }
 let created=0,existing=0;
