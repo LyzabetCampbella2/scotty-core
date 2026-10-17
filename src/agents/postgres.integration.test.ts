@@ -118,7 +118,7 @@ test("Part 2: project-scoped agent identity cannot impersonate or cross projects
  const authReq=new Request("https://scotty.example/",{headers:header});
  expect((await authenticateAgent(authReq,"agent-identity-ci"))?.agentId).toBe("chief-0");
  expect(await authenticateAgent(authReq,"different-project-ci")).toBeNull();
- process.env.SCOTTY_AGENT_REQUESTS_ENABLED="true";
+ process.env.SCOTTY_AGENT_REQUESTS_ENABLED="true";process.env.SCOTTY_AGENT_BRAINS_ENABLED="true";
  const url=new URL("https://scotty.example/api/agent-runtime/projects/agent-identity-ci/requests");
  const reply=await handleAgentSubmit(new Request(url,{method:"POST",headers:header,body:JSON.stringify({senderId:"agent-12",recipientId:"agent-12",title:"Delegated evidence",summary:"Authorized source must come from token"})}),url);
  expect(reply.status).toBe(201);
@@ -129,5 +129,5 @@ test("Part 2: project-scoped agent identity cannot impersonate or cross projects
  expect(await authenticateAgent(authReq,"agent-identity-ci")).toBeNull();
  const denied=await handleAgentSubmit(new Request(url,{method:"POST",headers:header,body:JSON.stringify({recipientId:"agent-12",title:"Second",summary:"Must fail"})}),url);
  expect(denied.status).toBe(401);
- delete process.env.SCOTTY_AGENT_REQUESTS_ENABLED;
+ delete process.env.SCOTTY_AGENT_REQUESTS_ENABLED;delete process.env.SCOTTY_AGENT_BRAINS_ENABLED;
 });
