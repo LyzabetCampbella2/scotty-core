@@ -9,6 +9,7 @@ on:
       - 'src/agents/collaboration.ts'
       - 'src/agents/collaboration-api.ts'
       - 'src/agents/collaboration-requests.ts'
+      - 'src/agents/collaboration-inbox.ts'
       - 'src/agents/api.ts'
       - 'src/agents/render-bridge.ts'
       - 'src/agents/render-bridge.test.ts'
