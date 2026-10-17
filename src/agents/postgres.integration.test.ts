@@ -48,3 +48,24 @@ test("unknown agent ID is never inserted into roster",async()=>{
  expect(after).toEqual(registryBefore);
  expect(await sql`select count(*)::int as n from scotty_agents`).toEqual([{n:128}]);
 });
+
+test("Part 2: grants gate messages and memory sharing, with revocation",async()=>{
+ const {grant,revoke,message,share,list,sharedFor}=await import("./collaboration.ts");
+ await sql`create table if not exists scotty_projects(id text primary key)`;
+ await sql`insert into scotty_projects(id) values('book-test') on conflict do nothing`;
+ expect(message("book-test","chief-0","agent-12","without a grant")).rejects.toThrow();
+ await grant("book-test","chief-0");await grant("book-test","agent-12");
+ const sent=await message("book-test","chief-0","agent-12","Approved owner-mediated handoff");
+ expect(sent.id).toBeTruthy();
+ const proposed=await propose("chief-0",{text:"Project-only reviewed reference",source:"CI fixture",scope:"project",projectId:"book-test"});
+ await review(proposed.id,"approved","owner");
+ const found=await sql`select id from scotty_brain_memories where proposal_id=${proposed.id}`;
+ await share("book-test",found[0].id,"agent-12");
+ expect((await sharedFor("book-test","agent-12")).length).toBe(1);
+ await revoke("book-test","agent-12");
+ expect(sharedFor("book-test","agent-12")).rejects.toThrow();
+ await grant("book-test","agent-12");
+ expect((await sharedFor("book-test","agent-12")).length).toBe(0);
+ const snapshot=await list("book-test");expect(snapshot.messages.length).toBe(1);
+ expect(snapshot.audit.some((x:any)=>x.action==="revoke")).toBe(true);
+});
