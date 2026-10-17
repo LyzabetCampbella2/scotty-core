@@ -1,7 +1,22 @@
+import {requestHandoff,pendingRequests,decideRequest} from "./collaboration-requests.ts";
 import {grant,revoke,message,share,list,revokeShare,sharedFor} from "./collaboration.ts";
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers:{"Cache-Control":"no-store"}});
 const id=(s:unknown)=>typeof s==="string"&&s.length>0&&s.length<=160&&/^[\w-]+$/.test(s);
 export async function handleCollaboration(req:Request,u:URL):Promise<Response>{
+ const queueRoute=u.pathname==="/api/agent-brains/collaboration-requests";
+ const decisionRoute=u.pathname.match(/^\/api\/agent-brains\/collaboration-requests\/([0-9a-f-]{36})$/i);
+ if(queueRoute||decisionRoute){
+  try{
+   if(queueRoute&&req.method==="GET")return json({ok:true,requests:await pendingRequests()});
+   if(req.method!=="POST")return json({error:"Method not allowed"},405);
+   if(req.headers.get("origin")!==u.origin||req.headers.get("x-scotty-csrf")!=="1")return json({error:"Origin/CSRF verification failed"},403);
+   const data=await req.json();
+   if(decisionRoute&&["approved","rejected"].includes(data.decision))return json({ok:true,...await decideRequest(decisionRoute[1],data.decision)});
+   if(queueRoute&&id(data.projectId)&&id(data.senderId)&&id(data.recipientId)&&typeof data.title==="string"&&data.title.trim()&&data.title.length<=240&&typeof data.summary==="string"&&data.summary.trim()&&data.summary.length<=10000&&(!data.memoryId||id(data.memoryId)))
+    return json({ok:true,request:await requestHandoff(data.projectId,data.senderId,data.recipientId,data.title,data.summary,data.memoryId)},201);
+   return json({error:"Invalid request"},400);
+  }catch(e){return json({ok:false,error:e instanceof Error?e.message:"Unknown error"},400);}
+ }
  const match=u.pathname.match(/^\/api\/agent-brains\/collaboration\/([\w-]+)(?:\/(grants|messages|shares|received|audit))?$/);
  if(!match)return json({error:"Route not found"},404);
  const p=match[1],action=match[2],method=req.method;
