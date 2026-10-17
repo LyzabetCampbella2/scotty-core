@@ -915,7 +915,7 @@ body.spatial-node-grab .snode.selected{animation:nodeGrab .7s ease-in-out infini
    if(!spatialViewLoaded&&R.view){const v=R.view;orbit=Number(v.orbit)||0;tilt=Number.isFinite(Number(v.tilt))?Number(v.tilt):-.12;zoom=Number(v.zoom)||.82;spread=Number(v.spread)||1;panX=Number(v.panX)||0;panY=Number(v.panY)||0;collapsedSet=new Set(Array.isArray(v.collapsed)?v.collapsed:[]);spatialViewLoaded=true}
    allNodes=nodes.slice();
    nodes=nodes.filter(n=>!(n.type==='agent'&&!n.raw?.isChief&&collapsedSet.has('dept:'+n.raw?.department))&&!((n.type==='file'||n.type==='folder'||n.type==='task')&&n.raw?.projectId&&collapsedSet.has('project:'+n.raw.projectId)));
-   renderNodes()
+   renderNodes();if(selected&&drawer.classList.contains('open')){const current=allNodes.find(n=>n.id===selected.id);if(current)select(current,true,false);else{drawer.classList.remove('open');selected=null;}}
  }
  function groupKey(n){if(n.type==='project')return 'project:'+n.raw?.id;if(n.type==='agent'&&n.raw?.isChief)return 'dept:'+n.raw?.department;return null}
  function toggleGroup(n){const k=groupKey(n);if(!k)return;collapsedSet.has(k)?collapsedSet.delete(k):collapsedSet.add(k);document.querySelector('#cs').textContent=(collapsedSet.has(k)?'COLLAPSED • ':'EXPANDED • ')+n.name;saveViewSoon();synthesize()}

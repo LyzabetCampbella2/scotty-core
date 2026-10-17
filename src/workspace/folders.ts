@@ -24,7 +24,12 @@ export async function handleFolders(req:Request,u:URL){try{
   const provider=u.searchParams.get('provider');if(provider!=='googledocs'&&provider!=='appleplanner')throw Error('Choose Google Docs or Apple Calendar.');
   const data=await addonRead(provider,provider==='googledocs'?'documents':'snapshot');return json({ok:true,provider,data,checkedAt:new Date().toISOString()});
  }
- if(req.method==='GET'&&path==='')return json({ok:true,folders:await q`select id,name,project_id as "projectId",parent_folder_id as "parentFolderId" from scotty_folders order by name`,projects:await q`select id,name from scotty_projects order by name`,files:await q`select id,name,project_id as "projectId",folder_id as "folderId",path,mime_type as "mimeType",metadata from scotty_files order by updated_at desc limit 1000`,fileLimit:1000});
+ if(req.method==='GET'&&path==='/contents'){
+  const folderId=u.searchParams.get('folderId')||null,after=String(u.searchParams.get('after')||'').slice(0,240);
+  const rows=await q`select id,name,project_id as "projectId",folder_id as "folderId",path,mime_type as "mimeType",size_bytes as "sizeBytes",created_at as "createdAt",updated_at as "updatedAt",metadata from scotty_files where folder_id is not distinct from ${folderId} and id>${after} order by id limit 201`;
+  const files=rows.slice(0,200);return json({ok:true,files,nextCursor:rows.length>200?files.at(-1).id:null});
+ }
+ if(req.method==='GET'&&path==='')return json({ok:true,folders:await q`select id,name,project_id as "projectId",parent_folder_id as "parentFolderId",created_at as "createdAt",updated_at as "updatedAt" from scotty_folders order by name`,projects:await q`select id,name from scotty_projects order by name`,files:u.searchParams.get('structure')==='1'?[]:await q`select id,name,project_id as "projectId",folder_id as "folderId",path,mime_type as "mimeType",size_bytes as "sizeBytes",created_at as "createdAt",updated_at as "updatedAt",metadata from scotty_files order by updated_at desc limit 1000`,fileLimit:1000});
  if(req.method!=='POST')return json({ok:false,error:'Folder route not found'},404);
  const b=await req.json();const result=await q.begin(async(t:any)=>{
   await t`select pg_advisory_xact_lock(730041)`;

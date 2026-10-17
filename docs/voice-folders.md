@@ -60,3 +60,12 @@ Voice creation selects the orange node and keeps the form closed. Scotty asks wh
 - If no folder is selected, Scotty asks which one. Ambiguous folder labels require a full folder path. `A subfolder` after creation asks its name and nests it in the folder just created.
 
 Draft conversations are limited to their originating thread and expire after five minutes. They remain in memory only until saved or cancelled. The Scottish gateway must be available for audible questions; the same questions remain visible in captions and accept typed responses when speech generation is unavailable.
+
+
+## Folder database view
+
+Open Folder, folder Contents, the Folders sidebar entry, or `Open folder Writing` now enter a dedicated folder database. Creation still asks questions without opening forms. The database uses immediate children, breadcrumbs, an inline note/media/event preview, counts, table/cards, search by name or note text, type filters, grouping by type, and sorting by name, updated date or file size. View preferences are remembered per folder in the current browser. Manual Setup deliberately opens the older forms.
+
+Say `Sort by name`, `Sort by newest`, `Group by type`, `Ungroup`, `Show only notes`, `Use cards`, `Use table`, `Search this folder for architecture`, `Clear folder filters`, `Open item 2`, `Open subfolder Research`, `Go up`, or `Back to canvas`. `Move file Chapter.pdf into folder Writing / Drafts` moves an item from the open database; it will not pick a similarly named file from another folder. With an inline file preview open, `Move this into folder …` uses that previewed file.
+
+`Change the name to …`, `Rename it to …`, and `Rename this folder` target the selected folder. The last phrase asks its new name. After resource refresh, the canvas drawer rebinds to the fresh node so its heading shows the confirmed name. These interactions use the existing microphone/conversation path. Scottish audible replies still require the separate voice gateway.
