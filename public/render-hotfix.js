@@ -59,6 +59,8 @@
  }
  async function playScottish(text,seq,controller){
   const signal=controller.signal;
+  const generationDeadline=setTimeout(()=>controller.abort(new DOMException('Scottish voice generation timed out. You can keep giving commands.','TimeoutError')),20000);
+  try{
   const jobId=await queueRequest(text,signal);
   state('GENERATING');setCommand('VOICE GENERATING');
   const started=Date.now();
@@ -87,6 +89,7 @@
     const blob=await audio.blob();
     if(!blob.size)throw Error('Scottish audio empty');
     if(signal.aborted||seq!==generation)throw new DOMException('Superseded','AbortError');
+    clearTimeout(generationDeadline);
     const url=URL.createObjectURL(blob);
     try{
      await new Promise((resolve,reject)=>{
@@ -114,6 +117,7 @@
    }
   }
   throw Error('Piper voice generation timed out');
+  }finally{clearTimeout(generationDeadline)}
  }
  let acknowledgement=null;
  async function acknowledge(seq){
@@ -141,15 +145,15 @@
    for(const part of parts){if(seq!==generation||controller.signal.aborted)throw new DOMException('Superseded','AbortError');await playScottish(part,seq,controller)}
    if(seq===generation){state(voiceArmed?'LISTENING':'READY');setCommand(voiceArmed?'LISTENING':'READY')}
   }catch(e){
-   if(seq!==generation||e?.name==='AbortError')return;
+   if(seq!==generation)return;
    console.warn('S.C.O.T.T.Y. Scottish voice',e);
-   state('BUSY');setCommand('SCOTTISH VOICE BUSY');
+   state('ERROR');setCommand(voiceArmed?'VOICE UNAVAILABLE • LISTENING':'VOICE UNAVAILABLE • COMMANDS READY');
    const msg=$('#voiceMsg');if(msg)msg.textContent='Scottish voice: '+String(e?.message||e).slice(0,180);
   }finally{
    if(seq===generation){if(progressTimer){clearInterval(progressTimer);progressTimer=null}active=null;speaking=false;try{clearVoiceBuffers()}catch{}}
   }
  };
- window.SCOTTYVoiceTransport={stop(){++generation;stopCurrent();speaking=false;state(voiceArmed?'LISTENING':'READY')},get state(){return voiceState}};
+ window.SCOTTYVoiceTransport={stop(){++generation;stopCurrent();speaking=false;state(voiceArmed?'LISTENING':'READY')},get state(){return voiceState},async check(){const r=await fetch(base+'/health',{credentials:'include',cache:'no-store',signal:AbortSignal.timeout(10000)});if(!r.ok)throw await responseError(r);const data=await r.json();if(data.ok===false||data.ready===false)throw Error('The voice gateway responded, but its worker is not ready.');return {reachable:true};}};
   const previousCommand=command;
   command=async function(t){
     const token=window.SCOTTYConversation?.getRun(),thread=window.SCOTTYConversation?.db.state.active;
@@ -207,7 +211,7 @@
    await a.play();
   }catch(e){const msg=$('#voiceMsg');if(msg)msg.textContent='Scottish preview: '+String(e?.message||e)}
  };
- const panel=$('#voiceSettings');if(panel)panel.appendChild(preview);
+ const panel=$('#voiceSettings');if(panel){panel.appendChild(preview);const check=document.createElement('button');check.textContent='CHECK VOICE CONNECTION';check.id='scottyCheckVoiceConnection';check.onclick=async()=>{const msg=$('#voiceMsg');if(msg)msg.textContent='Checking Scottish voice connection…';try{await window.SCOTTYVoiceTransport.check();if(msg)msg.textContent='Scottish voice gateway reachable. Test Voice checks actual generation and playback.';}catch(e){if(msg)msg.textContent='Scottish voice unavailable: '+e.message+'. Folder and text commands still work.';}};panel.appendChild(check);}
 
  // Rebind the actual TEST button, bypassing older ElevenLabs handlers.
  // A direct user tap is important for Safari speech permission.

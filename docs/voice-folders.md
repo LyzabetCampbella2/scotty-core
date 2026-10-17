@@ -40,3 +40,9 @@ Folders are index organization within Scotty; moving an item does not relocate i
 ## Validation
 
 Run `node --test tests/*.test.mjs`. Folder tests cover ancestor loops, subtree project propagation, exact name resolution, URL validation, voice parsing, and owner-route protection. Live microphone, camera/hand tracking, external Docs access and Apple device exports require real-device verification.
+
+## Speech recovery
+
+“Create a folder” and “create a project” ask for a name. The next response can be a plain name or “call it NAME”; it expires after two minutes and is scoped to the conversation. Opening another command cancels the naming prompt. Boundary quotation marks from transcription are removed from labels.
+
+Unknown conversational requests do not run the strict command-chain quote validator. Explicit saved chains retain strict parsing. Scottish speech generation has a 20-second deadline per chunk; an unavailable worker sets Voice Unavailable and releases the command path instead of remaining Busy. A wake-name command can replace waiting voice generation; approval/send/publish/delete requests still require their existing review path. Actual playback continues to suppress non-interruption echo. Check Voice Connection in Voice settings performs a bounded gateway health check without changing the selected voice.

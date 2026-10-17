@@ -101,8 +101,10 @@
   const named=window.SCOTTYVoiceWorkspace?.hasWake(raw)||/^(?:hey\s+)?(?:scotty|scottie|scoty|scotti)\b/i.test(raw),control=controlsPreview(raw);
   const callControl=window.SCOTTYCallsCore?.control(raw),busyCapture=!!(speaking||busy||meta.capturedDuringSpeech);
   if(window.SCOTTYCallsCore?.heardAllowed(named,callControl,busyCapture,window.SCOTTYVoiceTransport?.state)&&window.SCOTTYCalls?.execute(raw)){caption('CALL CONTROL',raw);return;}
-  // While audio is playing, require the wake name and an explicit interruption to avoid acting on speaker echo.
-  if(speaking||busy||meta.capturedDuringSpeech){if(named&&control){const c=controls(raw);if(c.text){if(prefs.review)showDraft(c.text);else await command(c.text)}return}return}
+  // Suppress speaker echo during playback; an explicit wake command can replace a request while waiting for generation.
+  const waitingForVoice=['GENERATING','BUSY','ERROR','READY TO PLAY'].includes(window.SCOTTYVoiceTransport?.state);
+  const safeWakeCommand=waitingForVoice&&!/\b(?:approve|confirm|send|publish|delete|authorize|pair)\b/i.test(raw);
+  if(speaking||busy||meta.capturedDuringSpeech){if(named&&(control||safeWakeCommand)){const c=controls(raw);if(c.text){if(prefs.review)showDraft(c.text);else await command(c.text)}return}return}
   if(control){const c=controls(raw);if(c.text){if(prefs.review)showDraft(c.text);else await command(c.text)}return}
   if(!named&&Date.now()>=convoUntil)return;
   convoUntil=Date.now()+90000;
