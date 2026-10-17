@@ -28,7 +28,7 @@ export async function requestHandoff(p:string,source:string,recipient:string,tit
 }
 export async function pendingRequests(p?:string){
  await ensure();const q=db();
- return p?await q`select * from scotty_collab_requests where project_id=${p} order by created_at desc limit 100`:
+ return p?await q`select * from scotty_collab_requests where project_id=${p} and status='pending' order by created_at desc limit 100`:
  await q`select * from scotty_collab_requests where status='pending' order by created_at asc limit 100`;
 }
 export async function decideRequest(id:string,decision:"approved"|"rejected"){
