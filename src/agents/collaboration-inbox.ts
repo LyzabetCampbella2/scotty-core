@@ -5,9 +5,10 @@ export function renderCollaborationInbox(){
  article{background:#1b2925;border:1px solid #5d6d64;border-radius:12px;padding:18px;margin:12px 0}
  small{color:#bdc7c0}h1{color:#dfc78d}button{border:0;border-radius:8px;background:#d9c58e;color:#17231f;padding:10px 14px;margin:10px 8px 0 0;cursor:pointer}
  button:disabled{opacity:.5}
- </style></head><body><main><h1>Collaboration approval inbox</h1><p>Project handoffs are held until you approve them. Review sources and recipients before granting access.</p><section id="requests">Loading…</section><p id="notice" role="status"></p></main><script>
- const root=document.getElementById("requests"),notice=document.getElementById("notice");
- async function load(){try{const r=await fetch("/api/agent-brains/collaboration-requests",{credentials:"same-origin"});if(!r.ok)throw Error("Owner session required");const data=await r.json();root.replaceChildren();for(const p of data.requests){
+ </style></head><body><main><h1>Collaboration approval inbox</h1><p>Project handoffs are held until you approve them. Review sources and recipients before granting access.</p><button id="refresh" type="button">Refresh approval queue</button><p id="count" aria-live="polite"></p><section id="requests">Loading…</section><p id="notice" role="status"></p></main><script>
+ const root=document.getElementById("requests"),notice=document.getElementById("notice"),counter=document.getElementById("count");
+ document.getElementById("refresh").addEventListener("click",()=>load());
+ async function load(){try{const r=await fetch("/api/agent-brains/collaboration-requests",{credentials:"same-origin"});if(!r.ok)throw Error("Owner session required");const data=await r.json();root.replaceChildren();counter.textContent=data.requests.length+" pending request(s) requiring review";for(const p of data.requests){
  const article=document.createElement("article"),h=document.createElement("h3"),summary=document.createElement("p"),details=document.createElement("small");
  h.textContent=p.title;summary.textContent=p.summary;
  details.textContent="Project: "+p.project_id+" | From: "+p.source_agent_id+" | To: "+p.recipient_agent_id+" | "+p.kind;
