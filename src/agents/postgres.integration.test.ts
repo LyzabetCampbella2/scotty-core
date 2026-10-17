@@ -104,3 +104,30 @@ test("Part 2: revoked membership blocks approval without consuming pending reque
  expect((await decideRequest(r.id,"approved")).delivered).toBe(true);
  expect((await list("revoked-handoff")).messages).toHaveLength(1);
 });
+
+test("Part 2: project-scoped agent identity cannot impersonate or cross projects",async()=>{
+ const {grant}=await import("./collaboration.ts");
+ const {issueAgentCredential,authenticateAgent,revokeAgentCredentials}=await import("./agent-credentials.ts");
+ const {handleAgentSubmit}=await import("./agent-runtime-api.ts");
+ await sql`insert into scotty_projects(id) values('agent-identity-ci'),('different-project-ci') on conflict do nothing`;
+ await grant("agent-identity-ci","chief-0");
+ await grant("agent-identity-ci","agent-12");
+ const issued=await issueAgentCredential("chief-0","agent-identity-ci",5);
+ expect(issued.credential.startsWith("scotty_agent_")).toBe(true);
+ const header={authorization:"Bearer "+issued.credential,"content-type":"application/json"};
+ const authReq=new Request("https://scotty.example/",{headers:header});
+ expect((await authenticateAgent(authReq,"agent-identity-ci"))?.agentId).toBe("chief-0");
+ expect(await authenticateAgent(authReq,"different-project-ci")).toBeNull();
+ process.env.SCOTTY_AGENT_REQUESTS_ENABLED="true";
+ const url=new URL("https://scotty.example/api/agent-runtime/projects/agent-identity-ci/requests");
+ const reply=await handleAgentSubmit(new Request(url,{method:"POST",headers:header,body:JSON.stringify({senderId:"agent-12",recipientId:"agent-12",title:"Delegated evidence",summary:"Authorized source must come from token"})}),url);
+ expect(reply.status).toBe(201);
+ const created=await reply.json();
+ const rows=await sql`select source_agent_id from scotty_collab_requests where id=${created.request.id}`;
+ expect(rows[0].source_agent_id).toBe("chief-0");
+ await revokeAgentCredentials("chief-0","agent-identity-ci");
+ expect(await authenticateAgent(authReq,"agent-identity-ci")).toBeNull();
+ const denied=await handleAgentSubmit(new Request(url,{method:"POST",headers:header,body:JSON.stringify({recipientId:"agent-12",title:"Second",summary:"Must fail"})}),url);
+ expect(denied.status).toBe(401);
+ delete process.env.SCOTTY_AGENT_REQUESTS_ENABLED;
+});
