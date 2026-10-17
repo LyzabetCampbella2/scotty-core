@@ -1,6 +1,7 @@
 (function(root){
  const key='scottyConversationThreadsV2',prefsKey='scottyConversationPreferencesV2';
- function preferences(v={}){return {speed:Math.max(.65,Math.min(1.5,Number(v.speed)||1)),length:['brief','balanced','detailed'].includes(v.length)?v.length:'balanced',tone:['calm','warm','direct'].includes(v.tone)?v.tone:'calm',review:v.review!==false,pronunciations:String(v.pronunciations||'').slice(0,3000)}}
+ function preferences(v={}){return {speed:Math.max(.65,Math.min(1.5,Number(v.speed)||1)),length:['brief','balanced','detailed'].includes(v.length)?v.length:'balanced',tone:['calm','warm','direct'].includes(v.tone)?v.tone:'calm',review:v.review===true,voiceModeVersion:1,pronunciations:String(v.pronunciations||'').slice(0,3000)}}
+ function loadPreferences(storage){let saved={};try{const value=JSON.parse(storage.getItem(prefsKey)||'{}');if(value&&typeof value==='object'&&!Array.isArray(value))saved=value;}catch{}if(saved.voiceModeVersion!==1)saved={...saved,review:false};const prefs=preferences(saved);try{storage.setItem(prefsKey,JSON.stringify(prefs))}catch{}return prefs;}
  function chunks(text,limit=190){
   const words=String(text||'').trim().split(/\s+/),out=[];let part='';
   for(let word of words){while(word.length>limit){if(part){out.push(part);part=''}out.push(word.slice(0,limit));word=word.slice(limit)}if(!word)continue;if(part.length+word.length+1>limit){out.push(part);part=''}part+=(part?' ':'')+word}if(part)out.push(part);return out;
@@ -24,5 +25,5 @@
   const get=id=>state.threads.find(x=>x.id===(id||state.active));
   return {state,get,persisted:()=>!failed,save,add(name){if(state.threads.length>=20)throw Error('You can keep up to 20 threads on this device.');const t={id:uid(),name:String(name).trim().slice(0,80)||'New conversation',turns:[]};state.threads.push(t);state.active=t.id;save();return t},switch(id){if(!get(id))return false;state.active=id;save();return true},remember(role,text,id,extra={}){const t=get(id);if(!t||!['user','assistant'].includes(role))return;t.turns.push({role,text:String(text).slice(0,12000),at:Date.now(),...extra});t.turns=t.turns.slice(-100);save()},history(id,space){return (get(id)?.turns||[]).filter(x=>x.status!=='cancelled'&&(!space||(x.memorySpace||'shared')===space)).map(x=>({role:x.role,text:x.text})).slice(-24)},pending(value,id){const t=get(id);if(t){t.pending=value;save()}}};
  }
- root.SCOTTYConversationCore={preferences,chunks,pronounce,store,key,prefsKey};
+ root.SCOTTYConversationCore={preferences,loadPreferences,chunks,pronounce,store,key,prefsKey};
 })(globalThis);
