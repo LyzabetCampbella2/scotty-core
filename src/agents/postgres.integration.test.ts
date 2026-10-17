@@ -161,3 +161,35 @@ test("Part 2: shared knowledge includes source provenance and excludes revoked a
  await revoke("provenance-ci","agent-12");
  expect(sharedFor("provenance-ci","agent-12")).rejects.toThrow("Project grant required");
 });
+
+test("Part 2 completion: regrant never reactivates a revoked credential",async()=>{
+ const {grant,revoke}=await import("./collaboration.ts");
+ const {issueAgentCredential,authenticateAgent}=await import("./agent-credentials.ts");
+ await sql`insert into scotty_projects(id) values('credential-regrant-ci') on conflict do nothing`;
+ await grant("credential-regrant-ci","chief-0");
+ const issued=await issueAgentCredential("chief-0","credential-regrant-ci",10);
+ const req=new Request("https://scotty.example",{headers:{authorization:"Bearer "+issued.credential}});
+ expect(await authenticateAgent(req,"credential-regrant-ci")).not.toBeNull();
+ await revoke("credential-regrant-ci","chief-0");
+ await grant("credential-regrant-ci","chief-0");
+ expect(await authenticateAgent(req,"credential-regrant-ci")).toBeNull();
+});
+
+test("Part 2 completion: owner notifications expose pending metadata, not sensitive summaries",async()=>{
+ const {handleCollaboration}=await import("./collaboration-api.ts");
+ const url=new URL("https://scotty.example/api/agent-brains/collaboration-notifications");
+ const r=await handleCollaboration(new Request(url),url);
+ expect(r.status).toBe(200);
+ const b=await r.json();
+ expect(typeof b.pendingCount).toBe("number");
+ expect(Array.isArray(b.latest)).toBe(true);
+ expect(JSON.stringify(b.latest)).not.toContain("summary");
+});
+
+test("Part 2 completion: browser cannot issue a runtime agent secret",async()=>{
+ const {handleCollaboration}=await import("./collaboration-api.ts");
+ const url=new URL("https://scotty.example/api/agent-brains/agent-credentials");
+ const r=await handleCollaboration(new Request(url,{method:"POST",headers:{origin:url.origin,"x-scotty-csrf":"1","content-type":"application/json"},body:JSON.stringify({decision:"issue",agentId:"chief-0",projectId:"credential-regrant-ci"})}),url);
+ expect(r.status).toBe(403);
+ expect(JSON.stringify(await r.json())).not.toContain("scotty_agent_");
+});
