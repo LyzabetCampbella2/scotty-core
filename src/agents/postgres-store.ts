@@ -4,7 +4,7 @@ import {canRead,newId,type Actor,type AgentBrain,type MemoryEntry,type LearningP
 // Separate Phase 1 tables. Never rewrite the live scotty_agents registry.
 let connection:ReturnType<typeof postgres>|undefined;
 let initialized:Promise<void>|undefined;
-function db(){if(!connection){const url=process.env.DATABASE_URL;if(!url)throw Error("DATABASE_URL is required");connection=postgres(url,{max:4,connect_timeout:12,idle_timeout:20,ssl:"require"});}return connection;}
+function db(){if(!connection){const url=process.env.DATABASE_URL;if(!url)throw Error("DATABASE_URL is required");connection=postgres(url,{max:4,connect_timeout:12,idle_timeout:20,ssl:process.env.SCOTTY_BRAIN_DB_SSL==="disable"?false:"require"});}return connection;}
 async function ensure(){
  if(!initialized)initialized=(async()=>{const q=db();
  await q`create table if not exists scotty_agent_brains(
