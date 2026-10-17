@@ -1,3 +1,4 @@
+import {handleAgentSubmit} from "./agents/agent-runtime-api.ts";
 import {handleRenderAgentBrains} from "./agents/render-bridge.ts";
 import {handleFolders} from './workspace/folders.ts';
 import {handleCalls} from './calls/routes.ts';
@@ -136,6 +137,7 @@ Bun.serve({port:PORT,async fetch(req){
  if(u.pathname.startsWith("/api/eyes")) return handleEyesOn(req,u);
  if(u.pathname==="/api/tts"||u.pathname.startsWith("/api/voice")) return handleCloudVoice(req,u);
  if(u.pathname.startsWith("/api/memory")) return handleCloudMemory(req,u);
+ if(u.pathname.startsWith("/api/agent-runtime/"))return handleAgentSubmit(req,u);
  const agentBrainsResponse=await handleRenderAgentBrains(req,u,isCloudAuthenticated);
  if(agentBrainsResponse)return agentBrainsResponse;
  if(u.pathname.startsWith("/api/")) return Response.json({ok:false,error:"S.C.O.T.T.Y. cloud route not found"},{status:404,headers:{"cache-control":"no-store"}});
