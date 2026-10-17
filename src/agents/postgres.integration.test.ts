@@ -131,3 +131,33 @@ test("Part 2: project-scoped agent identity cannot impersonate or cross projects
  expect(denied.status).toBe(401);
  delete process.env.SCOTTY_AGENT_REQUESTS_ENABLED;delete process.env.SCOTTY_AGENT_BRAINS_ENABLED;
 });
+
+test("Part 2: agent requests are rate limited atomically per project",async()=>{
+ const {grant}=await import("./collaboration.ts");
+ const {requestHandoff}=await import("./collaboration-requests.ts");
+ await sql`insert into scotty_projects(id) values('rate-limited-ci') on conflict do nothing`;
+ await grant("rate-limited-ci","chief-0");
+ await grant("rate-limited-ci","agent-12");
+ for(let i=0;i<20;i++)await requestHandoff("rate-limited-ci","chief-0","agent-12","Request "+i,"Non-sensitive fixture",undefined,true);
+ expect(requestHandoff("rate-limited-ci","chief-0","agent-12","Over quota","Should fail",undefined,true)).rejects.toThrow("limit reached");
+ const count=await sql`select count(*)::int as n from scotty_collab_requests where project_id='rate-limited-ci'`;
+ expect(count[0].n).toBe(20);
+});
+
+test("Part 2: shared knowledge includes source provenance and excludes revoked access",async()=>{
+ const {grant,share,sharedFor,revoke}=await import("./collaboration.ts");
+ await sql`insert into scotty_projects(id) values('provenance-ci') on conflict do nothing`;
+ await grant("provenance-ci","chief-0");
+ await grant("provenance-ci","agent-12");
+ const proposed=await propose("chief-0",{text:"Reviewed provenance detail",source:"Verified source note",scope:"project",projectId:"provenance-ci"});
+ await review(proposed.id,"approved","owner");
+ const memory=await sql`select id from scotty_brain_memories where proposal_id=${proposed.id}`;
+ await share("provenance-ci",memory[0].id,"agent-12");
+ const records=await sharedFor("provenance-ci","agent-12");
+ expect(records).toHaveLength(1);
+ expect(records[0].sourceReference).toBe("Verified source note");
+ expect(records[0].approvedBy).toBe("owner");
+ expect(records[0].sourceAgentName).toBe("Chief 0");
+ await revoke("provenance-ci","agent-12");
+ expect(sharedFor("provenance-ci","agent-12")).rejects.toThrow("Project grant required");
+});
