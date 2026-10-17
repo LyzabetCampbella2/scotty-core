@@ -28,6 +28,7 @@ export async function handleFolders(req:Request,u:URL){try{
  if(req.method!=='POST')return json({ok:false,error:'Folder route not found'},404);
  const b=await req.json();const result=await q.begin(async(t:any)=>{
   await t`select pg_advisory_xact_lock(730041)`;
+  if(path==='/project'){const name=folderName(b.name);if((await t`select id from scotty_projects where lower(name)=lower(${name})`).length)throw Error('A project with that name already exists.');const id='project-'+crypto.randomUUID();await t`insert into scotty_projects(id,name) values(${id},${name})`;return {id,name};}
   if(path==='/create'){
    const name=folderName(b.name),parentId=b.parentFolderId?String(b.parentFolderId):null;let projectId=b.projectId?String(b.projectId):null;
    if(parentId){const p=(await t`select project_id from scotty_folders where id=${parentId}`)[0];if(!p)throw Error('Parent folder not found.');projectId=p.project_id;}

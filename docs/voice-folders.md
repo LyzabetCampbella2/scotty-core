@@ -4,8 +4,10 @@ Folders use the existing resource graph and are rendered as orange canvas blocks
 
 ## Spoken examples
 
+- Create project called My Novel.
 - Create a folder called Writing.
 - Create folder Research inside folder Writing.
+- Create folder Photos inside this folder.
 - Create folder Photos in project My Novel.
 - Open folder Writing / Research.
 - Rename this folder to Sources.
