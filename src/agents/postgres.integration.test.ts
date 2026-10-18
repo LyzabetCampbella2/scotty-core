@@ -308,3 +308,34 @@ test("audit failure rolls back a queued request and registry stays intact",async
  expect(await sql`select id,name,department,sort_order from scotty_agents order by sort_order`).toEqual(registryBefore);
 });
 
+test("owner collaboration writes require same-origin CSRF and leave no side effects when denied",async()=>{
+ const {handleRenderAgentBrains}=await import("./render-bridge.ts");
+ const {grant,list}=await import("./collaboration.ts");
+ const p="csrf-ci";
+ await sql`insert into scotty_projects(id) values(${p})`;
+ await grant(p,"chief-0");await grant(p,"agent-12");
+ const u=new URL("https://scotty.example/api/agent-brains/collaboration/"+p+"/messages");
+ const previous=process.env.SCOTTY_AGENT_BRAINS_ENABLED;
+ process.env.SCOTTY_AGENT_BRAINS_ENABLED="true";
+ const body=JSON.stringify({senderId:"chief-0",recipientId:"agent-12",body:"Owner-mediated fixture"});
+ try{
+  for(const headers of [
+   {"content-type":"application/json",origin:"https://attacker.example","x-scotty-csrf":"1"},
+   {"content-type":"application/json",origin:u.origin},
+  ]){
+   expect((await handleRenderAgentBrains(new Request(u,{method:"POST",headers,body}),u,async()=>true))?.status).toBe(403);
+  }
+  const validHeaders={"content-type":"application/json",origin:u.origin,"x-scotty-csrf":"1"};
+  expect((await handleRenderAgentBrains(new Request(u,{method:"POST",headers:validHeaders,body}),u,async()=>false))?.status).toBe(401);
+  expect((await list(p)).messages).toHaveLength(0);
+  expect((await handleRenderAgentBrains(new Request(u,{method:"POST",headers:validHeaders,body}),u,async()=>true))?.status).toBe(200);
+  const auditUrl=new URL("https://scotty.example/api/agent-brains/collaboration/"+p+"/audit");
+  const audit=await handleRenderAgentBrains(new Request(auditUrl),auditUrl,async()=>true);
+  expect(audit?.status).toBe(200);
+  expect((await audit!.json()).audit.some((x:any)=>x.action==="message")).toBe(true);
+ }finally{
+  if(previous===undefined)delete process.env.SCOTTY_AGENT_BRAINS_ENABLED;
+  else process.env.SCOTTY_AGENT_BRAINS_ENABLED=previous;
+ }
+});
+
