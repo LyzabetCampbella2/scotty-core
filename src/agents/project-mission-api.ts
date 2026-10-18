@@ -1,10 +1,11 @@
 import {createProjectMission,reviseProjectMission,approveProjectMission,controlProjectMission,simulateProjectMission,reviewMissionDraft,projectMissionDetail,projectMissionList,missionRecommendations} from './project-missions.ts';
 import {startCoordination,recoverCoordination,coordinationSnapshot,simulateCoordinationTick,simulateProjectQueueTick} from './chief-coordination.ts';
-import {missionSourceChoices,missionHandoffChoices} from './project-missions.ts';
+import {missionSourceChoices,missionHandoffChoices,missionProjectChoices} from './project-missions.ts';
 import {reconcileMissionStep} from './chief-coordination.ts';
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers:{'Cache-Control':'no-store'}});
 export async function handleProjectMissions(req:Request,u:URL){
  if(process.env.SCOTTY_PROJECT_MISSIONS_ENABLED!=='true')return json({ok:false,error:'Project missions disabled'},503);
+ if(u.pathname==='/api/agent-brains/project-missions')return req.method==='GET'?json({ok:true,projects:await missionProjectChoices()}):json({ok:false,error:'Method not allowed'},405);
  const match=u.pathname.match(/^\/api\/agent-brains\/project-missions\/([\w-]{1,160})(?:\/([0-9a-f-]{36}|recommendations))?$/i);
  if(!match)return json({ok:false,error:'Route not found'},404);
  const [,project,id]=match;

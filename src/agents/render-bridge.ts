@@ -21,7 +21,7 @@ export async function handleRenderAgentBrains(
  if(!await isOwnerAuthenticated(req))
   return Response.json({ok:false,error:"Owner login required"},{status:401,headers});
  if(missions){if(process.env.SCOTTY_PROJECT_MISSIONS_ENABLED!=='true')return Response.json({ok:false,error:'Project missions disabled'},{status:503,headers});if(req.method!=='GET')return new Response('Method not allowed',{status:405,headers});return renderProjectMissions();}
- if(u.pathname.startsWith('/api/agent-brains/project-missions/'))return handleProjectMissions(req,u);
+ if(u.pathname==='/api/agent-brains/project-missions'||u.pathname.startsWith('/api/agent-brains/project-missions/'))return handleProjectMissions(req,u);
  if(inbox){if(req.method!=="GET")return new Response("Method not allowed",{status:405,headers});return renderCollaborationInbox();}
  if(page){
   if(req.method!=="GET")return new Response("Method not allowed",{status:405,headers});
