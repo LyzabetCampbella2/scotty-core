@@ -78,13 +78,14 @@ jobs:
           bun test src/agents/project-mission-legacy.integration.test.ts
           bun test src/agents/project-operations.integration.test.ts
           bun test src/agents/project-insights.integration.test.ts
-      - name: Install Chromium for synthetic tablet UI verification
-        run: node_modules/.bin/playwright install --with-deps chromium
+      - name: Install Chromium and WebKit for synthetic tablet UI verification
+        run: node_modules/.bin/playwright install --with-deps chromium webkit
       - name: Synthetic tablet owner approval flow
         run: |
           bun test src/agents/project-mission-ui.browser.test.ts
           bun test src/agents/project-operations.browser.test.ts
           bun test src/agents/project-insights.browser.test.ts
+          SCOTTY_UI_BROWSER=webkit bun test src/agents/project-insights.browser.test.ts
       - name: Import-check production router and Agent Brain storage
         run: bun -e "await import('./src/agents/postgres-store.ts'); await import('./src/agents/render-bridge.ts')"
 
