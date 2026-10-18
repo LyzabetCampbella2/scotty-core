@@ -80,7 +80,7 @@ export async function controlProjectMission(p:string,id:string,revision:number,a
 export async function simulateProjectMission(p:string,id:string,revision:number){return withProjectMission(p,id,async(q,m)=>{
  if(m.status!=='approved')throw Error('Mission is not approved for simulation');await checkedMission(q,m,revision);
  const results=m.spec.steps.map((s:any)=>({stepId:s.id,agentId:s.agentId,revision,status:'draft',text:'SIMULATION: '+s.deliverable,sourceIds:s.sourceIds,verified:false}));
- await q`insert into scotty_agent_missions(id,task,status,agents,dependencies,results,project_managed) values(${m.plan_id},${m.spec.goal},'needs_review',${q.json([...new Set(m.spec.steps.map((s:any)=>s.agentId))])},${q.json(m.spec.steps)},${q.json(results)},true) on conflict(id) do update set status='needs_review',results=excluded.results,dependencies=excluded.dependencies,updated_at=now()`;
+ await q`insert into scotty_agent_missions(id,task,status,agents,dependencies,results,project_managed) values(${m.plan_id},${m.spec.goal},'needs_review',${q.json([...new Set(m.spec.steps.map((s:any)=>s.agentId))])},${q.json(m.spec.steps)},${q.json(results)},true) on conflict(id) do update set status='needs_review',results=excluded.results,dependencies=excluded.dependencies,review='[]',updated_at=now()`;
  await q`update scotty_project_mission_specs set status='needs_review',updated_at=now() where plan_id=${m.plan_id}`;
  await missionAudit(q,p,'mission.simulate',{planId:id,revision,providerCalls:0});return {id,revision,status:'needs_review',results};
 });}

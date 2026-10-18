@@ -43,6 +43,9 @@ test('revocation followed by regrant does not resurrect an approved plan',async(
  const p=await fixture(),plan=await m.createProjectMission(p,spec());await m.approveProjectMission(p,plan.id,1);await revoke(p,'agent-12');await grant(p,'agent-12');
  await expect(m.simulateProjectMission(p,plan.id,1)).rejects.toThrow('changed');
 });
+test('sub-millisecond membership changes invalidate the approval fingerprint',async()=>{
+ const p=await fixture(),plan=await m.createProjectMission(p,spec());await m.approveProjectMission(p,plan.id,1);await sql`update scotty_collab_grants set granted_at=granted_at+interval '1 microsecond' where project_id=${p} and agent_id='agent-12'`;await expect(m.simulateProjectMission(p,plan.id,1)).rejects.toThrow('changed');
+});
 test('source revocation after drafting holds unreleased outputs',async()=>{
  const p=await fixture(),source=await memory(p);await share(p,source,'agent-12');const plan=await m.createProjectMission(p,spec([source]));await m.approveProjectMission(p,plan.id,1);await m.simulateProjectMission(p,plan.id,1);
  const s=(await sql`select id from scotty_collab_shares where project_id=${p} and memory_id=${source}`)[0];await revokeShare(p,s.id);
