@@ -31,7 +31,10 @@ A runtime can propose a pending handoff; it does not independently deliver or ex
 - CI creates disposable localhost PostgreSQL, seeds 128 synthetic registry entries including 12 synthetic chiefs, and never connects to Render or loads provider secrets.
 - Regression coverage: source/recipient revocation and re-grant, duplicate concurrent approvals, 25 concurrent submissions capped at 20, approved-memory review evidence, stale runtime credential rejection, audit failure rollback, and exact fixture roster preservation.
 - Existing brain isolation, owner-session/feature-flag checks, learning approvals/rejections, impersonation/cross-project rejection, and production-adapter import checks remain in CI.
-- Follow-up cold-start initialization test is pending its own CI run at this entry.
+- Final code verification PASSED at 31a240945218bb05af633f6b8c50ba30216a4a68: https://github.com/LyzabetCampbella2/scotty-core/actions/runs/39099456523
+- Final results: 9 unit tests + 20 disposable PostgreSQL integration tests = 29 passing, 0 failures; adapter/storage import checks passed. This run includes cold initialization and owner-session/same-origin CSRF checks.
+- Draft PR #6: https://github.com/LyzabetCampbella2/scotty-core/pull/6 (targets staging only, unmerged).
+- Final read-only branch check confirmed production and existing staging heads are unchanged from the SHAs above. Blob comparison confirmed all public HUD assets, voice-service files, voice/gesture/control modules, legacy memory/workspace modules, and src/agents/cloud.ts are unchanged from staging.
 
 ## Parts 3–4 specification recovery
 The owner selected recovery of the CURRENT agent-brains sequence, rather than the older October 6 eight-part build.
@@ -54,5 +57,6 @@ Part 2 is a tested development candidate, not production-ready.
 - The owner queue still caps results at 100 and shares/messages/audit snapshots are bounded; richer pagination and abuse monitoring remain documented limitations, not completed features.
 - Project-lock serialization is intentionally conservative; load/latency testing remains pending.
 - The source still uses additive CREATE TABLE initialization. Production schema/permissions review and any migration execution require separate approval.
+- The existing legacy roster import uses delete-and-reinsert. Once additive brain rows reference roster IDs, its compatibility with foreign-key restrictions must be verified before enabling Part 1/2; this review deliberately does not rewrite that legacy importer.
 - Review and merge, hosting, any credential setup, feature enablement, production data access, and ongoing backup scheduling each remain approval-gated.
 
