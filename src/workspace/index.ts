@@ -82,7 +82,8 @@ function allowedOrigin(req: Request, u: URL) {
   const configured = (process.env.SCOTTY_WORKSPACE_ALLOWED_ORIGINS || "https://scotty-cloud-hud.vercel.app,https://scotty-cloud-hud-lyzabetcampbella2s-projects.vercel.app")
     .split(",").map(x => x.trim()).filter(Boolean);
   return configured.includes(origin) ||
-    /^https:\/\/scotty-cloud-hud-git-[a-z0-9-]+-lyzabetcampbella2s-projects\.vercel\.app$/.test(origin);
+    /^https:\/\/scotty-cloud-hud-git-[a-z0-9-]+-lyzabetcampbella2s-projects\.vercel\.app$/.test(origin) ||
+    /^https:\/\/scotty-cloud-[a-z0-9]+-lyzabetcampbella2s-projects\.vercel\.app$/.test(origin);
 }
 async function body(req: Request): Promise<Json> {
   const value = await req.json();
