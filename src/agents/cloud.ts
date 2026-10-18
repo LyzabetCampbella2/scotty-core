@@ -1,3 +1,4 @@
+import {importRosterPreservingIdentity} from "./roster-import.ts";
 import postgres from "postgres";
 import { groqThink,addActivity } from "../brain/cloud.ts";
 import { specialistInstructions,departmentSkills } from "./skills.ts";
@@ -110,35 +111,7 @@ function fallbackRoster(){
 }
 
 async function replaceRoster(items:any[],source:string){
- const q=db();
- await q.begin(async(tx:any)=>{
-  await tx`delete from scotty_agents`;
-  let order=0;
-  for(const a of items){
-   const raw=a&&typeof a==="object"?a:{};
-   const id=String(raw.id||`agent-${order+1}`).slice(0,180);
-   const name=String(raw.name||id).slice(0,180);
-   const department=String(raw.department||"Operations").slice(0,180);
-   const rank=String(raw.rank||((raw.isChief||raw.is_chief)?"Chief":"Agent")).slice(0,100);
-   const isChief=Boolean(raw.isChief??raw.is_chief);
-   const chiefId=raw.chiefId?String(raw.chiefId).slice(0,180):raw.chief_id?String(raw.chief_id).slice(0,180):null;
-   const clearance=Math.max(1,Math.min(9,Number(raw.clearance||3)||3));
-   const model="groq";
-   const state=String(raw.state||"idle").slice(0,50);
-   const queueCount=Math.max(0,Number(raw.queueCount??raw.queue_count??0)||0);
-   const memoryLinks=Math.max(0,Number(raw.memoryLinks??raw.memory_links??0)||0);
-   const voiceMode=String(raw.voiceMode??raw.voice_mode??"auto").slice(0,50);
-   const tools=Array.isArray(raw.tools)?raw.tools:[];
-   const collaborators=Array.isArray(raw.collaborators)?raw.collaborators:[];
-   const currentJob=raw.currentJob?String(raw.currentJob).slice(0,2000):raw.current_job?String(raw.current_job).slice(0,2000):null;
-   const sortOrder=Number(raw.sortOrder??raw.sort_order??order)||order;
-   await tx`insert into scotty_agents(id,name,department,rank,is_chief,chief_id,clearance,model,state,queue_count,memory_links,voice_mode,tools,collaborators,current_job,sort_order,raw)
-    values(${id},${name},${department},${rank},${isChief},${chiefId},${clearance},${model},${state},${queueCount},${memoryLinks},${voiceMode},${tx.json(tools)},${tx.json(collaborators)},${currentJob},${sortOrder},${tx.json(raw)})`;
-   order++;
-  }
-  await tx`insert into scotty_agent_meta(key,value,updated_at) values('roster_source',${source},now())
-    on conflict(key) do update set value=excluded.value,updated_at=now()`;
- });
+ await importRosterPreservingIdentity(db(),items,source);
 }
 
 async function importLegacy(cookie=""){
@@ -153,8 +126,8 @@ async function importLegacy(cookie=""){
   const items=Array.isArray(j?.agents)?j.agents:[];
   if(items.length<12)return false;
   await replaceRoster(items,"legacy");
-  await addActivity("SCOTTY","AGENT MIGRATION",`Imported ${items.length} agents/chiefs into Render shared memory.`,{count:items.length});
-  console.log("S.C.O.T.T.Y. agent roster imported",items.length);
+  await addActivity("SCOTTY","AGENT MIGRATION",`Verified ${items.length} agent identities; initialized only if the roster was empty.`,{count:items.length});
+  console.log("S.C.O.T.T.Y. agent roster identities verified",items.length);
   return true;
  }catch(e:any){console.warn("Agent roster import deferred",e?.message||e);return false}
 }
@@ -474,3 +447,4 @@ export async function handleCloudAgents(req:Request,u:URL){
 
  return json({ok:false,error:"Agent route not found"},404);
 }
+

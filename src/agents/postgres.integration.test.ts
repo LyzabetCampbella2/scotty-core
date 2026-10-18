@@ -8,11 +8,18 @@ process.env.SCOTTY_BRAIN_DB_SSL="disable";
 const sql=postgres(process.env.DATABASE_URL!,{ssl:false});
 await sql`create table scotty_agents (
  id text primary key, name text not null, department text not null, sort_order int not null,
- updated_at timestamptz not null default now()
+ rank text not null default 'Agent',is_chief boolean not null default false,chief_id text,
+ clearance integer not null default 3,model text not null default 'groq',state text not null default 'idle',
+ queue_count integer not null default 0,memory_links integer not null default 0,
+ voice_mode text not null default 'auto',tools jsonb not null default '[]'::jsonb,
+ collaborators jsonb not null default '[]'::jsonb,current_job text,last_result text,last_run_at timestamptz,
+ raw jsonb not null default '{}'::jsonb,updated_at timestamptz not null default now()
 )`;
+await sql`create table scotty_agent_meta(key text primary key,value text not null,updated_at timestamptz default now())`;
+await sql`insert into scotty_agent_meta(key,value) values('roster_source','ci-fixture')`;
 for(let i=0;i<128;i++){
  const chief=i<12;
- await sql`insert into scotty_agents(id,name,department,sort_order) values(${chief?"chief-"+i:"agent-"+i},${chief?"Chief "+i:"Agent "+i},${chief?"Command":"Research"},${i})`;
+ await sql`insert into scotty_agents(id,name,department,sort_order,rank,is_chief,chief_id) values(${chief?"chief-"+i:"agent-"+i},${chief?"Chief "+i:"Agent "+i},${chief?"Command":"Research"},${i},${chief?"Chief":"Agent"},${chief},${chief?null:"chief-"+(i%12)})`;
 }
 const registryBefore=await sql`select id,name,department,sort_order from scotty_agents order by sort_order`;
 await sql`create table if not exists scotty_projects(id text primary key)`;
@@ -336,6 +343,55 @@ test("owner collaboration writes require same-origin CSRF and leave no side effe
  }finally{
   if(previous===undefined)delete process.env.SCOTTY_AGENT_BRAINS_ENABLED;
   else process.env.SCOTTY_AGENT_BRAINS_ENABLED=previous;
+ }
+});
+
+test("legacy delete-all import conflicts with brain references; safe import preserves every stored row",async()=>{
+ const {importRosterPreservingIdentity}=await import("./roster-import.ts");
+ const before=await sql`select * from scotty_agents order by id`;
+ const memories=await sql`select * from scotty_brain_memories order by id`;
+ const brains=await sql`select * from scotty_agent_brains order by agent_id`;
+ // Reproduce the exact destructive statement from the previous importer.
+ await expect(sql.begin(async tx=>{await tx`delete from scotty_agents`;})).rejects.toThrow();
+ expect(await sql`select * from scotty_agents order by id`).toEqual(before);
+ // Incoming metadata must never overwrite existing names, hierarchy, voice or runtime state.
+ const incoming=before.map(a=>({...a,name:"Must not replace",department:"Must not replace",isChief:false,chiefId:"invalid-chief",voiceMode:"different",state:"idle"}));
+ await importRosterPreservingIdentity(sql,incoming,"legacy");
+ expect(await sql`select * from scotty_agents order by id`).toEqual(before);
+ expect(await sql`select * from scotty_brain_memories order by id`).toEqual(memories);
+ expect(await sql`select * from scotty_agent_brains order by agent_id`).toEqual(brains);
+ expect((await sql`select count(*)::int as n from scotty_agents where is_chief`)[0].n).toBe(12);
+});
+
+test("partial, changed and duplicate roster imports fail without changing roster or source marker",async()=>{
+ const {importRosterPreservingIdentity}=await import("./roster-import.ts");
+ const before=await sql`select * from scotty_agents order by id`;
+ const source=await sql`select * from scotty_agent_meta where key='roster_source'`;
+ const changed=before.map((a,i)=>i===0?{...a,id:"unapproved-new-identity"}:a);
+ for(const input of [before.slice(1),changed,[...before.slice(1),before[1]]]){
+  await expect(importRosterPreservingIdentity(sql,input,"unapproved-source")).rejects.toThrow("Roster import rejected");
+  expect(await sql`select * from scotty_agents order by id`).toEqual(before);
+  expect(await sql`select * from scotty_agent_meta where key='roster_source'`).toEqual(source);
+ }
+});
+
+test("concurrent empty-roster initialization produces one intact 128-agent 12-chief roster",async()=>{
+ const {importRosterPreservingIdentity}=await import("./roster-import.ts");
+ const rows=await sql`select * from scotty_agents order by id`;
+ await sql`create schema ci_roster_bootstrap`;
+ await sql`create table ci_roster_bootstrap.scotty_agents (like public.scotty_agents including all)`;
+ await sql`create table ci_roster_bootstrap.scotty_agent_meta (like public.scotty_agent_meta including all)`;
+ const isolated=postgres(process.env.DATABASE_URL!,{ssl:false,max:2,connection:{search_path:"ci_roster_bootstrap"}});
+ try{
+  await Promise.all([importRosterPreservingIdentity(isolated,rows,"first"),importRosterPreservingIdentity(isolated,rows,"second")]);
+  const result=await isolated`select id,name,chief_id,is_chief,voice_mode from scotty_agents order by id`;
+  expect(result).toEqual(rows.map(a=>({id:a.id,name:a.name,chief_id:a.chief_id,is_chief:a.is_chief,voice_mode:a.voice_mode})));
+  expect(result).toHaveLength(128);
+  expect(result.filter(a=>a.is_chief)).toHaveLength(12);
+  expect(await sql`select * from scotty_agents order by id`).toEqual(rows);
+ }finally{
+  await isolated.end();
+  await sql`drop schema ci_roster_bootstrap cascade`;
  }
 });
 

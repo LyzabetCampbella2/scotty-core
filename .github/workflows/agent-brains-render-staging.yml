@@ -11,6 +11,8 @@ on:
       - 'src/agents/postgres.integration.test.ts'
       - 'src/agents/collaboration.ts'
       - 'src/agents/collaboration-lock.ts'
+      - 'src/agents/roster-import.ts'
+      - 'src/agents/cloud.ts'
       - 'src/agents/collaboration-api.ts'
       - 'src/agents/collaboration-requests.ts'
       - 'src/agents/collaboration-inbox.ts'
