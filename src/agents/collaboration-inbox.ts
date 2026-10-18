@@ -12,7 +12,13 @@ export function renderCollaborationInbox(){
  const article=document.createElement("article"),h=document.createElement("h3"),summary=document.createElement("p"),details=document.createElement("small");
  h.textContent=p.title;summary.textContent=p.summary;
  details.textContent="Project: "+p.project_id+" | From: "+p.source_agent_id+" | To: "+p.recipient_agent_id+" | "+p.kind;
- article.append(h,summary,details);for(const decision of ["approved","rejected"]){const b=document.createElement("button");b.textContent=decision==="approved"?"Approve":"Reject";b.addEventListener("click",async()=>{if(!confirm("Confirm "+decision+" for this project handoff?"))return;b.disabled=true;try{const result=await fetch("/api/agent-brains/collaboration-requests/"+encodeURIComponent(p.id),{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","X-Scotty-CSRF":"1"},body:JSON.stringify({decision})});if(!result.ok)throw Error("Action failed");notice.textContent="Request "+decision;await load();}catch(e){notice.textContent="Unable to review request; please retry.";b.disabled=false}});article.append(b)}root.append(article)}if(!data.requests.length)root.textContent="No pending handoffs.";}catch(e){root.textContent="Owner login or approval queue unavailable."}}
+ article.append(h,summary,details);if(p.kind==="share_memory"){
+ const memory=document.createElement("p"),source=document.createElement("small");
+ memory.textContent=p.memory_text||"Memory unavailable: do not approve until its project access is restored.";
+ source.textContent="Memory ID: "+p.memory_id+" | Source: "+(p.memory_source||"Unavailable")+" | Reviewed by: "+(p.memory_approved_by||"Unavailable");
+ article.append(memory,source);
+ }for(const decision of ["approved","rejected"]){const b=document.createElement("button");b.textContent=decision==="approved"?"Approve":"Reject";b.addEventListener("click",async()=>{if(!confirm("Confirm "+decision+" for this project handoff?"))return;b.disabled=true;try{const result=await fetch("/api/agent-brains/collaboration-requests/"+encodeURIComponent(p.id),{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","X-Scotty-CSRF":"1"},body:JSON.stringify({decision})});if(!result.ok)throw Error("Action failed");notice.textContent="Request "+decision;await load();}catch(e){notice.textContent="Unable to review request; please retry.";b.disabled=false}});article.append(b)}root.append(article)}if(!data.requests.length)root.textContent="No pending handoffs.";}catch(e){root.textContent="Owner login or approval queue unavailable."}}
  load();
  </script></body></html>`,{headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","X-Content-Type-Options":"nosniff","Content-Security-Policy":"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'"}});
 }
+

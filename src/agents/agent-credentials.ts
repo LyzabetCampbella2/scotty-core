@@ -1,3 +1,4 @@
+import {lockCollaborationProject} from "./collaboration-lock.ts";
 import postgres from "postgres";
 
 // Scoped service identities for future agent runtimes; never share these
@@ -23,20 +24,23 @@ export async function ensureAgentCredentials(){
 export async function issueAgentCredential(agentId:string,projectId:string,ttlMinutes=60){
  await ensureAgentCredentials();
  if(!Number.isInteger(ttlMinutes)||ttlMinutes<5||ttlMinutes>1440)throw Error("Invalid credential lifetime");
- const q=db();
+ return db().begin(async(q:any)=>{
+ await lockCollaborationProject(q,projectId);
  const granted=await q`select 1 from scotty_collab_grants where project_id=${projectId} and agent_id=${agentId}`;
  if(!granted.length)throw Error("Agent does not have the requested project grant");
  const raw="scotty_agent_"+hex(crypto.getRandomValues(new Uint8Array(32)));
  await q`insert into scotty_collab_credentials(token_hash,agent_id,project_id,expires_at)
  values(${await digest(raw)},${agentId},${projectId},now()+(${ttlMinutes} * interval '1 minute'))`;
+ await q`insert into scotty_collab_audit(action,project_id,detail) values('credential.issue',${projectId},${q.json({agentId,ttlMinutes})})`;
  return {credential:raw,agentId,projectId,expiresInMinutes:ttlMinutes};
+ });
 }
 export async function authenticateAgent(req:Request,projectId:string){
  await ensureAgentCredentials();
  const auth=req.headers.get("authorization")||"";
  if(!/^Bearer scotty_agent_[0-9a-f]{64}$/.test(auth))return null;
  const token=auth.slice(7),h=await digest(token);
- const rows=await db()`select c.agent_id as "agentId",c.project_id as "projectId"
+ const rows=await db()`select c.agent_id as "agentId",c.project_id as "projectId",c.token_hash as "tokenHash"
  from scotty_collab_credentials c join scotty_collab_grants g
  on g.agent_id=c.agent_id and g.project_id=c.project_id
  where c.token_hash=${h} and c.project_id=${projectId}
@@ -45,7 +49,12 @@ export async function authenticateAgent(req:Request,projectId:string){
 }
 export async function revokeAgentCredentials(agentId:string,projectId:string){
  await ensureAgentCredentials();
- const result=await db()`update scotty_collab_credentials set revoked_at=now()
+ return db().begin(async(q:any)=>{
+ await lockCollaborationProject(q,projectId);
+ const result=await q`update scotty_collab_credentials set revoked_at=now()
  where agent_id=${agentId} and project_id=${projectId} and revoked_at is null returning token_hash`;
+ await q`insert into scotty_collab_audit(action,project_id,detail) values('credential.revoke',${projectId},${q.json({agentId,revoked:result.length})})`;
  return {revoked:result.length};
+ });
 }
+
