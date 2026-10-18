@@ -15,11 +15,11 @@ export async function missionAudit(q:any,p:string,action:string,detail:any){awai
 export async function missionAuthorization(q:any,p:string,spec:MissionSpec){
  if(!(await q`select id from scotty_projects where id=${p}`).length)throw Error('Project not found');
  const agents=[...new Set(spec.steps.map(s=>s.agentId))].sort();
- const grants=await q`select agent_id,granted_at from scotty_collab_grants where project_id=${p} and agent_id in ${q(agents)} order by agent_id`;
+ const grants=await q`select agent_id,granted_at::text as granted_at from scotty_collab_grants where project_id=${p} and agent_id in ${q(agents)} order by agent_id`;
  if(grants.length!==agents.length)throw Error('Every assigned agent must be a current project member');
  const contexts:any={};
  for(const step of spec.steps){
-  const memories=step.sourceIds.length?await q`select m.id,m.agent_id as "sourceAgentId",m.text,m.source,m.approved_by as "approvedBy",m.created_at as "createdAt",g.granted_at as "sourceGrant",s.approved_at as "sharedAt" from scotty_brain_memories m join scotty_brain_proposals pr on pr.id=m.proposal_id and pr.status='approved' join scotty_collab_grants g on g.agent_id=m.agent_id and g.project_id=${p} left join scotty_collab_shares s on s.memory_id=m.id and s.project_id=${p} and s.recipient_id=${step.agentId} and s.revoked_at is null where m.id::text in ${q(step.sourceIds)} and m.scope='project' and m.project_id=${p} and (m.agent_id=${step.agentId} or s.id is not null) order by m.id`:[];
+  const memories=step.sourceIds.length?await q`select m.id,m.agent_id as "sourceAgentId",m.text,m.source,m.approved_by as "approvedBy",m.created_at as "createdAt",g.granted_at::text as "sourceGrant",s.approved_at::text as "sharedAt" from scotty_brain_memories m join scotty_brain_proposals pr on pr.id=m.proposal_id and pr.status='approved' join scotty_collab_grants g on g.agent_id=m.agent_id and g.project_id=${p} left join scotty_collab_shares s on s.memory_id=m.id and s.project_id=${p} and s.recipient_id=${step.agentId} and s.revoked_at is null where m.id::text in ${q(step.sourceIds)} and m.scope='project' and m.project_id=${p} and (m.agent_id=${step.agentId} or s.id is not null) order by m.id`:[];
   if(memories.length!==step.sourceIds.length)throw Error('A selected source is private, unapproved, revoked or outside this project');
   contexts[step.id]=memories;
  }
