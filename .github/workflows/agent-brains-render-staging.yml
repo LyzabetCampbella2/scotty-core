@@ -1,12 +1,15 @@
 name: Agent Brains Render Staging
 on:
   push:
-    branches: [review/agent-collaboration-part2-verification-20261018, dev/part3-project-missions-20261018, dev/part4-chief-coordination-20261018, dev/project-operations-20261018, dev/team-insights-20261018]
-    paths: ['src/agents/**', 'public/hud/project-operations.js', 'public/hud/sidebar-voice-live.js', 'public/index.html', '.github/workflows/agent-brains-render-staging.yml']
+    branches: [review/agent-collaboration-part2-verification-20261018, dev/part3-project-missions-20261018, dev/part4-chief-coordination-20261018, dev/project-operations-20261018, dev/team-insights-20261018, dev/ipad-sandbox-documents-20261018]
+    paths: ['src/agents/**', 'public/hud/project-operations.js', 'public/hud/project-sandbox.js', 'scripts/build-project-sandbox.ts', 'public/hud/sidebar-voice-live.js', 'public/index.html', '.github/workflows/agent-brains-render-staging.yml']
   pull_request:
     paths:
       - 'src/agents/project-*'
       - 'public/hud/project-operations.js'
+      - 'public/hud/project-sandbox.js'
+      - 'scripts/build-project-sandbox.ts'
+      - 'src/connectors/project-document-reader.ts'
       - 'public/hud/sidebar-voice-live.js'
       - 'public/index.html'
       - 'src/agents/project-mission*'
@@ -65,7 +68,7 @@ jobs:
           (cd /tmp/scotty-agent-ci && bun install)
           ln -s /tmp/scotty-agent-ci/node_modules node_modules
       - name: Unit tests for access isolation and fail-closed Render bridge
-        run: bun test src/agents/brain.test.ts src/agents/render-bridge.test.ts src/agents/project-mission-model.test.ts src/agents/project-draft-model.test.ts
+        run: bun test src/agents/brain.test.ts src/agents/render-bridge.test.ts src/agents/project-mission-model.test.ts src/agents/project-draft-model.test.ts src/agents/project-documents.test.ts
       - name: End-to-end PostgreSQL data integrity and learning reviews
         env:
           SCOTTY_BRAIN_TEST_DB: disposable
@@ -78,6 +81,9 @@ jobs:
           bun test src/agents/project-mission-legacy.integration.test.ts
           bun test src/agents/project-operations.integration.test.ts
           bun test src/agents/project-insights.integration.test.ts
+          bun test src/agents/project-documents.integration.test.ts
+      - name: Build browser-only synthetic project panels
+        run: bun scripts/build-project-sandbox.ts /tmp/scotty-project-sandbox
       - name: Install Chromium and WebKit for synthetic tablet UI verification
         run: node_modules/.bin/playwright install --with-deps chromium webkit
       - name: Synthetic tablet owner approval flow
@@ -86,6 +92,8 @@ jobs:
           bun test src/agents/project-operations.browser.test.ts
           bun test src/agents/project-insights.browser.test.ts
           SCOTTY_UI_BROWSER=webkit bun test src/agents/project-insights.browser.test.ts
+          bun test src/agents/project-sandbox.browser.test.ts
+          SCOTTY_UI_BROWSER=webkit bun test src/agents/project-sandbox.browser.test.ts
       - name: Import-check production router and Agent Brain storage
         run: bun -e "await import('./src/agents/postgres-store.ts'); await import('./src/agents/render-bridge.ts')"
 
