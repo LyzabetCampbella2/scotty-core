@@ -12,7 +12,7 @@ function db() {
   if (!sql) {
     const url = process.env.DATABASE_URL;
     if (!url) throw new Error("DATABASE_URL is required");
-    sql = postgres(url, { max: 4, connect_timeout: 12, idle_timeout: 20, ssl: "require" });
+    sql = postgres(url, { max: 4, connect_timeout: 12, idle_timeout: 20, ssl: url.startsWith("postgres://127.0.0.1:") || url.startsWith("postgres://localhost:") ? false : "require" });
   }
   return sql;
 }
