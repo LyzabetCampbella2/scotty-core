@@ -60,7 +60,7 @@ describe("workspace safety gates", () => {
           method: "POST",
           headers: {
             cookie: "scotty_owner_session=test-owner-session",
-            origin: "https://scotty-cloud-hud.vercel.app",
+            origin: "https://scotty-cloud-qx7672f88-lyzabetcampbella2s-projects.vercel.app",
             "content-type": "application/json"
           },
           body: JSON.stringify({ id: "test", name: "Test" })
