@@ -12,7 +12,7 @@ function db() {
   if (!sql) {
     const url = process.env.DATABASE_URL;
     if (!url) throw new Error("DATABASE_URL is required");
-    sql = postgres(url, { max: 4, connect_timeout: 12, idle_timeout: 20, ssl: "require" });
+    sql = postgres(url, { max: 4, connect_timeout: 12, idle_timeout: 20, ssl: ["127.0.0.1", "localhost"].includes(new URL(url).hostname) ? false : "require" });
   }
   return sql;
 }
@@ -59,11 +59,31 @@ async function ensure() {
 }
 const newId = (prefix: string) => `${prefix}_${crypto.randomUUID().replaceAll("-", "").slice(0, 20)}`;
 
-function authorized(req: Request) {
+export function workspaceAuthorized(req: Request) {
   const token = process.env.SCOTTY_WORKSPACE_ADMIN_TOKEN || process.env.SCOTTY_BRAIN_ADMIN_TOKEN;
-  if (!token) return false;
   const auth = req.headers.get("authorization");
-  return auth === `Bearer ${token}`;
+  if (token && auth === `Bearer ${token}`) return true;
+  const ownerToken = process.env.SCOTTY_BRAIN_OWNER_SESSION_TOKEN;
+  const cookie = req.headers.get("cookie")?.split(";").map(x => x.trim())
+    .find(x => x.startsWith("scotty_owner_session="))?.slice("scotty_owner_session=".length);
+  return Boolean(ownerToken && cookie && cookie === ownerToken);
+}
+function cookieSession(req: Request) {
+  const ownerToken = process.env.SCOTTY_BRAIN_OWNER_SESSION_TOKEN;
+  const cookie = req.headers.get("cookie")?.split(";").map(x => x.trim())
+    .find(x => x.startsWith("scotty_owner_session="))?.slice("scotty_owner_session=".length);
+  return Boolean(ownerToken && cookie && cookie === ownerToken &&
+    req.headers.get("authorization") !== `Bearer ${process.env.SCOTTY_WORKSPACE_ADMIN_TOKEN || process.env.SCOTTY_BRAIN_ADMIN_TOKEN || ""}`);
+}
+function allowedOrigin(req: Request, u: URL) {
+  const origin = req.headers.get("origin");
+  if (!origin) return true;
+  if (origin === u.origin) return true;
+  const configured = (process.env.SCOTTY_WORKSPACE_ALLOWED_ORIGINS || "https://scotty-cloud-hud.vercel.app,https://scotty-cloud-hud-lyzabetcampbella2s-projects.vercel.app")
+    .split(",").map(x => x.trim()).filter(Boolean);
+  return configured.includes(origin) ||
+    /^https:\/\/scotty-cloud-hud-git-[a-z0-9-]+-lyzabetcampbella2s-projects\.vercel\.app$/.test(origin) ||
+    /^https:\/\/scotty-cloud-[a-z0-9]+-lyzabetcampbella2s-projects\.vercel\.app$/.test(origin);
 }
 async function body(req: Request): Promise<Json> {
   const value = await req.json();
@@ -79,10 +99,11 @@ async function body(req: Request): Promise<Json> {
  */
 export async function handleWorkspace(req: Request, u: URL): Promise<Response> {
   if (process.env.SCOTTY_WORKSPACE_ENABLED !== "true") return json({ ok: false, error: "Project workspace is disabled" }, 503);
-  if (!authorized(req)) return json({ ok: false, error: "Unauthorized" }, 401);
+  if (!workspaceAuthorized(req)) return json({ ok: false, error: "Unauthorized" }, 401);
   if (req.method !== "GET") {
-    const origin = req.headers.get("origin");
-    if (origin && origin !== u.origin) return json({ ok: false, error: "Cross-origin write blocked" }, 403);
+    if (!allowedOrigin(req, u)) return json({ ok: false, error: "Cross-origin write blocked" }, 403);
+    if (cookieSession(req) && req.headers.get("x-scotty-csrf") !== "1")
+      return json({ ok: false, error: "CSRF header required" }, 403);
   }
   try {
     await ensure();

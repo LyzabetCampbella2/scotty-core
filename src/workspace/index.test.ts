@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { handleWorkspace } from "./index.ts";
+import { handleWorkspace, workspaceAuthorized } from "./index.ts";
 
 describe("workspace safety gates", () => {
   test("workspace is disabled unless explicitly enabled", async () => {
@@ -34,4 +34,47 @@ describe("workspace safety gates", () => {
       else process.env.SCOTTY_BRAIN_ADMIN_TOKEN = previousBrainToken;
     }
   });
+
+  test("owner session cookie is accepted without exposing the bearer token to the HUD", () => {
+    const previousOwner = process.env.SCOTTY_BRAIN_OWNER_SESSION_TOKEN;
+    process.env.SCOTTY_BRAIN_OWNER_SESSION_TOKEN = "test-owner-session";
+    try {
+      const request = new Request("https://scotty-core.onrender.com/api/workspace/projects", {
+        headers: { cookie: "scotty_owner_session=test-owner-session" }
+      });
+      expect(workspaceAuthorized(request)).toBe(true);
+    } finally {
+      if (previousOwner === undefined) delete process.env.SCOTTY_BRAIN_OWNER_SESSION_TOKEN;
+      else process.env.SCOTTY_BRAIN_OWNER_SESSION_TOKEN = previousOwner;
+    }
+  });
+
+  test("cookie-authenticated writes require the CSRF header before database access", async () => {
+    const previousEnabled = process.env.SCOTTY_WORKSPACE_ENABLED;
+    const previousOwner = process.env.SCOTTY_BRAIN_OWNER_SESSION_TOKEN;
+    process.env.SCOTTY_WORKSPACE_ENABLED = "true";
+    process.env.SCOTTY_BRAIN_OWNER_SESSION_TOKEN = "test-owner-session";
+    try {
+      const response = await handleWorkspace(
+        new Request("https://scotty-core.onrender.com/api/workspace/projects", {
+          method: "POST",
+          headers: {
+            cookie: "scotty_owner_session=test-owner-session",
+            origin: "https://scotty-cloud-qx7672f88-lyzabetcampbella2s-projects.vercel.app",
+            "content-type": "application/json"
+          },
+          body: JSON.stringify({ id: "test", name: "Test" })
+        }),
+        new URL("https://scotty-core.onrender.com/api/workspace/projects")
+      );
+      expect(response.status).toBe(403);
+      expect((await response.json()).error).toBe("CSRF header required");
+    } finally {
+      if (previousEnabled === undefined) delete process.env.SCOTTY_WORKSPACE_ENABLED;
+      else process.env.SCOTTY_WORKSPACE_ENABLED = previousEnabled;
+      if (previousOwner === undefined) delete process.env.SCOTTY_BRAIN_OWNER_SESSION_TOKEN;
+      else process.env.SCOTTY_BRAIN_OWNER_SESSION_TOKEN = previousOwner;
+    }
+  });
+
 });

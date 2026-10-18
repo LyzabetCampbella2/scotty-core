@@ -5,7 +5,7 @@
   const routes=[
    ['agent matrix', ['agent matrix']],['live ops',['live ops']],['memory map',['memory map']],
    ['all agents',['128 agents','agents']],['conversation',['conversation']],['daily life',['daily life']],
-   ['knowledge',['knowledge']],['voice settings',['voice controls','voice']],
+   ['knowledge',['knowledge']],['projects',['projects']],['voice settings',['voice controls','voice']],
    ['search nodes',['search nodes']],['actions',['actions']],['creative and learning',['creative learning']],
    ['files and projects',['files projects']],['spatial tools',['spatial tools']],
    ['command room',['command room']],['voice workspace',['voice workspace']],['connectors',['connectors']],
@@ -17,7 +17,7 @@
   const aliases={'show my agents':'agent matrix','show agents':'agent matrix','show all agents':'all agents',
     'show me my agents':'agent matrix','what is everyone working on':'live ops',
     'open my memory':'memory map','open memory':'memory map','open my daily dashboard':'daily life',
-    'find my projects':'files and projects','open projects':'files and projects',
+    'find my projects':'projects','open projects':'projects','open my projects':'projects','project workspace':'projects',
     'organize canvas':'spatial tools','undo that':'undo canvas change',
     'clear my selection':'clear selection','spread the agents out':'spread out',
     'group the agents':'regroup','call those agents':'call selected'};

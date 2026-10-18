@@ -3,7 +3,7 @@ import { handleAgents } from "./agents/api.ts";
 import { handleEyesOn } from "./eyes/index.ts";
 import { handleVoice } from "./voice/index.ts";
 import { handleMemory } from "./memory/index.ts";
-import { handleWorkspace } from "./workspace/index.ts";
+import { handleWorkspace, workspaceAuthorized } from "./workspace/index.ts";
 import { handleWorkspaceRecommendations } from "./workspace/recommendations.ts";
 import { handleHealth } from "./health.ts";
 
@@ -15,8 +15,7 @@ Bun.serve({port:PORT,async fetch(req){const u=new URL(req.url);
  if(u.pathname.startsWith("/api/memory")) return handleMemory(req,u);
  if(u.pathname==="/api/workspace/recommend") {
    if(process.env.SCOTTY_WORKSPACE_ENABLED!=="true") return Response.json({ok:false,error:"Project workspace is disabled"},{status:503,headers:{"Cache-Control":"no-store"}});
-   const token=process.env.SCOTTY_WORKSPACE_ADMIN_TOKEN||process.env.SCOTTY_BRAIN_ADMIN_TOKEN;
-   if(!token||req.headers.get("authorization")!==`Bearer ${token}`) return Response.json({ok:false,error:"Unauthorized"},{status:401,headers:{"Cache-Control":"no-store"}});
+   if(!workspaceAuthorized(req)) return Response.json({ok:false,error:"Unauthorized"},{status:401,headers:{"Cache-Control":"no-store"}});
    return handleWorkspaceRecommendations(u);
  }
  if(u.pathname.startsWith("/api/workspace")) return handleWorkspace(req,u);
