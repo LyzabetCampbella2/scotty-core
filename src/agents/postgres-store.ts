@@ -62,3 +62,7 @@ export async function review(id:string,decision:"approved"|"rejected",reviewer:s
  return asProposal(result[0]);
  });
 }
+
+
+// Initialize additive brain tables before collaboration references them.
+export {ensure as ensureAgentBrainStore};

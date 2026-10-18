@@ -1,10 +1,11 @@
+import {ensureAgentBrainStore} from "./postgres-store.ts";
 import {lockCollaborationProject} from "./collaboration-lock.ts";
 import {ensureAgentCredentials} from "./agent-credentials.ts";
 import postgres from "postgres";
 let sql:any;
 const db=()=>sql||(sql=postgres(process.env.DATABASE_URL||"",{ssl:process.env.SCOTTY_BRAIN_DB_SSL==="disable"?false:"require",max:3}));
 let init:Promise<void>|undefined;
-export async function ensureCollaboration(){if(!init)init=(async()=>{const q=db();
+export async function ensureCollaboration(){if(!init)init=(async()=>{await ensureAgentBrainStore();const q=db();
 await q`create table if not exists scotty_collab_grants(project_id text not null,agent_id text not null references scotty_agents(id),granted_at timestamptz default now(),primary key(project_id,agent_id))`;
 await q`create table if not exists scotty_collab_messages(id uuid primary key,project_id text not null,sender_id text not null references scotty_agents(id),recipient_id text not null references scotty_agents(id),body text not null,created_at timestamptz default now())`;
 await q`create table if not exists scotty_collab_shares(id uuid primary key,project_id text not null,memory_id uuid not null references scotty_brain_memories(id),recipient_id text not null references scotty_agents(id),revoked_at timestamptz,approved_at timestamptz default now(),unique(project_id,memory_id,recipient_id))`;

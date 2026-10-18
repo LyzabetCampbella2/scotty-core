@@ -18,6 +18,13 @@ const registryBefore=await sql`select id,name,department,sort_order from scotty_
 await sql`create table if not exists scotty_projects(id text primary key)`;
 const {createBrain,getBrain,listBrains,propose,listProposals,review,listMemories}=await import("./postgres-store.ts");
 
+test("collaboration initializes safely before the owner opens any brain route",async()=>{
+ const {ensureCollaboration}=await import("./collaboration.ts");
+ await ensureCollaboration();
+ expect((await sql`select to_regclass('scotty_brain_memories') as name`)[0].name).toBe("scotty_brain_memories");
+ expect((await sql`select to_regclass('scotty_collab_shares') as name`)[0].name).toBe("scotty_collab_shares");
+});
+
 test("all 128 existing roster entries are visible without importing or replacing",async()=>{
  const brains=await listBrains();
  expect(brains).toHaveLength(128);
