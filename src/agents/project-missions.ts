@@ -16,7 +16,7 @@ export async function missionAudit(q:any,p:string,action:string,detail:any){awai
 export async function missionAuthorization(q:any,p:string,spec:MissionSpec){
  if(!(await q`select id from scotty_projects where id=${p}`).length)throw Error('Project not found');
  const agents=[...new Set(spec.steps.map(s=>s.agentId))].sort();
- const grants=await q`select agent_id,granted_at from scotty_collab_grants where project_id=${p} and agent_id in ${q(agents)} order by agent_id`;
+ const grants=await q`select agent_id,granted_at::text as granted_at from scotty_collab_grants where project_id=${p} and agent_id in ${q(agents)} order by agent_id`;
  if(grants.length!==agents.length)throw Error('Every assigned agent must be a current project member');
  const handoffs:any[]=[];
  if(spec.coordination){
@@ -34,7 +34,7 @@ export async function missionAuthorization(q:any,p:string,spec:MissionSpec){
  }
  const contexts:any={};
  for(const step of spec.steps){
-  const memories=step.sourceIds.length?await q`select m.id,m.agent_id as "sourceAgentId",m.text,m.source,m.approved_by as "approvedBy",m.created_at as "createdAt",g.granted_at as "sourceGrant",s.approved_at as "sharedAt" from scotty_brain_memories m join scotty_brain_proposals pr on pr.id=m.proposal_id and pr.status='approved' join scotty_collab_grants g on g.agent_id=m.agent_id and g.project_id=${p} left join scotty_collab_shares s on s.memory_id=m.id and s.project_id=${p} and s.recipient_id=${step.agentId} and s.revoked_at is null where m.id::text in ${q(step.sourceIds)} and m.scope='project' and m.project_id=${p} and (m.agent_id=${step.agentId} or s.id is not null) order by m.id`:[];
+  const memories=step.sourceIds.length?await q`select m.id,m.agent_id as "sourceAgentId",m.text,m.source,m.approved_by as "approvedBy",m.created_at as "createdAt",g.granted_at::text as "sourceGrant",s.approved_at::text as "sharedAt" from scotty_brain_memories m join scotty_brain_proposals pr on pr.id=m.proposal_id and pr.status='approved' join scotty_collab_grants g on g.agent_id=m.agent_id and g.project_id=${p} left join scotty_collab_shares s on s.memory_id=m.id and s.project_id=${p} and s.recipient_id=${step.agentId} and s.revoked_at is null where m.id::text in ${q(step.sourceIds)} and m.scope='project' and m.project_id=${p} and (m.agent_id=${step.agentId} or s.id is not null) order by m.id`:[];
   if(memories.length!==step.sourceIds.length)throw Error('A selected source is private, unapproved, revoked or outside this project');
   contexts[step.id]=memories;
  }
@@ -95,7 +95,7 @@ export async function controlProjectMission(p:string,id:string,revision:number,a
 export async function simulateProjectMission(p:string,id:string,revision:number){return withProjectMission(p,id,async(q,m)=>{
  if(m.status!=='approved')throw Error('Mission is not approved for simulation');if(m.spec.coordination)throw Error('Use the bounded coordination queue for this plan');await checkedMission(q,m,revision);
  const results=m.spec.steps.map((s:any)=>({stepId:s.id,agentId:s.agentId,revision,status:'draft',text:'SIMULATION: '+s.deliverable,sourceIds:s.sourceIds,verified:false}));
- await q`insert into scotty_agent_missions(id,task,status,agents,dependencies,results,project_managed) values(${m.plan_id},${m.spec.goal},'needs_review',${q.json([...new Set(m.spec.steps.map((s:any)=>s.agentId))])},${q.json(m.spec.steps)},${q.json(results)},true) on conflict(id) do update set status='needs_review',results=excluded.results,dependencies=excluded.dependencies,updated_at=now()`;
+ await q`insert into scotty_agent_missions(id,task,status,agents,dependencies,results,project_managed) values(${m.plan_id},${m.spec.goal},'needs_review',${q.json([...new Set(m.spec.steps.map((s:any)=>s.agentId))])},${q.json(m.spec.steps)},${q.json(results)},true) on conflict(id) do update set status='needs_review',results=excluded.results,dependencies=excluded.dependencies,review='[]',updated_at=now()`;
  await q`update scotty_project_mission_specs set status='needs_review',updated_at=now() where plan_id=${m.plan_id}`;
  await missionAudit(q,p,'mission.simulate',{planId:id,revision,providerCalls:0});return {id,revision,status:'needs_review',results};
 });}

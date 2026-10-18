@@ -1,6 +1,7 @@
 import {createProjectMission,reviseProjectMission,approveProjectMission,controlProjectMission,simulateProjectMission,reviewMissionDraft,projectMissionDetail,projectMissionList,missionRecommendations} from './project-missions.ts';
 import {startCoordination,recoverCoordination,coordinationSnapshot,simulateCoordinationTick,simulateProjectQueueTick} from './chief-coordination.ts';
 import {missionSourceChoices,missionHandoffChoices} from './project-missions.ts';
+import {reconcileMissionStep} from './chief-coordination.ts';
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers:{'Cache-Control':'no-store'}});
 export async function handleProjectMissions(req:Request,u:URL){
  if(process.env.SCOTTY_PROJECT_MISSIONS_ENABLED!=='true')return json({ok:false,error:'Project missions disabled'},503);
@@ -24,9 +25,13 @@ export async function handleProjectMissions(req:Request,u:URL){
   }
   if(!id)return json({ok:true,...await createProjectMission(project,b.spec)},201);
   if(!Number.isInteger(b.revision)||b.revision<1)throw Error('Plan revision required');
-  if(['start-coordination','recover-coordination','tick-coordination'].includes(b.action)){
+  if(['start-coordination','recover-coordination','tick-coordination','reconcile-coordination'].includes(b.action)){
    if(process.env.SCOTTY_CHIEF_COORDINATION_ENABLED!=='true')return json({ok:false,error:'Chief coordination disabled'},503);
    if(b.action==='tick-coordination'&&process.env.SCOTTY_PROJECT_MISSION_SIMULATION_ENABLED!=='true')return json({ok:false,error:'Simulation disabled'},503);
+   if(b.action==='reconcile-coordination'){
+    if(!['accept_draft','abandon'].includes(b.decision)||typeof b.stepId!=='string'||typeof b.note!=='string')throw Error('Invalid reconciliation');
+    return json({ok:true,...await reconcileMissionStep(project,id,b.revision,b.stepId,b.decision,b.note)});
+   }
    const result=await (b.action==='start-coordination'?startCoordination:b.action==='recover-coordination'?recoverCoordination:simulateCoordinationTick)(project,id,b.revision);return json({ok:true,...result});
   }
   if(b.action==='revise')return json({ok:true,...await reviseProjectMission(project,id,b.revision,b.spec)});

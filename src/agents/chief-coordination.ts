@@ -58,6 +58,21 @@ export async function recoverCoordination(p:string,id:string,revision:number){aw
  await q`update scotty_mission_jobs set status='queued',blocker=null where plan_id=${m.plan_id} and revision=${revision} and status='failed' and attempts<${m.spec.coordination.limits.maxAttempts}`;
  await missionAudit(q,p,'coordination.recover',{planId:id,revision,uncertain:expired.length,actor:'owner'});return {uncertain:expired.length,note:'Completed work retained. Unknown and held outcomes require owner review; they are never retried automatically.'};
 });}
+export async function reconcileMissionStep(p:string,id:string,revision:number,stepId:string,decision:'accept_draft'|'abandon',note:string){await ensureCoordination();return withProjectMission(p,id,async(q,m)=>{
+ if(m.revision!==revision||!note.trim()||note.length>2000)throw Error('Current revision and owner reconciliation note required');
+ const job=(await q`select * from scotty_mission_jobs where plan_id=${m.plan_id} and revision=${revision} and step_id=${stepId} and status in ('unknown','held') for update`)[0];if(!job)throw Error('No uncertain or held step to reconcile');
+ if(decision==='accept_draft'){
+  if(m.status!=='running'||!job.output?.text)throw Error('Resume the mission and review a retained draft before acceptance');await checkedMission(q,m,revision);
+  const active=(await q`select deadline>now() as active from scotty_mission_runs where plan_id=${m.plan_id} and revision=${revision}`)[0]?.active;if(!active)throw Error('Elapsed-time ceiling reached; create a new reviewed revision');
+ }
+ await q`update scotty_mission_jobs set status=${decision==='accept_draft'?'draft':'abandoned'},blocker=null,claim_token=null where plan_id=${m.plan_id} and revision=${revision} and step_id=${stepId}`;
+ await q`delete from scotty_agent_slots where id=${job.slot_id}`;
+ const drafts=await q`select output from scotty_mission_jobs where plan_id=${m.plan_id} and revision=${revision} and status='draft' order by step_id`;
+ const done=drafts.length===m.spec.steps.length;
+ await q`update scotty_agent_missions set results=${q.json(drafts.map((j:any)=>j.output))},status=${done?'needs_review':m.status},updated_at=now() where id=${m.plan_id}`;
+ if(done)await q`update scotty_project_mission_specs set status='needs_review',updated_at=now() where plan_id=${m.plan_id}`;
+ await missionAudit(q,p,'coordination.reconcile',{planId:id,revision,stepId,decision,note,actor:'owner'});return {stepId,status:decision==='accept_draft'?'draft':'abandoned',ownerReleaseStillRequired:true};
+});}
 export async function coordinationSnapshot(p:string,id:string,revision:number){await ensureCoordination();return withProjectMission(p,id,async(q,m)=>{
  if(m.revision!==revision)throw Error('Stale revision');let blocker=null;try{await checkedMission(q,m,revision);}catch(e){blocker=e instanceof Error?e.message:'Access changed';}
  const jobs=await q`select step_id,agent_id,status,attempts,lease_until,output,blocker from scotty_mission_jobs where plan_id=${m.plan_id} and revision=${revision} order by step_id`;
