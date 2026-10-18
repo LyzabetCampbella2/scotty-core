@@ -1,7 +1,7 @@
 import {missionDb as db} from './mission-records.ts';
 import {ensureProjectEvidence,digest,approveEvidence} from './project-evidence.ts';
 export type DocumentReader=(provider:string,resource:string,query?:string,pageId?:string)=>Promise<any>;
-const existingReader:DocumentReader=async(...args)=>{const {addonRead}=await import('../connectors/adapters.ts');return addonRead(...args);};
+const existingReader:DocumentReader=async(...args)=>{const {projectDocumentRead}=await import('../connectors/project-document-reader.ts');return projectDocumentRead(...args);};
 const previews=new Map<string,{project:string;provider:string;id:string;title:string;body:string;reference:string;hash:string;partial:boolean;capturedAt:string;expires:number}>();
 const providerCheck=(p:string)=>{if(!['googledocs','notion'].includes(p))throw Error('Choose Google Docs or Notion');};
 const cleanId=(provider:string,id:string)=>{if(typeof id!=='string'||!(provider==='notion'?/^[a-f0-9-]{32,36}$/i:/^[a-zA-Z0-9_-]{10,180}$/).test(id))throw Error('Choose an exact document ID');return provider==='notion'?id.replaceAll('-','').toLowerCase():id;};

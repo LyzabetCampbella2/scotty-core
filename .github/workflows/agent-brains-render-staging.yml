@@ -9,6 +9,7 @@ on:
       - 'public/hud/project-operations.js'
       - 'public/hud/project-sandbox.js'
       - 'scripts/build-project-sandbox.ts'
+      - 'src/connectors/project-document-reader.ts'
       - 'public/hud/sidebar-voice-live.js'
       - 'public/index.html'
       - 'src/agents/project-mission*'
