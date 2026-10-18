@@ -71,6 +71,7 @@ jobs:
           bun test src/agents/postgres.integration.test.ts
           bun test src/agents/project-missions.integration.test.ts
           bun test src/agents/chief-coordination.integration.test.ts
+          bun test src/agents/project-mission-legacy.integration.test.ts
       - name: Install Chromium for synthetic tablet UI verification
         run: node_modules/.bin/playwright install --with-deps chromium
       - name: Synthetic tablet owner approval flow
