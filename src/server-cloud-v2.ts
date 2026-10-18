@@ -1,5 +1,6 @@
 import {handleAgentSubmit} from "./agents/agent-runtime-api.ts";
 import {handleRenderAgentBrains} from "./agents/render-bridge.ts";
+import {projectOperationsAsset} from './agents/project-operations-assets.ts';
 import {handleFolders} from './workspace/folders.ts';
 import {handleCalls} from './calls/routes.ts';
 import {handleConnectors} from './connectors/routes.ts';
@@ -53,6 +54,7 @@ Bun.serve({port:PORT,async fetch(req){
   if(u.pathname.startsWith('/vendor/')){let path='';if(u.pathname==='/vendor/pdfjs/pdf.mjs')path='node_modules/pdfjs-dist/build/pdf.mjs';else if(u.pathname==='/vendor/pdfjs/pdf.worker.mjs')path='node_modules/pdfjs-dist/build/pdf.worker.mjs';else if(/^\/vendor\/three\/three\.(?:module|core)\.js$/.test(u.pathname))path='node_modules/three/build/'+u.pathname.split('/').pop();else if(/^\/vendor\/three\/addons\/[a-zA-Z0-9_/-]+\.js$/.test(u.pathname))path='node_modules/three/examples/jsm/'+u.pathname.slice('/vendor/three/addons/'.length);if(path){const r=await servePublic(path,'application/javascript; charset=utf-8');if(r)return r}return Response.json({ok:false,error:'Viewer asset not found'},{status:404})}
 
   if(["/folders-database.js","/folders-core.js","/folders.js","/voice-features.js","/calls-core.js","/calls-worker.js","/calls.js","/call-contacts-core.js","/call-extras.js","/call-session-core.js","/call-session.js"].includes(u.pathname)||u.pathname==="/connectors.js"||u.pathname==="/voice-workspace-core.js"||u.pathname==="/voice-workspace.js"||u.pathname==="/command-room.js"||u.pathname==="/voice-control.js"||u.pathname==="/voice-control-core.js"||u.pathname==="/creative.js"||u.pathname==="/spatial-tools.js"||u.pathname==="/spatial-tools-core.js"||u.pathname==="/workspace.js"||u.pathname==="/workspace-viewer.js"||u.pathname==="/conversation-core.js"||u.pathname==="/conversation.js"||u.pathname==="/daily-life.js"||u.pathname==="/knowledge.js"||u.pathname==="/teamwork.js"||u.pathname==="/apps-actions.js") {const r=await servePublic("public"+u.pathname,"application/javascript; charset=utf-8");if(r)return r}
+  const projectOpsAsset=await projectOperationsAsset(req,u);if(projectOpsAsset)return projectOpsAsset;
   if(u.pathname==="/hud/sidebar-voice-live.js") {const r=await servePublic("public/hud/sidebar-voice-live.js","application/javascript; charset=utf-8");if(r)return r}
   if(u.pathname==="/render-hotfix.js") {const r=await servePublic("public/render-hotfix.js","application/javascript; charset=utf-8");if(r)return r}
   if(u.pathname==="/hud"||u.pathname==="/hud/"||u.pathname==="/") {const r=await serveHud();if(r)return r}
@@ -182,3 +184,4 @@ setTimeout(()=>ensureCreative().catch(e=>console.warn('Creative initialization:'
 setTimeout(()=>ensureControl().catch(e=>console.warn('Voice control initialization:',e.message)),22000);
 
 setTimeout(()=>ensureRoom().catch(e=>console.warn('Command room initialization:',e.message)),24000);
+
