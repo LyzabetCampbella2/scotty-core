@@ -22,6 +22,7 @@ export async function missionAuthorization(q:any,p:string,spec:MissionSpec){
  const grants=await q`select agent_id,granted_at::text as granted_at from scotty_collab_grants where project_id=${p} and agent_id in ${q(agents)} order by agent_id`;
  if(grants.length!==agents.length)throw Error('Every assigned agent must be a current project member');
  const handoffs:any[]=[];
+ if(spec.steps.some(s=>s.chiefReview)){const chiefs=await q`select id from scotty_agents where is_chief=true and id in ${q(agents)}`;if(spec.steps.some(s=>s.chiefReview&&!chiefs.some((a:any)=>a.id===s.agentId)))throw Error('Chief review must be assigned to an existing project chief');}
  if(spec.coordination){
   const c=spec.coordination,chiefs=[c.leadChiefId,...c.supportingChiefIds];
   const roster=await q`select id,is_chief,chief_id from scotty_agents where id in ${q(agents)}`;

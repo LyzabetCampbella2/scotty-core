@@ -48,14 +48,14 @@ export async function claimMissionStep(p:string,id:string,revision:number,mode:'
  return {ok:false,reason};
 });}
 // Trusted simulation adapter only. No HTTP route accepts claim tokens or agent-supplied outputs.
-export async function finishMissionStep(p:string,id:string,revision:number,token:string,outcome:{status:'draft'|'failed'|'unknown';text?:string;unresolved?:string[];findings?:any[];model?:string}){await ensureCoordination();return withProjectMission(p,id,async(q,m)=>{
+export async function finishMissionStep(p:string,id:string,revision:number,token:string,outcome:{status:'draft'|'failed'|'unknown';text?:string;unresolved?:string[];findings?:any[];model?:string;comparison?:any}){await ensureCoordination();return withProjectMission(p,id,async(q,m)=>{
  const job=(await q`select *,lease_until>now() as active from scotty_mission_jobs where plan_id=${m.plan_id} and revision=${revision} and claim_token::text=${token} and status='claimed' for update`)[0];if(!job?.active)throw Error('Claim expired, superseded or already completed');
  let held=m.status!=='running';try{await checkedMission(q,m,revision);}catch{held=true;}
  const profile=profileInput((await q`select data from scotty_specialist_profiles where agent_id=${job.agent_id}`)[0]?.data||{});if(profile.paused||!projectAllowed(profile,p))held=true;
  const active=(await q`select deadline>now() as active from scotty_mission_runs where plan_id=${m.plan_id} and revision=${revision}`)[0]?.active;
  if(!active||m.revision!==revision)held=true;
  const status=held?'held':outcome.status;
- const output={stepId:job.step_id,agentId:job.agent_id,revision,text:String(outcome.text||'').slice(0,12000),sourceIds:job.source_ids||[],unresolved:(outcome.unresolved||[]).map(String).slice(0,20),findings:outcome.findings||[],executionMode:job.execution_mode,model:outcome.model||null,verified:false,status:'draft'};
+ const output={stepId:job.step_id,agentId:job.agent_id,revision,text:String(outcome.text||'').slice(0,12000),sourceIds:job.source_ids||[],unresolved:(outcome.unresolved||[]).map(String).slice(0,50),findings:outcome.findings||[],...(outcome.comparison?{comparison:outcome.comparison}:{}),executionMode:job.execution_mode,model:outcome.model||null,verified:false,status:'draft'};
  await q`update scotty_mission_jobs set status=${status},output=${q.json(output)},claim_token=null,blocker=${held?'Mission paused, cancelled, revised, timed out or access changed':status==='unknown'?'Outcome uncertain; owner reconciliation required':status==='failed'?'Step failed; explicit recovery required':null} where plan_id=${m.plan_id} and revision=${revision} and step_id=${job.step_id}`;
  await q`delete from scotty_agent_slots where id=${job.slot_id}`;
  if(!held&&status==='draft'){
