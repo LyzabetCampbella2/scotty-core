@@ -11,7 +11,7 @@ function db(){
  if(!sql){
   const url=process.env.DATABASE_URL;
   if(!url)throw new Error("DATABASE_URL missing");
-  sql=postgres(url,{max:5,idle_timeout:20,connect_timeout:12,ssl:"require"});
+  sql=postgres(url,{max:5,idle_timeout:20,connect_timeout:12,ssl:process.env.SCOTTY_BRAIN_DB_SSL==='disable'?false:'require'});
  }
  return sql;
 }

@@ -7,6 +7,9 @@ on:
     paths:
       - 'src/agents/project-mission*'
       - 'src/agents/mission-records.ts'
+      - 'src/agents/chief-coordination*'
+      - 'src/agents/workload.ts'
+      - 'src/agents/collaboration-pagination.ts'
       - 'src/agents/brain.ts'
       - 'src/agents/brain.test.ts'
       - 'src/agents/postgres-store.ts'
@@ -54,7 +57,7 @@ jobs:
       - name: Install isolated PostgreSQL test dependency
         run: |
           mkdir -p /tmp/scotty-agent-ci
-          printf '{"dependencies":{"postgres":"3.4.7"}}' > /tmp/scotty-agent-ci/package.json
+          printf '{"dependencies":{"postgres":"3.4.7","playwright":"1.62.1"}}' > /tmp/scotty-agent-ci/package.json
           (cd /tmp/scotty-agent-ci && bun install)
           ln -s /tmp/scotty-agent-ci/node_modules node_modules
       - name: Unit tests for access isolation and fail-closed Render bridge
@@ -67,6 +70,12 @@ jobs:
         run: |
           bun test src/agents/postgres.integration.test.ts
           bun test src/agents/project-missions.integration.test.ts
+          bun test src/agents/chief-coordination.integration.test.ts
+          bun test src/agents/project-mission-legacy.integration.test.ts
+      - name: Install Chromium for synthetic tablet UI verification
+        run: node_modules/.bin/playwright install --with-deps chromium
+      - name: Synthetic tablet owner approval flow
+        run: bun test src/agents/project-mission-ui.browser.test.ts
       - name: Import-check production router and Agent Brain storage
         run: bun -e "await import('./src/agents/postgres-store.ts'); await import('./src/agents/render-bridge.ts')"
 

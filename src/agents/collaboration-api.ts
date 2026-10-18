@@ -1,4 +1,5 @@
 import {revokeAgentCredentials} from "./agent-credentials.ts";
+import {collaborationRequestPage,markRequestRead} from './collaboration-pagination.ts';
 import {requestHandoff,pendingRequests,decideRequest} from "./collaboration-requests.ts";
 import {grant,revoke,message,share,list,revokeShare,sharedFor} from "./collaboration.ts";
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers:{"Cache-Control":"no-store"}});
@@ -19,17 +20,18 @@ export async function handleCollaboration(req:Request,u:URL):Promise<Response>{
  const notificationRoute=u.pathname==="/api/agent-brains/collaboration-notifications";
  if(notificationRoute){
   if(req.method!=="GET")return json({error:"Method not allowed"},405);
-  const pending=await pendingRequests();
-  return json({ok:true,pendingCount:pending.length,latest:pending.slice(-5).reverse().map(x=>({id:x.id,projectId:x.project_id,kind:x.kind,title:x.title,sourceAgentId:x.source_agent_id,recipientAgentId:x.recipient_agent_id,createdAt:x.created_at})),limited:pending.length===100});
+  const page=await collaborationRequestPage(u.searchParams.get('projectId')||undefined,undefined,5);
+  return json({ok:true,pendingCount:page.pendingCount,unreadCount:page.unreadCount,latest:page.requests.map(x=>({id:x.id,projectId:x.project_id,kind:x.kind,title:x.title,sourceAgentId:x.source_agent_id,recipientAgentId:x.recipient_agent_id,createdAt:x.created_at})),limited:page.nextCursor!==null});
  }
  const queueRoute=u.pathname==="/api/agent-brains/collaboration-requests";
  const decisionRoute=u.pathname.match(/^\/api\/agent-brains\/collaboration-requests\/([0-9a-f-]{36})$/i);
  if(queueRoute||decisionRoute){
   try{
-   if(queueRoute&&req.method==="GET")return json({ok:true,requests:await pendingRequests()});
+   if(queueRoute&&req.method==="GET")return json({ok:true,...await collaborationRequestPage(u.searchParams.get('projectId')||undefined,u.searchParams.get('cursor')||undefined,Number(u.searchParams.get('limit')||30))});
    if(req.method!=="POST")return json({error:"Method not allowed"},405);
    if(req.headers.get("origin")!==u.origin||req.headers.get("x-scotty-csrf")!=="1")return json({error:"Origin/CSRF verification failed"},403);
    const data=await req.json();
+   if(decisionRoute&&data.decision==='viewed')return json({ok:true,...await markRequestRead(decisionRoute[1])});
    if(decisionRoute&&["approved","rejected"].includes(data.decision))return json({ok:true,...await decideRequest(decisionRoute[1],data.decision)});
    if(queueRoute&&id(data.projectId)&&id(data.senderId)&&id(data.recipientId)&&typeof data.title==="string"&&data.title.trim()&&data.title.length<=240&&typeof data.summary==="string"&&data.summary.trim()&&data.summary.length<=10000&&(!data.memoryId||id(data.memoryId)))
     return json({ok:true,request:await requestHandoff(data.projectId,data.senderId,data.recipientId,data.title,data.summary,data.memoryId)},201);
