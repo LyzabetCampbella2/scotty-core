@@ -12,9 +12,10 @@ export async function handleAgentSubmit(req:Request,u:URL):Promise<Response>{
  if(!actor)return json({ok:false,error:"Invalid or expired agent credentials"},401);
  try{
   const b=await req.json();
-  if(!id(b.recipientId)||typeof b.title!=="string"||!b.title.trim()||b.title.length>240||typeof b.summary!=="string"||!b.summary.trim()||b.summary.length>10000||b.memoryId!==undefined&&!id(b.memoryId))return json({error:"Invalid handoff"},400);
+  if(!b||!id(b.recipientId)||typeof b.title!=="string"||!b.title.trim()||b.title.length>240||typeof b.summary!=="string"||!b.summary.trim()||b.summary.length>10000||b.memoryId!==undefined&&!id(b.memoryId))return json({error:"Invalid handoff"},400);
   // Source is cryptographically bound to the token, never supplied by the caller.
-  const created=await requestHandoff(projectId,actor.agentId,b.recipientId,b.title,b.summary,b.memoryId,true);
+  const created=await requestHandoff(projectId,actor.agentId,b.recipientId,b.title,b.summary,b.memoryId,true,actor.tokenHash);
   return json({ok:true,request:created},201);
  }catch(e){return json({ok:false,error:e instanceof Error?e.message:"Request rejected"},400);}
 }
+

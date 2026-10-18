@@ -15,6 +15,7 @@ for(let i=0;i<128;i++){
  await sql`insert into scotty_agents(id,name,department,sort_order) values(${chief?"chief-"+i:"agent-"+i},${chief?"Chief "+i:"Agent "+i},${chief?"Command":"Research"},${i})`;
 }
 const registryBefore=await sql`select id,name,department,sort_order from scotty_agents order by sort_order`;
+await sql`create table if not exists scotty_projects(id text primary key)`;
 const {createBrain,getBrain,listBrains,propose,listProposals,review,listMemories}=await import("./postgres-store.ts");
 
 test("all 128 existing roster entries are visible without importing or replacing",async()=>{
@@ -193,3 +194,110 @@ test("Part 2 completion: browser cannot issue a runtime agent secret",async()=>{
  expect(r.status).toBe(403);
  expect(JSON.stringify(await r.json())).not.toContain("scotty_agent_");
 });
+
+test("source revocation never resurrects old shares after regrant",async()=>{
+ const {grant,revoke,share,sharedFor,list}=await import("./collaboration.ts");
+ const p="source-regrant-ci";
+ await sql`insert into scotty_projects(id) values(${p})`;
+ await grant(p,"chief-0");await grant(p,"agent-12");
+ const proposal=await propose("chief-0",{text:"Revocable source memory",source:"CI",scope:"project",projectId:p});
+ await review(proposal.id,"approved","owner");
+ const [m]=await sql`select id from scotty_brain_memories where proposal_id=${proposal.id}`;
+ await share(p,m.id,"agent-12");
+ expect(await sharedFor(p,"agent-12")).toHaveLength(1);
+ await revoke(p,"chief-0");await grant(p,"chief-0");
+ expect(await sharedFor(p,"agent-12")).toHaveLength(0);
+ const snapshot=await list(p);
+ expect(snapshot.shares[0].revokedAt).not.toBeNull();
+ expect(snapshot.audit.every((a:any)=>a.id&&a.createdAt)).toBe(true);
+ await share(p,m.id,"agent-12"); // A new explicit owner share is required.
+ expect(await sharedFor(p,"agent-12")).toHaveLength(1);
+});
+
+test("concurrent reviews deliver once and record one decision",async()=>{
+ const {grant,list}=await import("./collaboration.ts");
+ const {requestHandoff,decideRequest}=await import("./collaboration-requests.ts");
+ const p="review-race-ci";
+ await sql`insert into scotty_projects(id) values(${p})`;
+ await grant(p,"chief-0");await grant(p,"agent-12");
+ const r=await requestHandoff(p,"chief-0","agent-12","One delivery","Review race");
+ const outcomes=await Promise.allSettled([decideRequest(r.id,"approved"),decideRequest(r.id,"approved")]);
+ expect(outcomes.filter(x=>x.status==="fulfilled")).toHaveLength(1);
+ const snapshot=await list(p);
+ expect(snapshot.messages).toHaveLength(1);
+ expect(snapshot.messages[0].body).toBe("HANDOFF: One delivery\nReview race");
+ expect(snapshot.audit.filter((x:any)=>x.action==="request.approve")).toHaveLength(1);
+ expect(snapshot.audit.filter((x:any)=>x.action==="request.create")).toHaveLength(1);
+});
+
+test("concurrent runtime submissions cannot exceed the project quota",async()=>{
+ const {grant}=await import("./collaboration.ts");
+ const {requestHandoff}=await import("./collaboration-requests.ts");
+ const p="quota-race-ci";
+ await sql`insert into scotty_projects(id) values(${p})`;
+ await grant(p,"chief-0");await grant(p,"agent-12");
+ const results=await Promise.allSettled(Array.from({length:25},(_,i)=>requestHandoff(p,"chief-0","agent-12","Burst "+i,"CI fixture",undefined,true)));
+ expect(results.filter(x=>x.status==="fulfilled")).toHaveLength(20);
+ expect(results.filter(x=>x.status==="rejected")).toHaveLength(5);
+});
+
+test("memory approval queue contains actual approved evidence, rejects private or wrong-source memory",async()=>{
+ const {grant}=await import("./collaboration.ts");
+ const {requestHandoff,pendingRequests,decideRequest}=await import("./collaboration-requests.ts");
+ const p="memory-review-ci";
+ await sql`insert into scotty_projects(id) values(${p})`;
+ await grant(p,"chief-0");await grant(p,"agent-12");
+ const make=async(scope:"private"|"project",projectId?:string)=>{
+  const proposal=await propose("chief-0",{text:"Owner must see exact evidence",source:"CI reviewed source",scope,projectId});
+  await review(proposal.id,"approved","owner");
+  return (await sql`select id from scotty_brain_memories where proposal_id=${proposal.id}`)[0].id;
+ };
+ const privateId=await make("private");
+ await expect(requestHandoff(p,"chief-0","agent-12","Hidden","Reject private",privateId)).rejects.toThrow("not approved");
+ const memoryId=await make("project",p);
+ await expect(requestHandoff(p,"agent-12","chief-0","Wrong author","Reject wrong source",memoryId)).rejects.toThrow("not approved");
+ const request=await requestHandoff(p,"chief-0","agent-12","Evidence","Review before sharing",memoryId);
+ const queued=(await pendingRequests(p)).find((x:any)=>x.id===request.id);
+ expect(queued.memory_text).toBe("Owner must see exact evidence");
+ expect(queued.memory_source).toBe("CI reviewed source");
+ expect(queued.memory_approved_by).toBe("owner");
+ await decideRequest(request.id,"approved");
+});
+
+test("credential revocation is audited without secrets and blocks an already authenticated enqueue",async()=>{
+ const {grant,list}=await import("./collaboration.ts");
+ const {issueAgentCredential,authenticateAgent,revokeAgentCredentials}=await import("./agent-credentials.ts");
+ const {requestHandoff}=await import("./collaboration-requests.ts");
+ const p="credential-race-ci";
+ await sql`insert into scotty_projects(id) values(${p})`;
+ await grant(p,"chief-0");await grant(p,"agent-12");
+ const issued=await issueAgentCredential("chief-0",p,5);
+ const actor=await authenticateAgent(new Request("https://scotty.example",{headers:{authorization:"Bearer "+issued.credential}}),p);
+ await revokeAgentCredentials("chief-0",p);
+ await expect(requestHandoff(p,"chief-0","agent-12","Stale auth","Must not enqueue",undefined,true,actor.tokenHash)).rejects.toThrow("revoked or expired");
+ const audit=JSON.stringify((await list(p)).audit);
+ expect(audit).toContain("credential.issue");
+ expect(audit).toContain("credential.revoke");
+ expect(audit).not.toContain(issued.credential);
+ expect(audit).not.toContain(actor.tokenHash);
+});
+
+test("audit failure rolls back a queued request and registry stays intact",async()=>{
+ const {grant}=await import("./collaboration.ts");
+ const {requestHandoff}=await import("./collaboration-requests.ts");
+ const p="audit-rollback-ci";
+ await sql`insert into scotty_projects(id) values(${p})`;
+ await grant(p,"chief-0");await grant(p,"agent-12");
+ await sql`create function ci_reject_audit() returns trigger language plpgsql as $$
+ begin if NEW.project_id='audit-rollback-ci' then raise exception 'CI audit unavailable'; end if; return NEW; end $$`;
+ await sql`create trigger ci_reject_audit before insert on scotty_collab_audit for each row execute function ci_reject_audit()`;
+ try{
+  await expect(requestHandoff(p,"chief-0","agent-12","Atomic","No audit means no request")).rejects.toThrow("CI audit unavailable");
+  expect((await sql`select count(*)::int as n from scotty_collab_requests where project_id=${p}`)[0].n).toBe(0);
+ }finally{
+  await sql`drop trigger ci_reject_audit on scotty_collab_audit`;
+  await sql`drop function ci_reject_audit()`;
+ }
+ expect(await sql`select id,name,department,sort_order from scotty_agents order by sort_order`).toEqual(registryBefore);
+});
+

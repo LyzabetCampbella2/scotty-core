@@ -40,6 +40,7 @@ export async function handleCollaboration(req:Request,u:URL):Promise<Response>{
  if(!match)return json({error:"Route not found"},404);
  const p=match[1],action=match[2],method=req.method;
  try{
+ if(method==="GET"&&action==="audit")return json({ok:true,audit:(await list(p)).audit});
  if(method==="GET"&&!action)return json({ok:true,...await list(p)});
  if(method==="GET"&&action==="received"){const recipient=u.searchParams.get("agentId");if(!id(recipient))return json({error:"Agent ID required"},400);return json({ok:true,memories:await sharedFor(p,recipient!)});}
  if(method!=="POST")return json({error:"Method not allowed"},405);
@@ -52,3 +53,4 @@ export async function handleCollaboration(req:Request,u:URL):Promise<Response>{
  return json({error:"Invalid collaboration action"},400);
  }catch(e){return json({ok:false,error:e instanceof Error?e.message:"Unknown error"},400);}
 }
+
