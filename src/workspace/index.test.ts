@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { handleWorkspace } from "./index.ts";
+import { handleWorkspace, workspaceAuthorized } from "./index.ts";
 
 describe("workspace safety gates", () => {
   test("workspace is disabled unless explicitly enabled", async () => {
@@ -35,24 +35,15 @@ describe("workspace safety gates", () => {
     }
   });
 
-  test("owner session cookie is accepted without exposing the bearer token to the HUD", async () => {
-    const previousEnabled = process.env.SCOTTY_WORKSPACE_ENABLED;
+  test("owner session cookie is accepted without exposing the bearer token to the HUD", () => {
     const previousOwner = process.env.SCOTTY_BRAIN_OWNER_SESSION_TOKEN;
-    process.env.SCOTTY_WORKSPACE_ENABLED = "true";
     process.env.SCOTTY_BRAIN_OWNER_SESSION_TOKEN = "test-owner-session";
     try {
-      const response = await handleWorkspace(
-        new Request("https://scotty-core.onrender.com/api/workspace/projects", {
-          headers: { cookie: "scotty_owner_session=test-owner-session" }
-        }),
-        new URL("https://scotty-core.onrender.com/api/workspace/projects")
-      );
-      // Authenticated GET proceeds to DB initialization; no DATABASE_URL means the
-      // handler returns a DB configuration error rather than an authentication error.
-      expect(response.status).not.toBe(401);
+      const request = new Request("https://scotty-core.onrender.com/api/workspace/projects", {
+        headers: { cookie: "scotty_owner_session=test-owner-session" }
+      });
+      expect(workspaceAuthorized(request)).toBe(true);
     } finally {
-      if (previousEnabled === undefined) delete process.env.SCOTTY_WORKSPACE_ENABLED;
-      else process.env.SCOTTY_WORKSPACE_ENABLED = previousEnabled;
       if (previousOwner === undefined) delete process.env.SCOTTY_BRAIN_OWNER_SESSION_TOKEN;
       else process.env.SCOTTY_BRAIN_OWNER_SESSION_TOKEN = previousOwner;
     }
