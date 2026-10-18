@@ -6,7 +6,7 @@ let initializing:Promise<void>|undefined;
 export async function ensureProjectMissions(){
  if(!initializing)initializing=(async()=>{
   await ensureCollaboration();await ensureMissionRecords();const q=db();
-  await q`create table if not exists scotty_project_mission_specs(plan_id uuid primary key references scotty_agent_plans(id),project_id text not null,revision integer not null default 1,spec jsonb not null,status text not null default 'awaiting_approval',approved_revision integer,authorization text,created_at timestamptz not null default now(),updated_at timestamptz not null default now())`;
+  await q`create table if not exists scotty_project_mission_specs(plan_id uuid primary key references scotty_agent_plans(id),project_id text not null,revision integer not null default 1,spec jsonb not null,status text not null default 'awaiting_approval',approved_revision integer,approval_fingerprint text,created_at timestamptz not null default now(),updated_at timestamptz not null default now())`;
   await q`create table if not exists scotty_project_mission_history(plan_id uuid references scotty_project_mission_specs(plan_id),revision integer not null,spec jsonb not null,results jsonb not null default '[]',reviews jsonb not null default '[]',created_at timestamptz not null default now(),primary key(plan_id,revision))`;
  })().catch(e=>{initializing=undefined;throw e});return initializing;
 }
@@ -33,7 +33,7 @@ export async function withProjectMission<T>(p:string,id:string,fn:(q:any,m:any)=
 export async function checkedMission(q:any,m:any,revision:number){
  if(m.revision!==revision||m.approved_revision!==revision)throw Error('Plan revision requires owner approval');
  const auth=await missionAuthorization(q,m.project_id,m.spec);
- if(auth.authorization!==m.authorization)throw Error('Project membership or source approval changed; revise and approve the plan again');
+ if(auth.authorization!==m.approval_fingerprint)throw Error('Project membership or source approval changed; revise and approve the plan again');
  return auth;
 }
 export async function createProjectMission(p:string,input:any){
@@ -51,7 +51,7 @@ export async function reviseProjectMission(p:string,id:string,revision:number,in
   if(['running','completed','cancelled'].includes(m.status))throw Error('Pause unfinished work before revising');
   await missionAuthorization(q,p,spec);const next=revision+1;
   await q`update scotty_project_mission_history h set results=m.results,reviews=m.review from scotty_agent_missions m where h.plan_id=${m.plan_id} and h.revision=${revision} and m.id=h.plan_id`;
-  await q`update scotty_project_mission_specs set spec=${q.json(spec)},revision=${next},status='awaiting_approval',approved_revision=null,authorization=null,updated_at=now() where plan_id=${m.plan_id}`;
+  await q`update scotty_project_mission_specs set spec=${q.json(spec)},revision=${next},status='awaiting_approval',approved_revision=null,approval_fingerprint=null,updated_at=now() where plan_id=${m.plan_id}`;
   await q`insert into scotty_project_mission_history(plan_id,revision,spec) values(${m.plan_id},${next},${q.json(spec)})`;
   await q`update scotty_agent_plans set task=${spec.goal},agents=${q.json([...new Set(spec.steps.map(s=>s.agentId))])},dependencies=${q.json(spec.steps)},status='awaiting_approval',approved_at=null where id=${m.plan_id}`;
   await missionAudit(q,p,'mission.plan.revise',{planId:id,revision:next,actor:'owner'});return {id,revision:next,status:'awaiting_approval'};
@@ -60,7 +60,7 @@ export async function reviseProjectMission(p:string,id:string,revision:number,in
 export async function approveProjectMission(p:string,id:string,revision:number){return withProjectMission(p,id,async(q,m)=>{
  if(m.revision!==revision||m.status!=='awaiting_approval')throw Error('Plan unavailable or stale');
  const auth=await missionAuthorization(q,p,m.spec);
- await q`update scotty_project_mission_specs set approved_revision=${revision},authorization=${auth.authorization},status='approved',updated_at=now() where plan_id=${m.plan_id}`;
+ await q`update scotty_project_mission_specs set approved_revision=${revision},approval_fingerprint=${auth.authorization},status='approved',updated_at=now() where plan_id=${m.plan_id}`;
  await q`update scotty_agent_plans set status='approved',approved_at=now() where id=${m.plan_id}`;
  await missionAudit(q,p,'mission.plan.approve',{planId:id,revision,actor:'owner'});return {id,revision,status:'approved'};
 });}
