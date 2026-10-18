@@ -6,7 +6,7 @@ Date: 2026-10-18 UTC / October 17, 2026 Pacific
 - Existing staging: staging/agent-brains-render-part1 at 01d6769d25c39cf5e53f2db7773f24b2df77afa5 (PR #5 already merged there).
 - New work: review/agent-collaboration-part2-verification-20261018, based on that exact staging commit.
 - No merge, provider deployment, credential installation, production SQL, data export, or paid resource creation is authorized by this continuation.
-- No HUD, voice, gestures, existing agent registry, chief hierarchy, project records, or legacy memory code was edited.
+- No HUD, voice, gestures, project records, or legacy memory code was edited. The review branch now changes only the legacy roster import path to preserve existing identities and state; no production registry or data was modified.
 - Vercel git.deploymentEnabled is false for this review branch only, included in its first commit to prevent automatic previews. Production deployment configuration remains unchanged.
 
 ## Part 2: reviewed existing behavior
@@ -34,7 +34,7 @@ A runtime can propose a pending handoff; it does not independently deliver or ex
 - Final code verification PASSED at 31a240945218bb05af633f6b8c50ba30216a4a68: https://github.com/LyzabetCampbella2/scotty-core/actions/runs/39099456523
 - Final results: 9 unit tests + 20 disposable PostgreSQL integration tests = 29 passing, 0 failures; adapter/storage import checks passed. This run includes cold initialization and owner-session/same-origin CSRF checks.
 - Draft PR #6: https://github.com/LyzabetCampbella2/scotty-core/pull/6 (targets staging only, unmerged).
-- Final read-only branch check confirmed production and existing staging heads are unchanged from the SHAs above. Blob comparison confirmed all public HUD assets, voice-service files, voice/gesture/control modules, legacy memory/workspace modules, and src/agents/cloud.ts are unchanged from staging.
+- Final read-only branch check confirmed production and existing staging heads are unchanged from the SHAs above. Blob comparison confirmed all public HUD assets, voice-service files, voice/gesture/control modules, and legacy memory/workspace modules were unchanged from staging. The subsequent roster fix changes only the import path and import status wording in src/agents/cloud.ts.
 
 ## Parts 3–4 specification recovery
 The owner selected recovery of the CURRENT agent-brains sequence, rather than the older October 6 eight-part build.
@@ -57,6 +57,16 @@ Part 2 is a tested development candidate, not production-ready.
 - The owner queue still caps results at 100 and shares/messages/audit snapshots are bounded; richer pagination and abuse monitoring remain documented limitations, not completed features.
 - Project-lock serialization is intentionally conservative; load/latency testing remains pending.
 - The source still uses additive CREATE TABLE initialization. Production schema/permissions review and any migration execution require separate approval.
-- The existing legacy roster import uses delete-and-reinsert. Once additive brain rows reference roster IDs, its compatibility with foreign-key restrictions must be verified before enabling Part 1/2; this review deliberately does not rewrite that legacy importer.
+- The roster-import foreign-key blocker has been reproduced and fixed in isolated CI as recorded below. Live owner-login testing and actual schema compatibility remain pending.
 - Review and merge, hosting, any credential setup, feature enablement, production data access, and ongoing backup scheduling each remain approval-gated.
 
+
+## Roster compatibility follow-up
+- Code commit: ff476bb6870505e7a94838727d40a82b7b591a93.
+- Successful CI: https://github.com/LyzabetCampbella2/scotty-core/actions/runs/39099671456
+- Results: 9 unit tests + 23 PostgreSQL integration tests = 32 passing, 0 failures; storage/bridge import checks passed. Local syntax checks also passed for cloud.ts and roster-import.ts.
+- The old delete-all SQL was executed against synthetic brain-referenced agents and correctly failed, demonstrating the compatibility defect without contacting production.
+- New roster-import.ts is called by both existing bootstrap and legacy import paths. It locks the roster table within a transaction, initializes only an empty roster, and verifies the exact identity set for an existing roster. Matching existing rows are not updated or deleted; partial, changed or duplicate identity sets reject and roll back.
+- Same-identity incoming name/department/chief/voice/runtime changes are deliberately ignored to preserve owner data. Intentional roster/profile migrations require a separate reviewed path; the importer does not apply them.
+- Tests compare every synthetic registry column, all brain rows and all approved-memory rows before/after import, including 128 identities and 12 chiefs; concurrent initialization creates one complete roster. Rejected imports leave the source marker unchanged.
+- No production SQL, credentials, provider deployment, merge, or paid resource creation occurred in this follow-up. Parts 3–4 remain unresolved rather than invented.
