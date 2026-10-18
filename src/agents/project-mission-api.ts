@@ -2,6 +2,8 @@ import {createProjectMission,reviseProjectMission,approveProjectMission,controlP
 import {startCoordination,recoverCoordination,coordinationSnapshot,simulateCoordinationTick,simulateProjectQueueTick} from './chief-coordination.ts';
 import {missionSourceChoices,missionHandoffChoices,missionProjectChoices} from './project-missions.ts';
 import {reconcileMissionStep} from './chief-coordination.ts';
+import {runProjectDraft} from './project-drafting.ts';
+import {evidenceList} from './project-evidence.ts';
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers:{'Cache-Control':'no-store'}});
 export async function handleProjectMissions(req:Request,u:URL){
  if(process.env.SCOTTY_PROJECT_MISSIONS_ENABLED!=='true')return json({ok:false,error:'Project missions disabled'},503);
@@ -15,7 +17,7 @@ export async function handleProjectMissions(req:Request,u:URL){
     if(process.env.SCOTTY_CHIEF_COORDINATION_ENABLED!=='true')return json({ok:false,error:'Chief coordination disabled'},503);
     return json({ok:true,...await coordinationSnapshot(project,id,Number(u.searchParams.get('revision')))});
    }
-   return json({ok:true,...(id==='recommendations'?{agents:await missionRecommendations(project),sources:await missionSourceChoices(project),handoffs:await missionHandoffChoices(project)}:id?await projectMissionDetail(project,id):{plans:await projectMissionList(project)})});
+   return json({ok:true,...(id==='recommendations'?{agents:await missionRecommendations(project),sources:await missionSourceChoices(project),handoffs:await missionHandoffChoices(project),evidence:await evidenceList(project)}:id?await projectMissionDetail(project,id):{plans:await projectMissionList(project)})});
   }
   if(req.method!=='POST')return json({ok:false,error:'Method not allowed'},405);
   if(req.headers.get('origin')!==u.origin||req.headers.get('x-scotty-csrf')!=='1')return json({ok:false,error:'Origin/CSRF verification failed'},403);
@@ -26,6 +28,10 @@ export async function handleProjectMissions(req:Request,u:URL){
   }
   if(!id)return json({ok:true,...await createProjectMission(project,b.spec)},201);
   if(!Number.isInteger(b.revision)||b.revision<1)throw Error('Plan revision required');
+  if(b.action==='run-draft'){
+   if(process.env.SCOTTY_CHIEF_COORDINATION_ENABLED!=='true'||process.env.SCOTTY_PROJECT_OPERATIONS_ENABLED!=='true')return json({ok:false,error:'Project drafting disabled'},503);
+   return json(await runProjectDraft(project,id,b.revision));
+  }
   if(['start-coordination','recover-coordination','tick-coordination','reconcile-coordination'].includes(b.action)){
    if(process.env.SCOTTY_CHIEF_COORDINATION_ENABLED!=='true')return json({ok:false,error:'Chief coordination disabled'},503);
    if(b.action==='tick-coordination'&&process.env.SCOTTY_PROJECT_MISSION_SIMULATION_ENABLED!=='true')return json({ok:false,error:'Simulation disabled'},503);
