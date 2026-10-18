@@ -1,0 +1,39 @@
+name: Synthetic workspace staging tests
+on:
+  pull_request:
+    paths:
+      - "src/workspace/**"
+      - ".github/workflows/workspace-staging.yml"
+      - "package.json"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-workspace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: scotty_ci
+          POSTGRES_PASSWORD: synthetic_ci_password_only
+          POSTGRES_DB: scotty_workspace_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U scotty_ci -d scotty_workspace_ci"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      SCOTTY_STAGING_TEST_DATABASE_URL: postgres://scotty_ci:synthetic_ci_password_only@127.0.0.1:5432/scotty_workspace_ci
+      SCOTTY_WORKSPACE_ENABLED: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.23
+      - run: bun install
+      - name: Unit safety tests
+        run: bun test src/workspace/index.test.ts
+      - name: Isolated synthetic database integration tests
+        run: bun test src/workspace/staging.integration.test.ts
