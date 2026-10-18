@@ -1,6 +1,8 @@
 import {renderCollaborationInbox} from "./collaboration-inbox.ts";
 import {handleProjectMissions} from './project-mission-api.ts';
 import {renderProjectMissions} from './project-mission-ui.ts';
+import {handleProjectOperations} from './project-operations-api.ts';
+import {renderProjectOperations} from './project-operations-ui.ts';
 import {handleCollaboration} from "./collaboration-api.ts";
 import {handleAgents} from "./api.ts";
 import {renderReviewPage} from "./review-ui.ts";
@@ -14,12 +16,15 @@ export async function handleRenderAgentBrains(
  const page=u.pathname==="/agents/learning-review";
  const inbox=u.pathname==="/agents/collaboration-inbox";
  const missions=u.pathname==='/agents/project-missions';
- if(!api&&!page&&!inbox&&!missions)return null;
+ const operations=u.pathname==='/agents/project-operations';
+ if(!api&&!page&&!inbox&&!missions&&!operations)return null;
  const headers={"Cache-Control":"no-store"};
  if(process.env.SCOTTY_AGENT_BRAINS_ENABLED!=="true")
   return Response.json({ok:false,error:"Agent brains disabled"},{status:503,headers});
  if(!await isOwnerAuthenticated(req))
   return Response.json({ok:false,error:"Owner login required"},{status:401,headers});
+ if(operations){if(process.env.SCOTTY_PROJECT_OPERATIONS_ENABLED!=='true'||process.env.SCOTTY_PROJECT_MISSIONS_ENABLED!=='true')return Response.json({ok:false,error:'Project operations disabled'},{status:503,headers});if(req.method!=='GET')return new Response('Method not allowed',{status:405,headers});return renderProjectOperations();}
+ if(u.pathname==='/api/agent-brains/project-operations'||u.pathname.startsWith('/api/agent-brains/project-operations/'))return handleProjectOperations(req,u);
  if(missions){if(process.env.SCOTTY_PROJECT_MISSIONS_ENABLED!=='true')return Response.json({ok:false,error:'Project missions disabled'},{status:503,headers});if(req.method!=='GET')return new Response('Method not allowed',{status:405,headers});return renderProjectMissions();}
  if(u.pathname==='/api/agent-brains/project-missions'||u.pathname.startsWith('/api/agent-brains/project-missions/'))return handleProjectMissions(req,u);
  if(inbox){if(req.method!=="GET")return new Response("Method not allowed",{status:405,headers});return renderCollaborationInbox();}

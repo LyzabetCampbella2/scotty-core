@@ -11,9 +11,9 @@ test('reject duplicate step identities and external actions',()=>{
 test('valid dependencies retain explicit source selection without adding permissions',()=>{
  const spec=missionSpec({goal:'Test',steps:[step('a'),step('b',['a'])]});expect(spec.steps[1].dependsOn).toEqual(['a']);expect(spec.steps[0].sourceIds).toEqual([]);
 });
-test('coordination rejects paid calls, unlimited attempts and a chief review before its evidence',()=>{
+test('coordination rejects unbounded calls, unlimited attempts and a chief review before its evidence',()=>{
  const coordination={leadChiefId:'agent-12',supportingChiefIds:[],handoffs:[],limits:{maxAttempts:1,maxElapsedMs:120000,maxModelCalls:1}};
- expect(()=>missionSpec({goal:'Test',steps:[step('a')],coordination})).toThrow('zero model');
+ expect(()=>missionSpec({goal:'Test',steps:[step('a')],coordination})).toThrow('explicit input and output limits');
  expect(()=>missionSpec({goal:'Test',steps:[step('a')],coordination:{...coordination,limits:{maxAttempts:3,maxModelCalls:0}}})).toThrow('attempts');
  const other={...step('b'),agentId:'agent-13'};expect(()=>missionSpec({goal:'Test',steps:[step('a'),other],coordination:{...coordination,limits:{maxModelCalls:0}}})).toThrow('review');
 });

@@ -1,10 +1,13 @@
 name: Agent Brains Render Staging
 on:
   push:
-    branches: [review/agent-collaboration-part2-verification-20261018, dev/part3-project-missions-20261018, dev/part4-chief-coordination-20261018]
-    paths: ['src/agents/**', '.github/workflows/agent-brains-render-staging.yml']
+    branches: [review/agent-collaboration-part2-verification-20261018, dev/part3-project-missions-20261018, dev/part4-chief-coordination-20261018, dev/project-operations-20261018]
+    paths: ['src/agents/**', 'public/hud/project-operations.js', 'public/index.html', '.github/workflows/agent-brains-render-staging.yml']
   pull_request:
     paths:
+      - 'src/agents/project-*'
+      - 'public/hud/project-operations.js'
+      - 'public/index.html'
       - 'src/agents/project-mission*'
       - 'src/agents/mission-records.ts'
       - 'src/agents/chief-coordination*'
@@ -61,7 +64,7 @@ jobs:
           (cd /tmp/scotty-agent-ci && bun install)
           ln -s /tmp/scotty-agent-ci/node_modules node_modules
       - name: Unit tests for access isolation and fail-closed Render bridge
-        run: bun test src/agents/brain.test.ts src/agents/render-bridge.test.ts src/agents/project-mission-model.test.ts
+        run: bun test src/agents/brain.test.ts src/agents/render-bridge.test.ts src/agents/project-mission-model.test.ts src/agents/project-draft-model.test.ts
       - name: End-to-end PostgreSQL data integrity and learning reviews
         env:
           SCOTTY_BRAIN_TEST_DB: disposable
@@ -72,10 +75,13 @@ jobs:
           bun test src/agents/project-missions.integration.test.ts
           bun test src/agents/chief-coordination.integration.test.ts
           bun test src/agents/project-mission-legacy.integration.test.ts
+          bun test src/agents/project-operations.integration.test.ts
       - name: Install Chromium for synthetic tablet UI verification
         run: node_modules/.bin/playwright install --with-deps chromium
       - name: Synthetic tablet owner approval flow
-        run: bun test src/agents/project-mission-ui.browser.test.ts
+        run: |
+          bun test src/agents/project-mission-ui.browser.test.ts
+          bun test src/agents/project-operations.browser.test.ts
       - name: Import-check production router and Agent Brain storage
         run: bun -e "await import('./src/agents/postgres-store.ts'); await import('./src/agents/render-bridge.ts')"
 

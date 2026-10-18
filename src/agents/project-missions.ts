@@ -5,10 +5,11 @@ import {missionSpec,type MissionSpec} from './project-mission-model.ts';
 import {ensureCollaborationRequests} from './collaboration-requests.ts';
 import {ensureWorkload} from './workload.ts';
 import {profileInput,projectAllowed} from './team-model.ts';
+import {ensureProjectEvidence,selectedEvidence} from './project-evidence.ts';
 let initializing:Promise<void>|undefined;
 export async function ensureProjectMissions(){
  if(!initializing)initializing=(async()=>{
-  await ensureCollaboration();await ensureCollaborationRequests();await ensureMissionRecords();const q=db();
+  await ensureCollaboration();await ensureCollaborationRequests();await ensureProjectEvidence();await ensureMissionRecords();const q=db();
   await q`create table if not exists scotty_project_mission_specs(plan_id uuid primary key references scotty_agent_plans(id),project_id text not null,revision integer not null default 1,spec jsonb not null,status text not null default 'awaiting_approval',approved_revision integer,approval_fingerprint text,created_at timestamptz not null default now(),updated_at timestamptz not null default now())`;
   await q`create table if not exists scotty_project_mission_history(plan_id uuid references scotty_project_mission_specs(plan_id),revision integer not null,spec jsonb not null,results jsonb not null default '[]',reviews jsonb not null default '[]',created_at timestamptz not null default now(),primary key(plan_id,revision))`;
  })().catch(e=>{initializing=undefined;throw e});return initializing;
@@ -38,7 +39,7 @@ export async function missionAuthorization(q:any,p:string,spec:MissionSpec){
  for(const step of spec.steps){
   const memories=step.sourceIds.length?await q`select m.id,m.agent_id as "sourceAgentId",m.text,m.source,m.approved_by as "approvedBy",m.created_at as "createdAt",g.granted_at::text as "sourceGrant",s.approved_at::text as "sharedAt" from scotty_brain_memories m join scotty_brain_proposals pr on pr.id=m.proposal_id and pr.status='approved' join scotty_collab_grants g on g.agent_id=m.agent_id and g.project_id=${p} left join scotty_collab_shares s on s.memory_id=m.id and s.project_id=${p} and s.recipient_id=${step.agentId} and s.revoked_at is null where m.id::text in ${q(step.sourceIds)} and m.scope='project' and m.project_id=${p} and (m.agent_id=${step.agentId} or s.id is not null) order by m.id`:[];
   if(memories.length!==step.sourceIds.length)throw Error('A selected source is private, unapproved, revoked or outside this project');
-  contexts[step.id]=memories;
+  contexts[step.id]=[...memories,...await selectedEvidence(q,p,step.agentId,step.evidenceIds||[])];
  }
  const encoded=new TextEncoder().encode(JSON.stringify({grants,contexts,handoffs}));
  const authorization=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',encoded))).map(n=>n.toString(16).padStart(2,'0')).join('');
