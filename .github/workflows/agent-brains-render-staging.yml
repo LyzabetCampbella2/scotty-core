@@ -1,10 +1,12 @@
 name: Agent Brains Render Staging
 on:
   push:
-    branches: [review/agent-collaboration-part2-verification-20261018]
+    branches: [review/agent-collaboration-part2-verification-20261018, dev/part3-project-missions-20261018, dev/part4-chief-coordination-20261018]
     paths: ['src/agents/**', '.github/workflows/agent-brains-render-staging.yml']
   pull_request:
     paths:
+      - 'src/agents/project-mission*'
+      - 'src/agents/mission-records.ts'
       - 'src/agents/brain.ts'
       - 'src/agents/brain.test.ts'
       - 'src/agents/postgres-store.ts'
@@ -56,13 +58,16 @@ jobs:
           (cd /tmp/scotty-agent-ci && bun install)
           ln -s /tmp/scotty-agent-ci/node_modules node_modules
       - name: Unit tests for access isolation and fail-closed Render bridge
-        run: bun test src/agents/brain.test.ts src/agents/render-bridge.test.ts
+        run: bun test src/agents/brain.test.ts src/agents/render-bridge.test.ts src/agents/project-mission-model.test.ts
       - name: End-to-end PostgreSQL data integrity and learning reviews
         env:
           SCOTTY_BRAIN_TEST_DB: disposable
           DATABASE_URL: postgres://scotty_ci:scotty_ci_password@127.0.0.1:5432/scotty_brain_ci
           SCOTTY_BRAIN_DB_SSL: disable
-        run: bun test src/agents/postgres.integration.test.ts
+        run: |
+          bun test src/agents/postgres.integration.test.ts
+          bun test src/agents/project-missions.integration.test.ts
       - name: Import-check production router and Agent Brain storage
         run: bun -e "await import('./src/agents/postgres-store.ts'); await import('./src/agents/render-bridge.ts')"
+
 
