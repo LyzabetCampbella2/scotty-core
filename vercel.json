@@ -3,7 +3,8 @@
   "git": {
     "deploymentEnabled": {
       "review/agent-collaboration-part2-verification-20261018": false,
-      "staging/agent-brains-render-part1": false
+      "staging/agent-brains-render-part1": false,
+      "review/parts-2-4-readiness-20261018": false
     }
   }
 }
