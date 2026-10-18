@@ -46,6 +46,12 @@ test('owner reconciliation records a held draft without retrying it or releasing
  const s=await c.coordinationSnapshot(f.p,f.id,1);expect(s.jobs.find((j:any)=>j.step_id==='alpha').attempts).toBe(1);expect((await m.projectMissionDetail(f.p,f.id)).mission.results[0].status).toBe('draft');
  const next=await c.claimMissionStep(f.p,f.id,1);expect(next.step.id).toBe('beta');await c.finishMissionStep(f.p,f.id,1,next.token,{status:'draft',text:'Chief review'});
 });
+test('review points stop dependent work until the owner releases the exact draft revision',async()=>{
+ const f=await setup();await m.controlProjectMission(f.p,f.id,1,'pause');const spec:any=structuredClone(f.spec);spec.steps[0].reviewBeforeNext=true;await m.reviseProjectMission(f.p,f.id,1,spec);await m.approveProjectMission(f.p,f.id,2);await c.startCoordination(f.p,f.id,2);await c.simulateCoordinationTick(f.p,f.id,2);expect((await c.coordinationSnapshot(f.p,f.id,2)).status).toBe('needs_review');expect((await c.claimMissionStep(f.p,f.id,2)).ok).toBe(false);await m.reviewMissionDraft(f.p,f.id,2,'alpha','approved','Evidence checked');const next=await c.claimMissionStep(f.p,f.id,2);expect(next.step.id).toBe('beta');await c.finishMissionStep(f.p,f.id,2,next.token,{status:'draft',text:'Chief review after owner approval'});expect((await m.projectMissionDetail(f.p,f.id)).mission.results.find((r:any)=>r.stepId==='alpha').status).toBe('released');
+});
+test('profile permission revoked during a claim holds its output',async()=>{
+ const f=await setup(),claim=await c.claimMissionStep(f.p,f.id,1);await w.saveSpecialist('chief-0',{allProjects:false,projectIds:[]});try{expect((await c.finishMissionStep(f.p,f.id,1,claim.token,{status:'draft',text:'Held by profile permission'})).status).toBe('held');}finally{await w.saveSpecialist('chief-0',{});}
+});
 test('inbox keyset pagination reaches every tied-timestamp request beyond 100',async()=>{
  const f=await setup();for(let i=0;i<137;i++)await sql`insert into scotty_collab_requests(id,project_id,source_agent_id,recipient_agent_id,kind,title,summary,created_at) values(${crypto.randomUUID()},${f.p},'chief-0','chief-1','handoff',${'Synthetic '+i},'Synthetic queue test','2026-10-18 00:00:00.123456+00')`;
  const ids:string[]=[];let cursor:string|undefined,pages=0;do{if(++pages>20)throw Error('Queue cursor did not advance');const page=await collaborationRequestPage(f.p,cursor,17);ids.push(...page.requests.map((r:any)=>r.id));cursor=page.nextCursor||undefined;}while(cursor);expect(ids).toHaveLength(137);expect(new Set(ids).size).toBe(137);

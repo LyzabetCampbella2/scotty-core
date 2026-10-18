@@ -1,4 +1,4 @@
-export type MissionStep={id:string;agentId:string;instruction:string;deliverable:string;dependsOn:string[];sourceIds:string[]};
+export type MissionStep={id:string;agentId:string;instruction:string;deliverable:string;dependsOn:string[];sourceIds:string[];reviewBeforeNext?:boolean};
 export type Coordination={leadChiefId:string;supportingChiefIds:string[];handoffs:{fromStep:string;toStep:string;requestId:string}[];priority:number;limits:{maxAttempts:number;maxElapsedMs:number;maxModelCalls:0}};
 export type MissionSpec={goal:string;steps:MissionStep[];coordination?:Coordination};
 const identifier=(x:unknown)=>typeof x==='string'&&/^[\w-]{1,160}$/.test(x);
@@ -8,7 +8,7 @@ export function missionSpec(input:any):MissionSpec{
  const steps:MissionStep[]=input.steps.map((s:any)=>{
   if(!s||!identifier(s.id)||!identifier(s.agentId)||!prose(s.instruction,4000)||!prose(s.deliverable,1000)||!Array.isArray(s.dependsOn)||!Array.isArray(s.sourceIds)||s.dependsOn.length>8||s.sourceIds.length>30||![...s.dependsOn,...s.sourceIds].every(identifier))throw Error('Invalid step, dependency or source');
   if(s.action&&s.action!=='internal_draft')throw Error('Only internal draft actions are supported');
-  return {id:s.id,agentId:s.agentId,instruction:s.instruction.trim(),deliverable:s.deliverable.trim(),dependsOn:[...new Set<string>(s.dependsOn)],sourceIds:[...new Set<string>(s.sourceIds)]};
+  return {id:s.id,agentId:s.agentId,instruction:s.instruction.trim(),deliverable:s.deliverable.trim(),dependsOn:[...new Set<string>(s.dependsOn)],sourceIds:[...new Set<string>(s.sourceIds)],...(s.reviewBeforeNext===true?{reviewBeforeNext:true}:{})};
  });
  if(new Set(steps.map(s=>s.id)).size!==steps.length)throw Error('Duplicate step IDs');
  const marks=new Map<string,number>();

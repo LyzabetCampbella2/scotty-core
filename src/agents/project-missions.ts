@@ -3,6 +3,8 @@ import {lockCollaborationProject} from './collaboration-lock.ts';
 import {ensureMissionRecords,missionDb as db} from './mission-records.ts';
 import {missionSpec,type MissionSpec} from './project-mission-model.ts';
 import {ensureCollaborationRequests} from './collaboration-requests.ts';
+import {ensureWorkload} from './workload.ts';
+import {profileInput,projectAllowed} from './team-model.ts';
 let initializing:Promise<void>|undefined;
 export async function ensureProjectMissions(){
  if(!initializing)initializing=(async()=>{
@@ -49,6 +51,11 @@ export async function checkedMission(q:any,m:any,revision:number){
  if(m.revision!==revision||m.approved_revision!==revision)throw Error('Plan revision requires owner approval');
  const auth=await missionAuthorization(q,m.project_id,m.spec);
  if(auth.authorization!==m.approval_fingerprint)throw Error('Project membership or source approval changed; revise and approve the plan again');
+ if(m.spec.coordination){
+  await q`select id from scotty_team_config where id=1 for update`;
+  const ids=[...new Set(m.spec.steps.map((s:any)=>s.agentId))];const profiles=await q`select agent_id,data from scotty_specialist_profiles where agent_id in ${q(ids)}`;
+  if(profiles.some((r:any)=>!projectAllowed(profileInput(r.data),m.project_id)))throw Error('An assigned agent profile no longer permits this project');
+ }
  return auth;
 }
 export async function createProjectMission(p:string,input:any){
@@ -105,13 +112,18 @@ export async function reviewMissionDraft(p:string,id:string,revision:number,step
  const result=record?.results.find((r:any)=>r.stepId===stepId&&r.revision===revision);if(!result||result.status!=='draft')throw Error('Draft unavailable or already reviewed');
  const reviews=[...record.review,{stepId,revision,decision,note:note.slice(0,2000),reviewedBy:'owner',reviewedAt:new Date().toISOString()}];
  const results=record.results.map((r:any)=>r===result?{...r,status:decision==='approved'?'released':decision}:r);
- const status=results.every((r:any)=>r.status==='released')?'completed':results.some((r:any)=>['rejected','revision_requested'].includes(r.status))?'revision_requested':'needs_review';
+ let status=results.length===m.spec.steps.length&&results.every((r:any)=>r.status==='released')?'completed':results.some((r:any)=>['rejected','revision_requested'].includes(r.status))?'revision_requested':'needs_review';
+ if(m.spec.coordination){
+  await q`update scotty_mission_jobs set status=${decision==='approved'?'released':decision} where plan_id=${m.plan_id} and revision=${revision} and step_id=${stepId} and status='draft'`;
+  const remaining=(await q`select count(*)::int n from scotty_mission_jobs where plan_id=${m.plan_id} and revision=${revision} and status in ('queued','claimed')`)[0].n;
+  if(decision==='approved'&&remaining>0)status='running';
+ }
  await q`update scotty_agent_missions set results=${q.json(results)},review=${q.json(reviews)},status=${status},updated_at=now() where id=${m.plan_id}`;
  await q`update scotty_project_mission_specs set status=${status},updated_at=now() where plan_id=${m.plan_id}`;
  await missionAudit(q,p,'mission.draft.review',{planId:id,revision,stepId,decision,actor:'owner'});return {id,status};
 });}
 export async function projectMissionDetail(p:string,id:string){return withProjectMission(p,id,async(q,m)=>{let blocker=null;try{if(m.approved_revision)await checkedMission(q,m,m.revision);else await missionAuthorization(q,p,m.spec);}catch(e){blocker=e instanceof Error?e.message:'Access changed';}return {plan:m,blocker,history:await q`select revision,spec,results,reviews,created_at from scotty_project_mission_history where plan_id=${m.plan_id} order by revision`,mission:(await q`select * from scotty_agent_missions where id=${m.plan_id}`)[0]||null};});}
 export async function projectMissionList(p:string){await ensureProjectMissions();return db()`select plan_id as id,project_id,revision,status,spec,updated_at from scotty_project_mission_specs where project_id=${p} order by updated_at desc,plan_id limit 100`;}
-export async function missionRecommendations(p:string){await ensureProjectMissions();return db()`select a.id,a.name,a.department,a.is_chief as "isChief",a.chief_id as "chiefId",a.state,'Current project member; owner chooses assignments' as reason from scotty_agents a join scotty_collab_grants g on g.agent_id=a.id and g.project_id=${p} order by a.is_chief desc,a.sort_order`;}
+export async function missionRecommendations(p:string){await ensureProjectMissions();await ensureWorkload();return db()`select a.id,a.name,a.department,a.is_chief as "isChief",a.chief_id as "chiefId",a.state,(select count(*)::int from scotty_agent_slots s where s.agent_id=a.id and s.lease_until>now()) as "activeClaims",coalesce((profile.data->>'paused')::boolean,false) as paused,'Current project member; owner chooses assignments; workload checked again on dispatch' as reason from scotty_agents a join scotty_collab_grants g on g.agent_id=a.id and g.project_id=${p} left join scotty_specialist_profiles profile on profile.agent_id=a.id order by a.is_chief desc,a.sort_order`;}
 export async function missionSourceChoices(p:string){await ensureProjectMissions();return db()`select m.id,m.agent_id as "agentId",m.text,m.source,m.approved_by as "approvedBy",coalesce((select jsonb_agg(s.recipient_id) from scotty_collab_shares s where s.memory_id=m.id and s.project_id=${p} and s.revoked_at is null),'[]'::jsonb) as recipients from scotty_brain_memories m join scotty_brain_proposals pr on pr.id=m.proposal_id and pr.status='approved' join scotty_collab_grants g on g.agent_id=m.agent_id and g.project_id=${p} where m.project_id=${p} and m.scope='project' order by m.created_at,m.id`;}
 export async function missionHandoffChoices(p:string){await ensureProjectMissions();return db()`select id,title,source_agent_id as "sourceAgentId",recipient_agent_id as "recipientAgentId" from scotty_collab_requests where project_id=${p} and kind='handoff' and status='approved' order by created_at,id`;}
