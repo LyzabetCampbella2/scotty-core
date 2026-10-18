@@ -1,4 +1,5 @@
 import {importRosterPreservingIdentity} from "./roster-import.ts";
+import {ensureMissionRecords} from './mission-records.ts';
 import postgres from "postgres";
 import { groqThink,addActivity } from "../brain/cloud.ts";
 import { specialistInstructions,departmentSkills } from "./skills.ts";
@@ -18,6 +19,7 @@ async function ensure(){
  if(initPromise)return initPromise;
  initPromise=(async()=>{
   const q=db();
+  await ensureMissionRecords();
   await q`create table if not exists scotty_agents(
    id text primary key,
    name text not null,
@@ -252,6 +254,7 @@ export async function handleCloudAgents(req:Request,u:URL){
   const rows=await db()`select * from scotty_agent_missions where id=${missionMatch[1]} limit 1`;
   if(!rows.length)return json({ok:false,error:"Mission not found"},404);
   const m=rows[0];const body=await req.json().catch(()=>({}));
+  if(m.project_managed)return json({ok:false,error:'Use the project mission review workflow'},409);
   if(body.resumeInterrupted===true){
    if(m.status!=="interrupted")return json({ok:false,error:"Only interrupted missions can use recovery"},409);
    const existing=await db()`select id,status from scotty_agent_missions where parent_mission_id=${m.id} order by created_at desc limit 1`;
@@ -289,12 +292,13 @@ export async function handleCloudAgents(req:Request,u:URL){
    const found=await db()`select * from scotty_agent_plans where id=${approvedPlanId} and status='awaiting_approval' limit 1`;
    if(!found.length)return json({ok:false,error:"Plan unavailable or already approved"},409);
    approvedPlan=found[0];
+   if(approvedPlan.project_managed)return json({ok:false,error:'Use the project mission review workflow'},409);
    body={...body,agents:approvedPlan.agents,task:approvedPlan.task,dependencies:approvedPlan.dependencies,autoAssign:false};
   }
   if(body?.recoverySourceMissionId&&!/^[0-9a-f-]{36}$/i.test(String(body.recoverySourceMissionId)))return json({ok:false,error:"Invalid recovery mission identifier"},400);
   const ids:string[]=[...new Set<string>((Array.isArray(body?.agents)?body.agents:[]).map((x:any)=>String(x)))].slice(0,8);
   if(body?.recoverySourceMissionId){
-   const source=await db()`select status,agents,results from scotty_agent_missions where id=${String(body.recoverySourceMissionId)} limit 1`;
+   const source=await db()`select status,agents,results from scotty_agent_missions where id=${String(body.recoverySourceMissionId)} and project_managed=false limit 1`;
    if(!source.length||source[0].status!=="interrupted")return json({ok:false,error:"Recovery source is not interrupted"},409);
    const finished=new Set((Array.isArray(source[0].results)?source[0].results:[]).filter((r:any)=>r.status==="completed").map((r:any)=>String(r.id)));
    const remaining=(Array.isArray(source[0].agents)?source[0].agents:[]).map(String).filter((id:string)=>!finished.has(id));
