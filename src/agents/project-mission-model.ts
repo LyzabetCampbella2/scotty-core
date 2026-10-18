@@ -1,5 +1,6 @@
 export type MissionStep={id:string;agentId:string;instruction:string;deliverable:string;dependsOn:string[];sourceIds:string[]};
-export type MissionSpec={goal:string;steps:MissionStep[]};
+export type Coordination={leadChiefId:string;supportingChiefIds:string[];handoffs:{fromStep:string;toStep:string;requestId:string}[];priority:number;limits:{maxAttempts:number;maxElapsedMs:number;maxModelCalls:0}};
+export type MissionSpec={goal:string;steps:MissionStep[];coordination?:Coordination};
 const identifier=(x:unknown)=>typeof x==='string'&&/^[\w-]{1,160}$/.test(x);
 const prose=(x:unknown,max:number)=>typeof x==='string'&&x.trim().length>0&&x.length<=max;
 export function missionSpec(input:any):MissionSpec{
@@ -12,5 +13,16 @@ export function missionSpec(input:any):MissionSpec{
  if(new Set(steps.map(s=>s.id)).size!==steps.length)throw Error('Duplicate step IDs');
  const marks=new Map<string,number>();
  const visit=(id:string)=>{if(marks.get(id)===1)throw Error('Dependency cycle');if(marks.get(id)===2)return;const s=steps.find(s=>s.id===id);if(!s)throw Error('Unknown dependency');marks.set(id,1);s.dependsOn.forEach(visit);marks.set(id,2);};
- steps.forEach(s=>visit(s.id));return {goal:input.goal.trim(),steps};
+ steps.forEach(s=>visit(s.id));
+ let coordination:Coordination|undefined;
+ if(input.coordination){const c=input.coordination,l=c.limits||{};
+  if(!identifier(c.leadChiefId)||!Array.isArray(c.supportingChiefIds)||!c.supportingChiefIds.every(identifier)||new Set([c.leadChiefId,...c.supportingChiefIds]).size!==c.supportingChiefIds.length+1||!Array.isArray(c.handoffs)||c.handoffs.length>56)throw Error('Invalid chief coordination');
+  const maxAttempts=l.maxAttempts??1,maxElapsedMs=l.maxElapsedMs??120000;
+  if(!Number.isInteger(maxAttempts)||maxAttempts<1||maxAttempts>2||!Number.isInteger(maxElapsedMs)||maxElapsedMs<1000||maxElapsedMs>300000||(l.maxModelCalls??0)!==0)throw Error('Development limits allow 1–2 attempts, 1–300 seconds, and zero model calls');
+  if(!Number.isInteger(c.priority??0)||(c.priority??0)<0||(c.priority??0)>3)throw Error('Priority must be 0 to 3');
+  const handoffs=c.handoffs.map((h:any)=>{if(!identifier(h.fromStep)||!identifier(h.toStep)||!identifier(h.requestId)||!steps.find(s=>s.id===h.toStep)?.dependsOn.includes(h.fromStep))throw Error('Handoff must reference a dependency');return {fromStep:h.fromStep,toStep:h.toStep,requestId:h.requestId};});
+  if(!steps.some(s=>s.agentId===c.leadChiefId&&steps.filter(x=>x.agentId!==c.leadChiefId).every(x=>s.dependsOn.includes(x.id))))throw Error('Lead chief review must depend on the other assigned authors');
+  coordination={leadChiefId:c.leadChiefId,supportingChiefIds:[...c.supportingChiefIds],handoffs,priority:c.priority??0,limits:{maxAttempts,maxElapsedMs,maxModelCalls:0}};
+ }
+ return {goal:input.goal.trim(),steps,...(coordination?{coordination}:{})};
 }

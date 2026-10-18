@@ -4,6 +4,7 @@ import {ensureCollaboration} from "./collaboration.ts";
 let sql:any;
 const db=()=>sql||(sql=postgres(process.env.DATABASE_URL||"",{ssl:process.env.SCOTTY_BRAIN_DB_SSL==="disable"?false:"require",max:3}));
 let ready:Promise<void>|undefined;
+export async function ensureCollaborationRequests(){return ensure();}
 async function ensure(){await ensureCollaboration();if(!ready)ready=(async()=>{const q=db();await q`create table if not exists scotty_collab_requests(
  id uuid primary key,project_id text not null,source_agent_id text not null references scotty_agents(id),
  recipient_agent_id text not null references scotty_agents(id),

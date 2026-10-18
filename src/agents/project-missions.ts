@@ -2,10 +2,11 @@ import {ensureCollaboration} from './collaboration.ts';
 import {lockCollaborationProject} from './collaboration-lock.ts';
 import {ensureMissionRecords,missionDb as db} from './mission-records.ts';
 import {missionSpec,type MissionSpec} from './project-mission-model.ts';
+import {ensureCollaborationRequests} from './collaboration-requests.ts';
 let initializing:Promise<void>|undefined;
 export async function ensureProjectMissions(){
  if(!initializing)initializing=(async()=>{
-  await ensureCollaboration();await ensureMissionRecords();const q=db();
+  await ensureCollaboration();await ensureCollaborationRequests();await ensureMissionRecords();const q=db();
   await q`create table if not exists scotty_project_mission_specs(plan_id uuid primary key references scotty_agent_plans(id),project_id text not null,revision integer not null default 1,spec jsonb not null,status text not null default 'awaiting_approval',approved_revision integer,approval_fingerprint text,created_at timestamptz not null default now(),updated_at timestamptz not null default now())`;
   await q`create table if not exists scotty_project_mission_history(plan_id uuid references scotty_project_mission_specs(plan_id),revision integer not null,spec jsonb not null,results jsonb not null default '[]',reviews jsonb not null default '[]',created_at timestamptz not null default now(),primary key(plan_id,revision))`;
  })().catch(e=>{initializing=undefined;throw e});return initializing;
@@ -17,13 +18,27 @@ export async function missionAuthorization(q:any,p:string,spec:MissionSpec){
  const agents=[...new Set(spec.steps.map(s=>s.agentId))].sort();
  const grants=await q`select agent_id,granted_at from scotty_collab_grants where project_id=${p} and agent_id in ${q(agents)} order by agent_id`;
  if(grants.length!==agents.length)throw Error('Every assigned agent must be a current project member');
+ const handoffs:any[]=[];
+ if(spec.coordination){
+  const c=spec.coordination,chiefs=[c.leadChiefId,...c.supportingChiefIds];
+  const roster=await q`select id,is_chief,chief_id from scotty_agents where id in ${q(agents)}`;
+  if(chiefs.some(id=>!roster.some((a:any)=>a.id===id&&a.is_chief)))throw Error('Coordination chiefs must be assigned existing chiefs');
+  const root=(id:string)=>{const a=roster.find((a:any)=>a.id===id);return a?.is_chief?a.id:a?.chief_id;};
+  if(roster.some((a:any)=>!chiefs.includes(root(a.id))))throw Error('Every assignee needs a selected coordinating chief');
+  for(const to of spec.steps)for(const dep of to.dependsOn){const from=spec.steps.find(s=>s.id===dep)!;
+   if(from.agentId===to.agentId||root(from.agentId)===root(to.agentId))continue;
+   const link=c.handoffs.find(h=>h.fromStep===dep&&h.toStep===to.id);if(!link)throw Error('Cross-chief dependency requires an approved project handoff');
+   const request=(await q`select id,status,reviewed_at from scotty_collab_requests where id::text=${link.requestId} and project_id=${p} and source_agent_id=${from.agentId} and recipient_agent_id=${to.agentId} and kind='handoff' and status='approved'`)[0];
+   if(!request)throw Error('Cross-chief handoff is not approved for these assignees and project');handoffs.push(request);
+  }
+ }
  const contexts:any={};
  for(const step of spec.steps){
   const memories=step.sourceIds.length?await q`select m.id,m.agent_id as "sourceAgentId",m.text,m.source,m.approved_by as "approvedBy",m.created_at as "createdAt",g.granted_at as "sourceGrant",s.approved_at as "sharedAt" from scotty_brain_memories m join scotty_brain_proposals pr on pr.id=m.proposal_id and pr.status='approved' join scotty_collab_grants g on g.agent_id=m.agent_id and g.project_id=${p} left join scotty_collab_shares s on s.memory_id=m.id and s.project_id=${p} and s.recipient_id=${step.agentId} and s.revoked_at is null where m.id::text in ${q(step.sourceIds)} and m.scope='project' and m.project_id=${p} and (m.agent_id=${step.agentId} or s.id is not null) order by m.id`:[];
   if(memories.length!==step.sourceIds.length)throw Error('A selected source is private, unapproved, revoked or outside this project');
   contexts[step.id]=memories;
  }
- const encoded=new TextEncoder().encode(JSON.stringify({grants,contexts}));
+ const encoded=new TextEncoder().encode(JSON.stringify({grants,contexts,handoffs}));
  const authorization=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',encoded))).map(n=>n.toString(16).padStart(2,'0')).join('');
  return {contexts,authorization};
 }
@@ -78,7 +93,7 @@ export async function controlProjectMission(p:string,id:string,revision:number,a
 });}
 // Simulation is synchronous, deterministic and never invokes a provider or tool.
 export async function simulateProjectMission(p:string,id:string,revision:number){return withProjectMission(p,id,async(q,m)=>{
- if(m.status!=='approved')throw Error('Mission is not approved for simulation');await checkedMission(q,m,revision);
+ if(m.status!=='approved')throw Error('Mission is not approved for simulation');if(m.spec.coordination)throw Error('Use the bounded coordination queue for this plan');await checkedMission(q,m,revision);
  const results=m.spec.steps.map((s:any)=>({stepId:s.id,agentId:s.agentId,revision,status:'draft',text:'SIMULATION: '+s.deliverable,sourceIds:s.sourceIds,verified:false}));
  await q`insert into scotty_agent_missions(id,task,status,agents,dependencies,results,project_managed) values(${m.plan_id},${m.spec.goal},'needs_review',${q.json([...new Set(m.spec.steps.map((s:any)=>s.agentId))])},${q.json(m.spec.steps)},${q.json(results)},true) on conflict(id) do update set status='needs_review',results=excluded.results,dependencies=excluded.dependencies,updated_at=now()`;
  await q`update scotty_project_mission_specs set status='needs_review',updated_at=now() where plan_id=${m.plan_id}`;
@@ -98,3 +113,5 @@ export async function reviewMissionDraft(p:string,id:string,revision:number,step
 export async function projectMissionDetail(p:string,id:string){return withProjectMission(p,id,async(q,m)=>{let blocker=null;try{if(m.approved_revision)await checkedMission(q,m,m.revision);else await missionAuthorization(q,p,m.spec);}catch(e){blocker=e instanceof Error?e.message:'Access changed';}return {plan:m,blocker,history:await q`select revision,spec,results,reviews,created_at from scotty_project_mission_history where plan_id=${m.plan_id} order by revision`,mission:(await q`select * from scotty_agent_missions where id=${m.plan_id}`)[0]||null};});}
 export async function projectMissionList(p:string){await ensureProjectMissions();return db()`select plan_id as id,project_id,revision,status,spec,updated_at from scotty_project_mission_specs where project_id=${p} order by updated_at desc,plan_id limit 100`;}
 export async function missionRecommendations(p:string){await ensureProjectMissions();return db()`select a.id,a.name,a.department,a.is_chief as "isChief",a.chief_id as "chiefId",a.state,'Current project member; owner chooses assignments' as reason from scotty_agents a join scotty_collab_grants g on g.agent_id=a.id and g.project_id=${p} order by a.is_chief desc,a.sort_order`;}
+export async function missionSourceChoices(p:string){await ensureProjectMissions();return db()`select m.id,m.agent_id as "agentId",m.text,m.source,m.approved_by as "approvedBy",coalesce((select jsonb_agg(s.recipient_id) from scotty_collab_shares s where s.memory_id=m.id and s.project_id=${p} and s.revoked_at is null),'[]'::jsonb) as recipients from scotty_brain_memories m join scotty_brain_proposals pr on pr.id=m.proposal_id and pr.status='approved' join scotty_collab_grants g on g.agent_id=m.agent_id and g.project_id=${p} where m.project_id=${p} and m.scope='project' order by m.created_at,m.id`;}
+export async function missionHandoffChoices(p:string){await ensureProjectMissions();return db()`select id,title,source_agent_id as "sourceAgentId",recipient_agent_id as "recipientAgentId" from scotty_collab_requests where project_id=${p} and kind='handoff' and status='approved' order by created_at,id`;}

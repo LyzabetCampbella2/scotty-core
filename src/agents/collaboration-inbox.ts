@@ -6,13 +6,15 @@ export function renderCollaborationInbox(){
  small{color:#bdc7c0}h1{color:#dfc78d}button{border:0;border-radius:8px;background:#d9c58e;color:#17231f;padding:10px 14px;margin:10px 8px 0 0;cursor:pointer}
  button:disabled{opacity:.5}
  </style></head><body><main><h1>Collaboration approval inbox</h1><p>Project handoffs are held until you approve them. Review sources and recipients before granting access.</p><button id="refresh" type="button">Refresh approval queue</button><p id="count" aria-live="polite"></p><section id="requests">Loading…</section><p id="notice" role="status"></p></main><script>
- const root=document.getElementById("requests"),notice=document.getElementById("notice"),counter=document.getElementById("count");
+ const root=document.getElementById("requests"),notice=document.getElementById("notice"),counter=document.getElementById("count");let nextCursor=null;
+ const project=document.createElement('input');project.placeholder='Filter by project ID (optional)';project.setAttribute('aria-label','Project filter');document.getElementById('refresh').before(project);
+ const more=document.createElement('button');more.textContent='Load more pending requests';more.hidden=true;root.after(more);more.onclick=()=>load(true);
  document.getElementById("refresh").addEventListener("click",()=>load());
- async function load(){try{const r=await fetch("/api/agent-brains/collaboration-requests",{credentials:"same-origin"});if(!r.ok)throw Error("Owner session required");const data=await r.json();root.replaceChildren();counter.textContent=data.requests.length+" pending request(s) requiring review";for(const p of data.requests){
+ async function load(append=false){try{const params=new URLSearchParams();if(project.value.trim())params.set('projectId',project.value.trim());if(append&&nextCursor)params.set('cursor',nextCursor);const r=await fetch("/api/agent-brains/collaboration-requests?"+params,{credentials:"same-origin"});if(!r.ok)throw Error("Owner session required");const data=await r.json();if(!append)root.replaceChildren();nextCursor=data.nextCursor;more.hidden=!nextCursor;counter.textContent=data.pendingCount+" pending request(s); "+data.unreadCount+" unread";for(const p of data.requests){
  const article=document.createElement("article"),h=document.createElement("h3"),summary=document.createElement("p"),details=document.createElement("small");
  h.textContent=p.title;summary.textContent=p.summary;
  details.textContent="Project: "+p.project_id+" | From: "+p.source_agent_id+" | To: "+p.recipient_agent_id+" | "+p.kind;
- article.append(h,summary,details);if(p.kind==="share_memory"){
+ article.append(h,summary,details);if(p.blocked_reason){const reason=document.createElement('p');reason.textContent='Blocked: '+p.blocked_reason;article.append(reason);}if(p.unread){const read=document.createElement('button');read.textContent='Mark as read';read.onclick=async()=>{const response=await fetch('/api/agent-brains/collaboration-requests/'+p.id,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Scotty-CSRF':'1'},body:JSON.stringify({decision:'viewed'})});if(response.ok){read.remove();notice.textContent='Marked as read. Approval remains pending.';}};article.append(read);}if(p.kind==="share_memory"){
  const memory=document.createElement("p"),source=document.createElement("small");
  memory.textContent=p.memory_text||"Memory unavailable: do not approve until its project access is restored.";
  source.textContent="Memory ID: "+p.memory_id+" | Source: "+(p.memory_source||"Unavailable")+" | Reviewed by: "+(p.memory_approved_by||"Unavailable");
