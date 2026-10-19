@@ -10,7 +10,7 @@ Development-only review candidate. No merge, production deployment, account conn
 
 ## Verification
 
-Local JavaScript syntax and all embedded panel scripts parse. Isolated CI runs the existing synthetic unit/PostgreSQL suite and Chromium/WebKit owner flows, including in-workspace drawer mounting, original control retention, disabled-state hiding, focus return and explicit document-recipient selection. CI results must be checked before treating this candidate as verified.
+Local JavaScript syntax and all embedded panel scripts parse. Isolated CI runs the existing synthetic unit/PostgreSQL suite and Chromium/WebKit owner flows, including in-workspace drawer mounting, original control retention, disabled-state hiding, focus return and explicit document-recipient selection. CI run [39180057639](https://github.com/LyzabetCampbella2/scotty-core/actions/runs/39180057639) passed at code commit bce9be2aaf623d8e1e6308077212157d46530d88: 117 tests passed, zero failed (21 unit, 80 disposable PostgreSQL, 16 Chromium/WebKit browser tests), plus synthetic build and import checks. The parallel push workflow also passed. Production branch was rechecked unchanged after testing. This verifies isolated behavior, not a live deployment or physical iPad audio.
 
 ## Review / activation boundary
 
