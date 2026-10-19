@@ -15,6 +15,7 @@ async function scottishBridge(req:Request,u:URL){
    body:sub==="/speak"?await req.text():undefined,
    signal:AbortSignal.timeout(90000)
   });
+  if(response.status===401||response.status===403)return json({ok:false,error:"The Scottish speech worker rejected its configured service token",code:"voice_worker_auth"},502);
   return new Response(response.body,{status:response.status,headers:{"content-type":response.headers.get("content-type")||"application/json","cache-control":"no-store"}});
  }catch{return json({ok:false,error:"Scottish voice gateway unreachable"},503)}
 }
@@ -24,7 +25,16 @@ export async function handleCloudVoice(req:Request,u:URL){
  const key=process.env.ELEVENLABS_API_KEY;
 
  if(req.method==="GET"&&u.pathname==="/api/voice/status"){
-  return json({ok:true,provider:"ElevenLabs",configured:Boolean(key),voiceIdConfigured:Boolean(process.env.SCOTTY_VOICE_ID)});
+
+  const configured=Boolean(SCOTTISH_BRIDGE&&SCOTTISH_TOKEN);
+  if(!configured)return json({ok:true,provider:"Piper AWB Scottish",configured:false,ready:false,code:"voice_not_configured"});
+  try{
+   const r=await fetch(SCOTTISH_BRIDGE+"/health",{headers:{authorization:"Bearer "+SCOTTISH_TOKEN},signal:AbortSignal.timeout(90000)});
+   const d:any=await r.json().catch(()=>({}));
+   const ready=r.ok&&d.ok!==false&&d.ready!==false;
+   return json({ok:true,provider:"Piper AWB Scottish",configured:true,ready,code:ready?"voice_ready":r.status===401||r.status===403?"voice_worker_auth":"voice_worker_unavailable"});
+  }catch{return json({ok:true,provider:"Piper AWB Scottish",configured:true,ready:false,code:"voice_worker_unreachable"})}
+
  }
 
  if(req.method==="GET"&&u.pathname==="/api/voice/voices"){

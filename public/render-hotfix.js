@@ -10,23 +10,32 @@
   let j={};try{j=await r.json()}catch{}
   return new Error(String(j.error||j.detail||('HTTP '+r.status)).slice(0,250));
  }
- let generation=0,active=null,player=null,voiceState='READY',pendingPlayback=null,progressTimer=null;
+ let bufferPlayer=null;let generation=0,active=null,player=null,voiceState='READY',pendingPlayback=null,progressTimer=null;
  const audioEl=document.createElement('audio');audioEl.setAttribute('playsinline','');audioEl.style.display='none';document.body.appendChild(audioEl);
+
+ const recovery=document.createElement('section');recovery.id='scottySpeechRecovery';recovery.hidden=true;
+ recovery.setAttribute('role','status');recovery.style.cssText='position:absolute;left:10px;right:10px;bottom:84px;z-index:2400;background:#061827;color:#ddf8ff;border:1px solid #5eeaff;border-radius:8px;padding:12px;font:14px system-ui;';
+ const recoveryText=document.createElement('p');recoveryText.id='scottySpeechRecoveryText';recovery.appendChild(recoveryText);
+ (document.querySelector('.main')||document.body).appendChild(recovery);
+ function showRecovery(message){recoveryText.textContent=message;recovery.hidden=!message;}
+ window.SCOTTYVoiceRecovery={show:showRecovery};
+
  function showPlayButton(show){
   let btn=document.getElementById('scottyPlayReadyAudio');
-  if(!btn){btn=document.createElement('button');btn.id='scottyPlayReadyAudio';btn.textContent='▶ PLAY PIPER VOICE';btn.style.cssText='display:none;width:100%;margin-top:8px;background:#12313b;color:#b8f9f0;border:1px solid #58a8b1;padding:10px;border-radius:8px;font-weight:bold';btn.onclick=()=>{if(pendingPlayback)pendingPlayback()};const panel=$('#voiceSettings');if(panel)panel.appendChild(btn)}
-  btn.style.display=show?'block':'none';
+  if(!btn){btn=document.createElement('button');btn.id='scottyPlayReadyAudio';btn.textContent='▶ PLAY PIPER VOICE';btn.style.cssText='display:none;width:100%;margin-top:8px;background:#12313b;color:#b8f9f0;border:1px solid #58a8b1;padding:10px;border-radius:8px;font-weight:bold';btn.onclick=()=>{primeAudio();if(pendingPlayback)pendingPlayback()};recovery.appendChild(btn)}
+  btn.style.display=show?'block':'none';if(show)showRecovery('Your Scottish reply is ready. Tap Play to allow audio on this iPad.');else if(voiceState==='SPEAKING')showRecovery('');
  }
  // iPad Safari requires audio playback to originate from a user gesture.
  // A reusable audio element is activated by the TEST tap; delayed playback has a tap-to-play fallback.
  function primeAudio(){
   try{
+   if(typeof unlockAudio==='function')Promise.resolve(unlockAudio()).catch(()=>{});
    if(player)return;audioEl.src='data:audio/wav;base64,UklGRtwBAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YbgBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==';audioEl.muted=true;
-   const p=audioEl.play();
-   if(p&&p.then)p.then(()=>{audioEl.pause();audioEl.muted=false}).catch(()=>{audioEl.muted=false});
+   const primedSrc=audioEl.src,p=audioEl.play();
+   if(p&&p.then)p.then(()=>{if(!player&&audioEl.src===primedSrc){audioEl.pause();audioEl.muted=false;}}).catch(()=>{if(!player)audioEl.muted=false;});
   }catch(e){audioEl.muted=false}
  }
- document.addEventListener('pointerdown',e=>{if(e.target.closest('#testVoice,#scottyScottishPreview,#mic,#send'))primeAudio()},true);
+ document.addEventListener('pointerdown',e=>{if(e.target.closest('#testVoice,#scottyScottishPreview,#mic,#send,#scottyPlayReadyAudio'))primeAudio()},true);
 
  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
  function state(value){
@@ -37,9 +46,10 @@
   const test=$('#testVoice');if(test)test.textContent=value==='GENERATING'||value==='SPEAKING'||value==='BUSY'?'REPLACE VOICE TEST':'TEST PIPER VOICE';
  }
  function stopCurrent(){
+  if(bufferPlayer){try{bufferPlayer.stop(0)}catch{}bufferPlayer=null;}
   if(acknowledgement){try{acknowledgement.pause()}catch{}acknowledgement=null}
   if(progressTimer){clearInterval(progressTimer);progressTimer=null}
-  pendingPlayback=null;showPlayButton(false);
+  pendingPlayback=null;showPlayButton(false);showRecovery('');
   if(active){active.abort();active=null}
   if(player){try{player.pause();player.src=''}catch{}player=null}
  }
@@ -57,6 +67,26 @@
    await sleep(2500+attempt*1500);
   }
  }
+
+ async function playUnlockedAudio(blob,signal,seq){
+  const ctx=typeof audioCtx!=='undefined'?audioCtx:null;
+  if(!ctx||ctx.state!=='running')return false;
+  const bytes=await blob.arrayBuffer();
+  let decoded;try{decoded=await ctx.decodeAudioData(bytes.slice(0));}catch(e){if(signal.aborted)throw new DOMException('Superseded','AbortError');return false;}
+  if(signal.aborted||seq!==generation)throw new DOMException('Superseded','AbortError');
+  await new Promise((resolve,reject)=>{
+   const source=ctx.createBufferSource();bufferPlayer=source;source.buffer=decoded;source.playbackRate.value=window.SCOTTYConversation?.preferences.speed||1;source.connect(ctx.destination);
+   let done=false;const abort=()=>{try{source.stop(0)}catch{}finish(new DOMException('Superseded','AbortError'));};
+   const finish=error=>{if(done)return;done=true;clearTimeout(timer);source.onended=null;signal.removeEventListener('abort',abort);if(bufferPlayer===source)bufferPlayer=null;try{source.disconnect()}catch{}error?reject(error):resolve();};
+   const timer=setTimeout(()=>{try{source.stop(0)}catch{}finish(Error('Scottish audio playback timed out'));},Math.max(20000,Math.ceil(decoded.duration*1000/source.playbackRate.value)+8000));
+   source.onended=()=>finish();signal.addEventListener('abort',abort,{once:true});
+   if(signal.aborted)return abort();
+   state('SPEAKING');setCommand('SPEAKING');showRecovery('');
+   try{source.start(0);}catch(e){finish(e);}
+  });
+  return true;
+ }
+
  async function playScottish(text,seq,controller){
   const signal=controller.signal;
   const generationDeadline=setTimeout(()=>controller.abort(new DOMException('Scottish voice generation timed out. You can keep giving commands.','TimeoutError')),95000);
@@ -91,6 +121,7 @@
     if(!blob.size)throw Error('Scottish audio empty');
     if(signal.aborted||seq!==generation)throw new DOMException('Superseded','AbortError');
     clearTimeout(generationDeadline);
+    if(await playUnlockedAudio(blob,signal,seq))return;
     const url=URL.createObjectURL(blob);
     try{
      await new Promise((resolve,reject)=>{
@@ -99,7 +130,7 @@
       const finish=e=>{if(done)return;done=true;clearTimeout(timer);a.onended=null;a.onerror=null;pendingPlayback=null;showPlayButton(false);if(player===a)player=null;e?reject(e):resolve()};
       const timer=setTimeout(()=>finish(Error('Playback timed out')),180000);
       signal.addEventListener('abort',()=>{a.pause();finish(new DOMException('Superseded','AbortError'))},{once:true});
-      a.onended=()=>finish();a.onerror=()=>finish(Error('Playback failed'));
+      a.onended=()=>finish();a.onerror=()=>finish(Error('Scottish audio playback failed'+(a.error?.code?' (media code '+a.error.code+')':'')));
       const begin=()=>{
        if(signal.aborted||seq!==generation)return finish(new DOMException('Superseded','AbortError'));
        pendingPlayback=null;showPlayButton(false);state('SPEAKING');setCommand('SPEAKING');
@@ -149,7 +180,7 @@
    if(seq!==generation)return;
    console.warn('S.C.O.T.T.Y. Scottish voice',e);
    state('ERROR');setCommand(voiceArmed?'VOICE UNAVAILABLE • LISTENING':'VOICE UNAVAILABLE • COMMANDS READY');
-   const msg=$('#voiceMsg');if(msg)msg.textContent='Scottish voice: '+String(e?.message||e).slice(0,180);
+   const detail='Scottish voice: '+String(e?.message||e).slice(0,180);const msg=$('#voiceMsg');if(msg)msg.textContent=detail;window.SCOTTYVoiceRecovery?.show(detail+'. Open Voice and tap Check voice connection, then Test Piper Voice to retry.');
   }finally{
    if(seq===generation){if(progressTimer){clearInterval(progressTimer);progressTimer=null}active=null;speaking=false;try{clearVoiceBuffers()}catch{}}
   }
