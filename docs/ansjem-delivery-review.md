@@ -20,7 +20,7 @@ The additive `scotty_ansjem_delivery` table stores per-work revision state. Exis
 
 ## Voice and tablet use
 
-Choose an existing project and ANSJEM work item first: read the development board, then say “use ANSJEM work one.” Commands include:
+Choose an existing project and ANSJEM work item first: read the development board, then say “choose ANSJEM work one.” Commands include:
 
 - “Recommend agents for this ANSJEM work.”
 - “Plan ANSJEM staffing with agents one and two.”
@@ -39,3 +39,5 @@ Scotty asks one question at a time and stages a readback with a unique “confir
 The isolated suite covers PostgreSQL state transitions, current source checks, stale decisions, capacity and membership limits, scope agreement, rollback on audit failure and roster/memory preservation. Synthetic tablet flows run in Chromium and WebKit, alongside prior HUD, project and voice regression tests. Node voice tests cover exact confirmation, cancellation and stale context.
 
 This branch disables Vercel preview deployment. Publishing its PR does not merge, deploy or enable the new production flag. Production activation requires an approved core-only release, the additive table initialization and owner-session smoke checks. Browser tests simulate tablet interaction; actual iPad audio still requires a physical-device check.
+
+Verified on October 19, 2026: **209 passing isolated checks** (21 unit, 45 Node voice/gateway, 105 PostgreSQL and 38 browser checks). Both Chromium and WebKit passed the five new delivery review flows. Production router/storage imports also passed. The deliberate audit-failure exceptions in database logs are rollback fault-injection checks, not failed tests.
