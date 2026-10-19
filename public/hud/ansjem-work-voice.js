@@ -14,6 +14,7 @@
  const numbered=items=>items.slice(0,12).map((x,i)=>(i+1)+': '+(x.name||x.spec.title)).join('. ');
  function summary(s){return 'Title: '+s.title+'. Requester: '+s.requester+'. Receiving team: '+s.receivingTeam+'. Business need: '+s.businessNeed+'. Outcome: '+s.outcome+'. In scope: '+s.inScope+'. Out of scope: '+s.outOfScope+'. Deliverables: '+s.deliverables+'. Criteria: '+s.acceptanceCriteria.map((c,i)=>(i+1)+': '+c.result+'; verify by '+c.method).join('. ')+'. Requested date: '+s.requestedDate+'. Acceptance owner: '+s.acceptanceOwner+'. Priority: '+s.priority+'. Other ownership, dependencies, risks and DEV record links are not yet recorded. This saves a request; the receiving team has not agreed to it.';}
  function execute(raw){
+  if(window.SCOTTYAnsjemCoordinationVoice?.execute(raw))return true;
   if(window.SCOTTYAnsjemDeliveryVoice?.execute(raw))return true;
   const text=clean(raw);let q=norm(text);const words=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty'];if(q.startsWith('confirm ansjem request '))q=q.replace(/\b[a-z]+$/,w=>words.includes(w)?String(words.indexOf(w)):w);
   if((q==='stop'||q==='cancel'||q==='cancel project action')&&(state||pending)){reset();return false;}
