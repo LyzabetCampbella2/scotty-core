@@ -43,5 +43,5 @@ if(kind){wizard={kind,questions,index:0,answers:{},work:w,packet,assignments,con
 return reply('Say recommend agents for this ANSJEM work, prepare ANSJEM criterion assessment, prepare ANSJEM delivery, prepare ANSJEM acceptance, or prepare ANSJEM scope change.');
 }catch(e){if(valid())reply(e.message);}})();return true;
 }
-window.SCOTTYAnsjemDeliveryVoice={execute};
+window.SCOTTYAnsjemDeliveryVoice={execute,invalidatePending:()=>{wizard=null;pending=null;turn++;}};
 })();
