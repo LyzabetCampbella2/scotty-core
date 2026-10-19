@@ -1,7 +1,7 @@
 name: Agent Brains Render Staging
 on:
   push:
-    branches: [review/agent-collaboration-part2-verification-20261018, dev/part3-project-missions-20261018, dev/part4-chief-coordination-20261018, dev/project-operations-20261018, dev/team-insights-20261018, dev/ipad-sandbox-documents-20261018]
+    branches: [review/agent-collaboration-part2-verification-20261018, dev/part3-project-missions-20261018, dev/part4-chief-coordination-20261018, dev/project-operations-20261018, dev/team-insights-20261018, dev/ipad-sandbox-documents-20261018, dev/original-hud-project-tools-20261019]
     paths: ['src/agents/**', 'public/hud/project-operations.js', 'public/hud/project-sandbox.js', 'scripts/build-project-sandbox.ts', 'public/hud/sidebar-voice-live.js', 'public/index.html', '.github/workflows/agent-brains-render-staging.yml']
   pull_request:
     paths:
@@ -90,6 +90,7 @@ jobs:
         run: |
           bun test src/agents/project-mission-ui.browser.test.ts
           bun test src/agents/project-operations.browser.test.ts
+          SCOTTY_UI_BROWSER=webkit bun test src/agents/project-operations.browser.test.ts
           bun test src/agents/project-insights.browser.test.ts
           SCOTTY_UI_BROWSER=webkit bun test src/agents/project-insights.browser.test.ts
           bun test src/agents/project-sandbox.browser.test.ts
