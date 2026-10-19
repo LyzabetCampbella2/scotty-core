@@ -93,3 +93,16 @@ test('spoken confirmation numbers work and a conversation-thread change cancels 
 });
 
 test('confirmation is not submitted during Scotty speech and global stop clears pending consent',async()=>{const f=fixture();await plan(f);const phrase=f.confirm();f.context.speaking=true;assert.equal(f.context.SCOTTYProjectTeamVoice.execute(phrase),true);await pause();assert.equal(f.mutations().length,0);f.context.speaking=false;assert.equal(f.context.SCOTTYProjectTeamVoice.execute('stop'),false);await f.say(phrase);assert.equal(f.mutations().length,0);});
+
+test('a recommendation asks for projects and resumes its exact goal after a plain spoken choice',async()=>{
+ const f=fixture();const prompt=await f.say('Recommend agents for reviewing my outline');assert.match(prompt,/Writing project/);assert.match(prompt,/Other project/);assert.equal(f.requests.filter(x=>x.body).length,0);const result=await f.say('one');assert.match(result,/Owner editable recommendation/);assert.equal(f.requests.find(x=>x.path.endsWith('/team')).body.goal,'reviewing my outline');assert.equal(f.context.SCOTTYProjectTeamVoice.selectedProject(),'writing');
+});
+test('use project without a name repeats choices and retains the outline goal',async()=>{
+ const f=fixture();await f.say('Recommend agents for reviewing my outline');assert.match(await f.say('Use Project'),/Which project should I use/);await f.say('Use project two');const r=f.requests.find(x=>x.path.endsWith('/team'));assert.ok(r.path.includes('/other/'));assert.equal(r.body.goal,'reviewing my outline');
+});
+test('an explicitly chosen existing voice project supplies context without inferring from a folder',async()=>{
+ const f=fixture();f.context.SCOTTYVoiceControl={context:()=>({projectId:'writing'})};await f.say('Recommend agents for reviewing my outline');assert.equal(f.requests.find(x=>x.path.endsWith('/team')).body.goal,'reviewing my outline');const g=fixture();g.context.SCOTTYVoiceControl={context:()=>({projectId:'folder-only'})};assert.match(await g.say('Recommend agents for reviewing my outline'),/Choose a project/);assert.equal(g.requests.filter(x=>x.path.endsWith('/team')).length,0);
+});
+test('project-choice follow-up expires and cannot cross conversation threads',async()=>{
+ const f=fixture();await f.say('Recommend agents for reviewing my outline');f.expire();assert.equal(await f.say('one'),false);const g=fixture();await g.say('Recommend agents for reviewing my outline');g.context.SCOTTYConversation.db.state.active='new-thread';assert.equal(await g.say('one'),false);
+});
