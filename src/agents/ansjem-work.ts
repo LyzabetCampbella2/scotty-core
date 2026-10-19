@@ -2,6 +2,7 @@ import {missionDb as db} from './mission-records.ts';
 import {ensureCollaboration} from './collaboration.ts';
 import {lockCollaborationProject} from './collaboration-lock.ts';
 import {requestSpec,teamResponse,requesterAgreement,version,commandId,fingerprint,field,reference} from './ansjem-work-model.ts';
+import {deliveryEnabled,ensureAnsjemDelivery,deliveryState,storeDelivery,deliveryAction,staffingRecommendations,handoffPacket} from './ansjem-delivery.ts';
 let initializing:Promise<void>|undefined;
 export async function ensureAnsjemWork(){
  if(process.env.SCOTTY_ANSJEM_WORK_ENABLED!=='true')throw Error('ANSJEM development workspace is disabled');
@@ -26,13 +27,15 @@ export async function ansjemBoard(p:string,cursor='0',status=''){
 }
 export async function ansjemDetail(p:string,id:string,before='9223372036854775807'){
  await ensureAnsjemWork();await project(db(),p);if(!/^\d{1,19}$/.test(before))throw Error('Invalid history cursor');const q=db(),w=(await q`select * from scotty_ansjem_work where project_id=${p} and work_id=${id}`)[0];if(!w)throw Error('Work request not found');const rows=await q`select id::text,action,result,created_at from scotty_ansjem_work_events where project_id=${p} and work_id=${id} and id<${before}::bigint order by id desc limit 31`;
- return {work:present(w),events:rows.slice(0,30),nextEventCursor:rows.length>30?rows[29].id:null};
+ const delivery=await deliveryState(q,w);return {work:present({...w,delivery}),packet:delivery?await handoffPacket(q,w,delivery):null,events:rows.slice(0,30),nextEventCursor:rows.length>30?rows[29].id:null};
 }
-export async function updateAnsjemWork(p:string,id:string,b:any){commandId(b?.commandId);version(b?.version);if(b?.reviewed!==true)throw Error('Review this exact change first');await ensureAnsjemWork();return db().begin(async(q:any)=>{
+export async function ansjemStaffing(p:string,id:string){await ensureAnsjemWork();if(!deliveryEnabled())throw Error('ANSJEM delivery tools are disabled');const w=(await db()`select * from scotty_ansjem_work where project_id=${p} and work_id=${id}`)[0];if(!w)throw Error('Work request not found');return staffingRecommendations(w);}
+export async function updateAnsjemWork(p:string,id:string,b:any){commandId(b?.commandId);version(b?.version);if(b?.reviewed!==true)throw Error('Review this exact change first');await ensureAnsjemWork();if(deliveryEnabled())await ensureAnsjemDelivery();return db().begin(async(q:any)=>{
  await lockCollaborationProject(q,p);await project(q,p);const prior=await repeat(q,p,b);if(prior){if(prior.work_id!==id)throw Error('Command ID belongs to another work request');return prior;}
  const w=(await q`select * from scotty_ansjem_work where project_id=${p} and work_id=${id} for update`)[0];if(!w)throw Error('Work request not found');if(w.version!==b.version)throw Error('Work request changed; refresh and review again');
- let spec=w.spec,status=w.status,response=w.team_response,agreement=w.requester_agreement,progress=w.progress,revision=w.revision;
+ let spec=w.spec,status=w.status,response=w.team_response,agreement=w.requester_agreement,progress=w.progress,revision=w.revision;const delivery=await deliveryState(q,w);
  if(b.action==='revise'){
+  if(deliveryEnabled()&&agreement)throw Error('Propose a scope change for agreed work so both sides can review its impact');
   if(['accepted','closed'].includes(status))throw Error('Create a follow-up request for accepted or closed work');spec=requestSpec(b.spec);revision++;response=null;agreement=null;progress=null;status='requested';await q`insert into scotty_ansjem_work_revisions(work_id,revision,spec) values(${id},${revision},${q.json(spec)})`;
  }else if(b.action==='team-response'){
   if(!['requested','changes_requested'].includes(status))throw Error('Revise the request before recording a new agreement');response={...teamResponse(b.response),revision};agreement=null;status=response.disposition==='propose_changes'?'changes_requested':'requested';
@@ -41,8 +44,10 @@ export async function updateAnsjemWork(p:string,id:string,b:any){commandId(b?.co
   agreement={...requesterAgreement(b.agreement),revision};status='accepted_for_work';
  }else if(b.action==='progress'){
   if(!response||!agreement||response.revision!==revision||agreement.revision!==revision)throw Error('Both sides must agree before recording execution');
-  if(!['accepted_for_work','in_progress','blocked','ready_for_acceptance'].includes(status)||!['in_progress','blocked','ready_for_acceptance'].includes(b.status))throw Error('Choose an execution status; acceptance and closure are separate workflows');
+  if(!['accepted_for_work','in_progress','blocked','ready_for_acceptance',...(deliveryEnabled()?['changes_requested']:[])].includes(status)||!['in_progress','blocked','ready_for_acceptance'].includes(b.status))throw Error('Choose an execution status; acceptance and closure are separate workflows');
   progress={status:b.status,note:field(b.note,'progress note'),owner:field(b.owner,'next-action owner',180),nextAction:field(b.nextAction,'next action'),reference:reference(b.reference,false),recordedBy:'owner',provenance:'manual_owner_record'};status=b.status;
+ }else if(['staffing','criterion-review','submit-delivery','accept-delivery','propose-scope-change','scope-team-response','apply-scope-change'].includes(b.action)){
+  await deliveryAction(q,w,b,delivery);spec=w.spec;revision=w.revision;status=w.status;response=w.team_response;agreement=w.requester_agreement;progress=w.progress;
  }else throw Error('Unknown work action');
- const updated=(await q`update scotty_ansjem_work set spec=${q.json(spec)},revision=${revision},version=version+1,status=${status},team_response=${response?q.json(response):null},requester_agreement=${agreement?q.json(agreement):null},progress=${progress?q.json(progress):null},updated_at=now() where work_id=${id} and project_id=${p} returning *`)[0];return event(q,p,id,b.action,b,present(updated));
+ const updated=(await q`update scotty_ansjem_work set spec=${q.json(spec)},revision=${revision},version=version+1,status=${status},team_response=${response?q.json(response):null},requester_agreement=${agreement?q.json(agreement):null},progress=${progress?q.json(progress):null},updated_at=now() where work_id=${id} and project_id=${p} returning *`)[0];if(delivery){if(delivery.revision!==revision){delivery.revision=revision;delivery.staffing=null;delivery.criteria={};delivery.submissions=[];delivery.acceptance=null;}await storeDelivery(q,updated,delivery);}return event(q,p,id,b.action,b,present({...updated,...(delivery?{delivery}:{})}));
  });}

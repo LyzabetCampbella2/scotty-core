@@ -40,3 +40,5 @@ export async function selectedEvidence(q:any,p:string,agent:string,ids:string[])
  }return result;
 }
 export async function evidenceList(p:string){await ensureProjectEvidence();return db()`select id,title,kind,reference,body,recipients,approved_by,approved_at,revoked_at from scotty_project_evidence where project_id=${p} order by approved_at desc,id limit 200`;}
+// Owner review records cite a current project snapshot without granting an agent access.
+export async function ownerEvidenceReferences(q:any,p:string,ids:string[]){if(!ids.length)return [];const rows=await q`select * from scotty_project_evidence where id::text in ${q(ids)} and project_id=${p} and revoked_at is null order by id`;if(rows.length!==ids.length)throw Error('Evidence is revoked or outside this project');const refs=[];for(const r of rows){if(r.source_id&&await digest(await source(q,p,r.kind,r.source_id))!==r.source_hash)throw Error('Evidence source changed; approve a current snapshot');refs.push({id:String(r.id),title:r.title,reference:r.reference,hash:await digest({id:r.id,body:r.body,reference:r.reference,sourceHash:r.source_hash,approvedAt:r.approved_at})});}return refs;}

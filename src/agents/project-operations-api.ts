@@ -9,7 +9,7 @@ export async function handleProjectOperations(req:Request,u:URL){
  if(process.env.SCOTTY_PROJECT_OPERATIONS_ENABLED!=='true'||process.env.SCOTTY_PROJECT_MISSIONS_ENABLED!=='true')return json({ok:false,error:'Project operations disabled'},503);
  const root='/api/agent-brains/project-operations';
  try{
-  if(u.pathname===root&&req.method==='GET')return json({ok:true,projects:await missionProjectChoices(),ansjemEnabled:process.env.SCOTTY_ANSJEM_WORK_ENABLED==='true',realDraftsEnabled:process.env.SCOTTY_REAL_PROJECT_DRAFTS_ENABLED==='true'&&!!process.env.GROQ_API_KEY,providerConfigured:!!process.env.GROQ_API_KEY});
+  if(u.pathname===root&&req.method==='GET')return json({ok:true,projects:await missionProjectChoices(),ansjemEnabled:process.env.SCOTTY_ANSJEM_WORK_ENABLED==='true',ansjemDeliveryEnabled:process.env.SCOTTY_ANSJEM_DELIVERY_ENABLED==='true',realDraftsEnabled:process.env.SCOTTY_REAL_PROJECT_DRAFTS_ENABLED==='true'&&!!process.env.GROQ_API_KEY,providerConfigured:!!process.env.GROQ_API_KEY});
   const work=u.pathname.match(/^\/api\/agent-brains\/project-operations\/([\w-]{1,160})\/ansjem(?:\/(ANSJEM-DEV-\d{4,20}))?$/);if(work)return handleAnsjemWork(req,u,work[1],work[2]);
   const match=u.pathname.match(/^\/api\/agent-brains\/project-operations\/([\w-]{1,160})\/(brief|progress|evidence|candidates|team|plan|development|weekly|team-status|documents)$/);if(!match)return json({ok:false,error:'Route not found'},404);const [,p,kind]=match;
   if(req.method==='GET'){

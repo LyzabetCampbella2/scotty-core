@@ -4,7 +4,7 @@
  const norm=s=>String(s||'').toLowerCase().replace(/[’']/g,'').replace(/[^a-z0-9]+/g,' ').trim();
  const clean=s=>String(s||'').trim().replace(/^(?:(?:hey\s+)?scotty[,\s]+)?(?:please\s+)?/i,'').replace(/[.!?]+$/,'').trim();
  const thread=()=>window.SCOTTYConversation?.db.state.active,selection=()=>window.SCOTTYProjectTeamVoice?.selectedProject()||window.SCOTTYVoiceControl?.context?.().projectId||'';
- let state=null,run=0,nonce=0,pending=null,list=[],listProject='',listThread='',nextCursor=null,listInbox=false,submitting=false;
+ let state=null,run=0,nonce=0,pending=null,list=[],listProject='',listThread='',nextCursor=null,listInbox=false,submitting=false,chosenWork=null;
  const questions=[['title','What should this work request be called?'],['requester','Who is requesting this work?'],['receivingTeam','Which team should receive it?'],['businessNeed','What business problem should this solve, and for whom?'],['outcome','What outcome should this enable?'],['inScope','What work is included?'],['outOfScope','What is excluded? Say none identified if you have no exclusions.'],['deliverables','What must the team deliver?'],['criterionResult','What observable result must the first acceptance criterion require?'],['criterionMethod','How will you verify that result?'],['moreCriteria','Say add another criterion, or continue request.'],['requestedDate','What completion date are you requesting? Say the month, day and year, or YYYY-MM-DD.'],['acceptanceOwner','Who will review the delivery for acceptance?']];
  function reset(){run++;state=null;pending=null;}
  function speechBusy(){return (typeof speaking!=='undefined'&&speaking)||window.speechSynthesis?.speaking;}
@@ -14,6 +14,7 @@
  const numbered=items=>items.slice(0,12).map((x,i)=>(i+1)+': '+(x.name||x.spec.title)).join('. ');
  function summary(s){return 'Title: '+s.title+'. Requester: '+s.requester+'. Receiving team: '+s.receivingTeam+'. Business need: '+s.businessNeed+'. Outcome: '+s.outcome+'. In scope: '+s.inScope+'. Out of scope: '+s.outOfScope+'. Deliverables: '+s.deliverables+'. Criteria: '+s.acceptanceCriteria.map((c,i)=>(i+1)+': '+c.result+'; verify by '+c.method).join('. ')+'. Requested date: '+s.requestedDate+'. Acceptance owner: '+s.acceptanceOwner+'. Priority: '+s.priority+'. Other ownership, dependencies, risks and DEV record links are not yet recorded. This saves a request; the receiving team has not agreed to it.';}
  function execute(raw){
+  if(window.SCOTTYAnsjemDeliveryVoice?.execute(raw))return true;
   const text=clean(raw);let q=norm(text);const words=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty'];if(q.startsWith('confirm ansjem request '))q=q.replace(/\b[a-z]+$/,w=>words.includes(w)?String(words.indexOf(w)):w);
   if((q==='stop'||q==='cancel'||q==='cancel project action')&&(state||pending)){reset();return false;}
   if(state&&(state.thread!==thread()||Date.now()>state.expires||(state.project&&selection()!==state.project))){reset();if(!q.includes('ansjem'))return false;}
@@ -46,12 +47,12 @@
     state.index++;if(state.index===questions.length)return review();return ask();
    }
    const p=selection();if(!p)return reply('Choose your project first. Say list my projects, then use project and its name.');
-   if(select){if(listProject!==p||listThread!==id)throw Error('Read the ANSJEM board in this project first');const w=choose(list,select[1],'work_id'),d=await call(p,'/'+w.work_id),x=d.work;return reply(x.work_id+'. '+x.spec.title+'. '+x.status.replaceAll('_',' ')+'. '+summary(x.spec)+'. Team response: '+(x.team_response?.disposition||'pending')+'. Requester agreement: '+(x.requester_agreement?'recorded':'pending')+'. Release: '+x.release_status.replaceAll('_',' ')+'. Open Project teams and briefing to review source records and record an agreement.');}
+   if(select){if(listProject!==p||listThread!==id)throw Error('Read the ANSJEM board in this project first');const w=choose(list,select[1],'work_id'),d=await call(p,'/'+w.work_id),x=d.work;chosenWork={id:x.work_id,project:p,thread:id};return reply(x.work_id+'. '+x.spec.title+'. '+x.status.replaceAll('_',' ')+'. '+summary(x.spec)+'. Team response: '+(x.team_response?.disposition||'pending')+'. Requester agreement: '+(x.requester_agreement?'recorded':'pending')+'. Release: '+x.release_status.replaceAll('_',' ')+'. Open Project teams and briefing to review source records and record an agreement.');}
    if(confirm)return reply('No current ANSJEM request is waiting for this confirmation.');
    if(more&&(!nextCursor||listProject!==p||listThread!==id))return reply('Read the ANSJEM board or inbox first; there is no next page selected.');
    const d=await call(p,'?cursor='+(more?nextCursor:'0'));if(!more)listInbox=inbox;list=d.items.filter(w=>!listInbox||['requested','changes_requested'].includes(w.status));listProject=p;listThread=id;nextCursor=d.nextCursor;
    return reply((inbox?'ANSJEM agreement inbox. ':'ANSJEM development board. ')+list.slice(0,12).map((w,i)=>(i+1)+': '+w.work_id+', '+w.spec.title+', '+w.status.replaceAll('_',' ')+(w.team_response?', team '+w.team_response.disposition.replaceAll('_',' '):'')+(w.team_response?.committedDate?', committed '+w.team_response.committedDate:'')).join('. ')+(list.length>12?'. More items exist in this page; use an exact work ID to choose one.':'')+(nextCursor?'. Say read more ANSJEM work for the next page.':'')+(!list.length?'No matching requests on this page.':'')+'. Say choose ANSJEM work and its number. Team updates are manually recorded.');
   }catch(e){if(turn===run&&id===thread())reply(e.message);}})();return true;
  }
- window.SCOTTYAnsjemVoice={execute};
+ window.SCOTTYAnsjemVoice={execute,currentWork:()=>chosenWork&&chosenWork.project===selection()&&chosenWork.thread===thread()?chosenWork:null,invalidatePending:reset};
 })();
