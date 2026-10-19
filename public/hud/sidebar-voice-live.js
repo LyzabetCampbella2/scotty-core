@@ -58,6 +58,7 @@ function init(){
  'run a safe recovery test':'run safe recovery test','stop what you are doing':'stop','show my brain':'brain'};
  const targets=()=>[...document.querySelectorAll('button')].filter(b=>!b.closest('#confirm')&&!b.closest('#gate')&&!b.closest('#nodeDrawer')&&!b.closest('#eyesHandPalette')&&!b.disabled&&b.id!=='mic'&&b.id!=='send'&&b.id!=='eyes');
  const action=(raw)=>{
+  if(window.SCOTTYProjectTeamVoice?.execute(raw))return true;
   if(window.SCOTTYWorkspaceVoice3140?.execute(raw))return true;
   if(window.SCOTTYWorkspaceVoice?.execute(raw))return true;
   if(window.SCOTTYCalls?.execute(raw))return true;

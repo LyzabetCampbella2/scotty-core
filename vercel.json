@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": {
+      "review/agent-collaboration-part2-verification-20261018": false,
+      "dev/part3-project-missions-20261018": false,
+      "dev/part4-chief-coordination-20261018": false,
+      "dev/project-operations-20261018": false,
+      "dev/team-insights-20261018": false,
+      "dev/ipad-sandbox-documents-20261018": false,
+      "dev/original-hud-project-tools-20261019": false
+    }
+  }
+}
