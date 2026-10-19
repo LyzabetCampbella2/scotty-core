@@ -6,7 +6,7 @@ const json=(data:any,status=200)=>Response.json(data,{status,headers:{'Cache-Con
 export async function handleAnsjemWork(req:Request,u:URL,p:string,id?:string){
  if(process.env.SCOTTY_ANSJEM_WORK_ENABLED!=='true')return json({ok:false,error:'ANSJEM development workspace is disabled'},503);
  try{
-  if(req.method==='GET'&&!id&&u.searchParams.get('view')==='coordination-weekly'){await ensureAnsjemWork();return json({ok:true,brief:await weeklyCoordination(p,u.searchParams.get('cursor')||'0',u.searchParams.get('asOf')||undefined)});}
+  if(req.method==='GET'&&!id&&u.searchParams.get('view')==='coordination-weekly'){await ensureAnsjemWork();return json({ok:true,brief:await weeklyCoordination(p,u.searchParams.get('cursor')||'0',u.searchParams.get('asOf')||undefined,Number(u.searchParams.get('limit')||100))});}
   if(req.method==='GET')return json({ok:true,...(id&&u.searchParams.get('view')==='staffing'?await ansjemStaffing(p,id):id?await ansjemDetail(p,id,u.searchParams.get('before')||undefined):await ansjemBoard(p,u.searchParams.get('cursor')||'0',u.searchParams.get('status')||''))});
   if(req.method!=='POST')return json({ok:false,error:'Method not allowed'},405);
   if(req.headers.get('origin')!==u.origin||req.headers.get('x-scotty-csrf')!=='1')return json({ok:false,error:'Origin/CSRF verification failed'},403);

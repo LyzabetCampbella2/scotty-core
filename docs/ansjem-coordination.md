@@ -29,7 +29,7 @@ New flag: `SCOTTY_ANSJEM_COORDINATION_ENABLED=true`, default off; also requires 
 
 No release API calls Render, changes credentials or changes service plans. `authorized`, `deployed`, `verification_failed` and `rolled_back` describe explicit owner records. Changed directory entries, roles, issues, accepted sources or delivery invalidate readiness, authorization and maintenance snapshots. Re-review before continuing. Readiness with gaps may be saved for planning; it cannot authorize a release. Recording another readiness review clears authorization and maintenance acknowledgment.
 
-Weekly capacity shows current project members, live claim counts, project-local planned ANSJEM assignments and profile limits. Plans are not execution reservations. The briefing is a current snapshot with seven-day activity, not a historical reconstruction. It paginates 100 work records at a time and returns project-wide totals separately; request all pages to review every item.
+Weekly capacity shows current project members, live claim counts, project-local planned ANSJEM assignments and profile limits. Plans are not execution reservations. The briefing is a current snapshot with seven-day activity, not a historical reconstruction. It paginates up to 100 work records at a time (12 per spoken page) and returns project-wide totals separately; request all pages to review every item.
 
 ## Voice and tablet controls
 
