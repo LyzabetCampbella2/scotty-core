@@ -1,10 +1,12 @@
 name: Agent Brains Render Staging
 on:
   push:
-    branches: [dev/ipad-project-speech-recovery-20261019, review/agent-collaboration-part2-verification-20261018, dev/part3-project-missions-20261018, dev/part4-chief-coordination-20261018, dev/project-operations-20261018, dev/team-insights-20261018, dev/ipad-sandbox-documents-20261018, dev/original-hud-project-tools-20261019, dev/conversational-project-voice-20261019]
+    branches: [dev/ansjem-work-requests-20261019, dev/ipad-project-speech-recovery-20261019, review/agent-collaboration-part2-verification-20261018, dev/part3-project-missions-20261018, dev/part4-chief-coordination-20261018, dev/project-operations-20261018, dev/team-insights-20261018, dev/ipad-sandbox-documents-20261018, dev/original-hud-project-tools-20261019, dev/conversational-project-voice-20261019]
     paths: ['src/agents/**', 'public/render-hotfix.js', 'src/voice/cloud.ts', 'tests/voice-recovery.test.mjs', 'public/hud/project-operations.js', 'public/hud/project-sandbox.js', 'scripts/build-project-sandbox.ts', 'public/hud/sidebar-voice-live.js', 'public/index.html', '.github/workflows/agent-brains-render-staging.yml']
   pull_request:
     paths:
+      - 'src/agents/ansjem-*'
+      - 'public/hud/ansjem-work-voice.js'
       - 'public/render-hotfix.js'
       - 'src/voice/cloud.ts'
       - 'src/agents/scottish-*'
@@ -78,7 +80,7 @@ jobs:
       - name: Unit tests for access isolation and fail-closed Render bridge
         run: bun test src/agents/brain.test.ts src/agents/render-bridge.test.ts src/agents/project-mission-model.test.ts src/agents/project-draft-model.test.ts src/agents/project-documents.test.ts
       - name: Conversational project voice safety
-        run: node --test src/agents/project-team-voice.test.cjs src/agents/scottish-playback.test.cjs src/agents/voice-gateway.test.cjs tests/voice-recovery.test.mjs
+        run: node --test src/agents/project-team-voice.test.cjs src/agents/ansjem-work-voice.test.cjs src/agents/scottish-playback.test.cjs src/agents/voice-gateway.test.cjs tests/voice-recovery.test.mjs
       - name: End-to-end PostgreSQL data integrity and learning reviews
         env:
           SCOTTY_BRAIN_TEST_DB: disposable
@@ -92,6 +94,7 @@ jobs:
           bun test src/agents/project-operations.integration.test.ts
           bun test src/agents/project-insights.integration.test.ts
           bun test src/agents/project-documents.integration.test.ts
+          bun test src/agents/ansjem-work.integration.test.ts
       - name: Build browser-only synthetic project panels
         run: bun scripts/build-project-sandbox.ts /tmp/scotty-project-sandbox
       - name: Install Chromium and WebKit for synthetic tablet UI verification
@@ -99,6 +102,8 @@ jobs:
       - name: Synthetic tablet owner approval flow
         run: |
           bun test src/agents/project-mission-ui.browser.test.ts
+          bun test src/agents/ansjem-work.browser.test.ts
+          SCOTTY_UI_BROWSER=webkit bun test src/agents/ansjem-work.browser.test.ts
           bun test src/agents/project-operations.browser.test.ts
           bun test src/agents/scottish-playback.browser.test.ts
           SCOTTY_UI_BROWSER=webkit bun test src/agents/scottish-playback.browser.test.ts
