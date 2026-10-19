@@ -4,11 +4,11 @@ export function reference(value:unknown,optional=true){const s=field(value??'','
 export function date(value:unknown,optional=false){const s=field(value??'','a date in YYYY-MM-DD format',10,optional);if(!s&&optional)return '';if(!/^\d{4}-\d{2}-\d{2}$/.test(s)||new Date(s+'T00:00:00Z').toISOString().slice(0,10)!==s)throw Error('Use a real date in YYYY-MM-DD format');return s;}
 export function requestSpec(b:any){
  if(!b||typeof b!=='object')throw Error('Provide request details');
- const required=['title','requester','receivingTeam','businessNeed','outcome','inScope','outOfScope','deliverables'];const result:any={};
+ const required=['title','requester','receivingTeam','businessNeed','outcome','inScope','outOfScope','deliverables','acceptanceOwner'];const result:any={};
  for(const key of required)result[key]=field(b[key],key,key==='title'?180:4000);
  if(!Array.isArray(b.acceptanceCriteria)||b.acceptanceCriteria.length<1||b.acceptanceCriteria.length>20)throw Error('Provide 1–20 measurable acceptance criteria');
  result.acceptanceCriteria=b.acceptanceCriteria.map((c:any,i:number)=>({id:'AC-'+String(i+1).padStart(2,'0'),result:field(c.result,'criterion result',2000),method:field(c.method,'verification method',2000)}));
- for(const key of ['deliveryOwner','acceptanceOwner','releaseAuthority','maintenanceOwner','dependencies','accessRequired','priorityRationale','fixedDeadlineReason','risks'])result[key]=field(b[key]??'',key,3000,true);
+ for(const key of ['deliveryOwner','releaseAuthority','maintenanceOwner','dependencies','accessRequired','priorityRationale','fixedDeadlineReason','risks'])result[key]=field(b[key]??'',key,3000,true);
  result.priority=field(b.priority??'normal','priority',20);if(!['low','normal','high','urgent'].includes(result.priority))throw Error('Choose low, normal, high or urgent priority');
  result.requestedDate=date(b.requestedDate);result.fixedDeadline=date(b.fixedDeadline,true);if(result.fixedDeadline&&!result.fixedDeadlineReason)throw Error('Explain the fixed deadline');
  if(!Array.isArray(b.affectedSystems??[])||(b.affectedSystems??[]).length>20)throw Error('List up to 20 affected systems');
