@@ -1,0 +1,67 @@
+name: SCOTTY Public Knowledge Refresh (Isolated)
+on:
+  pull_request:
+    paths:
+      - "offline-brain/**"
+      - ".github/workflows/scotty-public-knowledge.yml"
+  workflow_dispatch:
+  # This cadence can only execute after this workflow exists on the repo default
+  # branch. Draft PR / dev branch alone does not enable scheduled execution.
+  schedule:
+    - cron: "17 12 * * *"
+permissions:
+  contents: read
+concurrency:
+  group: scotty-public-knowledge-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  safety-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      DATABASE_URL: ""
+      GROQ_API_KEY: ""
+      XAI_API_KEY: ""
+      OPENAI_API_KEY: ""
+      R2_ENDPOINT: ""
+      AGE_RECIPIENT: ""
+      SCOTTY_LEGACY_API_URL: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test source parsing and zero-provider safety
+        run: |
+          node --test offline-brain/offline-brain.test.mjs
+          node --test offline-brain/public-refresh.test.mjs
+      - name: Static source-manifest validation
+        run: node --input-type=module -e "import {PUBLIC_FEEDS} from './offline-brain/update-sources.mjs'; if(PUBLIC_FEEDS.length<12 || PUBLIC_FEEDS.some(x=>!x.url.startsWith('https://'))) process.exit(1)"
+  refresh-public-references:
+    # NEVER fetch untrusted remote feeds during PR CI.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    needs: safety-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      DATABASE_URL: ""
+      GROQ_API_KEY: ""
+      XAI_API_KEY: ""
+      OPENAI_API_KEY: ""
+      R2_ENDPOINT: ""
+      AGE_RECIPIENT: ""
+      SCOTTY_LEGACY_API_URL: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Pull only approved PUBLIC RSS headlines and dates
+        run: node offline-brain/refresh-cli.mjs --refresh-public --output /tmp/scotty-public-updates.json
+      - name: Upload nonprivate public source discoveries for owner review
+        uses: actions/upload-artifact@v4
+        with:
+          name: scotty-public-discoveries
+          path: /tmp/scotty-public-updates.json
+          retention-days: 14
+          if-no-files-found: error
