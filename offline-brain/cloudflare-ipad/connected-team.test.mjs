@@ -4,11 +4,12 @@ import {DatabaseSync} from 'node:sqlite';
 import {connectedRoster,legacySourceRoster} from './connected-roster.mjs';
 import {runTeam} from './team-runtime.mjs';
 import {MEMORY_SCHEMA,normalizeNote,memoryStore} from './brain-memory.mjs';
+import {MISSION_SCHEMA} from './mission-memory.mjs';
 import {discoverFeed} from './source-discovery.mjs';
 import worker from './worker.mjs';
 const roster=connectedRoster();
 const TOKEN='synthetic-owner-token-123456789012345678901234567890';
-function dbAdapter(){const sql=new DatabaseSync(':memory:');sql.exec(MEMORY_SCHEMA);return {sql,prepare:q=>({bind:(...args)=>({run:async()=>sql.prepare(q).run(...args),all:async()=>({results:sql.prepare(q).all(...args)})})})};}
+function dbAdapter(){const sql=new DatabaseSync(':memory:');sql.exec(MEMORY_SCHEMA+MISSION_SCHEMA);return {sql,prepare:q=>({bind:(...args)=>({run:async()=>({meta:{changes:Number(sql.prepare(q).run(...args).changes)}}),all:async()=>({results:sql.prepare(q).all(...args)})})})};}
 const req=(path,data,token=TOKEN)=>new Request('https://test.invalid'+path,{method:data?'POST':'GET',headers:{authorization:'Bearer '+token,...(data?{'content-type':'application/json'}:{})},...(data?{body:JSON.stringify(data)}:{})});
 const consent={ownerApproved:true,shareWithCloudflare:true,noPrivateDataConfirmed:true};
 test('runtime preserves all 128 fallback IDs/names/chief links and gives all 185 a brain',()=>{const old=legacySourceRoster();assert.equal(old.length,128);for(const a of old){const b=roster.find(b=>b.id===a.id);assert.equal(b.name,a.name);assert.equal(b.chiefId,a.chiefId);}assert.equal(roster.filter(a=>a.isChief).length,25);assert.equal(roster.filter(a=>!a.isChief).length,160);assert.equal(new Set(roster.map(a=>a.brain.memory.privateNamespace)).size,185);assert.equal(roster.find(a=>a.id==='agent-spock-01').name,"O'Brien");});
@@ -24,9 +25,10 @@ test('iPad controller unlocks, shows brains, runs a team and clears owner sessio
  const {runInNewContext}=await import('node:vm');const {browserScript}=await import('./browser-script.mjs');
  const els=new Map();const element=id=>{if(!els.has(id))els.set(id,{value:'',checked:false,disabled:false,textContent:'',events:{},addEventListener(n,fn){this.events[n]=fn;},replaceChildren(){},appendChild(){}});return els.get(id);};
  const env={OWNER_BEARER_TOKEN:TOKEN,AI_ENABLED:'true',AI:{run:async()=>({response:'Reviewed mock result'})}};
- runInNewContext(browserScript,{document:{getElementById:element,createElement:()=>({appendChild(){}})},Option:function(){},fetch:async(path,opt)=>worker.fetch(new Request('https://test.invalid'+path,opt),env)});
+ runInNewContext(browserScript,{document:{getElementById:element,createElement:()=>({appendChild(){}})},Option:function(){},crypto,fetch:async(path,opt)=>worker.fetch(new Request('https://test.invalid'+path,opt),env)});
  element('owner-token').value=TOKEN;await element('connect').events.click();assert.match(element('status').textContent,/25 chiefs/);assert.equal(element('team').disabled,false);assert.equal(element('save-note').disabled,true);
  element('agent').value='chief-spock';element('profile').events.click();assert.match(element('answer').textContent,/SPOCK/);
  element('question').value='backend engineering';for(const id of ['approved','share','safe'])element(id).checked=true;await element('team').events.click();assert.match(element('answer').textContent,/Reviewed mock result/);assert.equal(element('approved').checked,false);
  element('disconnect').events.click();assert.equal(element('team').disabled,true);assert.equal(element('agent').disabled,true);
 });
+
