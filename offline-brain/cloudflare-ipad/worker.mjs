@@ -6,7 +6,8 @@
 import {createOfflineBrain} from "../engine.mjs";
 import {connectedRoster} from "./connected-roster.mjs";
 import {planAssignment} from "./team-expansion.mjs";
-import {runTeam} from "./team-runtime.mjs";
+import {runTeam,selectTeam} from "./team-runtime.mjs";
+import {missionMemory} from "./mission-memory.mjs";
 import {normalizeNote,memoryStore} from "./brain-memory.mjs";
 import {discoverFeed} from "./source-discovery.mjs";
 import {PUBLIC_FEEDS} from "../update-sources.mjs";
@@ -74,7 +75,7 @@ async function handleApi(request,env,url){
   status:"ISOLATED_CLOUDFLARE_BRAIN_LAB",
   agentCount:brain.agentCount,chiefCount:brain.chiefCount,specialistCount:160,overseer:"SCOTTY",
   rosterSource:"production-source-fallback-plus-proposed-additions",liveRosterVerified:false,
-  memoryConnected:Boolean(env.BRAIN_DB?.prepare),teamMaxCalls:3,
+  memoryConnected:Boolean(env.BRAIN_DB?.prepare),teamMaxCalls:5,
   knowledgeMethodGuideCount:brain.documentCount,
   domainFactStoreConnected:false,updatedLiveKnowledge:false,
   aiEnabled:env.AI_ENABLED==="true"&&typeof env.AI?.run==="function",
@@ -93,6 +94,10 @@ async function handleApi(request,env,url){
   feeds:PUBLIC_FEEDS.map(f=>({id:f.id,publisher:f.publisher,url:f.url,departments:f.departments})),
   warning:"These are candidate references. Feeds are not fetched by this Worker and no latest facts are guaranteed."
  });
+ if(path==="/api/missions"&&request.method==="GET"){
+  if(!env.BRAIN_DB?.prepare)return failure("MISSION_STORAGE_NOT_CONNECTED","Connect the dedicated memory database to retain missions.",503);
+  return response({missions:await missionMemory(env.BRAIN_DB).recent()});
+ }
  if(path==="/api/memory"&&request.method==="GET"){
   const agent=agents.get(url.searchParams.get("agentId"));
   if(!agent)return failure("UNKNOWN_AGENT","Choose a known team member.");
@@ -123,12 +128,22 @@ async function handleApi(request,env,url){
  if(body.noPrivateDataConfirmed!==true)return failure("PRIVATE_DATA_NOT_CONFIRMED","Confirm the prompt contains no private, client or production information.",403);
  if(typeof env.AI?.run!=="function")return failure("AI_BINDING_MISSING","The Workers AI binding is not configured.",503);
  if(path==="/api/team"){
-  const plan=planAssignment(roster,question,{maxAgents:1});
-  const selected=agents.get(plan.assignments[0]?.agentId);
-  const evidence=selected&&env.BRAIN_DB?.prepare?await memoryStore(env.BRAIN_DB).read(selected):[];
-  const result=await runTeam({roster,question,AI:env.AI,approved:true,evidence});
-  return response(result,result.status==="incomplete"?502:200);
+  const teamSize=body.teamSize??1;
+  let plan;try{plan=selectTeam(roster,question,teamSize);}catch{return failure("INVALID_TEAM_SIZE","Choose one or two specialist departments.");}
+  const storage=env.BRAIN_DB?.prepare?missionMemory(env.BRAIN_DB):null;
+  const missionId=body.missionId||crypto.randomUUID();
+  if(storage){
+   let claim;try{claim=await storage.claim(missionId,question,teamSize);}catch{return failure("MISSION_STORAGE_CONFLICT","Mission could not be claimed. No AI calls made.",409);}
+   if(!claim.claimed)return response({missionId,cached:true,status:claim.status,...claim.result},claim.status==="running"?409:200);
+  }
+  const result=await runTeam({roster,question,AI:env.AI,approved:true,teamSize,
+   getEvidence:async agent=>env.BRAIN_DB?.prepare?await memoryStore(env.BRAIN_DB).read(agent):[],
+   onCheckpoint:async result=>{if(storage)await storage.checkpoint(missionId,result);}
+  });
+  if(storage&&result.status==="needs-clarification")await storage.checkpoint(missionId,result);
+  return response({...result,missionId,missionPersisted:Boolean(storage)&&result.checkpointSaved!==false},result.status==="incomplete"?502:200);
  }
+
  const agent=agents.get(body.agentId);
  if(!agent)return failure("UNKNOWN_AGENT","Choose one of the 185 team profiles.",400);
  const methods=brain.search(agent.id,question).results.filter(x=>
@@ -188,4 +203,5 @@ export default {
  }
 };
 export const designAudit={model:MODEL,maxOutputTokens:MAX_OUTPUT_TOKENS,hasRuntimeLogs:!NO_SECRETS_IN_LOGS};
+
 
