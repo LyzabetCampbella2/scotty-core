@@ -1,0 +1,42 @@
+name: SCOTTY Phase 4 Local Inference — Synthetic QA
+on:
+  pull_request:
+    paths:
+      - "offline-brain/**"
+      - ".github/workflows/scotty-local-inference-phase4.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  zero-provider-evaluation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      DATABASE_URL: ""
+      GROQ_API_KEY: ""
+      XAI_API_KEY: ""
+      OPENAI_API_KEY: ""
+      R2_ENDPOINT: ""
+      AGE_RECIPIENT: ""
+      SCOTTY_LEGACY_API_URL: ""
+      OLLAMA_API_KEY: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify isolation from Groq and production
+        run: |
+          node --test offline-brain/private-store.test.mjs
+          node --test offline-brain/local-reasoner.test.mjs
+          node --test offline-brain/agent-inference.test.mjs
+          node --test offline-brain/local-readiness.test.mjs
+      - name: Syntax-check Phase 4 files
+        run: |
+          node --check offline-brain/agent-inference.mjs
+          node --check offline-brain/local-readiness.mjs
+          node --check offline-brain/phase4-cli.mjs
+      - name: Run fully simulated local answer test
+        run: |
+          node offline-brain/phase4-cli.mjs synthetic-demo >/tmp/scotty-phase4-eval.json
+          node -e 'const v=require("/tmp/scotty-phase4-eval.json"); if(v.result!=="SYNTHETIC_LOCAL_MODEL_EVAL_PASS"||!v.simulatedModel||v.groqCalls!==0||v.productionWrites!==0||v.requests!==2) process.exit(1)'
