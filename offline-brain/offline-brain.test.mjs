@@ -26,7 +26,7 @@ test("routes specialist teams by topics without inventing answers",()=>{
 test("requires provenance and explicit owner review",()=>{
  assert.throws(()=>createOfflineBrain({documents:[mk("x","secret",{approved:false})]}),/explicitly approved/);
  assert.throws(()=>createOfflineBrain({documents:[mk("x","secret",{citation:""})]}),/provenance/);
- assert.throws(()=>createOfflineBrain({documents:[mk("x","secret",{scope:"project",projectId:"p-1"})]}),/recipients/);
+ assert.throws(()=>createOfflineBrain({documents:[mk("x","secret",{scope:"project",projectId:"p-1"})]}),/recipient/);
  assert.throws(()=>createOfflineBrain({documents:[mk("x","secret",{scope:"private",allowedAgentIds:["chief-worf"]})]}),/Private/);
 });
 test("project data unavailable to unapproved agents, departments and projects",()=>{
