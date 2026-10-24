@@ -35,6 +35,7 @@ jobs:
         run: |
           node --test offline-brain/offline-brain.test.mjs
           node --test offline-brain/public-refresh.test.mjs
+          node --test offline-brain/review-promotion.test.mjs
       - name: Static source-manifest validation
         run: node --input-type=module -e "import {PUBLIC_FEEDS} from './offline-brain/update-sources.mjs'; if(PUBLIC_FEEDS.length<12 || PUBLIC_FEEDS.some(x=>!x.url.startsWith('https://'))) process.exit(1)"
   refresh-public-references:
