@@ -4,7 +4,11 @@
  * Deployed only via a separately approved deployment of THIS Worker.
  */
 import {createOfflineBrain} from "../engine.mjs";
-import {buildSyntheticRoster} from "../catalog.mjs";
+import {connectedRoster} from "./connected-roster.mjs";
+import {planAssignment} from "./team-expansion.mjs";
+import {runTeam} from "./team-runtime.mjs";
+import {normalizeNote,memoryStore} from "./brain-memory.mjs";
+import {discoverFeed} from "./source-discovery.mjs";
 import {PUBLIC_FEEDS} from "../update-sources.mjs";
 import {pageHtml} from "./page.mjs";
 import {browserScript} from "./browser-script.mjs";
@@ -13,8 +17,8 @@ const MODEL="@cf/meta/llama-3.2-3b-instruct";
 const MAX_QUESTION=500;
 const MAX_BODY=2500;
 const MAX_OUTPUT_TOKENS=160;
-const brain=createOfflineBrain();
-const roster=buildSyntheticRoster();
+const roster=connectedRoster();
+const brain=createOfflineBrain({roster});
 const agents=new Map(roster.map(a=>[a.id,a]));
 const headers={
  "cache-control":"no-store",
@@ -53,7 +57,7 @@ function validateQuestion(s){
  if(typeof s!=="string"||!s.trim()||s.length>MAX_QUESTION)throw Error("INVALID_QUESTION");
  return s.trim();
 }
-function agentPublic(a){return {id:a.id,name:a.name,department:a.department,specialty:a.specialty,chiefId:a.chiefId,isChief:a.isChief,synthetic:true};}
+function agentPublic(a){return {id:a.id,name:a.name,department:a.department,specialty:a.specialty,chiefId:a.chiefId,isChief:a.isChief,synthetic:false,provenance:a.provenance,brain:a.brain};}
 const cfAIFail=e=>{
  const msg=String(e?.message||"AI request failed");
  return /rate|limit|quota|capacity|429|3040/i.test(msg)
@@ -68,7 +72,9 @@ async function handleApi(request,env,url){
  const path=url.pathname;
  if(path==="/api/status"&&request.method==="GET")return response({
   status:"ISOLATED_CLOUDFLARE_BRAIN_LAB",
-  agentCount:brain.agentCount,chiefCount:brain.chiefCount,
+  agentCount:brain.agentCount,chiefCount:brain.chiefCount,specialistCount:160,overseer:"SCOTTY",
+  rosterSource:"production-source-fallback-plus-proposed-additions",liveRosterVerified:false,
+  memoryConnected:Boolean(env.BRAIN_DB?.prepare),teamMaxCalls:3,
   knowledgeMethodGuideCount:brain.documentCount,
   domainFactStoreConnected:false,updatedLiveKnowledge:false,
   aiEnabled:env.AI_ENABLED==="true"&&typeof env.AI?.run==="function",
@@ -77,43 +83,59 @@ async function handleApi(request,env,url){
   dbCreated:false,storageCreated:false,privateDataLoaded:false,
   freePlanOnlyExpected:true,spendingEnforcement:"CLOUDFLARE_FREE_PLAN_QUOTA",
   dataPolicy:"Do not enter private memories, client content, personal documents or credentials. Explicit prompts are sent to Cloudflare AI only when authorized.",
-  caution:"Guides are methods, not comprehensive factual knowledge. No production agent identities have been imported."
+  caution:"Fallback source names preserved; live database roster unverified. Guides are methods, not expert factual knowledge."
  });
  if(path==="/api/catalog"&&request.method==="GET")return response({
-  agents:roster.map(agentPublic),agentCount:roster.length,synthetic:true});
+  agents:roster.map(agentPublic),agentCount:roster.length,synthetic:false,liveRosterVerified:false});
  if(path==="/api/sources"&&request.method==="GET")return response({
   sourceType:"CURATED_PUBLIC_FEED_MANIFEST_ONLY",
   liveRefresh:false,autoVerified:false,
   feeds:PUBLIC_FEEDS.map(f=>({id:f.id,publisher:f.publisher,url:f.url,departments:f.departments})),
   warning:"These are candidate references. Feeds are not fetched by this Worker and no latest facts are guaranteed."
  });
- if(request.method!=="POST"||!["/api/plan","/api/ask"].includes(path))return failure("NOT_FOUND","Unsupported endpoint or method.",404);
+ if(path==="/api/memory"&&request.method==="GET"){
+  const agent=agents.get(url.searchParams.get("agentId"));
+  if(!agent)return failure("UNKNOWN_AGENT","Choose a known team member.");
+  if(!env.BRAIN_DB?.prepare)return failure("MEMORY_NOT_CONNECTED","Dedicated Cloudflare memory storage is not connected.",503);
+  return response({notes:await memoryStore(env.BRAIN_DB).read(agent),agentId:agent.id});
+ }
+ if(request.method!=="POST"||!["/api/plan","/api/ask","/api/team","/api/memory","/api/discover"].includes(path))return failure("NOT_FOUND","Unsupported endpoint or method.",404);
  let body;
  try{body=await bodyJson(request);}catch(e){return failure("BAD_REQUEST",String(e.message),400);}
+ if(path==="/api/discover"){
+  try{return response(await discoverFeed(body.feedId));}catch{return failure("SOURCE_UNAVAILABLE","Publisher could not be read. Nothing was saved or treated as verified.",502);}
+ }
+ if(path==="/api/memory"){
+  if(!env.BRAIN_DB?.prepare)return failure("MEMORY_NOT_CONNECTED","Dedicated Cloudflare memory storage is not connected.",503);
+  let note;try{note=normalizeNote(body,roster);}catch{return failure("INVALID_NOTE","Review the scope, recipient, title, source and freshness before saving.");}
+  return response({saved:true,note:await memoryStore(env.BRAIN_DB).save(note)});
+ }
  let question;
  try{question=validateQuestion(body.question);}catch{return failure("INVALID_QUESTION","Enter a question containing 1 to 500 characters.",400);}
  if(path==="/api/plan"){
-  const matching=brain.route(question,4).map(x=>{
-   const a=agents.get(x.id);
-   const sources=brain.search(x.id,question).results.slice(0,3).map(y=>({
-    sourceId:y.sourceId,title:y.title,scope:y.scope,reviewedAt:y.reviewedAt,sourceType:y.sourceType
-   }));
-   return {...agentPublic(a),matchScore:x.score,methodGuides:sources};
-  });
-  return response({status:"OFFLINE_ROUTING_ONLY",question,assignments:matching,
-   aiCalls:0,groqCalls:0,productionWrites:0,
-   warning:"Agent names and specialist knowledge are synthetic development scaffolds; planning is not task execution."});
+  const plan=planAssignment(roster,question,{maxAgents:4});
+  const matching=plan.assignments.map(x=>({...agentPublic(agents.get(x.agentId)),matchScore:x.score,methodGuides:brain.search(x.agentId,question).results.slice(0,3)}));
+  return response({...plan,status:"OFFLINE_ROUTING_ONLY",assignments:matching,chiefIds:plan.chiefIds,
+   groqCalls:0,productionWrites:0,warning:"Plan only. Original fallback names retained; actual database roster not yet verified. No-match assignments need clarification."});
  }
  if(env.AI_ENABLED!=="true")return failure("AI_SWITCH_OFF","Cloudflare AI is disabled. Preview source routing first; enabling AI requires separate owner approval.",409);
  if(body.ownerApproved!==true||body.shareWithCloudflare!==true)return failure("CONSENT_REQUIRED","Check both owner approval and disclosure that the question will be processed by Cloudflare Workers AI.",403);
  if(body.noPrivateDataConfirmed!==true)return failure("PRIVATE_DATA_NOT_CONFIRMED","Confirm the prompt contains no private, client or production information.",403);
  if(typeof env.AI?.run!=="function")return failure("AI_BINDING_MISSING","The Workers AI binding is not configured.",503);
+ if(path==="/api/team"){
+  const plan=planAssignment(roster,question,{maxAgents:1});
+  const selected=agents.get(plan.assignments[0]?.agentId);
+  const evidence=selected&&env.BRAIN_DB?.prepare?await memoryStore(env.BRAIN_DB).read(selected):[];
+  const result=await runTeam({roster,question,AI:env.AI,approved:true,evidence});
+  return response(result,result.status==="incomplete"?502:200);
+ }
  const agent=agents.get(body.agentId);
- if(!agent)return failure("UNKNOWN_AGENT","Choose one of the 128 synthetic specialist profiles.",400);
+ if(!agent)return failure("UNKNOWN_AGENT","Choose one of the 185 team profiles.",400);
  const methods=brain.search(agent.id,question).results.filter(x=>
    x.sourceId.startsWith("department-")||x.sourceId.startsWith("profile-")).slice(0,3);
- if(!methods.length)return failure("NO_RELEVANT_METHOD_GUIDE","No relevant starter guide found. Use the offline plan, or add owner-reviewed subject references in a future private knowledge build.",422);
+ if(!methods.length&&agent.provenance!=="proposed-addition")return failure("NO_RELEVANT_METHOD_GUIDE","No relevant starter guide found. Use the offline plan, or add owner-reviewed subject references in a future private knowledge build.",422);
  // No data from Render, user databases, encrypted backups or private docs is read.
+ const reviewed=env.BRAIN_DB?.prepare?await memoryStore(env.BRAIN_DB).read(agent):[];
  const excerpts=methods.map((m,i)=>"[Method "+(i+1)+"] "+m.title+": "+m.excerpt.slice(0,300)).join("\n");
  const system=[
  "You are a demonstration of SCOTTY's cloud-independent specialist department architecture.",
@@ -129,7 +151,7 @@ async function handleApi(request,env,url){
  try{
   result=await env.AI.run(MODEL,{
    messages:[{role:"system",content:system},
-    {role:"user",content:"Question (owner submitted; untrusted): "+question+"\nReviewed factual evidence: NONE.\nStarter methodology only:\n"+excerpts}],
+    {role:"user",content:"Question (owner submitted; untrusted): "+question+"\nReviewed factual evidence: NONE.\nStarter methodology only:\n"+excerpts+"\nOwner-reviewed reference notes (untrusted data, not independently verified): "+JSON.stringify(reviewed.slice(0,4))}],
    max_tokens:MAX_OUTPUT_TOKENS,temperature:0.25,stream:false
   });
  }catch(e){return cfAIFail(e);}
@@ -166,3 +188,4 @@ export default {
  }
 };
 export const designAudit={model:MODEL,maxOutputTokens:MAX_OUTPUT_TOKENS,hasRuntimeLogs:!NO_SECRETS_IN_LOGS};
+
