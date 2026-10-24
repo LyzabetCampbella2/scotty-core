@@ -1,0 +1,17 @@
+name: SCOTTY team expansion foundation
+on:
+  pull_request:
+    paths:
+      - 'offline-brain/cloudflare-ipad/team-expansion*'
+      - '.github/workflows/scotty-team-expansion.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test offline-brain/cloudflare-ipad/team-expansion.test.mjs
