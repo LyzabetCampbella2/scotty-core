@@ -1,0 +1,42 @@
+name: SCOTTY iPad Brain Lab — Free-tier Synthetic QA
+on:
+  pull_request:
+    paths:
+      - "offline-brain/**"
+      - ".github/workflows/scotty-cloudflare-ipad-brain.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-worker-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ""
+      GROQ_API_KEY: ""
+      XAI_API_KEY: ""
+      OPENAI_API_KEY: ""
+      CLOUDFLARE_API_TOKEN: ""
+      CLOUDFLARE_ACCOUNT_ID: ""
+      OWNER_BEARER_TOKEN: ""
+      R2_ENDPOINT: ""
+      R2_BUCKET: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test authenticated iPad-only Worker with mocked AI
+        run: |
+          node --test offline-brain/cloudflare-ipad/worker.test.mjs
+          node --check offline-brain/cloudflare-ipad/worker.mjs
+          node --check offline-brain/cloudflare-ipad/browser-script.mjs
+          node --check offline-brain/cloudflare-ipad/page.mjs
+      - name: Validate free Worker scope and no paid bindings
+        run: |
+          node -e "const c=JSON.parse(require('fs').readFileSync('offline-brain/cloudflare-ipad/wrangler.jsonc','utf8')); if(c.vars.AI_ENABLED!=='false'||!c.ai||c.ai.binding!=='AI'||c.kv_namespaces||c.d1_databases||c.r2_buckets||c.durable_objects||c.triggers||c.vars.OWNER_BEARER_TOKEN)process.exit(1)"
+      - name: Compile Worker without deploying or logging in
+        run: |
+          npx --yes wrangler@4 deploy --dry-run --config offline-brain/cloudflare-ipad/wrangler.jsonc --outdir /tmp/scotty-ipad-brain-dryrun
+      - name: Confirm bundled output exists
+        run: test -d /tmp/scotty-ipad-brain-dryrun
