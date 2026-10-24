@@ -1,0 +1,7 @@
+local-data/
+scotty-private-knowledge*/
+*.private.json
+*.age
+identity.txt
+knowledge-v1.json
+.knowledge-write.lock
