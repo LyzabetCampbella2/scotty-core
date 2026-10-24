@@ -55,14 +55,14 @@ test("health reports isolation without secrets, production or AI calls",async()=
  assert.equal(x.status,200);assert.equal(x.body.productionConnected,false);
  assert.equal(x.body.aiUsed,false);assert.ok(!JSON.stringify(x.body).includes(TOKEN));
 });
-test("128 synthetic agents and 12 chiefs, not real production records",async()=>{
+test("185 source-fallback and proposed profiles; 25 chiefs; live records unverified",async()=>{
  const r=await json(await worker.fetch(request("/api/catalog"),environment()));
  assert.equal(r.status,200);
- assert.equal(r.body.agentCount,128);
- assert.equal(r.body.agents.filter(a=>a.isChief).length,12);
- assert.equal(r.body.agents.every(a=>a.synthetic===true),true);
+ assert.equal(r.body.agentCount,185);
+ assert.equal(r.body.agents.filter(a=>a.isChief).length,25);
+ assert.equal(r.body.liveRosterVerified,false);
  const unique=new Set(r.body.agents.map(a=>a.id));
- assert.equal(unique.size,128);
+ assert.equal(unique.size,185);
 });
 test("brain is disabled by default; neither plans nor sources use AI",async()=>{
  let calls=0;
@@ -142,3 +142,4 @@ test("no need to provision KV, D1, R2, or paid database",()=>{
  assert.equal(designAudit.maxOutputTokens,160);
  assert.ok(pageHtml().includes("token stays in this browser tab"));
 });
+
