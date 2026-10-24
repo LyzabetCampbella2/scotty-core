@@ -23,7 +23,7 @@ export function prepareReviewedKnowledge(snapshot,decisions,{approvedBy,approved
  if(typeof approvedBy!=="string"||!validId.test(approvedBy)||!Number.isFinite(Date.parse(approvedAt)))throw Error("Named reviewer and date required");
  const docs=[],roster=buildSyntheticRoster(),seen=new Set();
  for(const choice of decisions){
-  if(choice?.decision!=="approve"||choice?.reviewed===true!==true)throw Error("Explicit human source review approval is required");
+  if(choice?.decision!=="approve"||choice?.reviewed!==true)throw Error("Explicit human source review approval is required");
   const article=snapshot.records.find(r=>r.id===choice.discoveryId);
   const feed=approvedPublisher(article);
   if(!article||!feed||seen.has(article.id))throw Error("Unapproved, invalid or duplicate source discovery");
