@@ -1,0 +1,26 @@
+[
+  {
+    "id": "synthetic-plot-source",
+    "title": "Example: manuscript pacing checklist",
+    "content": "Fiction pacing can be evaluated by scene purpose, turning points, escalating obstacles, transitions, cause and effect, and chapter-level tension. This is a synthetic example; it contains no client writing.",
+    "scope": "project",
+    "projectId": "fiction-demo",
+    "allowedAgentIds": [
+      "agent-zora-01"
+    ],
+    "sourceType": "owner-file",
+    "citation": "Synthetic owner-approved test note — demonstration only",
+    "reviewedAt": "2026-10-24",
+    "approved": true
+  },
+  {
+    "id": "synthetic-shared-source",
+    "title": "Example: source provenance",
+    "content": "A claim should be associated with its reference, date, uncertainty and explicit authorized audience. Synthetic only.",
+    "scope": "shared",
+    "sourceType": "original-playbook",
+    "citation": "SCOTTY synthetic source reference example",
+    "reviewedAt": "2026-10-24",
+    "approved": true
+  }
+]
