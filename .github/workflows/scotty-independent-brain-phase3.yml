@@ -1,0 +1,42 @@
+name: SCOTTY Independent Brain Phase 3 — Synthetic Only
+on:
+  pull_request:
+    paths:
+      - "offline-brain/**"
+      - ".github/workflows/scotty-independent-brain-phase3.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-local-brain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    env:
+      DATABASE_URL: ""
+      GROQ_API_KEY: ""
+      XAI_API_KEY: ""
+      OPENAI_API_KEY: ""
+      R2_ENDPOINT: ""
+      AGE_RECIPIENT: ""
+      SCOTTY_LEGACY_API_URL: ""
+      OLLAMA_API_KEY: ""
+    steps:
+      - name: Read reviewed source code only
+        uses: actions/checkout@v4
+      - name: Use isolated Node runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test private local store and offline model guards
+        run: |
+          node --test offline-brain/private-store.test.mjs
+          node --test offline-brain/local-reasoner.test.mjs
+      - name: Verify isolated local CLI syntax
+        run: node --check offline-brain/private-cli.mjs
+      - name: Run temporary synthetic private-store status
+        run: |
+          set -eu
+          testroot="$(mktemp -d /tmp/scotty-private-knowledge-ci-XXXXXX)"
+          trap 'rm -rf "$testroot"' EXIT
+          node offline-brain/private-cli.mjs status --root "$testroot" > /tmp/scotty-phase3-status.json
+          node -e 'const x=require("/tmp/scotty-phase3-status.json"); if(x.recordCount!==0 || x.productionWrites!==0 || x.providerCalls!==0) process.exit(1)'
