@@ -1,0 +1,43 @@
+# SCOTTY Cloudflare independent brain — owner integration
+
+## What this integration actually deploys
+- A separate `/brain-lab` observatory reachable from the original HUD.
+- An owner-authenticated, same-origin, server-side proxy for an independently deployed Worker.
+- Only exact routes for status, readiness, catalog, sources, missions, memory, planning, source discovery and explicitly approved AI tasks. Worker owner tokens never enter a browser.
+- **Off by default.** Merging this code never creates Cloudflare infrastructure, never connects the production database to D1 and never switches Groq off on the original HUD.
+- Original agents, HUD, Scottish voice, gestures, file storage and backups remain untouched.
+
+## Prerequisite: activate the isolated Cloudflare Worker
+GitHub branch: `dev/ipad-cloudflare-staging-gates-20261024`; root: `offline-brain/cloudflare-ipad`; Worker name: `scotty-independent-ipad-brain-lab`.
+The Cloudflare dashboard is NOT accessible through the connected GitHub and Render tools. Owner must first verify **Workers Free** in Cloudflare billing (do not choose Workers Paid), connect the repository under Workers & Pages, select the exact dedicated branch/root, and finish the staging preflight in `IPAD_STAGING_SETUP.md`. Cloudflare Git builds may deploy every push.
+
+In the isolated Worker set secret `OWNER_BEARER_TOKEN` with a **unique random 32+ char value**, stored only in a password manager and Cloudflare. Never put it in source, a GitHub PR, or a ChatGPT message. AI remains off by default. Check the Worker `/health` endpoint and owner-authenticated `/api/readiness` before proceeding. Private content must remain out of the isolated lab.
+
+For durable memory only: provision a **new** Free-eligible D1 database, e.g. `scotty-independent-brain-memory`; never link an existing Render/Postgres or ANSJEM database. Apply `offline-brain/cloudflare-ipad/memory-schema.sql` only to that dedicated D1 database. An explicit Worker binding `BRAIN_DB` with the actual verified D1 UUID must be added to Wrangler and approved in `staging-preflight.mjs` before deployment (the current preflight deliberately blocks D1); never weaken that gate with a wildcard or a guessed UUID. Readiness must show the correct dedicated brain installation marker and schemas. D1 creation/application has **not** happened merely because this integration merged.
+
+## Render activation, only after the Worker exists and is verified
+In Render > scotty-core > Environment, add these as **private** variables:
+
+- `SCOTTY_INDEPENDENT_BRAIN_ENABLED=true`
+- `SCOTTY_INDEPENDENT_BRAIN_URL=https://<your actual dedicated Worker>.workers.dev` (HTTPS URL with root path only)
+- `SCOTTY_INDEPENDENT_BRAIN_TOKEN=<same unique secret held in Cloudflare OWNER_BEARER_TOKEN>`
+
+Do **not** set up variables or values in a public file. This creates server-side access on behalf of the already authenticated SCOTTY owner, but does not copy private histories or database records into Cloudflare. If you need absolute zero cross-service shared credentials, keep this bridge disabled and use the independent Worker UI with its own local owner token instead.
+
+To enable AI tasks only after Free plan confirmation, AI binding/readiness checks and a capped synthetic prompt test, set `AI_ENABLED=true` in the dedicated Worker **after** its source preflight and deployment config are updated to keep default-off safely when unconfigured, then set `SCOTTY_INDEPENDENT_BRAIN_AI_PROXY_ENABLED=true` in Render. Both owner approval and explicit permission to share a non-private prompt with Cloudflare remain mandatory on every request. Avoid paid services or over-quota usage. Workers Free quotas are provider-enforced, not a cost guarantee if the account becomes Paid.
+
+For Cloudflare memory writes *after* D1 is ready, set `SCOTTY_INDEPENDENT_BRAIN_MEMORY_PROXY_ENABLED=true` in Render; each write still requires `approved:true` and `noPrivateDataConfirmed:true`. Do not sync production memories automatically.
+
+## Live smoke checks
+1. Visit `https://scotty-core.onrender.com/hud`, log in, and open **Independent Brain** in the HUD navigation.
+2. Initially, the dashboard truthfully reports `BRIDGE_DISABLED` or a connection error. This is expected until the Worker is live and the private Render config is set.
+3. After activation, click Refresh; verify **25 chiefs, 160 specialists**, Cloudflare release, whether actual live roster identities are verified, AI switch state and D1 state. Code profiles alone do not certify the live roster.
+4. Click Recommend agents with a *synthetic* task, and load approved public publishers. These actions require zero model inference and no memory writes.
+5. After readiness and consent, run a synthetic team task and verify specialists' findings, chief reviews and SCOTTY synthesis. Check saved missions only when D1 is ready.
+6. Confirm the original HUD, Scottish voice, agents, files and existing memories still work; never claim D1 persistence unless it passes a real write/read smoke test.
+
+## Testing
+`node --test src/brain/independent-bridge.test.mjs` uses a synthetic Worker transport, no network, secrets, production data or billable AI. Github Actions runs this suite on the PR. Do not merge if checks fail.
+
+## Rollback
+Set `SCOTTY_INDEPENDENT_BRAIN_ENABLED=false` in Render; this immediately blocks proxy operations when that configuration is active, without touching the original SCOTTY services. Separately disable the Cloudflare Worker if needed. No private-memory migration was part of this integration.
