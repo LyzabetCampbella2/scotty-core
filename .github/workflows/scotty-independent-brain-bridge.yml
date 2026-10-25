@@ -1,0 +1,40 @@
+name: SCOTTY independent brain bridge safety
+on:
+  pull_request:
+    paths:
+      - "src/brain/independent-bridge.mjs"
+      - "src/brain/independent-bridge.test.mjs"
+      - "src/server-cloud-v2.ts"
+      - "public/brain-lab/**"
+      - "public/brain-lab-link.js"
+      - ".github/workflows/scotty-independent-brain-bridge.yml"
+permissions:
+  contents: read
+jobs:
+  offline-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      SCOTTY_INDEPENDENT_BRAIN_ENABLED: "false"
+      SCOTTY_INDEPENDENT_BRAIN_TOKEN: ""
+      SCOTTY_INDEPENDENT_BRAIN_URL: ""
+      GROQ_API_KEY: ""
+      DATABASE_URL: ""
+      CLOUDFLARE_API_TOKEN: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Test auth, endpoint allowlists, no-secret browser boundary, AI consent and memory write gate
+        run: node --test src/brain/independent-bridge.test.mjs
+      - uses: oven-sh/setup-bun@v2
+      - name: Bundle SCOTTY production server without starting it or connecting to any database
+        run: |
+          bun build src/server-cloud-v2.ts --target=bun --packages external --outfile=/tmp/scotty-bridge-server.js
+          test -s /tmp/scotty-bridge-server.js
+      - name: Confirm default off, no automatic Cloudflare Worker deployment
+        run: |
+          grep -q 'SCOTTY_INDEPENDENT_BRAIN_ENABLED' src/brain/independent-bridge.mjs
+          grep -q 'AI_PROXY_DISABLED' src/brain/independent-bridge.mjs
+          grep -q 'OWNER_MEMORY_APPROVAL_REQUIRED' src/brain/independent-bridge.mjs

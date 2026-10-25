@@ -1,4 +1,5 @@
 import {handleAgentSubmit} from "./agents/agent-runtime-api.ts";
+import {handleIndependentBrain} from "./brain/independent-bridge.mjs";
 import {handleRenderAgentBrains} from "./agents/render-bridge.ts";
 import {projectOperationsAsset} from './agents/project-operations-assets.ts';
 import {handleFolders} from './workspace/folders.ts';
@@ -44,6 +45,7 @@ async function serveHud(){
   let html=await file.text();
   html=html.replace("</head>",'<script type="importmap">{"imports":{"three":"/vendor/three/three.module.js"}}</script></head>');
   if(!html.includes("/render-hotfix.js"))html=html.replace("</body>","<script src=\"/render-hotfix.js?v=10\"></script><script src=\"/conversation-core.js?v=3\"></script><script src=\"/conversation.js?v=18\"></script><script src=\"/daily-life.js?v=1\"></script><script src=\"/knowledge.js?v=1\"></script><script src=\"/teamwork.js?v=1\"></script><script src=\"/apps-actions.js?v=4\"></script><script src=\"/creative.js?v=1\"></script><script src=\"/workspace.js?v=2\"></script><script src=\"/spatial-tools-core.js?v=1\"></script><script src=\"/spatial-tools.js?v=1\"></script><script src=\"/voice-control-core.js?v=2\"></script><script src=\"/voice-control.js?v=5\"></script><script src=\"/command-room.js?v=2\"></script><script src=\"/voice-workspace-core.js?v=1\"></script><script src=\"/voice-workspace.js?v=2\"></script><script src=\"/connectors.js?v=5\"></script><script src=\"/calls-core.js?v=2\"></script><script src=\"/calls.js?v=5\"></script><script src=\"/call-contacts-core.js?v=1\"></script><script src=\"/call-extras.js?v=2\"></script><script src=\"/call-session-core.js?v=1\"></script><script src=\"/call-session.js?v=1\"></script><script src=\"/folders-core.js?v=4\"></script><script src=\"/folders.js?v=7\"></script><script src=\"/folders-database.js?v=2\"></script><script src=\"/voice-features.js?v=2\"></script></body>");
+  if(!html.includes("/brain-lab-link.js"))html=html.replace("</body>",'<script src="/brain-lab-link.js?v=1"></script></body>');
   return new Response(html,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store"}});
  }catch{return null}
 }
@@ -57,6 +59,7 @@ Bun.serve({port:PORT,async fetch(req){
   const projectOpsAsset=await projectOperationsAsset(req,u);if(projectOpsAsset)return projectOpsAsset;
   if(u.pathname==="/hud/sidebar-voice-live.js") {const r=await servePublic("public/hud/sidebar-voice-live.js","application/javascript; charset=utf-8");if(r)return r}
   if(u.pathname==="/render-hotfix.js") {const r=await servePublic("public/render-hotfix.js","application/javascript; charset=utf-8");if(r)return r}
+  if(u.pathname==="/brain-lab-link.js") {const r=await servePublic("public/brain-lab-link.js","application/javascript; charset=utf-8");if(r)return r}
   if(u.pathname==="/hud"||u.pathname==="/hud/"||u.pathname==="/") {const r=await serveHud();if(r)return r}
   if(u.pathname==="/missions"||u.pathname==="/missions/") {const r=await servePublic("public/missions/index.html");if(r)return r}
   if(u.pathname==="/integrations"||u.pathname==="/integrations/") {const r=await servePublic("public/integrations/index.html");if(r)return r}
@@ -67,6 +70,11 @@ Bun.serve({port:PORT,async fetch(req){
  }
  if(u.pathname==="/ready") return Response.json({ok:true,service:"scotty-core",status:"ready",time:new Date().toISOString()},{headers:{"cache-control":"no-store"}});
  if(u.pathname==="/health") return handleHealth();
+ if(u.pathname==="/brain-lab"||u.pathname==="/brain-lab/"){
+  if(req.method!=="GET")return new Response("Method not allowed",{status:405});
+  if(!(await isCloudAuthenticated(req)))return Response.redirect(new URL("/hud",req.url),302);
+  return (await servePublic("public/brain-lab/index.html"))||new Response("Brain dashboard unavailable",{status:503});
+ }
  if(req.method==="GET"&&u.pathname==="/api/connections/setup/status") return Response.json({ok:true,...connectionSetupStatus()},{headers:{"cache-control":"no-store"}});
 
  if(u.pathname.startsWith("/api/auth")) return handleCloudAuth(req,u);
@@ -140,6 +148,8 @@ Bun.serve({port:PORT,async fetch(req){
  if(u.pathname==="/api/tts"||u.pathname.startsWith("/api/voice")) return handleCloudVoice(req,u);
  if(u.pathname.startsWith("/api/memory")) return handleCloudMemory(req,u);
  if(u.pathname.startsWith("/api/agent-runtime/"))return handleAgentSubmit(req,u);
+ const independentBrainResponse=await handleIndependentBrain(req,u,{env:process.env,authenticated:isCloudAuthenticated});
+ if(independentBrainResponse)return independentBrainResponse;
  const agentBrainsResponse=await handleRenderAgentBrains(req,u,isCloudAuthenticated);
  if(agentBrainsResponse)return agentBrainsResponse;
  if(u.pathname.startsWith("/api/")) return Response.json({ok:false,error:"S.C.O.T.T.Y. cloud route not found"},{status:404,headers:{"cache-control":"no-store"}});
