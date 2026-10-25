@@ -9,7 +9,7 @@
 
 ## Prerequisite: activate the isolated Cloudflare Worker
 GitHub branch: `dev/ipad-cloudflare-staging-gates-20261024`; root: `offline-brain/cloudflare-ipad`; Worker name: `scotty-independent-ipad-brain-lab`.
-The Cloudflare dashboard is NOT accessible through the connected GitHub and Render tools. Owner must first verify **Workers Free** in Cloudflare billing (do not choose Workers Paid), connect the repository under Workers & Pages, select the exact dedicated branch/root, and finish the staging preflight in `IPAD_STAGING_SETUP.md`. Cloudflare Git builds may deploy every push.
+**The dedicated Worker project already exists in the owner's Cloudflare dashboard, and GitHub was connected; do not create a duplicate Worker.** Previous dashboard checks showed no workers.dev URL and no verified new build. The Cloudflare dashboard is NOT accessible through the connected GitHub and Render tools. On that existing Worker, confirm **Workers Free** in billing (do not choose Workers Paid), verify the exact dedicated GitHub branch/root under Settings > Builds, complete the staging preflight in `IPAD_STAGING_SETUP.md`, and inspect the latest deployment. Enable its unique workers.dev route only when the dedicated Worker has a successful safe build. Cloudflare Git builds may deploy every push.
 
 In the isolated Worker set secret `OWNER_BEARER_TOKEN` with a **unique random 32+ char value**, stored only in a password manager and Cloudflare. Never put it in source, a GitHub PR, or a ChatGPT message. AI remains off by default. Check the Worker `/health` endpoint and owner-authenticated `/api/readiness` before proceeding. Private content must remain out of the isolated lab.
 
