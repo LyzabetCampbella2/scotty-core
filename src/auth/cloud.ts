@@ -1,7 +1,8 @@
 import postgres from "postgres";
 
 let sql:any=null,initPromise:Promise<void>|null=null;
-const failures=new Map<string,{count:number;until:number}>();
+import { createLoginThrottle } from "./login-throttle.ts";
+const loginThrottle=createLoginThrottle();
 
 function db(){
  if(!sql){
@@ -50,17 +51,9 @@ async function sha256(s:string){
 function clientKey(req:Request){
  return (req.headers.get("x-forwarded-for")||req.headers.get("cf-connecting-ip")||"unknown").split(",")[0].trim();
 }
-function blocked(req:Request){
- const k=clientKey(req),x=failures.get(k);
- if(!x)return false;
- if(Date.now()>x.until){failures.delete(k);return false}
- return x.count>=6;
-}
-function failed(req:Request){
- const k=clientKey(req),now=Date.now(),x=failures.get(k);
- failures.set(k,{count:(x&&now<x.until?x.count:0)+1,until:now+15*60*1000});
-}
-function cleared(req:Request){failures.delete(clientKey(req))}
+function retryAfter(req:Request){return loginThrottle.retryAfterSeconds(clientKey(req))}
+function failed(req:Request){return loginThrottle.failed(clientKey(req))}
+function cleared(req:Request){loginThrottle.cleared(clientKey(req))}
 async function owner(){
  await ensure();
  const r=await db()`select password_hash as "passwordHash",migrated_from as "migratedFrom" from scotty_auth_owner where id=1`;
@@ -125,7 +118,8 @@ export async function handleCloudAuth(req:Request,u:URL){
  }
 
  if(req.method==="POST"&&u.pathname==="/api/auth/login"){
-  if(blocked(req))return json({ok:false,error:"Too many login attempts. Try again in about 15 minutes."},429);
+  const remaining=retryAfter(req);
+  if(remaining)return json({ok:false,error:`Too many login attempts. Try again in ${remaining} seconds.`,retryAfterSeconds:remaining},429,{"retry-after":String(remaining)});
   let body:any;try{body=await req.json()}catch{return json({ok:false,error:"Invalid JSON"},400)}
   const password=String(body?.password||"");
   if(password.length<1||password.length>512)return json({ok:false,error:"Invalid password"},400);
@@ -136,7 +130,7 @@ export async function handleCloudAuth(req:Request,u:URL){
    ok=await verifyLegacy(password);
    if(ok){await writeOwner(password,"railway-first-login");migrated=true;o=await owner()}
   }
-  if(!ok){failed(req);return json({ok:false,error:o?"Incorrect owner password.":"Could not verify the existing S.C.O.T.T.Y. owner password for migration."},401)}
+  if(!ok){const wait=failed(req);if(wait)return json({ok:false,error:`Too many login attempts. Try again in ${wait} seconds.`,retryAfterSeconds:wait},429,{"retry-after":String(wait)});return json({ok:false,error:o?"Incorrect owner password.":"Could not verify the existing S.C.O.T.T.Y. owner password for migration."},401)}
   cleared(req);
   const cookie=await createSession(req);
   return json({ok:true,authenticated:true,migrated,provider:"render-postgres"},200,{"set-cookie":cookie});
