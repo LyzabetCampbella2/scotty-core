@@ -8,6 +8,7 @@ import {connectedRoster} from "./connected-roster.mjs";
 import {planAssignment} from "./team-expansion.mjs";
 import {runTeam,selectTeam} from "./team-runtime.mjs";
 import {missionMemory} from "./mission-memory.mjs";
+import {readiness,storageReadiness,RELEASE} from "./brain-readiness.mjs";
 import {normalizeNote,memoryStore} from "./brain-memory.mjs";
 import {discoverFeed} from "./source-discovery.mjs";
 import {PUBLIC_FEEDS} from "../update-sources.mjs";
@@ -71,11 +72,14 @@ async function handleApi(request,env,url){
  if(auth==="NOT_CONFIGURED")return failure("OWNER_SECRET_MISSING","Owner access is not configured. This lab cannot run publicly.",503);
  if(auth!=="YES")return failure("UNAUTHORIZED","Valid owner token required.",401);
  const path=url.pathname;
+ if(path==="/api/readiness"&&request.method==="GET")return response(await readiness(env));
+ const storage=await storageReadiness(env.BRAIN_DB);
+ if(storage.bound&&!storage.ready&&["/api/memory","/api/missions","/api/team","/api/ask"].includes(path))return failure(storage.reason,"Dedicated memory database is bound but its schema is not ready. Check Activation Status before proceeding.",503);
  if(path==="/api/status"&&request.method==="GET")return response({
-  status:"ISOLATED_CLOUDFLARE_BRAIN_LAB",
+  status:"ISOLATED_CLOUDFLARE_BRAIN_LAB",release:RELEASE,
   agentCount:brain.agentCount,chiefCount:brain.chiefCount,specialistCount:160,overseer:"SCOTTY",
   rosterSource:"production-source-fallback-plus-proposed-additions",liveRosterVerified:false,
-  memoryConnected:Boolean(env.BRAIN_DB?.prepare),teamMaxCalls:5,
+  memoryConnected:storage.ready,memoryBound:storage.bound,memoryReason:storage.reason,teamMaxCalls:5,
   knowledgeMethodGuideCount:brain.documentCount,
   domainFactStoreConnected:false,updatedLiveKnowledge:false,
   aiEnabled:env.AI_ENABLED==="true"&&typeof env.AI?.run==="function",
@@ -193,7 +197,7 @@ export default {
    return new Response(browserScript,{headers:{"content-type":"text/javascript; charset=utf-8",...headers}});
   }
   if(request.method==="GET"&&url.pathname==="/health")return response({
-   status:"STAGED_INDEPENDENT_LAB",privateDataAccessible:false,
+   status:"STAGED_INDEPENDENT_LAB",release:RELEASE,privateDataAccessible:false,
    productionConnected:false,aiUsed:false});
   if(!url.pathname.startsWith("/api/"))return failure("NOT_FOUND","Unknown page.",404);
   try{return await handleApi(request,env,url);}catch{

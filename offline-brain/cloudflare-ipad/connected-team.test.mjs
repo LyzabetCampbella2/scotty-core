@@ -1,3 +1,4 @@
+import {INSTALLATION_SCHEMA} from './brain-readiness.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
@@ -9,7 +10,7 @@ import {discoverFeed} from './source-discovery.mjs';
 import worker from './worker.mjs';
 const roster=connectedRoster();
 const TOKEN='synthetic-owner-token-123456789012345678901234567890';
-function dbAdapter(){const sql=new DatabaseSync(':memory:');sql.exec(MEMORY_SCHEMA+MISSION_SCHEMA);return {sql,prepare:q=>({bind:(...args)=>({run:async()=>({meta:{changes:Number(sql.prepare(q).run(...args).changes)}}),all:async()=>({results:sql.prepare(q).all(...args)})})})};}
+function dbAdapter(){const sql=new DatabaseSync(':memory:');sql.exec(MEMORY_SCHEMA+MISSION_SCHEMA+INSTALLATION_SCHEMA);return {sql,prepare:q=>({bind:(...args)=>({run:async()=>({meta:{changes:Number(sql.prepare(q).run(...args).changes)}}),all:async()=>({results:sql.prepare(q).all(...args)})})})};}
 const req=(path,data,token=TOKEN)=>new Request('https://test.invalid'+path,{method:data?'POST':'GET',headers:{authorization:'Bearer '+token,...(data?{'content-type':'application/json'}:{})},...(data?{body:JSON.stringify(data)}:{})});
 const consent={ownerApproved:true,shareWithCloudflare:true,noPrivateDataConfirmed:true};
 test('runtime preserves all 128 fallback IDs/names/chief links and gives all 185 a brain',()=>{const old=legacySourceRoster();assert.equal(old.length,128);for(const a of old){const b=roster.find(b=>b.id===a.id);assert.equal(b.name,a.name);assert.equal(b.chiefId,a.chiefId);}assert.equal(roster.filter(a=>a.isChief).length,25);assert.equal(roster.filter(a=>!a.isChief).length,160);assert.equal(new Set(roster.map(a=>a.brain.memory.privateNamespace)).size,185);assert.equal(roster.find(a=>a.id==='agent-spock-01').name,"O'Brien");});
