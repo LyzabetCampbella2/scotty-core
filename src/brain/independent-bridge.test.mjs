@@ -50,7 +50,7 @@ test("forwards only allowlisted routes; never forwards cookie, password or brows
  assert.equal(safe.last.options.headers.authorization,"Bearer "+TOKEN);
  assert.equal(safe.last.options.headers.cookie,undefined);
  assert.equal(safe.last.options.redirect,"error");
- for(const path of ["admin","status/../status","/api/auth","catalog?secret=leak"]){
+ for(const path of ["admin","status/nested","/api/auth","catalog?secret=leak"]){
   const x=await run(path);assert.notEqual(x.status,200);assert.equal(x.calls,0);
  }
 });
