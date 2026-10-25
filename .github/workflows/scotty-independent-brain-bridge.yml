@@ -28,6 +28,11 @@ jobs:
           node-version: "24"
       - name: Test auth, endpoint allowlists, no-secret browser boundary, AI consent and memory write gate
         run: node --test src/brain/independent-bridge.test.mjs
+      - uses: oven-sh/setup-bun@v2
+      - name: Bundle SCOTTY production server without starting it or connecting to any database
+        run: |
+          bun build src/server-cloud-v2.ts --target=bun --packages external --outfile=/tmp/scotty-bridge-server.js
+          test -s /tmp/scotty-bridge-server.js
       - name: Confirm default off, no automatic Cloudflare Worker deployment
         run: |
           grep -q 'SCOTTY_INDEPENDENT_BRAIN_ENABLED' src/brain/independent-bridge.mjs
