@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SCOTTY · Independent Brain</title>
+<style>
+:root{color-scheme:dark;--bg:#06101a;--panel:#0b1b29;--line:#294554;--ice:#e4f6fa;--cyan:#75e9ee;--muted:#9aafba}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,#153243,var(--bg) 60%);color:var(--ice);font:15px/1.5 system-ui,-apple-system,sans-serif}
+header{padding:22px max(18px,4vw);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;flex-wrap:wrap}header a{color:var(--cyan)}h1{font-size:clamp(21px,3vw,30px);margin:0}h2{font-size:17px;margin:0 0 14px}small,.muted{color:var(--muted)}
+main{max-width:1190px;margin:auto;padding:24px 18px 50px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.panel{border:1px solid var(--line);border-radius:13px;background:var(--panel);padding:21px;min-width:0}
+.wide{grid-column:1/-1}.statbar{display:flex;gap:10px;flex-wrap:wrap;margin:15px 0}.chip{border:1px solid var(--line);padding:8px 12px;border-radius:99px;font-size:13px;color:var(--cyan)}
+button{color:#06101a;background:var(--cyan);border:0;padding:11px 15px;border-radius:8px;font-weight:700;cursor:pointer;min-height:44px}
+button:disabled{cursor:not-allowed;opacity:.4}button.secondary{background:#123445;color:var(--ice);border:1px solid #346071}input,select,textarea{width:100%;background:#07131e;border:1px solid #365368;border-radius:8px;color:var(--ice);padding:12px;margin:7px 0 13px;font:inherit}textarea{min-height:96px}label{display:block;color:#c8e3ec;font-weight:600}
+label.check{display:flex;align-items:flex-start;gap:10px;font-size:13px;font-weight:400;margin:12px 0}label.check input{width:18px;height:18px;margin:2px 0;flex-shrink:0}
+.actions{display:flex;gap:10px;flex-wrap:wrap}pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;background:#07131e;padding:15px;border-radius:9px;max-height:460px;overflow:auto;font:13px/1.55 ui-monospace,monospace}
+#agents{max-height:360px;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:8px}
+.agent{padding:12px;border:1px solid #284859;border-radius:9px;background:#091724;font-size:13px}.agent b{color:#92eff2}.agent p{margin:4px 0;color:#b3cbd3}
+.notice{border-left:3px solid #ffd187;padding:9px 13px;background:#302b1b;color:#f4e5c5;margin:0 0 19px}
+@media(max-width:730px){.grid{grid-template-columns:1fr}.wide{grid-column:1}main{padding:15px}header{padding:16px}button{flex:1}}
+</style></head><body>
+<header><a href="/hud">← SCOTTY HUD</a><div><h1>Independent Brain Observatory</h1><small>Owner-controlled Cloudflare team · production memory remains separate</small></div></header>
+<main>
+<p class="notice">This page reports actual connected status; it does not mean Cloudflare AI or persistent memory is enabled. Do not enter private documents, client manuscripts, recovery keys or passwords into the independent lab.</p>
+<div class="grid">
+<section class="panel wide"><h2>Activation &amp; system health</h2>
+<div class="statbar"><span class="chip" id="connection">Checking connection…</span><span class="chip" id="counts">Profiles: not verified</span><span class="chip" id="storage">Memory: unknown</span><span class="chip" id="ai-state">AI: unknown</span></div>
+<div class="actions"><button id="refresh">Refresh live status</button><button class="secondary" id="readiness">Detailed activation checks</button><button class="secondary" id="missions">Saved missions</button></div>
+</section>
+<section class="panel"><h2>Choose a specialist team</h2>
+<label for="question">Task (public or synthetic information only)</label><textarea id="question" maxlength="500" placeholder="Review a synthetic astronomy lesson outline…"></textarea>
+<label for="teamSize">Departments</label><select id="teamSize"><option value="1">One department · specialist → chief → SCOTTY</option><option value="2">Two departments · both chiefs → SCOTTY</option></select>
+<div class="actions"><button id="plan">Recommend agents (no AI)</button><button class="secondary" id="team">Run approved team</button></div>
+<label class="check"><input type="checkbox" id="approve">I approve this one AI mission.</label>
+<label class="check"><input type="checkbox" id="share">I agree this prompt will be sent to Cloudflare Workers AI.</label>
+<label class="check"><input type="checkbox" id="safe">I confirm this prompt contains no private or client information.</label>
+</section>
+<section class="panel"><h2>Publisher discovery</h2><p class="muted">Headlines are unverified discovery results, not automatically promoted into agent knowledge.</p>
+<label for="feeds">Approved source ID</label><select id="feeds"><option value="">Load the approved publishers</option></select>
+<div class="actions"><button id="loadfeeds" class="secondary">Load publisher list</button><button id="discover">Fetch headlines</button></div>
+</section>
+<section class="panel wide"><h2>25 chiefs &amp; 160 specialists</h2><p class="muted">Only identities returned from the connected Cloudflare catalog appear below. Production roster verification is a separate check.</p>
+<div class="actions"><button id="catalog">Load brain profiles</button></div><div id="agents"></div></section>
+<section class="panel wide"><h2>SCOTTY output</h2><pre id="output" role="status" aria-live="polite">No requests submitted.</pre></section>
+</div></main>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id);
+const output=value=>{$('output').textContent=typeof value==='string'?value:JSON.stringify(value,null,2);};
+async function call(path,{post,data}={}){
+ const res=await fetch('/api/independent-brain/'+path,{method:post?'POST':'GET',credentials:'same-origin',cache:'no-store',
+ headers:{...(post?{'content-type':'application/json'}:{})},...(post?{body:JSON.stringify(data)}:{})});
+ let j;try{j=await res.json();}catch{throw Error('Non-JSON brain response');}
+ if(!res.ok)throw Error(j.error||j.message||'Brain unavailable');return j;
+}
+async function run(label,work){
+ output(label);try{output(await work());}catch(e){output('Not available: '+e.message);}
+}
+async function status(){
+ try{
+  const s=await call('status');
+  $('connection').textContent='Cloudflare: '+(s.status||'Connected');
+  $('counts').textContent='Profiles: '+s.chiefCount+' chiefs / '+s.specialistCount+' specialists';
+  $('storage').textContent='Memory: '+(s.memoryConnected?'connected':'not connected');
+  $('ai-state').textContent='AI: '+(s.aiEnabled?'enabled':'disabled');
+  output({connection:'Owner bridge connected',rosterVerified:s.liveRosterVerified,release:s.release,storage:s.memoryReason,liveKnowledge:s.updatedLiveKnowledge});
+ }catch(e){$('connection').textContent='Cloudflare: not connected';$('counts').textContent='Profiles: unverified';$('storage').textContent='Memory: unavailable';$('ai-state').textContent='AI: unavailable';output('Activation required: '+e.message);}
+}
+$('refresh').onclick=status;
+$('readiness').onclick=()=>run('Reading actual installation checks…',()=>call('readiness'));
+$('missions').onclick=()=>run('Loading saved Cloudflare missions…',()=>call('missions'));
+$('catalog').onclick=()=>run('Loading catalog…',async()=>{
+ const d=await call('catalog'),area=$('agents');area.replaceChildren();
+ for(const a of d.agents||[]){const tile=document.createElement('div');tile.className='agent';
+ const head=document.createElement('b');head.textContent=(a.isChief?'CHIEF · ':'')+a.name;
+ const p=document.createElement('p');p.textContent=a.department+' · '+(a.specialty||'');
+ tile.append(head,p);area.append(tile);}
+ return {profiles:d.agentCount,chiefs:(d.agents||[]).filter(a=>a.isChief).length,liveRosterVerified:d.liveRosterVerified};
+}));
+$('plan').onclick=()=>run('Generating a rule-based, no-AI team plan…',()=>call('plan',{post:true,data:{question:$('question').value.trim()}}));
+$('team').onclick=()=>run('Starting explicitly approved mission…',async()=>{
+ if(!$('approve').checked||!$('share').checked||!$('safe').checked)throw Error('All three approvals are required.');
+ const d=await call('team',{post:true,data:{question:$('question').value.trim(),teamSize:Number($('teamSize').value),missionId:crypto.randomUUID(),ownerApproved:true,shareWithCloudflare:true,noPrivateDataConfirmed:true}});
+ for(const id of ['approve','share','safe'])$(id).checked=false;
+ return d;
+});
+$('loadfeeds').onclick=()=>run('Loading approved publishers…',async()=>{
+ const d=await call('sources'),select=$('feeds');select.replaceChildren();
+ for(const f of d.feeds||[]){const o=document.createElement('option');o.value=f.id;o.textContent=f.publisher;select.append(o);}
+ return {feeds:(d.feeds||[]).map(f=>({publisher:f.publisher,id:f.id})),automaticUpdates:d.liveRefresh};
+});
+$('discover').onclick=()=>run('Fetching on-demand source headlines…',()=>call('discover',{post:true,data:{feedId:$('feeds').value}}));
+status();
+})();
+</script></body></html>
