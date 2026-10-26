@@ -29,3 +29,12 @@ D1 binding API: https://developers.cloudflare.com/d1/worker-api/
 
 ## Validation
 33 local Node checks passed, including real SQLite persistence/isolation/freshness, sequential specialist/chief/SCOTTY execution with stubbed AI, retained partial findings, auth/default-off behavior, all 128 source fallback identities, exact 25/160 expansion counts and bounded feed downloads. No real provider, private content or production database was used. Physical iPad, real D1, source availability and hosted Workers AI need live validation after sign-in.
+
+
+### Profile-driven coordination
+
+Team model prompts now consume each participant's brain responsibilities, specialty and evidence instructions. SCOTTY has a separate overseer profile (in addition to the 25 chiefs and 160 specialists) and private `agent/scotty` memory. The profile selector exposes this profile and its notes; use **Team** for synthesis. Department notes require a department chief identity, so SCOTTY cannot create a fictional oversight department scope.
+
+Each finding records the IDs of references supplied to that call. These are input lineage, not proof that the model used or verified every reference. Raw private notes remain scoped to their consumer; generated findings are passed to reviewers and may summarize those notes. Store only information appropriate for that review workflow.
+
+The publisher selector loads all 14 configured feeds from the authenticated manifest. Discovery runs only on request and never automatically saves or verifies headlines. Persistent memory still requires the dedicated initialized D1 binding; AI remains disabled in the checked-in staging configuration. Deployment and live inference must be verified separately.
