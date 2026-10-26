@@ -5,7 +5,7 @@
  */
 import {createOfflineBrain} from "../engine.mjs";
 import {connectedRoster} from "./connected-roster.mjs";
-import {planAssignment} from "./team-expansion.mjs";
+import {planAssignment,brainProfile} from "./team-expansion.mjs";
 import {runTeam,selectTeam} from "./team-runtime.mjs";
 import {missionMemory} from "./mission-memory.mjs";
 import {readiness,storageReadiness,RELEASE} from "./brain-readiness.mjs";
@@ -21,7 +21,9 @@ const MAX_BODY=2500;
 const MAX_OUTPUT_TOKENS=160;
 const roster=connectedRoster();
 const brain=createOfflineBrain({roster});
-const agents=new Map(roster.map(a=>[a.id,a]));
+const scotty={id:"scotty",name:"SCOTTY",specialty:"Oversight and synthesis",department:"Oversight",isChief:false,chiefId:null};
+scotty.brain=brainProfile(scotty);
+const agents=new Map([...roster,scotty].map(a=>[a.id,a]));
 const headers={
  "cache-control":"no-store",
  "x-content-type-options":"nosniff",
@@ -91,12 +93,12 @@ async function handleApi(request,env,url){
   caution:"Fallback source names preserved; live database roster unverified. Guides are methods, not expert factual knowledge."
  });
  if(path==="/api/catalog"&&request.method==="GET")return response({
-  agents:roster.map(agentPublic),agentCount:roster.length,synthetic:false,liveRosterVerified:false});
+  overseer:agentPublic(scotty),agents:roster.map(agentPublic),agentCount:roster.length,synthetic:false,liveRosterVerified:false});
  if(path==="/api/sources"&&request.method==="GET")return response({
   sourceType:"CURATED_PUBLIC_FEED_MANIFEST_ONLY",
-  liveRefresh:false,autoVerified:false,
+  liveRefresh:false,onDemandDiscovery:true,autoVerified:false,
   feeds:PUBLIC_FEEDS.map(f=>({id:f.id,publisher:f.publisher,url:f.url,departments:f.departments})),
-  warning:"These are candidate references. Feeds are not fetched by this Worker and no latest facts are guaranteed."
+  warning:"These are candidate references. POST /api/discover fetches one selected feed on demand. No automatic refresh, fact verification or memory promotion occurs."
  });
  if(path==="/api/missions"&&request.method==="GET"){
   if(!env.BRAIN_DB?.prepare)return failure("MISSION_STORAGE_NOT_CONNECTED","Connect the dedicated memory database to retain missions.",503);

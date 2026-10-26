@@ -5,7 +5,7 @@ export const MEMORY_SCHEMA=`CREATE TABLE IF NOT EXISTS brain_notes (
  reviewed_at TEXT NOT NULL, expires_at TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS brain_notes_lookup ON brain_notes(scope, agent_id, reviewed_at);`;
 export function normalizeNote(body,roster,now=new Date()){
- const ids=new Set(roster.map(a=>a.id));
+ const ids=new Set(['scotty',...roster.map(a=>a.id)]);
  if(body?.approved!==true)throw Error('REVIEW_REQUIRED');
  if(!['agent','department','shared'].includes(body.scope))throw Error('INVALID_SCOPE');
  if(body.scope!=='shared'&&!ids.has(body.agentId))throw Error('UNKNOWN_AGENT');
@@ -24,3 +24,4 @@ export function memoryStore(db){
   async read(agent){const r=await db.prepare("SELECT id,title,content,url,scope,reviewed_at AS reviewedAt,expires_at AS expiresAt FROM brain_notes WHERE expires_at > ? AND ((scope='agent' AND agent_id=?) OR (scope='department' AND agent_id=?) OR scope='shared') ORDER BY reviewed_at DESC LIMIT 12").bind(new Date().toISOString(),agent.id,agent.chiefId||agent.id).all();return r.results||[];}
  };
 }
+
