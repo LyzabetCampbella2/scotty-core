@@ -20,3 +20,32 @@ test('claim/replay/conflict and recent records persist through real SQLite',asyn
 test('same API mission ID reuses results without additional AI calls',async()=>{const db=database();let calls=0;const env={OWNER_BEARER_TOKEN:TOKEN,AI_ENABLED:'true',BRAIN_DB:db,AI:{run:async()=>({response:'Saved '+ ++calls})}};const body={question,teamSize:2,missionId:'mission-api-replay-00001',...consent};const a=await worker.fetch(req('/api/team',body),env);assert.equal(a.status,200);assert.equal((await a.json()).missionPersisted,true);const b=await worker.fetch(req('/api/team',body),env);assert.equal(b.status,200);assert.equal((await b.json()).cached,true);assert.equal(calls,5);const recent=await worker.fetch(req('/api/missions'),env);assert.equal((await recent.json()).missions.length,1);db.sql.close();});
 test('concurrent duplicate submission is refused while first request runs',async()=>{const db=database();let release;const wait=new Promise(r=>{release=r;});let calls=0;const env={OWNER_BEARER_TOKEN:TOKEN,AI_ENABLED:'true',BRAIN_DB:db,AI:{run:async()=>{calls++;await wait;return {response:'x'};}}};const body={question,teamSize:1,missionId:'mission-concurrent-00001',...consent};const a=worker.fetch(req('/api/team',body),env);for(let i=0;i<12;i++)await Promise.resolve();const b=await worker.fetch(req('/api/team',body),env);assert.equal(b.status,409);release();await a;assert.equal(calls,3);db.sql.close();});
 test('missing mission table fails before any model call and missing binding is explicit',async()=>{const db=database();db.sql.exec('DROP TABLE brain_missions');let calls=0;const env={OWNER_BEARER_TOKEN:TOKEN,AI_ENABLED:'true',BRAIN_DB:db,AI:{run:async()=>{calls++;return {response:'x'};}}};assert.equal((await worker.fetch(req('/api/team',{question,...consent}),env)).status,503);assert.equal(calls,0);assert.equal((await worker.fetch(req('/api/missions'),{OWNER_BEARER_TOKEN:TOKEN})).status,503);db.sql.close();});
+
+test('SCOTTY synthesizes only chief reviews with traceable specialist handoffs',async()=>{
+ const calls=[];
+ const result=await runTeam({roster,question,teamSize:2,approved:true,AI:{run:async(model,payload)=>{calls.push(payload);return {response:'Finding '+calls.length};}}});
+ assert.equal(result.status,'completed');
+ for(const index of [1,3]){
+  const prior=JSON.parse(calls[index].messages[1].content).priorFindings;
+  assert.equal(prior.length,1);assert.equal(prior[0].role,'specialist');
+  assert.deepEqual(result.results[index].reviewedAgentIds,[result.results[index-1].agentId]);
+ }
+ const synthesis=JSON.parse(calls[4].messages[1].content).priorFindings;
+ assert.deepEqual(synthesis.map(r=>r.role),['department chief','department chief']);
+ assert.deepEqual(synthesis.map(r=>r.text),['Finding 2','Finding 4']);
+ assert.ok(synthesis.every(r=>r.reviewedAgentIds.length===1));
+ assert.equal(JSON.parse(calls[2].messages[1].content).priorFindings.length,0);
+ assert.match(calls[4].messages[0].content,/Disagreements/);
+});
+
+test('every preserved and expanded brain has skills, a reporting link and review rules',()=>{
+ assert.equal(roster.filter(a=>a.isChief).length,25);
+ assert.equal(roster.filter(a=>!a.isChief).length,160);
+ for(const a of roster){
+  assert.equal(a.brain.version,2);assert.ok(a.brain.expertise.skills.length>0);
+  assert.equal(a.brain.reporting.reportsTo,a.isChief?'scotty':a.chiefId);
+  assert.equal(a.brain.learning.automaticPromotion,false);
+  assert.equal(a.brain.learning.generatedFindingsAreFacts,false);
+  assert.equal(a.brain.outputSections.length,4);
+ }
+});

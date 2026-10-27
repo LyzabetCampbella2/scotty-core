@@ -55,8 +55,13 @@ export function expandTeam(existing){
  return {overseer:'SCOTTY',roster,additions,chiefCount:25,agentCount:160,totalWithOverseer:186,originalCount:existing.length,liveRosterVerified:false};
 }
 export function brainProfile(agent){
- return {agentId:agent.id,role:agent.id==='scotty'?'overseer':chief(agent)?'chief':'specialist',specialty:agent.specialty||agent.department,
+ return {version:2,agentId:agent.id,role:agent.id==='scotty'?'overseer':chief(agent)?'chief':'specialist',specialty:agent.specialty||agent.department,
   responsibilities:agent.id==='scotty'?['select relevant departments','synthesize chief-reviewed findings','retain disagreements and evidence gaps']:chief(agent)?['scope department work','assign specialists','review evidence and disagreements']:['complete assigned scope','cite evidence','report uncertainties'],
+  expertise:{department:agent.department||'Oversight',skills:[...new Set([agent.specialty,...(agent.skills||[])].filter(Boolean))],validated:false},
+  reporting:{reportsTo:agent.id==='scotty'?null:chief(agent)?'scotty':agent.chiefId,reviewRequired:agent.id!=='scotty'},
+  workingMethod:['Define the assigned scope and missing inputs','Consult only supplied evidence and scoped memory','Separate findings from assumptions','Check contradictions and limitations','Deliver a concise handoff with next steps'],
+  outputSections:agent.id==='scotty'?['Synthesis','Disagreements','Evidence gaps','Next steps']:chief(agent)?['Review verdict','Corrections','Unresolved concerns','Recommendation']:['Finding','Evidence','Uncertainty','Handoff'],
+  learning:{automaticPromotion:false,requiresOwnerReview:true,generatedFindingsAreFacts:false},
   knowledge:{namespace:`agent/${agent.id}`,approvedSources:[],lastReviewedAt:null,refreshState:'not-configured'},
   memory:{privateNamespace:`agent/${agent.id}`,departmentNamespace:agent.id==='scotty'?null:`department/${agent.chiefId||agent.id}`,sharedNamespace:'shared-reviewed',persisted:false},
   permissions:{tools:[],crossProjectAccess:false,autoPublish:false},
