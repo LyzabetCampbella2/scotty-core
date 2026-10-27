@@ -20,10 +20,17 @@ export function stagingPreflight({config,env={}}={}){
  if(config.name!==LAB_NAME)fail("Worker name does not match dedicated staging lab");
  if(config.main!=="./worker.mjs")fail("Worker entrypoint is not isolated lab source");
  if(config.workers_dev!==true)fail("Staging lab must use independent workers.dev host");
- if(config.vars?.AI_ENABLED!=="false")fail("AI must remain disabled in source");
+ if(!["false","true"].includes(config.vars?.AI_ENABLED))fail("AI_ENABLED must be an explicit boolean string");
+ const databases=config.d1_databases;
+ const dedicated=Array.isArray(databases)&&databases.length===1&&
+  databases[0]?.binding==="BRAIN_DB"&&databases[0]?.database_name==="scotty-brain-memory"&&
+  databases[0]?.database_id==="2da492e2-84fe-43a1-9afe-66b81300def1"&&
+  Object.keys(databases[0]).every(k=>["binding","database_name","database_id"].includes(k));
+ if(databases!=null&&!dedicated)fail("Only the owner's dedicated lab memory database is allowed");
+ if(config.vars?.AI_ENABLED==="true"&&!dedicated)fail("AI activation requires the dedicated memory binding");
  if(config.vars?.BRAIN_ENVIRONMENT!=="ISOLATED_RESEARCH_ONLY")fail("Only isolated research mode allowed");
  if(config.ai?.binding!=="AI")fail("Only an explicit AI binding may be added");
- for(const key of ["routes","route","triggers","kv_namespaces","d1_databases","r2_buckets",
+ for(const key of ["routes","route","triggers","kv_namespaces","r2_buckets",
   "durable_objects","vectorize","hyperdrive","services","queues","analytics_engine_datasets",
   "unsafe","containers","dispatch_namespaces","send_email","observability","migrations"]){
   if(config[key]!=null)fail("Unexpected Worker resource/config: "+key);
@@ -35,7 +42,7 @@ export function stagingPreflight({config,env={}}={}){
    if(env.SCOTTY_STAGING_FREE_CONFIRMED!=="YES_CONFIRMED_WORKERS_FREE")fail("Owner has not confirmed Workers Free in BUILD settings");
  }
  return Object.freeze({pass:errors.length===0,errors,
-  name:LAB_NAME,branch:LAB_BRANCH,aiDefault:"OFF",
+  name:LAB_NAME,branch:LAB_BRANCH,aiDefault:config.vars?.AI_ENABLED==="true"?"ON":"OFF",
   productionConnections:0,aiInvocations:0,
   billingPlanCheckedProgrammatically:false,
   note:"Manual owner account-plan confirmation is NOT independent billing verification."});
@@ -51,3 +58,4 @@ if(process.argv[1]&&fileURLToPath(import.meta.url)===process.argv[1]){
  process.stdout.write(JSON.stringify(result,null,2)+"\n");
  if(!result.pass)process.exitCode=1;
 }
+
