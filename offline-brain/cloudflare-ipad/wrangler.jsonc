@@ -8,7 +8,14 @@
     "binding": "AI"
   },
   "vars": {
-    "AI_ENABLED": "false",
+    "AI_ENABLED": "true",
     "BRAIN_ENVIRONMENT": "ISOLATED_RESEARCH_ONLY"
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "BRAIN_DB",
+      "database_name": "scotty-brain-memory",
+      "database_id": "2da492e2-84fe-43a1-9afe-66b81300def1"
+    }
+  ]
 }
