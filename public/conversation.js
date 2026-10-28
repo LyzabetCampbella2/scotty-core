@@ -89,18 +89,22 @@
    const canvas=recap?null:eyesVoiceCommand(text);
    if(canvas){const query=text.match(/^(?:find|focus|show|open|go to) (?:my |the )?(agent|chief|project|task|file|folder|node) (?:named |called )?(.+)$/i);db.pending(query&&/^(?:I found|No .+ named)/.test(canvas)?{question:canvas,canvasPrefix:text.slice(0,text.length-query[2].length),options:window.SCOTTYSpatial?.searchNodes(query[2],query[1]==='node'?'all':query[1]).slice(0,6).map(n=>n.name)||[]}:null,threadId);remember('assistant',canvas);await speak(canvas);return}
    const structured=!recap&&!pending&&/^\s*(?:(?:open|show)\s+(?:live ops|missions?|mission control)|(?:start|create|launch)\s+(?:a\s+)?(?:(?:autonomous|auto)\s+)?mission(?:\s+(?:to|for))?|(?:ask|tell|bring in)\s+[^:]+:|(?:approve|approved|approve it|yes approve)|(?:remember|save to memory)\b|(?:show|list|open)\s+(?:my\s+)?(?:agent\s+)?(?:mission\s+history|previous\s+missions)\s*$|(?:continue|resume)\s+(?:agent\s+)?mission\s+[0-9a-f-]{36}\s*:|(?:assemble|coordinate|assign)\s+(?:the\s+)?(?:best\s+)?(?:agents|chiefs|team)\s+(?:to|for)\s+)/i.test(text);
-   if(structured){await priorCommand(text);return}
-   const r=await bridge(text,{history,responseLanguage:window.SCOTTYVoiceWorkspace?.responseLanguage||'en',preferences:prefs,mode:recap?'recap':'conversation',resolutions,memorySpace:window.SCOTTYKnowledge?.space()||'shared'},signal);
+   const useTeamBrain=!recap&&!pending&&window.SCOTTYTeamBrain?.shouldRoute(text);
+   if(structured&&!useTeamBrain){await priorCommand(text);return}
+   const r=useTeamBrain?await window.SCOTTYTeamBrain.run(text,{signal,speak}):
+    await bridge(text,{history,responseLanguage:window.SCOTTYVoiceWorkspace?.responseLanguage||'en',preferences:prefs,mode:recap?'recap':'conversation',resolutions,memorySpace:window.SCOTTYKnowledge?.space()||'shared'},signal);
    if(seq!==run||signal.aborted)return;
+   if(r.cancelled){status('TEAM BRAIN REQUEST NOT SENT');caption('SCOTTY','Team Brain request cancelled; no content was sent.');render();return;}
    db.pending(r.clarification?{...r.clarification,resolutions}:null,threadId);remember('assistant',r.reply||'No response returned.');
    if(r.focusNode){await loadResources();if(seq!==run)return;window.SCOTTYSpatial?.refresh();window.SCOTTYSpatial?.focusId(r.focusNode)}
    window.SCOTTYKnowledge?.showSources(r.sources||[]);
-   status(r.clarification?'CLARIFICATION NEEDED':'RESPONSE READY');render();await speak(r.reply||'No response returned.');
+   status(r.provider==='cloudflare-team'?(r.missionVerified?'TEAM BRAIN • SAVED MISSION VERIFIED':'TEAM BRAIN • MISSION NOT VERIFIED'):(r.clarification?'CLARIFICATION NEEDED':'RESPONSE READY'));render();await speak(r.reply||'No response returned.');
   }catch(e){if(seq!==run||signal.aborted)return;caption('CONVERSATION ERROR',e.message);status('CONVERSATION ERROR');window.SCOTTYCallSession?.connectionError('Scotty server request failed. The last request was not replayed.')}
   finally{if(seq===run){busy=false;request=null;render()}}
  };
  heard=async function(raw,meta={}){
   raw=String(raw||'').trim();if(!raw||/^(?:and|um|uh|hmm|mm|ah|er)[.!?]*$/i.test(raw))return;
+  if(window.SCOTTYTeamBrain?.handleSpokenConsent(raw,meta))return;
   const named=window.SCOTTYVoiceWorkspace?.hasWake(raw)||/^(?:hey\s+)?(?:scotty|scottie|scoty|scotti)\b/i.test(raw),control=controlsPreview(raw);
   const callControl=window.SCOTTYCallsCore?.control(raw),busyCapture=!!(speaking||busy||meta.capturedDuringSpeech);
   if(window.SCOTTYCallsCore?.heardAllowed(named,callControl,busyCapture,window.SCOTTYVoiceTransport?.state)&&window.SCOTTYCalls?.execute(raw)){caption('CALL CONTROL',raw);return;}
