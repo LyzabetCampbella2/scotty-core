@@ -18,7 +18,7 @@ function harness({readback=true,teamFails=false}={}){
  });
  const select=q=>{if(!els.has(q))els.set(q,element('div'));return els.get(q);};
  const body=element('body');
- const document={querySelector:select,createElement:element,body};
+ const document={querySelector:select,createElement:element,body,head:element('head')};
  const fetcher=async(url,options={})=>{
   const req={url,options};requests.push(req);
   if(url==='/api/independent-brain/team'){
