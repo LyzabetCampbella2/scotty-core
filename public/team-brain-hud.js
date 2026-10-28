@@ -5,14 +5,14 @@
 (function(root){
  'use strict';
  let pending=null,last=null;
- const approvalPhrase=/^(?:(?:hey\\s+)?scotty[,\\s-]+)?approve (?:this )?team brain request (?:and )?(?:confirm(?:ing)? )?no private data[.!?]*$/i;
- const cancelPhrase=/^(?:(?:hey\\s+)?scotty[,\\s-]+)?cancel (?:this )?team brain request[.!?]*$/i;
+ const approvalPhrase=/^(?:(?:hey\s+)?scotty[,\s-]+)?approve (?:this )?team brain request (?:and )?(?:confirm(?:ing)? )?no private data[.!?]*$/i;
+ const cancelPhrase=/^(?:(?:hey\s+)?scotty[,\s-]+)?cancel (?:this )?team brain request[.!?]*$/i;
  const safeText=value=>String(value||'').trim();
  const short=value=>safeText(value).slice(0,1800);
  function shouldRoute(text){
   const s=safeText(text);
-  if(!s||s.length>500||/^(?:remember|save to memory|delete|send|publish|approve|restore|create (?:a )?(?:project|task|folder))\\b/i.test(s))return false;
-  return /\\bteam brain\\b|\\b(?:agents|specialists|chiefs)\\s+(?:to|for|review|analy[sz]e|help)\\b|\\b(?:ask|use|bring in|coordinate|assemble|assign|recommend|consult|have)\\s+(?:(?:my|the|your|scotty'?s)\\s+)?(?:agents|chiefs|specialists|team)\\b|\\b(?:review|analy[sz]e|draft|plan|outline)\\b.{0,120}\\b(?:with|using|through)\\s+(?:(?:my|the|your)\\s+)?(?:agents|chiefs|specialists|team)\\b/i.test(s);
+  if(!s||s.length>500||/^(?:remember|save to memory|delete|send|publish|approve|restore|create (?:a )?(?:project|task|folder))\b/i.test(s))return false;
+  return /\bteam brain\b|\b(?:agents|specialists|chiefs)\s+(?:to|for|review|analy[sz]e|help)\b|\b(?:ask|use|bring in|coordinate|assemble|assign|recommend|consult|have)\s+(?:(?:my|the|your|scotty'?s)\s+)?(?:agents|chiefs|specialists|team)\b|\b(?:review|analy[sz]e|draft|plan|outline)\b.{0,120}\b(?:with|using|through)\s+(?:(?:my|the|your)\s+)?(?:agents|chiefs|specialists|team)\b/i.test(s);
  }
  function node(tag,text){
   const el=document.createElement(tag);if(text!==undefined)el.textContent=text;return el;
