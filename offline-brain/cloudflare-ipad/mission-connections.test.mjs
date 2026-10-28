@@ -42,10 +42,26 @@ test('every preserved and expanded brain has skills, a reporting link and review
  assert.equal(roster.filter(a=>a.isChief).length,25);
  assert.equal(roster.filter(a=>!a.isChief).length,160);
  for(const a of roster){
-  assert.equal(a.brain.version,2);assert.ok(a.brain.expertise.skills.length>0);
+  assert.equal(a.brain.version,3);assert.ok(a.brain.expertise.skills.length>0);
   assert.equal(a.brain.reporting.reportsTo,a.isChief?'scotty':a.chiefId);
   assert.equal(a.brain.learning.automaticPromotion,false);
   assert.equal(a.brain.learning.generatedFindingsAreFacts,false);
   assert.equal(a.brain.outputSections.length,4);
  }
+});
+
+test('all brains require useful deliverables while preserving evidence boundaries',async()=>{
+ for(const agent of roster){
+  assert.equal(agent.brain.completionPolicy.deliverableFirst,true);
+  assert.equal(agent.brain.completionPolicy.inventSources,false);
+  assert.equal(agent.brain.completionPolicy.automaticQualityVerification,false);
+ }
+ const calls=[];
+ const result=await runTeam({roster,question:'Plan three backend engineering tests for a fictional task-list app.',approved:true,AI:{run:async(_,payload)=>{calls.push(payload);return {response:'Synthetic test response, not a quality evaluation.'};}}});
+ assert.equal(result.verified,false);
+ assert.equal(calls.length,3);
+ assert.match(JSON.parse(calls[0].messages[1].content).task,/failure, procedure and expected result/);
+ assert.match(JSON.parse(calls[1].messages[1].content).task,/complete corrected department answer/);
+ assert.match(JSON.parse(calls[2].messages[1].content).task,/Do not claim the task was answered/);
+ assert.ok(calls.every(c=>c.max_tokens===480&&c.messages[0].content.includes('Never invent facts')));
 });
