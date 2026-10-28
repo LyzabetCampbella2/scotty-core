@@ -1,3 +1,4 @@
+import {syncBrainRoster,fetchBrainCatalog} from './brain-roster-sync.mjs';
 import {importRosterPreservingIdentity} from "./roster-import.ts";
 import {ensureMissionRecords} from './mission-records.ts';
 import postgres from "postgres";
@@ -173,6 +174,7 @@ export async function memoryContext(agentId:any='scotty',query='',scope='shared'
 }
 
 export async function runAgent(row:any,task:string,context:string,options:any={}){
+ if(row.model==="cloudflare-team")return {id:String(row.id),name:String(row.name),status:"blocked",error:"Use Team Brain for this agent: specialist → chief → SCOTTY with scoped Cloudflare memory."};
  const id=String(row.id),name=String(row.name);
  let slot:string|null=null;
  try{
@@ -195,7 +197,7 @@ export async function runAgent(row:any,task:string,context:string,options:any={}
  }finally{if(slot)await releaseAgent(slot).catch(()=>{})}
 }
 
-export async function bootstrapAgents(){await ensureRoster("");const r=await db()`select count(*)::int as n from scotty_agents`;return Number(r?.[0]?.n||0)}
+export async function bootstrapAgents(){await ensureRoster("");if(process.env.SCOTTY_HUD_BRAIN_ROSTER_SYNC==="true"){const result=await syncBrainRoster(db(),await fetchBrainCatalog(process.env));console.info("Brain roster synchronized",JSON.stringify(result));}const r=await db()`select count(*)::int as n from scotty_agents`;return Number(r?.[0]?.n||0)}
 
 export async function handleCloudAgents(req:Request,u:URL){
  const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{"cache-control":"no-store"}});
