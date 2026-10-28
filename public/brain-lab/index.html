@@ -16,7 +16,7 @@ label.check{display:flex;align-items:flex-start;gap:10px;font-size:13px;font-wei
 .notice{border-left:3px solid #ffd187;padding:9px 13px;background:#302b1b;color:#f4e5c5;margin:0 0 19px}
 @media(max-width:730px){.grid{grid-template-columns:1fr}.wide{grid-column:1}main{padding:15px}header{padding:16px}button{flex:1}}
 </style></head><body>
-<header><a href="/hud">← SCOTTY HUD</a><div><h1>Independent Brain Observatory</h1><small>Owner-controlled Cloudflare team · production memory remains separate</small></div></header>
+<header><a href="/hud">← SCOTTY HUD</a><div><h1>SCOTTY Team Brain</h1><small>25 chiefs · 160 specialists · chief-reviewed SCOTTY synthesis</small></div></header>
 <main>
 <p class="notice">This page reports actual connected status; it does not mean Cloudflare AI or persistent memory is enabled. Do not enter private documents, client manuscripts, recovery keys or passwords into the independent lab.</p>
 <div class="grid">
@@ -38,11 +38,22 @@ label.check{display:flex;align-items:flex-start;gap:10px;font-size:13px;font-wei
 </section>
 <section class="panel wide"><h2>25 chiefs &amp; 160 specialists</h2><p class="muted">Only identities returned from the connected Cloudflare catalog appear below. Production roster verification is a separate check.</p>
 <div class="actions"><button id="catalog">Load brain profiles</button></div><div id="agents"></div></section>
+<section class="panel wide"><h2>Agent brain &amp; reviewed memory</h2>
+<label for="memory-agent">Brain identity</label><select id="memory-agent"><option value="scotty">SCOTTY</option></select>
+<div class="actions"><button id="inspect">Inspect brain</button><button id="read-memory">Read scoped memory</button><button id="verify-roster">Compare original HUD roster</button></div>
+<label for="memory-title">Reviewed note title</label><input id="memory-title" maxlength="160">
+<label for="memory-content">Reviewed knowledge or correction</label><textarea id="memory-content" maxlength="1800"></textarea>
+<label for="memory-scope">Memory audience</label><select id="memory-scope"><option value="agent">This agent</option><option value="department">Department (select its chief)</option><option value="shared">Shared team memory</option></select>
+<label class="check"><input id="memory-approved" type="checkbox">I reviewed this note and its audience. It contains no private client or production data.</label>
+<button id="save-memory">Save reviewed memory</button>
+<p class="muted">Mission history and reviewed knowledge are separate. Generated answers are never automatically promoted to facts. Original HUD memories are not copied.</p>
+</section>
 <section class="panel wide"><h2>SCOTTY output</h2><pre id="output" role="status" aria-live="polite">No requests submitted.</pre></section>
 </div></main>
 <script>
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
+let catalog=[],overseer=null,mission=null,teamBusy=false;
 const output=value=>{$('output').textContent=typeof value==='string'?value:JSON.stringify(value,null,2);};
 async function call(path,{post,data}={}){
  const res=await fetch('/api/independent-brain/'+path,{method:post?'POST':'GET',credentials:'same-origin',cache:'no-store',
@@ -68,18 +79,56 @@ $('readiness').onclick=()=>run('Reading actual installation checks…',()=>call(
 $('missions').onclick=()=>run('Loading saved Cloudflare missions…',()=>call('missions'));
 $('catalog').onclick=()=>run('Loading catalog…',async()=>{
  const d=await call('catalog'),area=$('agents');area.replaceChildren();
+ catalog=d.agents||[];overseer=d.overseer;const chooser=$('memory-agent');chooser.replaceChildren();
+ for(const a of [overseer,...catalog].filter(Boolean)){const o=document.createElement('option');o.value=a.id;o.textContent=a.name+' · '+(a.specialty||a.department||'Oversight');chooser.append(o);}
  for(const a of d.agents||[]){const tile=document.createElement('div');tile.className='agent';
  const head=document.createElement('b');head.textContent=(a.isChief?'CHIEF · ':'')+a.name;
  const p=document.createElement('p');p.textContent=a.department+' · '+(a.specialty||'');
  tile.append(head,p);area.append(tile);}
  return {profiles:d.agentCount,chiefs:(d.agents||[]).filter(a=>a.isChief).length,liveRosterVerified:d.liveRosterVerified};
-}));
+});
 $('plan').onclick=()=>run('Generating a rule-based, no-AI team plan…',()=>call('plan',{post:true,data:{question:$('question').value.trim()}}));
-$('team').onclick=()=>run('Starting explicitly approved mission…',async()=>{
- if(!$('approve').checked||!$('share').checked||!$('safe').checked)throw Error('All three approvals are required.');
- const d=await call('team',{post:true,data:{question:$('question').value.trim(),teamSize:Number($('teamSize').value),missionId:crypto.randomUUID(),ownerApproved:true,shareWithCloudflare:true,noPrivateDataConfirmed:true}});
- for(const id of ['approve','share','safe'])$(id).checked=false;
- return d;
+$('team').onclick=async()=>{
+ if(teamBusy)return;
+ teamBusy=true;$('team').disabled=true;
+ await run('Running specialist → chief → SCOTTY…',async()=>{
+  if(!$('approve').checked||!$('share').checked||!$('safe').checked)throw Error('All three approvals are required.');
+  const question=$('question').value.trim(),teamSize=Number($('teamSize').value);
+  if(!question)throw Error('Enter an assignment.');
+  // Reuse the same ID after transport failure; the Worker deduplicates it.
+  if(!mission||mission.question!==question||mission.teamSize!==teamSize)mission={question,teamSize,missionId:crypto.randomUUID()};
+  const d=await call('team',{post:true,data:{...mission,ownerApproved:true,shareWithCloudflare:true,noPrivateDataConfirmed:true}});
+  mission=null;
+  for(const id of ['approve','share','safe'])$(id).checked=false;
+  return d;
+ });
+ teamBusy=false;$('team').disabled=false;
+};
+$('inspect').onclick=()=>run('Reading brain profile…',async()=>{
+ const agent=[overseer,...catalog].find(a=>a?.id===$('memory-agent').value);
+ if(!agent)throw Error('Load brain profiles first.');return agent;
+});
+$('read-memory').onclick=()=>run('Reading scoped knowledge…',()=>call('memory?agentId='+encodeURIComponent($('memory-agent').value)));
+$('save-memory').onclick=()=>run('Saving reviewed knowledge…',async()=>{
+ if(!$('memory-approved').checked)throw Error('Review the note and audience first.');
+ const scope=$('memory-scope').value,agentId=$('memory-agent').value;
+ if(scope==='department'&&!catalog.find(a=>a.id===agentId)?.isChief)throw Error('Choose the department chief for department memory.');
+ const d=await call('memory',{post:true,data:{agentId,scope,title:$('memory-title').value.trim(),content:$('memory-content').value.trim(),approved:true,noPrivateDataConfirmed:true}});
+ $('memory-approved').checked=false;return d;
+});
+$('verify-roster').onclick=()=>run('Comparing identities without changing either roster…',async()=>{
+ if(!catalog.length)throw Error('Load brain profiles first.');
+ const r=await fetch('/api/hud/agents',{credentials:'same-origin',cache:'no-store'});
+ if(!r.ok)throw Error('Original HUD roster unavailable.');
+ const d=await r.json();if(!Array.isArray(d.agents)||!d.agents.length)throw Error('Original roster is empty or invalid.');
+ const missing=[],changed=[];
+ for(const original of d.agents){const brain=catalog.find(a=>a.id===original.id);
+  if(!brain){missing.push({id:original.id,name:original.name});continue;}
+  const keys=['name','department','isChief','chiefId'];
+  const differences=keys.filter(k=>(original[k]??null)!==(brain[k]??null));
+  if(differences.length)changed.push({id:original.id,fields:differences});
+ }
+ return {originalCount:d.agents.length,brainCount:catalog.length,allOriginalIdentitiesPreserved:!missing.length&&!changed.length,missing,changed,scope:'Comparison only; no production roster or memory migration performed'};
 });
 $('loadfeeds').onclick=()=>run('Loading approved publishers…',async()=>{
  const d=await call('sources'),select=$('feeds');select.replaceChildren();
