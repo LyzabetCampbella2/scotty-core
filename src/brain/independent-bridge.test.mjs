@@ -82,3 +82,39 @@ test("persistent memory writes require separately enabled proxy and explicit rev
  const yes=await run("memory",{method:"POST",env,data});assert.equal(yes.status,200);assert.equal(yes.calls,1);
  const noAgent=await run("memory?agentId=../../bad",{env});assert.equal(noAgent.status,400);assert.equal(noAgent.calls,0);
 });
+
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+function dashboard(fetcher){
+ const html=readFileSync(new URL('../../public/brain-lab/index.html',import.meta.url),'utf8');
+ const elements=new Map();
+ const element=()=>({value:'',checked:false,disabled:false,textContent:'',children:[],append(...a){this.children.push(...a)},replaceChildren(){this.children=[]}});
+ const get=id=>{if(!elements.has(id))elements.set(id,element());return elements.get(id)};
+ get('teamSize').value='1';get('memory-scope').value='agent';get('memory-agent').value='scotty';
+ vm.runInNewContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],{document:{getElementById:get,createElement:element},fetch:fetcher,crypto:{randomUUID:()=> 'test-mission-id-000001'},URL,JSON,Error,Number,encodeURIComponent});
+ return get;
+}
+test('HUD uses owner session, writes scoped reviewed memory and compares original identities',async()=>{
+ const calls=[];
+ const agent={id:'chief-engineering',name:'Chief',department:'Engineering',isChief:true,chiefId:null,brain:{version:3}};
+ const get=dashboard(async(url,opts)=>{calls.push({url,opts});return Response.json(url.endsWith('/catalog')?{agents:[agent],overseer:{id:'scotty',name:'SCOTTY'}}:url==='/api/hud/agents'?{agents:[agent]}:{ok:true});});
+ await get('catalog').onclick();
+ get('memory-agent').value=agent.id;get('memory-scope').value='department';get('memory-title').value='Test';get('memory-content').value='Reviewed test method';get('memory-approved').checked=true;
+ await get('save-memory').onclick();
+ const write=calls.find(c=>c.url.endsWith('/memory'));
+ assert.equal(JSON.parse(write.opts.body).scope,'department');assert.equal(write.opts.credentials,'same-origin');assert.equal(write.opts.headers.authorization,undefined);
+ await get('verify-roster').onclick();
+ assert.equal(JSON.parse(get('output').textContent).allOriginalIdentitiesPreserved,true);
+});
+test('HUD retries failed transport with same mission ID and blocks double clicks',async()=>{
+ const posts=[];let release;
+ const get=dashboard(async(url,opts)=>{
+  if(!url.endsWith('/team'))return Response.json({});
+  posts.push(JSON.parse(opts.body));
+  if(posts.length===1){await new Promise(r=>{release=r});throw Error('transport interrupted');}
+  return Response.json({status:'completed'});
+ });
+ get('question').value='Synthetic test';for(const id of ['approve','share','safe'])get(id).checked=true;
+ const first=get('team').onclick();await get('team').onclick();assert.equal(posts.length,1);release();await first;
+ await get('team').onclick();assert.equal(posts.length,2);assert.equal(posts[0].missionId,posts[1].missionId);assert.equal(get('approve').checked,false);
+});

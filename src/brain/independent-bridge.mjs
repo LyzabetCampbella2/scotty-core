@@ -70,7 +70,7 @@ export async function handleIndependentBrain(req,u,{
    headers:{"authorization":"Bearer "+config.token,"accept":"application/json",
     ...(req.method==="POST"?{"content-type":"application/json"}:{})},
    ...(req.method==="POST"?{body:JSON.stringify(payload)}:{}),
-   signal:AbortSignal.timeout(15000),
+   signal:AbortSignal.timeout(route==="team"?120000:15000),
   });
   const data=await response.text();
   if(data.length>750000)return error("BRAIN_RESPONSE_TOO_LARGE",502);

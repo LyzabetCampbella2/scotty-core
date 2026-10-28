@@ -41,3 +41,12 @@ For Cloudflare memory writes *after* D1 is ready, set `SCOTTY_INDEPENDENT_BRAIN_
 
 ## Rollback
 Set `SCOTTY_INDEPENDENT_BRAIN_ENABLED=false` in Render; this immediately blocks proxy operations when that configuration is active, without touching the original SCOTTY services. Separately disable the Cloudflare Worker if needed. No private-memory migration was part of this integration.
+
+## HUD integration update (2026-10-27)
+The existing Worker is now live at `https://scotty-independent-ipad-brain-lab.lizzybee246.workers.dev`, with the dedicated `scotty-brain-memory` database. Owner screenshots confirmed a three-stage mission and saved-mission retrieval. Earlier setup instructions above describe the historical default-off setup, not its current activation state.
+
+The HUD Team Brain page now exposes profile inspection, scoped reviewed-memory reads/writes, and a read-only comparison of original HUD identities against the Cloudflare catalog. That comparison does not migrate production records or set the Worker's liveRosterVerified flag. Existing conversational/voice and production-agent execution paths remain separate from explicitly approved Team Brain missions.
+
+The proxy allows 120 seconds for a team mission; other requests retain a 15-second timeout. The page disables duplicate submissions and retains a mission ID after transport errors so the Worker can deduplicate retries. Closing the tab loses this pending ID; consult Saved missions before resubmitting.
+
+Activation still requires the matching Worker owner token in Render's private SCOTTY_INDEPENDENT_BRAIN_TOKEN variable. Never paste it into chat or source. Configure only scotty-core; other shared-branch services do not need deployment.

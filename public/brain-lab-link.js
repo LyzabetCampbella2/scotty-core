@@ -5,10 +5,10 @@
  if(!left)return;
  const link=document.createElement("a");
  link.id="scottyIndependentBrainLink";link.className="nav";
- link.href="/brain-lab";link.setAttribute("aria-label","Open Independent Brain Observatory");
+ link.href="/brain-lab";link.setAttribute("aria-label","Open SCOTTY Team Brain");
  link.style.textDecoration="none";link.style.display="block";
  const dot=document.createElement("i");dot.setAttribute("aria-hidden","true");
- const title=document.createElement("span");title.textContent="Independent Brain";
+ const title=document.createElement("span");title.textContent="Team Brain";
  link.append(dot,title);
  const privacy=left.querySelector(".privacy");
  if(privacy)left.insertBefore(link,privacy);else left.append(link);
