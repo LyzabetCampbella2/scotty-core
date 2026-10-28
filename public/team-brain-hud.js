@@ -11,7 +11,7 @@
  const short=value=>safeText(value).slice(0,1800);
  function shouldRoute(text){
   const s=safeText(text);
-  if(!s||s.length>500||/^(?:remember|save to memory|delete|send|publish|approve|restore|create (?:a )?(?:project|task|folder))\b/i.test(s))return false;
+  if(!s||/^(?:remember|save to memory|delete|send|publish|approve|restore|create (?:a )?(?:project|task|folder))\b/i.test(s))return false;
   return /\bteam brain\b|\b(?:agents|specialists|chiefs)\s+(?:to|for|review|analy[sz]e|help)\b|\b(?:ask|use|bring in|coordinate|assemble|assign|recommend|consult|have)\s+(?:(?:my|the|your|scotty'?s)\s+)?(?:agents|chiefs|specialists|team)\b|\b(?:review|analy[sz]e|draft|plan|outline)\b.{0,120}\b(?:with|using|through)\s+(?:(?:my|the|your)\s+)?(?:agents|chiefs|specialists|team)\b/i.test(s);
  }
  function node(tag,text){
@@ -103,6 +103,7 @@
  }
  async function run(question,{signal,speak}={}){
   if(!shouldRoute(question))throw Error('Team routing requested for an unsupported command.');
+  if(safeText(question).length>500)throw Error('Team Brain supports up to 500 characters. Shorten this request before sharing; it was not forwarded to Groq.');
   if(!(await approve(question,signal,speak)))return {cancelled:true};
   if(signal?.aborted)return {cancelled:true};
   const missionId=crypto.randomUUID();
