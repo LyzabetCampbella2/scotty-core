@@ -51,3 +51,19 @@ test('every specialist workflow injects its field card and the exact allowed sco
   }
  }finally{f.sql.close();}
 });
+
+test('live-input preview matches actual workflow inputs for all specialists without AI or writes',async()=>{
+ const {previewTeamKnowledge}=await import('./team-runtime.mjs');
+ const f=fixture();try{
+  for(const a of roster.filter(a=>!a.isChief)){
+   const chief=roster.find(c=>c.id===a.chiefId);
+   const p=await previewTeamKnowledge({roster:[chief,a],question:a.specialty,getEvidence:reader=>f.store.read(reader)});
+   assert.equal(p.providerCalls,0);assert.equal(p.memoryWrites,0);assert.equal(p.readers.length,3);
+   for(const [i,reader] of [a,chief,scotty].entries()){
+    assert.deepEqual(p.readers[i].references.map(n=>n.id),expected(reader));
+    assert.equal(p.readers[i].fieldKnowledge.id,'field-'+reader.id);
+    assert.equal(p.readers[i].scopeCounts.department,reader.id==='scotty'?0:1);
+   }
+  }
+ }finally{f.sql.close();}
+});

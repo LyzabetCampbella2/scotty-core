@@ -6,7 +6,7 @@
 import {createOfflineBrain} from "../engine.mjs";
 import {connectedRoster} from "./connected-roster.mjs";
 import {planAssignment,brainProfile} from "./team-expansion.mjs";
-import {runTeam,selectTeam} from "./team-runtime.mjs";
+import {runTeam,selectTeam,previewTeamKnowledge} from "./team-runtime.mjs";
 import {missionMemory} from "./mission-memory.mjs";
 import {readiness,storageReadiness,RELEASE} from "./brain-readiness.mjs";
 import {KNOWLEDGE_VERSION,FIELD_CARDS,fieldKnowledge} from "./field-knowledge.mjs";
@@ -77,7 +77,7 @@ async function handleApi(request,env,url){
  const path=url.pathname;
  if(path==="/api/readiness"&&request.method==="GET")return response(await readiness(env));
  const storage=await storageReadiness(env.BRAIN_DB);
- if(storage.bound&&!storage.ready&&["/api/memory","/api/missions","/api/team","/api/ask"].includes(path))return failure(storage.reason,"Dedicated memory database is bound but its schema is not ready. Check Activation Status before proceeding.",503);
+ if(storage.bound&&!storage.ready&&["/api/memory","/api/missions","/api/team","/api/ask","/api/team-preview"].includes(path))return failure(storage.reason,"Dedicated memory database is bound but its schema is not ready. Check Activation Status before proceeding.",503);
  if(path==="/api/status"&&request.method==="GET")return response({
   status:"ISOLATED_CLOUDFLARE_BRAIN_LAB",release:RELEASE,
   agentCount:brain.agentCount,chiefCount:brain.chiefCount,specialistCount:160,overseer:"SCOTTY",
@@ -113,7 +113,7 @@ async function handleApi(request,env,url){
   if(!env.BRAIN_DB?.prepare)return failure("MEMORY_NOT_CONNECTED","Dedicated Cloudflare memory storage is not connected.",503);
   return response({notes:await memoryStore(env.BRAIN_DB).read(agent),agentId:agent.id});
  }
- if(request.method!=="POST"||!["/api/plan","/api/ask","/api/team","/api/memory","/api/discover"].includes(path))return failure("NOT_FOUND","Unsupported endpoint or method.",404);
+ if(request.method!=="POST"||!["/api/plan","/api/ask","/api/team","/api/memory","/api/discover","/api/team-preview"].includes(path))return failure("NOT_FOUND","Unsupported endpoint or method.",404);
  let body;
  try{body=await bodyJson(request);}catch(e){return failure("BAD_REQUEST",String(e.message),400);}
  if(path==="/api/discover"){
@@ -126,6 +126,11 @@ async function handleApi(request,env,url){
  }
  let question;
  try{question=validateQuestion(body.question);}catch{return failure("INVALID_QUESTION","Enter a question containing 1 to 500 characters.",400);}
+ if(path==="/api/team-preview"){
+  if(!storage.ready)return failure("MEMORY_NOT_CONNECTED","Connect memory before checking live retrieval.",503);
+  try{selectTeam(roster,question,body.teamSize??1);}catch{return failure("INVALID_TEAM_SIZE","Choose one or two specialist departments.");}
+  return response(await previewTeamKnowledge({roster,question,teamSize:body.teamSize??1,getEvidence:agent=>memoryStore(env.BRAIN_DB).read(agent)}));
+ }
  if(path==="/api/plan"){
   const plan=planAssignment(roster,question,{maxAgents:4});
   const matching=plan.assignments.map(x=>({...agentPublic(agents.get(x.agentId)),matchScore:x.score,methodGuides:brain.search(x.agentId,question).results.slice(0,3)}));
@@ -202,7 +207,7 @@ export default {
    return new Response(browserScript,{headers:{"content-type":"text/javascript; charset=utf-8",...headers}});
   }
   if(request.method==="GET"&&url.pathname==="/health")return response({
-   status:"STAGED_INDEPENDENT_LAB",release:RELEASE,knowledgeVersion:KNOWLEDGE_VERSION,privateDataAccessible:false,
+   status:"STAGED_INDEPENDENT_LAB",release:RELEASE,knowledgeVersion:KNOWLEDGE_VERSION,knowledgePreviewVersion:"team-knowledge-preview-v1",privateDataAccessible:false,
    productionConnected:false,aiUsed:false});
   if(!url.pathname.startsWith("/api/"))return failure("NOT_FOUND","Unknown page.",404);
   try{return await handleApi(request,env,url);}catch{
