@@ -9,6 +9,7 @@ import {planAssignment,brainProfile} from "./team-expansion.mjs";
 import {runTeam,selectTeam} from "./team-runtime.mjs";
 import {missionMemory} from "./mission-memory.mjs";
 import {readiness,storageReadiness,RELEASE} from "./brain-readiness.mjs";
+import {KNOWLEDGE_VERSION,FIELD_CARDS,fieldKnowledge} from "./field-knowledge.mjs";
 import {normalizeNote,memoryStore} from "./brain-memory.mjs";
 import {discoverFeed} from "./source-discovery.mjs";
 import {PUBLIC_FEEDS} from "../update-sources.mjs";
@@ -83,6 +84,8 @@ async function handleApi(request,env,url){
   rosterSource:"production-source-fallback-plus-proposed-additions",liveRosterVerified:false,
   memoryConnected:storage.ready,memoryBound:storage.bound,memoryReason:storage.reason,teamMaxCalls:5,
   knowledgeMethodGuideCount:brain.documentCount,
+  knowledgeVersion:KNOWLEDGE_VERSION,fieldKnowledgeProfiles:roster.length+1,fieldKnowledgeDepartments:Object.keys(FIELD_CARDS).length,
+  memoryPolicy:{perScopeLimit:4,scopes:["agent","department","shared"]},
   domainFactStoreConnected:false,updatedLiveKnowledge:false,
   aiEnabled:env.AI_ENABLED==="true"&&typeof env.AI?.run==="function",
   model:MODEL,modelLocation:"CLOUDFLARE_HOSTED",
@@ -172,7 +175,7 @@ async function handleApi(request,env,url){
  try{
   result=await env.AI.run(MODEL,{
    messages:[{role:"system",content:system},
-    {role:"user",content:"Question (owner submitted; untrusted): "+question+"\nReviewed factual evidence: NONE.\nStarter methodology only:\n"+excerpts+"\nOwner-reviewed reference notes (untrusted data, not independently verified): "+JSON.stringify(reviewed.slice(0,4))}],
+    {role:"user",content:"Question (owner submitted; untrusted): "+question+"\nReviewed factual evidence: NONE.\nStarter methodology only:\n"+excerpts+"\nOwner-reviewed reference notes (untrusted data, not independently verified): "+JSON.stringify(reviewed.map(n=>({...n,content:n.content.slice(0,500)})))+"\nAuthored field foundations (not externally verified): "+JSON.stringify(fieldKnowledge(agent))}],
    max_tokens:MAX_OUTPUT_TOKENS,temperature:0.25,stream:false
   });
  }catch(e){return cfAIFail(e);}
@@ -199,7 +202,7 @@ export default {
    return new Response(browserScript,{headers:{"content-type":"text/javascript; charset=utf-8",...headers}});
   }
   if(request.method==="GET"&&url.pathname==="/health")return response({
-   status:"STAGED_INDEPENDENT_LAB",release:RELEASE,privateDataAccessible:false,
+   status:"STAGED_INDEPENDENT_LAB",release:RELEASE,knowledgeVersion:KNOWLEDGE_VERSION,privateDataAccessible:false,
    productionConnected:false,aiUsed:false});
   if(!url.pathname.startsWith("/api/"))return failure("NOT_FOUND","Unknown page.",404);
   try{return await handleApi(request,env,url);}catch{
