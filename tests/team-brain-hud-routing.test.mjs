@@ -43,12 +43,13 @@ function harness({readback=true,teamFails=false}={}){
   document,localStorage,crypto:{randomUUID:()=> 'synthetic-mission-'+(++next)},
   AbortController,AbortSignal,Response,Request,URL,
   setTimeout,clearTimeout,Date,Math,Float32Array,console,
-  fetch:fetcher,speaking:false,voiceArmed:true,SCOTTYMemory:{},
+  fetch:fetcher,voiceArmed:true,SCOTTYMemory:{},
   speak:async text=>speech.push(text),command:async()=>{},heard:async()=>{},
   clearVoiceBuffers(){},eyesVoiceCommand:()=>null,loadResources:async()=>{},
   localVoiceBuffers:[],localVoiceSamples:0,localVoiceSending:false,sendVoiceChunk(){}
  });
  ctx.window=ctx;
+ vm.runInContext('let speaking=false;',ctx);
  vm.runInContext(read('public/conversation-core.js'),ctx);
  vm.runInContext(read('public/team-brain-hud.js'),ctx);
  vm.runInContext(read('public/conversation.js'),ctx);
@@ -87,9 +88,9 @@ test('late or speaker-captured approvals are rejected and stop cancels without s
  await h.wait();
  await h.run('heard('+JSON.stringify(approval)+',{capturedDuringSpeech:true})');
  assert.equal(h.ctx.SCOTTYTeamBrain.awaitingApproval,true);
- h.ctx.speaking=true;await h.run('heard('+JSON.stringify(approval)+')');
+ h.run('speaking=true');await h.run('heard('+JSON.stringify(approval)+')');
  assert.equal(h.ctx.SCOTTYTeamBrain.awaitingApproval,true);
- h.ctx.speaking=false;await h.run('command("stop")');await task;
+ h.run('speaking=false');await h.run('command("stop")');await task;
  assert.equal(h.requests.length,0);
 });
 test('normal non-team chat retains original route and does not require cloud consent',async()=>{
@@ -134,5 +135,6 @@ test('production HUD loader includes routing helper ahead of conversation and se
  assert.match(server,/u.pathname==="\/team-brain-hud.js"/);
  const conversation=read('public/conversation.js');
  assert.match(conversation,/SCOTTYTeamBrain\.run\(text/);
- assert.match(conversation,/SCOTTYTeamBrain\?\.handleSpokenConsent\(raw,meta\)/);
+ assert.match(conversation,/SCOTTYTeamBrain\?\.handleSpokenConsent\(raw,\{\.\.\.meta,capturedDuringSpeech:/);
 });
+

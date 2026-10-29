@@ -82,7 +82,7 @@
  function offerReviewedMemory(answer,signal){
   if(!safeText(answer))return;
   const panel=card('Optional · save a reviewed SCOTTY memory');
-  panel.appendChild(node('p','The mission is saved separately in the Cloudflare mission log. Generated answers are NOT automatically treated as facts. Review and edit this note before saving.'));
+  panel.appendChild(node('p','Mission persistence is reported separately in the HUD status. Generated answers are NOT automatically treated as facts. Review and edit this note before saving.'));
   const title=node('input');title.value='Owner-reviewed Team Brain answer';title.maxLength=160;title.style.cssText='box-sizing:border-box;width:100%;padding:8px';panel.appendChild(title);
   const body=node('textarea');body.value=short(answer);body.maxLength=1800;body.rows=5;body.style.cssText='box-sizing:border-box;width:100%;padding:8px;margin-top:8px';panel.appendChild(body);
   const reviewed=check(panel,'I reviewed and approve the wording and SCOTTY-only scope.');
@@ -113,6 +113,7 @@
    const history=await call('missions',{signal});
    missionVerified=Boolean(data.missionPersisted&&(history.missions||[]).some(m=>m.id===missionId&&m.status===data.status&&m.result?.answer===data.answer));
   }catch{}
+  if(signal?.aborted)return {cancelled:true};
   const answer=safeText(data.answer);
   const reply=answer||(data.status==='needs-clarification'?'The team needs a more specific question.': 'Team Brain did not produce a complete answer. Check the Brain Lab mission history.');
   last={missionId,missionVerified,reviewedMemoryVerified:false,status:data.status,answer};
@@ -121,3 +122,4 @@
  }
  root.SCOTTYTeamBrain={shouldRoute,run,handleSpokenConsent,get last(){return last},get awaitingApproval(){return Boolean(pending)}};
 })(window);
+

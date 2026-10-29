@@ -104,7 +104,7 @@
  };
  heard=async function(raw,meta={}){
   raw=String(raw||'').trim();if(!raw||/^(?:and|um|uh|hmm|mm|ah|er)[.!?]*$/i.test(raw))return;
-  if(window.SCOTTYTeamBrain?.handleSpokenConsent(raw,meta))return;
+  if(window.SCOTTYTeamBrain?.handleSpokenConsent(raw,{...meta,capturedDuringSpeech:!!(speaking||meta.capturedDuringSpeech)}))return;
   const named=window.SCOTTYVoiceWorkspace?.hasWake(raw)||/^(?:hey\s+)?(?:scotty|scottie|scoty|scotti)\b/i.test(raw),control=controlsPreview(raw);
   const callControl=window.SCOTTYCallsCore?.control(raw),busyCapture=!!(speaking||busy||meta.capturedDuringSpeech);
   if(window.SCOTTYCallsCore?.heardAllowed(named,callControl,busyCapture,window.SCOTTYVoiceTransport?.state)&&window.SCOTTYCalls?.execute(raw)){caption('CALL CONTROL',raw);return;}
@@ -138,3 +138,4 @@
  window.SCOTTYConversation.legacyResponse=async(text,token,threadId)=>{if(token!==run)return;db.remember('assistant',text,threadId,{memorySpace:window.SCOTTYKnowledge?.space()||'shared'});render();await speak(text)};
  render();fillPrefs();
 })();
+
