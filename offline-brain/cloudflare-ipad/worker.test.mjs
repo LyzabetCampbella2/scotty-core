@@ -143,3 +143,12 @@ test("no need to provision KV, D1, R2, or paid database",()=>{
  assert.ok(pageHtml().includes("token stays in this browser tab"));
 });
 
+
+
+test('field knowledge version is observable and single-agent inference receives its authored guide',async()=>{
+ const health=await json(await worker.fetch(request('/health',{token:null}),environment()));
+ assert.equal(health.body.knowledgeVersion,'field-foundations-v1');
+ let prompt;
+ const r=await json(await worker.fetch(request('/api/ask',{method:'POST',data:approve}),environment({AI_ENABLED:'true',AI:{run:async(_,payload)=>{prompt=payload.messages[1].content;return {response:'Synthetic test plan'};}}})));
+ assert.equal(r.status,200);assert.match(prompt,/field-agent-geordi-01/);assert.match(prompt,/Synthetic example:/);
+});
