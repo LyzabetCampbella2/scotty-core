@@ -138,3 +138,25 @@ test('production HUD loader includes routing helper ahead of conversation and se
  assert.match(conversation,/SCOTTYTeamBrain\?\.handleSpokenConsent\(raw,\{\.\.\.meta,capturedDuringSpeech:/);
 });
 
+
+test('hands-free request, simple approval, dictated correction, save approval and verified spoken receipt',async()=>{
+ const h=harness(),task=h.run('heard('+JSON.stringify('Scotty, '+prompt)+')');await h.wait();
+ await h.run('heard("yes")');await task;
+ assert.equal(h.ctx.SCOTTYTeamBrain.last.missionVerified,true);
+ await h.run('heard("Scotty, change the note to Test create edit and delete with expected outcomes")');
+ await h.run('heard("Scotty, read the note")');
+ assert.ok(h.speech.includes('Test create edit and delete with expected outcomes'));
+ await h.run('heard("Scotty, save that")');assert.equal(h.notes.size,0);
+ await h.run('heard("yes",{capturedDuringSpeech:true})');assert.equal(h.notes.size,0);
+ await h.run('heard("yes")');
+ assert.equal(h.notes.size,1);assert.equal([...h.notes.values()][0].content,'Test create edit and delete with expected outcomes');
+ assert.equal(h.ctx.SCOTTYTeamBrain.last.reviewedMemoryVerified,true);
+ assert.ok(h.speech.some(x=>x.startsWith('Saved and independently verified')));
+ await h.run('heard("save that")');await h.run('heard("yes")');assert.equal(h.notes.size,1);
+});
+test('spoken cancellation and stale memory after a new command cannot write',async()=>{
+ const h=harness(),task=h.run('command('+JSON.stringify(prompt)+')');await h.wait();
+ await h.run('heard("yes")');await task;
+ await h.run('heard("save that")');await h.run('heard("cancel")');assert.equal(h.notes.size,0);
+ await h.run('heard("skip")');await h.run('heard("yes")');assert.equal(h.notes.size,0);
+});

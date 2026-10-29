@@ -98,13 +98,13 @@
    db.pending(r.clarification?{...r.clarification,resolutions}:null,threadId);remember('assistant',r.reply||'No response returned.');
    if(r.focusNode){await loadResources();if(seq!==run)return;window.SCOTTYSpatial?.refresh();window.SCOTTYSpatial?.focusId(r.focusNode)}
    window.SCOTTYKnowledge?.showSources(r.sources||[]);
-   status(r.provider==='cloudflare-team'?(r.missionVerified?'TEAM BRAIN • SAVED MISSION VERIFIED':'TEAM BRAIN • MISSION NOT VERIFIED'):(r.clarification?'CLARIFICATION NEEDED':'RESPONSE READY'));render();await speak(r.reply||'No response returned.');
+   status(r.provider==='cloudflare-team'?(r.missionVerified?'TEAM BRAIN • SAVED MISSION VERIFIED':'TEAM BRAIN • MISSION NOT VERIFIED'):(r.clarification?'CLARIFICATION NEEDED':'RESPONSE READY'));render();await speak(r.reply||'No response returned.');if(r.voiceFollowup&&seq===run&&!signal.aborted)await speak(r.voiceFollowup);
   }catch(e){if(seq!==run||signal.aborted)return;caption('CONVERSATION ERROR',e.message);status('CONVERSATION ERROR');window.SCOTTYCallSession?.connectionError('Scotty server request failed. The last request was not replayed.')}
   finally{if(seq===run){busy=false;request=null;render()}}
  };
  heard=async function(raw,meta={}){
   raw=String(raw||'').trim();if(!raw||/^(?:and|um|uh|hmm|mm|ah|er)[.!?]*$/i.test(raw))return;
-  if(window.SCOTTYTeamBrain?.handleSpokenConsent(raw,{...meta,capturedDuringSpeech:!!(speaking||meta.capturedDuringSpeech)}))return;
+  if(await window.SCOTTYTeamBrain?.handleSpokenConsent(raw,{...meta,capturedDuringSpeech:!!(speaking||meta.capturedDuringSpeech)}))return;
   const named=window.SCOTTYVoiceWorkspace?.hasWake(raw)||/^(?:hey\s+)?(?:scotty|scottie|scoty|scotti)\b/i.test(raw),control=controlsPreview(raw);
   const callControl=window.SCOTTYCallsCore?.control(raw),busyCapture=!!(speaking||busy||meta.capturedDuringSpeech);
   if(window.SCOTTYCallsCore?.heardAllowed(named,callControl,busyCapture,window.SCOTTYVoiceTransport?.state)&&window.SCOTTYCalls?.execute(raw)){caption('CALL CONTROL',raw);return;}
