@@ -7,6 +7,9 @@ on:
       - "src/brain/independent-bridge.mjs"
       - "src/brain/independent-bridge.test.mjs"
       - "src/server-cloud-v2.ts"
+      - "public/conversation.js"
+      - "public/team-brain-hud.js"
+      - "tests/team-brain-hud-routing.test.mjs"
       - "public/brain-lab/**"
       - "public/brain-lab-link.js"
       - ".github/workflows/scotty-independent-brain-bridge.yml"
@@ -29,7 +32,7 @@ jobs:
         with:
           node-version: "24"
       - name: Test auth, endpoint allowlists, no-secret browser boundary, AI consent and memory write gate
-        run: node --test src/brain/independent-bridge.test.mjs src/agents/brain-roster-sync.test.mjs
+        run: node --test src/brain/independent-bridge.test.mjs src/agents/brain-roster-sync.test.mjs tests/team-brain-hud-routing.test.mjs
       - uses: oven-sh/setup-bun@v2
       - name: Bundle SCOTTY production server without starting it or connecting to any database
         run: |
