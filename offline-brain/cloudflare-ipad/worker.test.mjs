@@ -152,3 +152,39 @@ test('field knowledge version is observable and single-agent inference receives 
  const r=await json(await worker.fetch(request('/api/ask',{method:'POST',data:approve}),environment({AI_ENABLED:'true',AI:{run:async(_,payload)=>{prompt=payload.messages[1].content;return {response:'Synthetic test plan'};}}})));
  assert.equal(r.status,200);assert.match(prompt,/field-agent-geordi-01/);assert.match(prompt,/Synthetic example:/);
 });
+
+test('knowledge preview requires authentication and ready memory without invoking AI',async()=>{
+ let calls=0;
+ const env=environment({AI:{run:async()=>{calls++;throw Error('unexpected')}}});
+ for(const [token,status] of [[null,401],[TOKEN,503]]){
+  const r=await worker.fetch(request('/api/team-preview',{method:'POST',token,data:{question:sampleQuestion}}),env);
+  assert.equal(r.status,status);
+ }
+ assert.equal(calls,0);
+ assert.ok(pageHtml().includes('id="preview-knowledge"'));
+ assert.ok(browserScript.includes('/api/team-preview'));
+ new Function(browserScript);
+});
+
+test('authenticated preview reads real SQLite notes and fails closed for wrong database',async()=>{
+ const {DatabaseSync}=await import('node:sqlite');
+ const {readFileSync}=await import('node:fs');
+ const sql=new DatabaseSync(':memory:');
+ try{
+  sql.exec(readFileSync(new URL('./memory-schema.sql',import.meta.url),'utf8'));
+  sql.prepare('INSERT INTO brain_notes VALUES(?,?,?,?,?,?,?,?)').run('preview-shared','shared','shared','Synthetic example','Shared fixture',null,'2020-01-01','2099-01-01');
+  let calls=0;
+  const db={prepare:q=>({bind:(...args)=>({all:async()=>({results:sql.prepare(q).all(...args)})})})};
+  const env=environment({BRAIN_DB:db,AI:{run:async()=>{calls++;throw Error('unexpected')}}});
+  const r=await json(await worker.fetch(request('/api/team-preview',{method:'POST',data:{question:sampleQuestion}}),env));
+  assert.equal(r.status,200);assert.equal(r.body.readers.length,3);
+  for(const reader of r.body.readers)assert.deepEqual(reader.references.map(n=>n.id),['preview-shared']);
+  assert.equal(sql.prepare('SELECT count(*) AS n FROM brain_notes').get().n,1);
+  assert.equal(sql.prepare('SELECT count(*) AS n FROM brain_missions').get().n,0);
+  const invalid=await worker.fetch(request('/api/team-preview',{method:'POST',data:{question:sampleQuestion,teamSize:3}}),env);
+  assert.equal(invalid.status,400);assert.equal(calls,0);
+  sql.exec("UPDATE brain_installation SET lab_name='wrong'");
+  const wrong=await worker.fetch(request('/api/team-preview',{method:'POST',data:{question:sampleQuestion}}),env);
+  assert.equal(wrong.status,503);
+ }finally{sql.close();}
+});
