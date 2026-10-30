@@ -236,6 +236,11 @@
       line(item,'Stages',(m.steps||[]).length);
       if(m.blocker)line(item,'Blocked',m.blocker);
       for(const step of (m.steps||[]).slice(0,10))line(item,'  '+step.agentId,step.status+' · '+step.deliverable);
+      if(m.status==='completed'&&(m.steps||[]).length&&m.steps.every(step=>step.status==='released')){
+       const href=base+'/deliverable?missionId='+encodeURIComponent(m.id)+'&revision='+encodeURIComponent(m.revision)+'&format=md';
+       const a=el('a','Download owner-released mission as Markdown');a.href=href;
+       a.setAttribute('download','');css(a,'display:block;color:#a9eafa;margin:5px');item.appendChild(a);
+      }
      }
      if(slug==='team-status')line(item,'Current members',(d.members||[]).map(x=>x.name||x.id).slice(0,20).join(', ')||'None reported');
      if(slug==='evidence'){
