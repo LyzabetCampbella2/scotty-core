@@ -173,3 +173,11 @@ test('voice team-size correction precedes consent and is forwarded to preview an
  assert.ok(h.speech.some(s=>s.includes('GEORDI')));
  h.ctx.SCOTTYTeamBrain.handleSpokenConsent('skip');
 });
+
+test('spoken named specialist is included in both approved preview and mission',async()=>{
+ const h=harness();const work=h.run('SCOTTYTeamBrain.run('+JSON.stringify(prompt)+',{speak})');await h.wait();
+ await h.ctx.SCOTTYTeamBrain.handleSpokenConsent('use specialist Sisko');assert.equal(h.requests.length,0);
+ await h.ctx.SCOTTYTeamBrain.handleSpokenConsent('yes');await work;
+ for(const path of ['team-preview','team'])assert.match(JSON.parse(h.requests.find(r=>r.url.endsWith('/'+path)).options.body).question,/^Use specialist Sisko:/);
+ await h.ctx.SCOTTYTeamBrain.handleSpokenConsent('skip');
+});
