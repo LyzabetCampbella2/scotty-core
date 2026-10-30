@@ -14,7 +14,7 @@
  const check=(parent,text)=>{const lab=el('label');css(lab,'display:block;margin:10px 0');const n=el('input');n.type='checkbox';lab.appendChild(n);lab.appendChild(document.createTextNode(' '+text));parent.appendChild(lab);return n};
  const clear=n=>{while(n.firstChild)n.firstChild.remove()};
  async function api(path,data){
-  const r=await fetch(path,{credentials:'same-origin',cache:'no-store',method:data?'POST':'GET',headers:data?{'content-type':'application/json'}:{},...(data?{body:JSON.stringify(data)}:{})});
+  const r=await fetch(path,{credentials:'same-origin',cache:'no-store',method:data?'POST':'GET',headers:data?{'content-type':'application/json','x-scotty-csrf':'1'}:{},...(data?{body:JSON.stringify(data)}:{})});
   let d;try{d=await r.json()}catch{throw Error('Invalid server response for '+path)}
   if(!r.ok||d.ok===false)throw Error(String(d.message||d.error||'Request failed')+' (HTTP '+r.status+')');
   return d;
