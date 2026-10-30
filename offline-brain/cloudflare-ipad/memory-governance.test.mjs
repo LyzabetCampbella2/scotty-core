@@ -17,7 +17,7 @@ function fixture(){
   }
  };
  // batch requires SQL text+args from prepared binds, so define a facade.
- api.prepare=q=>({bind:(...args)=>({q,args,first:async()=>sql.prepare(q).get(...args),all:async()=>({results:sql.prepare(q).all(...args)})})});
+ api.prepare=q=>({all:async()=>({results:sql.prepare(q).all()}),bind:(...args)=>({q,args,first:async()=>sql.prepare(q).get(...args),all:async()=>({results:sql.prepare(q).all(...args)})})});
  const id='00000000-0000-4000-8000-000000000001';
  sql.prepare("INSERT INTO brain_notes VALUES(?,?,?,?,?,?,?,?)").run(id,'agent-alpha','agent','Reviewed demo','Some old synthetic note','https://example.org/','2026-10-01T00:00:00.000Z','2099-01-01T00:00:00.000Z');
  return {sql,db:api,id,close:()=>sql.close()};
