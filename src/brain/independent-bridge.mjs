@@ -4,8 +4,8 @@
  * automatic memory import, background jobs, or AI inference is enabled by this file.
  */
 const PREFIX="/api/independent-brain";
-const GET_PATHS=new Set(["status","readiness","catalog","sources","missions","memory"]);
-const POST_PATHS=new Set(["plan","discover","team","ask","memory","team-preview"]);
+const GET_PATHS=new Set(["status","readiness","catalog","sources","missions","memory","memory-history"]);
+const POST_PATHS=new Set(["plan","discover","team","ask","memory","memory-change","team-preview"]);
 const LIMIT=5000;
 const json=(data,status=200)=>Response.json(data,{status,headers:{"cache-control":"no-store","x-content-type-options":"nosniff"}});
 const error=(message,status=400)=>json({ok:false,error:message},status);
@@ -43,6 +43,10 @@ export async function handleIndependentBrain(req,u,{
   const agentId=u.searchParams.get("agentId")||"";
   if(!/^[a-z0-9-]{1,90}$/i.test(agentId)||u.searchParams.size!==1)return error("AGENT_ID_REQUIRED");
   endpoint.searchParams.set("agentId",agentId);
+ }else if(req.method==="GET"&&route==="memory-history"){
+  const noteId=u.searchParams.get("noteId")||"";
+  if(!/^[A-Za-z0-9-]{8,100}$/.test(noteId)||u.searchParams.size!==1)return error("NOTE_ID_REQUIRED");
+  endpoint.searchParams.set("noteId",noteId);
  }else if(u.search)return error("QUERY_NOT_ALLOWED");
  if(req.method==="POST"){
   let raw;
@@ -60,6 +64,12 @@ export async function handleIndependentBrain(req,u,{
   if(route==="memory"){
    if(env.SCOTTY_INDEPENDENT_BRAIN_MEMORY_PROXY_ENABLED!=="true")return error("MEMORY_PROXY_DISABLED",503);
    if(payload.approved!==true||payload.noPrivateDataConfirmed!==true)return error("OWNER_MEMORY_APPROVAL_REQUIRED",403);
+  }
+  if(route==="memory-change"){
+   if(env.SCOTTY_INDEPENDENT_BRAIN_MEMORY_PROXY_ENABLED!=="true")return error("MEMORY_PROXY_DISABLED",503);
+   if(!["preview","apply"].includes(payload.stage)||payload.noPrivateDataConfirmed!==true)return error("OWNER_MEMORY_APPROVAL_REQUIRED",403);
+   if(payload.stage==="apply"&&(payload.approved!==true||payload.reviewAcknowledged!==true||typeof payload.previewToken!=="string"))
+    return error("OWNER_MEMORY_CHANGE_APPROVAL_REQUIRED",403);
   }
   if(["plan","team-preview"].includes(route)&&(typeof payload.question!=="string"||payload.question.length>500||!payload.question.trim()))
    return error("INVALID_QUESTION");
