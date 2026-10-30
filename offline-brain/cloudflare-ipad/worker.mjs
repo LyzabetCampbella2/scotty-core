@@ -171,20 +171,37 @@ async function handleApi(request,env,url){
  if(body.noPrivateDataConfirmed!==true)return failure("PRIVATE_DATA_NOT_CONFIRMED","Confirm the prompt contains no private, client or production information.",403);
  if(typeof env.AI?.run!=="function")return failure("AI_BINDING_MISSING","The Workers AI binding is not configured.",503);
  if(path==="/api/team"){
+  // Durable mission checkpoints are mandatory for the team workflow: no
+  // specialist/chief calls may begin until the dedicated D1 schema is ready.
+  if(!storage.ready||!env.BRAIN_DB?.prepare)return failure("MISSION_STORAGE_NOT_READY",
+   "The dedicated Cloudflare mission database must be connected and initialized before team inference. No AI calls made.",503);
   const teamSize=body.teamSize??1;
   let plan;try{plan=selectTeam(roster,question,teamSize);}catch{return failure("INVALID_TEAM_SIZE","Choose one or two specialist departments.");}
-  const storage=env.BRAIN_DB?.prepare?missionMemory(env.BRAIN_DB):null;
+  const store=missionMemory(env.BRAIN_DB);
   const missionId=body.missionId||crypto.randomUUID();
-  if(storage){
-   let claim;try{claim=await storage.claim(missionId,question,teamSize);}catch{return failure("MISSION_STORAGE_CONFLICT","Mission could not be claimed. No AI calls made.",409);}
-   if(!claim.claimed)return response({missionId,cached:true,status:claim.status,...claim.result},claim.status==="running"?409:200);
-  }
+  let claim;try{claim=await store.claim(missionId,question,teamSize);}catch{return failure("MISSION_STORAGE_CONFLICT","Mission could not be claimed. No AI calls made.",409);}
+  if(!claim.claimed)return response({missionId,cached:true,status:claim.status,...claim.result,missionPersisted:true,
+   missionReadbackVerified:true},claim.status==="running"?409:200);
   const result=await runTeam({roster,question,AI:env.AI,approved:true,teamSize,projectContext,
-   getEvidence:async agent=>env.BRAIN_DB?.prepare?await memoryStore(env.BRAIN_DB).read(agent,question):[],
-   onCheckpoint:async result=>{if(storage)await storage.checkpoint(missionId,result);}
+   getEvidence:agent=>memoryStore(env.BRAIN_DB).read(agent,question),
+   onCheckpoint:record=>store.checkpoint(missionId,record)
   });
-  if(storage&&result.status==="needs-clarification")await storage.checkpoint(missionId,result);
-  return response({...result,missionId,missionPersisted:Boolean(storage)&&result.checkpointSaved!==false},result.status==="incomplete"?502:200);
+  if(result.status==="needs-clarification"){
+   try{await store.checkpoint(missionId,result);}catch{return response({...result,missionId,missionPersisted:false,missionReadbackVerified:false,error:"MISSION_CHECKPOINT_UNAVAILABLE"},502);}
+  }
+  // An acknowledged write alone is not evidence of durability. Read the
+  // exact mission ID back independently and compare status, output and stages.
+  let verified=false;
+  try{
+   const persisted=await store.readback(missionId);
+   verified=Boolean(persisted&&persisted.question===question&&persisted.teamSize===teamSize&&
+    persisted.status===result.status&&
+    JSON.stringify(persisted.result?.results||[])===JSON.stringify(result.results||[])&&
+    (persisted.result?.answer??null)===(result.answer??null));
+  }catch{verified=false;}
+  return response({...result,missionId,missionPersisted:verified,missionReadbackVerified:verified,
+   ...(verified?{}:{readbackWarning:"Saved mission could not be independently verified. Do not claim persistence."})},
+   !verified||result.status==="incomplete"?502:200);
  }
 
  const agent=agents.get(body.agentId);
