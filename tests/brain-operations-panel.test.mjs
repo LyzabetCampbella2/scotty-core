@@ -31,6 +31,16 @@ function harness({migrationReady=false}={}){
   if(path==='/api/agent-brains/project-operations/project-bloodpool/team-status')return Response.json({ok:true,members:[{id:'chief-one',name:'Lead Chief',isChief:true},{id:'agent-one',name:'First Agent',isChief:false,chiefId:'chief-one'}]});
   if(path==='/api/agent-brains/project-operations/project-bloodpool/team-presets')return Response.json({ok:true,teams:[],readOnly:true});
   if(path==='/api/agent-brains/project-operations/project-bloodpool/evidence')return Response.json({ok:true,evidence:[{id:'evidence-one',title:'Fictional chapter extract',recipients:['agent-one']} ]});
+  if(path==='/api/workspace/project?id=project-bloodpool')return Response.json({ok:true,
+   project:{id:'project-bloodpool'},files:[{id:'file-12345678',name:'fictional-chapter.pdf',mimeType:'application/pdf'}]});
+  if(path==='/api/agent-brains/project-operations/project-bloodpool/local-file-evidence'){
+   const data=JSON.parse(options.body||'{}');
+   if(data.action==='preview')return Response.json({ok:true,previewToken:'synthetic-review-token',
+    title:'fictional-chapter.pdf',kind:'pdf',body:'Synthetic extracted evidence text',sha256:'sha-123',
+    referenceOnly:false,note:'Dated text snapshot'});
+   return Response.json({ok:true,id:'evidence-sample-1',evidenceReadbackVerified:true,
+    limitation:'Text only, no original PDF transferred'});
+  }
   if(path==='/api/connectors')return Response.json({ok:true,providers:[{provider:'notion',enabled:false},{provider:'googledocs',enabled:true}],vaultConfigured:false});
   if(path==='/api/folders?structure=1')return Response.json({ok:true,folders:[{id:'folder-1'}],projects:[{id:'project-bloodpool'}]});
   if(path==='/api/independent-brain/operations')return Response.json({memoryReady:true,counts:{completed:7,running:2},total:9,staleRunningSample:[{missionId:'synthetic-running-00001',lastCheckpoint:'2026-10-01'}],quota:null,providerCalls:null});
@@ -180,4 +190,30 @@ test('preferred team save is blocked without review and never auto-grants agents
  assert.equal(payload.expectedRevision,0);
  assert.equal(writes[0].options.headers['x-scotty-csrf'],'1');
  assert.equal(h.calls.filter(c=>c.path.includes('/independent-brain/team')).length,0);
+});
+
+test('uploaded PDF preview cannot attach without explicit source and recipient approval',async()=>{
+ const h=harness();
+ await byLabel(h,'Load my real project list').listeners.click();
+ const project=h.find(n=>n.tag==='select'&&n['aria-label']==='Choose a real SCOTTY project');
+ project.value='project-bloodpool';
+ await byLabel(h,'Attach uploaded PDF, document or image evidence').listeners.click();
+ await byLabel(h,'List uploaded files and approved recipients').listeners.click();
+ const select=h.find(n=>n.tag==='select'&&n['aria-label']==='Uploaded project file');
+ select.value='file-12345678';
+ await byLabel(h,'Preview file content or image reference').listeners.click();
+ assert.match(text(h.body),/Synthetic extracted evidence text/);
+ const attach=byLabel(h,'Attach owner-approved project evidence');
+ await attach.listeners.click();
+ assert.equal(h.calls.filter(x=>x.path.includes('local-file-evidence')&&JSON.parse(x.options.body||'{}').action==='attach').length,0);
+ const chiefLabel=h.find(n=>n.tag==='label'&&text(n).includes('Allow Lead Chief'));
+ assert.ok(chiefLabel);chiefLabel.children.find(n=>n.tag==='input').checked=true;
+ const approval=h.find(n=>n.tag==='label'&&text(n).includes('I reviewed this exact file preview'));
+ approval.children.find(n=>n.tag==='input').checked=true;
+ await attach.listeners.click();
+ const writes=h.calls.filter(x=>x.path.includes('local-file-evidence')&&JSON.parse(x.options.body||'{}').action==='attach');
+ assert.equal(writes.length,1);
+ assert.deepEqual(JSON.parse(writes[0].options.body).agentIds,['chief-one']);
+ assert.equal(writes[0].options.headers['x-scotty-csrf'],'1');
+ assert.equal(h.calls.filter(x=>x.path.includes('/independent-brain/team')).length,0);
 });
