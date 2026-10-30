@@ -26,7 +26,7 @@
  async function showReadiness(parent){
   const out=el('div');parent.appendChild(out);
   async function refresh(){clear(out);
-   const jobs=[['Render operations','/api/system/status'],['Cloudflare readiness','/api/independent-brain/readiness'],['Cloudflare status','/api/independent-brain/status']];
+   const jobs=[['Render operations','/api/system/status'],['Cloudflare readiness','/api/independent-brain/readiness'],['Cloudflare status','/api/independent-brain/status'],['Cloudflare mission operations','/api/independent-brain/operations']];
    for(const [name,path] of jobs){
     const block=el('div');out.appendChild(block);
     try{const d=await api(path);line(block,name,'Connected');
