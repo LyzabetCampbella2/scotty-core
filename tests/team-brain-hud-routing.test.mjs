@@ -26,9 +26,16 @@ function harness({readback=true,teamFails=false}={}){
    if(teamFails)return Response.json({ok:false,error:'AI_SWITCH_OFF'},{status:409});
    const data=JSON.parse(options.body);
    const answer='SYNTHETIC REVIEWED ANSWER: verify the fictional checklist and expected outcomes.';
-   const result={status:'completed',answer,missionId:data.missionId,missionPersisted:true};
+   const result={status:'completed',answer,missionId:data.missionId,missionPersisted:true,missionReadbackVerified:true};
    missions.set(data.missionId,{id:data.missionId,status:'completed',result:{status:'completed',answer}});
    return Response.json(result);
+  }
+  if(url.startsWith('/api/independent-brain/mission?missionId=')){
+   const id=decodeURIComponent(url.split('missionId=')[1]||'');
+   const saved=readback?missions.get(id):null;
+   return saved?Response.json({missionId:id,status:saved.status,answer:saved.result?.answer,
+    missionReadbackVerified:true,storageReadback:true}):
+    Response.json({error:'MISSION_NOT_FOUND'},{status:404});
   }
   if(url==='/api/independent-brain/missions')return Response.json({missions:readback?[...missions.values()]:[]});
   if(url==='/api/independent-brain/memory'){
