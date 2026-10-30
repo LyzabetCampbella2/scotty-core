@@ -1,5 +1,6 @@
 import {handleAgentSubmit} from "./agents/agent-runtime-api.ts";
 import {handleIndependentBrain} from "./brain/independent-bridge.mjs";
+import {handleBrainUpgrade} from "./brain/upgrade-api.mjs";
 import {handleRenderAgentBrains} from "./agents/render-bridge.ts";
 import {projectOperationsAsset} from './agents/project-operations-assets.ts';
 import {handleFolders} from './workspace/folders.ts';
@@ -98,6 +99,7 @@ Bun.serve({port:PORT,async fetch(req){
   u.pathname==="/api/hud/stt"||
   u.pathname==="/api/hud/command"||
   u.pathname==="/api/hud/agents"||
+  u.pathname.startsWith("/api/hud/brain-upgrades/")||
   u.pathname==="/api/hud/agents/run"||
   u.pathname==="/api/hud/agents/recovery-self-test"||
   u.pathname==="/api/hud/agents/skills"||
@@ -149,6 +151,8 @@ Bun.serve({port:PORT,async fetch(req){
  if(u.pathname==="/api/tts"||u.pathname.startsWith("/api/voice")) return handleCloudVoice(req,u);
  if(u.pathname.startsWith("/api/memory")) return handleCloudMemory(req,u);
  if(u.pathname.startsWith("/api/agent-runtime/"))return handleAgentSubmit(req,u);
+ const upgradeResponse=await handleBrainUpgrade(req,u,isCloudAuthenticated);
+ if(upgradeResponse)return upgradeResponse;
  const independentBrainResponse=await handleIndependentBrain(req,u,{env:process.env,authenticated:isCloudAuthenticated});
  if(independentBrainResponse)return independentBrainResponse;
  const agentBrainsResponse=await handleRenderAgentBrains(req,u,isCloudAuthenticated);
