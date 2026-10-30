@@ -129,7 +129,7 @@ async function handleApi(request,env,url){
  if(path==="/api/team-preview"){
   if(!storage.ready)return failure("MEMORY_NOT_CONNECTED","Connect memory before checking live retrieval.",503);
   try{selectTeam(roster,question,body.teamSize??1);}catch{return failure("INVALID_TEAM_SIZE","Choose one or two specialist departments.");}
-  return response(await previewTeamKnowledge({roster,question,teamSize:body.teamSize??1,getEvidence:agent=>memoryStore(env.BRAIN_DB).read(agent)}));
+  return response(await previewTeamKnowledge({roster,question,teamSize:body.teamSize??1,getEvidence:agent=>memoryStore(env.BRAIN_DB).read(agent,question)}));
  }
  if(path==="/api/plan"){
   const plan=planAssignment(roster,question,{maxAgents:4});
@@ -151,7 +151,7 @@ async function handleApi(request,env,url){
    if(!claim.claimed)return response({missionId,cached:true,status:claim.status,...claim.result},claim.status==="running"?409:200);
   }
   const result=await runTeam({roster,question,AI:env.AI,approved:true,teamSize,
-   getEvidence:async agent=>env.BRAIN_DB?.prepare?await memoryStore(env.BRAIN_DB).read(agent):[],
+   getEvidence:async agent=>env.BRAIN_DB?.prepare?await memoryStore(env.BRAIN_DB).read(agent,question):[],
    onCheckpoint:async result=>{if(storage)await storage.checkpoint(missionId,result);}
   });
   if(storage&&result.status==="needs-clarification")await storage.checkpoint(missionId,result);
@@ -164,7 +164,7 @@ async function handleApi(request,env,url){
    x.sourceId.startsWith("department-")||x.sourceId.startsWith("profile-")).slice(0,3);
  if(!methods.length&&agent.provenance!=="proposed-addition")return failure("NO_RELEVANT_METHOD_GUIDE","No relevant starter guide found. Use the offline plan, or add owner-reviewed subject references in a future private knowledge build.",422);
  // No data from Render, user databases, encrypted backups or private docs is read.
- const reviewed=env.BRAIN_DB?.prepare?await memoryStore(env.BRAIN_DB).read(agent):[];
+ const reviewed=env.BRAIN_DB?.prepare?await memoryStore(env.BRAIN_DB).read(agent,question):[];
  const excerpts=methods.map((m,i)=>"[Method "+(i+1)+"] "+m.title+": "+m.excerpt.slice(0,300)).join("\n");
  const profile=brainProfile(agent);
  const system=[
@@ -212,7 +212,7 @@ export default {
    return new Response(browserScript,{headers:{"content-type":"text/javascript; charset=utf-8",...headers}});
   }
   if(request.method==="GET"&&url.pathname==="/health")return response({
-   status:"STAGED_INDEPENDENT_LAB",release:RELEASE,knowledgeVersion:KNOWLEDGE_VERSION,knowledgePreviewVersion:"team-knowledge-preview-v1",singleAgentVersion:"profile-inference-v1",teamSelectionVersion:"explicit-specialist-v1",privateDataAccessible:false,
+   status:"STAGED_INDEPENDENT_LAB",release:RELEASE,knowledgeVersion:KNOWLEDGE_VERSION,knowledgePreviewVersion:"team-knowledge-preview-v1",singleAgentVersion:"profile-inference-v1",teamSelectionVersion:"explicit-specialist-v1",recallVersion:"relevant-scoped-v1",privateDataAccessible:false,
    productionConnected:false,aiUsed:false});
   if(!url.pathname.startsWith("/api/"))return failure("NOT_FOUND","Unknown page.",404);
   try{return await handleApi(request,env,url);}catch{
