@@ -21,7 +21,11 @@ export function normalizeProjectContext(raw,roster,now=new Date()){
     s.classification!=='public-or-synthetic')throw Error('PROJECT_SOURCE_NOT_APPROVED');
   if(!Array.isArray(s.allowedAgentIds)||s.allowedAgentIds.length<1||s.allowedAgentIds.some(id=>!unique.includes(id)))
    throw Error('PROJECT_SOURCE_RECIPIENT_DENIED');
-  if(s.revoked===true||s.expiresAt&&new Date(s.expiresAt).getTime()<=now.getTime())throw Error('PROJECT_SOURCE_EXPIRED_OR_REVOKED');
+  if(s.revoked===true)throw Error('PROJECT_SOURCE_EXPIRED_OR_REVOKED');
+  if(s.expiresAt!==undefined&&s.expiresAt!==null){
+   const expiry=new Date(s.expiresAt).getTime();
+   if(typeof s.expiresAt!=='string'||!Number.isFinite(expiry)||expiry<=now.getTime())throw Error('PROJECT_SOURCE_EXPIRED_OR_REVOKED');
+  }
   let url=null;
   if(s.url!=null){try{const u=new URL(s.url);if(u.protocol!=='https:'||u.username||u.password)throw Error('BAD_URL');url=u.href}catch{throw Error('PROJECT_SOURCE_URL_DENIED')}}
   return {id:s.id,projectId:s.projectId,title:s.title.trim(),content:s.content.trim(),allowedAgentIds:[...new Set(s.allowedAgentIds)],
