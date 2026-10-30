@@ -18,7 +18,12 @@ export async function discoverFeed(id,fetcher=fetch){
   const dateRaw=text(block.match(/<(?:pubDate|published|updated|dc:date)[^>]*>(.*?)<\/(?:pubDate|published|updated|dc:date)>/is)?.[1]||'');
   const d=dateRaw?new Date(dateRaw):null;
   const publishedAt=d&&Number.isFinite(d.getTime())?d.toISOString():null;
-  return {title,url,publishedAt,verified:false,provenance:'publisher-feed',reviewRequired:true,proposedKnowledgeUpdate:null};
+  return {title,url,publishedAt,publicationDateAvailable:!!publishedAt,publisher:feed.publisher,sourceFeedId:feed.id,
+   discoveredFrom:feed.url,assignedDepartments:feed.departments,verified:false,provenance:'publisher-feed',reviewRequired:true,
+   proposedKnowledgeUpdate:{status:'pending-owner-review',title:'Review source: '+title,sourceUrl:url,
+    publishedAt,sourcePublisher:feed.publisher,targetDepartments:feed.departments,verifiedClaims:[],
+    proposedAction:'Read the original publication, extract verifiable claims and limitations, then request owner approval before adding a note.',
+    autoPromote:false}};
  }).filter(i=>i.title&&i.url);
  return {publisher:feed.publisher,feedId:feed.id,sourceUrl:feed.url,fetchedAt:new Date().toISOString(),items,trust:'discovery-only',automaticallySaved:false};
 }
