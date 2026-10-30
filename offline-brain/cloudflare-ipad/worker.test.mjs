@@ -113,7 +113,7 @@ test("one explicitly approved Workers AI call, no fallback or production access"
  assert.equal(r.body.factualClaimsVerified,false);
  assert.equal(calls.length,1);
  assert.equal(calls[0].model,"@cf/meta/llama-3.2-3b-instruct");
- assert.equal(calls[0].payload.max_tokens,160);
+ assert.equal(calls[0].payload.max_tokens,480);
  assert.equal(calls[0].payload.stream,false);
  assert.ok(JSON.stringify(calls[0].payload).includes("Reviewed factual evidence: NONE"));
  assert.ok(!JSON.stringify(calls[0].payload).includes("scotty-memory"));
@@ -139,7 +139,7 @@ test("unverified methodology pack is not falsely presented as expert facts",asyn
 });
 test("no need to provision KV, D1, R2, or paid database",()=>{
  assert.equal(designAudit.hasRuntimeLogs,false);
- assert.equal(designAudit.maxOutputTokens,160);
+ assert.equal(designAudit.maxOutputTokens,480);
  assert.ok(pageHtml().includes("token stays in this browser tab"));
 });
 
@@ -187,4 +187,22 @@ test('authenticated preview reads real SQLite notes and fails closed for wrong d
   const wrong=await worker.fetch(request('/api/team-preview',{method:'POST',data:{question:sampleQuestion}}),env);
   assert.equal(wrong.status,503);
  }finally{sql.close();}
+});
+
+test('individual inference applies the selected brain profile and traces its knowledge',async()=>{
+ let input;
+ const r=await json(await worker.fetch(request('/api/ask',{method:'POST',data:approve}),environment({AI_ENABLED:'true',AI:{run:async(_,p)=>{input=p;return {response:'Three concrete synthetic test cases.'}}}})));
+ assert.equal(r.status,200);
+ assert.match(input.messages[0].content,/Working method:/);
+ assert.match(input.messages[0].content,/Produce the requested deliverable/);
+ assert.equal(input.max_tokens,480);
+ assert.deepEqual(r.body.knowledgeIds,['field-'+approve.agentId]);
+ assert.deepEqual(r.body.referenceIds,[]);
+ assert.ok(r.body.profileVersion);
+});
+test('individual inference rejects empty model output',async()=>{
+ for(const answer of ['', '  \n ']){
+  const r=await worker.fetch(request('/api/ask',{method:'POST',data:approve}),environment({AI_ENABLED:'true',AI:{run:async()=>({response:answer})}}));
+  assert.equal(r.status,502);
+ }
 });
