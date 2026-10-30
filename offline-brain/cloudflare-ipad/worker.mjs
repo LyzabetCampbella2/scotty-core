@@ -13,6 +13,7 @@ import {KNOWLEDGE_VERSION,FIELD_CARDS,fieldKnowledge} from "./field-knowledge.mj
 import {normalizeNote,memoryStore} from "./brain-memory.mjs";
 import {noteChange,noteAudit,findNoteConflicts,governanceReadiness} from './memory-governance.mjs';
 import {normalizeProjectContext,assertApprovedReviewChain} from './project-evidence-policy.mjs';
+import {departmentAcceptanceCases,ACCEPTANCE_VERSION} from './department-acceptance-cases.mjs';
 import {discoverFeed} from "./source-discovery.mjs";
 import {PUBLIC_FEEDS} from "../update-sources.mjs";
 import {pageHtml} from "./page.mjs";
@@ -100,6 +101,11 @@ async function handleApi(request,env,url){
   governanceMigrationReady:gov.ready,governanceReadinessReason:gov.reason,
   quotaRemaining:null,quotaSource:"No programmatic quota counter available from this Worker; check provider dashboard."
  });}
+ if(path==="/api/quality-cases"&&request.method==="GET")return response({
+  version:ACCEPTANCE_VERSION,cases:departmentAcceptanceCases(roster),
+  source:'authored synthetic testing fixture',modelCalls:0,memoryWrites:0,
+  warning:'Test assignments only; owners must assess live team outputs individually. No department has passed a real model assessment through this endpoint.'
+ });
  if(path==="/api/catalog"&&request.method==="GET")return response({
   overseer:agentPublic(scotty),agents:roster.map(agentPublic),agentCount:roster.length,synthetic:false,liveRosterVerified:false});
  if(path==="/api/sources"&&request.method==="GET")return response({
