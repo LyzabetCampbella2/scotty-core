@@ -332,6 +332,66 @@
   btn(area,'Reload preferred project teams',load);
   load();
  }
+ function projectLocalEvidence(parent,projectId){
+  const area=el('div');css(area,'padding:8px;border:1px solid #456070;border-radius:8px');parent.appendChild(area);
+  para(area,'Preview an uploaded project file before sharing a dated extract or owner-written image description with approved project agents. File bytes remain in the existing workspace; nothing is sent to Cloudflare automatically.');
+  const chooser=el('select');chooser.setAttribute('aria-label','Uploaded project file');area.appendChild(chooser);
+  const recipients=el('div');area.appendChild(recipients);
+  const description=input(area,'Owner description for an image (required for images)');
+  const previewArea=el('div');area.appendChild(previewArea);
+  const consent=check(area,'I reviewed this exact file preview or image description and approve sharing it with the selected project agents.');
+  let token=null,selected=null,epoch=0;
+  const base='/api/agent-brains/project-operations/'+encodeURIComponent(projectId)+'/local-file-evidence';
+  async function post(body){
+   const res=await fetch(base,{method:'POST',credentials:'same-origin',cache:'no-store',
+    headers:{'content-type':'application/json','x-scotty-csrf':'1'},body:JSON.stringify(body)});
+   const data=await res.json();if(!res.ok||data.ok===false)throw Error(data.error||'Project file review rejected');
+   return data;
+  }
+  btn(area,'List uploaded files and approved recipients',async()=>{
+   clear(chooser);clear(recipients);clear(previewArea);token=null;selected=null;consent.checked=false;epoch++;
+   try{
+    const [workspace,team]=await Promise.all([api('/api/workspace/project?id='+encodeURIComponent(projectId)),
+     api('/api/agent-brains/project-operations/'+encodeURIComponent(projectId)+'/team-status')]);
+    for(const f of (workspace.files||[]).slice(0,80)){
+     const option=el('option',String(f.name||f.id));option.value=f.id;chooser.appendChild(option);
+    }
+    for(const m of team.members||[]){
+     const checkbox=check(recipients,'Allow '+m.name);checkbox.value=m.id;
+    }
+    para(previewArea,'Choose one uploaded file and its permitted recipients. Indexed web links without actual file bytes may not be previewable.');
+   }catch(e){error(previewArea,e)}
+  });
+  chooser.addEventListener('change',()=>{epoch++;token=null;selected=null;consent.checked=false;clear(previewArea)});
+  btn(area,'Preview file content or image reference',async()=>{
+   clear(previewArea);token=null;selected=null;consent.checked=false;
+   const turn=++epoch,id=chooser.value;
+   if(!id){para(previewArea,'Select a project file first.');return}
+   try{
+    const data=await post({action:'preview',fileId:id});
+    if(turn!==epoch||chooser.value!==id)return;
+    token=data.previewToken;selected=id;
+    line(previewArea,'File',data.title);
+    line(previewArea,'Kind',data.kind);
+    line(previewArea,'Source SHA-256',data.sha256);
+    para(previewArea,data.note);
+    if(data.referenceOnly)para(previewArea,'No image pixels analyzed; only your own approved description can be shared.');
+    else para(previewArea,String(data.body||'').slice(0,21000));
+   }catch(e){error(previewArea,e)}
+  });
+  btn(area,'Attach owner-approved project evidence',async()=>{
+   if(!consent.checked||!token||selected!==chooser.value){para(previewArea,'Not attached. Review the current file and confirm recipients.');return}
+   const agentIds=recipients.children.filter(n=>n.tagName==='label'&&n.children[0]?.checked).map(n=>n.children[0].value);
+   if(!agentIds.length){para(previewArea,'Select at least one current project agent.');return}
+   try{
+    const data=await post({action:'attach',previewToken:token,agentIds,approved:true,reviewed:true,description:description.value});
+    token=null;consent.checked=false;
+    line(previewArea,'Evidence ID',data.id);
+    line(previewArea,'Independent evidence readback',data.evidenceReadbackVerified===true?'Verified':'Not verified; inspect project evidence list');
+    para(previewArea,data.limitation||'Snapshot source restrictions apply.');
+   }catch(e){error(previewArea,e)}
+  });
+ }
  function showConnectedActions(parent){
   para(parent,'Verify connections before asking SCOTTY to act. Viewing status performs no sends, calendar edits, Drive uploads or Notion writes. Actual changes require the existing connector action preview and owner confirmation.');
   const out=el('div');parent.appendChild(out);
