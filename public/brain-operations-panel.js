@@ -446,6 +446,20 @@
     para(out,'A listed connector is not proof that the account is reachable, a token is valid, or a requested operation is permitted. Verify in the full Connectors screen.');
    }catch(e){error(out,e);para(out,'Cannot verify connected apps from this environment. Avoid making provider actions.')}
   });
+  btn(parent,'Inspect SCOTTY–Dawna bridge readiness (read-only)',async()=>{
+   const box=el('div');parent.appendChild(box);
+   try{
+    const state=await api('/api/agent-brains/project-operations');
+    const bridge=state.ansjemBridge||{};
+    line(box,'ANSJEM work requests enabled',state.ansjemEnabled===true);
+    line(box,'Coordination enabled',state.ansjemCoordinationEnabled===true);
+    line(box,'Dawna remote connected',bridge.connected===true);
+    line(box,'Synchronization',bridge.synchronization||'Not established');
+    line(box,'Review contract',bridge.contract||'No verified contract');
+    para(box,bridge.reason||'No authenticated Dawna endpoint has been verified.');
+    para(box,'Owner-approved request and handoff packets can be prepared in Project Operations. Actual remote sending remains off until both independent systems agree on scope, identity and authentication.');
+   }catch(e){error(box,e)}
+  });
   btn(parent,'Check original folder and document database (read-only)',async()=>{
    const box=el('div');parent.appendChild(box);
    try{
