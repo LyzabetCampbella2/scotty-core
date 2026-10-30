@@ -115,6 +115,7 @@ async function handleApi(request,env,url){
   warning:"These are candidate references. POST /api/discover fetches one selected feed on demand. No automatic refresh, fact verification or memory promotion occurs."
  });
  if(path==="/api/mission"&&request.method==="GET"){
+  if(!storage.ready)return failure("MISSION_STORAGE_NOT_READY","Dedicated mission storage is not ready.",503);
   const id=url.searchParams.get("missionId")||"";
   if(!/^[a-z0-9-]{16,80}$/i.test(id)||url.searchParams.size!==1)
    return failure("INVALID_MISSION_ID","Use one valid mission identifier.",400);
