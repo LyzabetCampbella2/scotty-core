@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {connectedRoster} from './connected-roster.mjs';
-import {normalizeProjectContext,projectEvidenceFor} from './project-evidence-policy.mjs';
+import {normalizeProjectContext,projectEvidenceFor,assertApprovedReviewChain} from './project-evidence-policy.mjs';
 import {previewTeamKnowledge} from './team-runtime.mjs';
 import {evaluateTeamDeliverable} from './chief-quality.mjs';
 const roster=connectedRoster(),agent=roster.find(a=>!a.isChief),other=roster.find(a=>!a.isChief&&a.id!==agent.id);
@@ -28,12 +28,27 @@ test('project switch, revoked source and private content classification are all 
  ];
  for(const change of mutate){const p=payload();change(p);assert.throws(()=>normalizeProjectContext(p,roster));}
 });
-test('preview never reads unapproved source for an unrelated department chief',async()=>{
+test('specialist-only sources cannot flow into an unapproved chief or SCOTTY synthesis',async()=>{
  const ctx=normalizeProjectContext(payload(),roster);
- const p=await previewTeamKnowledge({roster,question:'Use specialist '+agent.id+': Review a synthetic test checklist',getEvidence:async()=>[],projectContext:ctx});
- assert.ok(p.readers.length>=2);
- assert.ok(p.readers[0].references.some(r=>r.scope==='project'));
- assert.ok(p.readers.slice(1).every(r=>!r.references.some(s=>s.scope==='project')));
+ await assert.rejects(()=>previewTeamKnowledge({roster,question:'Use specialist '+agent.id+': Review a synthetic test checklist',getEvidence:async()=>[],projectContext:ctx}),/PROJECT_REVIEW_CHAIN_NOT_APPROVED/);
+});
+test('the entire approved chief review chain can see its owner-granted synthetic source',async()=>{
+ const p=payload(),chief=agent.chiefId;
+ p.assignedAgentIds=[agent.id,chief,'scotty'];
+ p.sources[0].allowedAgentIds=[agent.id,chief,'scotty'];
+ const ctx=normalizeProjectContext(p,roster);
+ const view=await previewTeamKnowledge({roster,question:'Use specialist '+agent.id+': Review a synthetic test checklist',getEvidence:async()=>[],projectContext:ctx});
+ assert.equal(view.readers.length,3);
+ assert.ok(view.readers.every(r=>r.references.some(x=>x.scope==='project')));
+ assert.equal(assertApprovedReviewChain(ctx,view.plan).permitted,true);
+ assert.deepEqual(projectEvidenceFor(other,ctx),[]);
+});
+test('a chief granted evidence cannot pass project findings to SCOTTY without explicit permission',()=>{
+ const p=payload();
+ p.assignedAgentIds=[agent.id,agent.chiefId];
+ p.sources[0].allowedAgentIds=[agent.chiefId];
+ const ctx=normalizeProjectContext(p,roster);
+ assert.throws(()=>assertApprovedReviewChain(ctx,{assignments:[{agentId:agent.id,chiefId:agent.chiefId}]}),/PROJECT_CHIEF_HANDOFF_NOT_APPROVED/);
 });
 test('chief quality gate requires substantive handoff and explicitly leaves owner review pending',()=>{
  const r=evaluateTeamDeliverable({question:'List 3 test cases',answer:'I deployed the application.',results:[{role:'specialist',text:'A draft'}]});
