@@ -119,6 +119,65 @@
    }catch(e){error(out,e)}
   });
  }
+ function showCloudflareMemory(parent){
+  para(parent,'Dedicated Cloudflare D1 memory is separate from Render PostgreSQL. This section reads only the chosen agent’s notes; changes require a new preview and explicit owner approval. Governance migration v2 must first be applied to the dedicated D1 database.');
+  const agent=input(parent,'Exact Cloudflare specialist or chief ID','scotty');
+  const out=el('div');parent.appendChild(out);
+  btn(parent,'Read reviewed D1 notes',async()=>{
+   clear(out);
+   const id=agent.value.trim();
+   if(!/^[a-zA-Z0-9-]{1,90}$/.test(id)){para(out,'Choose a valid exact agent ID.');return}
+   try{
+    const data=await api('/api/independent-brain/memory?agentId='+encodeURIComponent(id));
+    for(const n of data.notes||[]){
+     const item=el('div');css(item,'padding:10px;margin:10px 0;border:1px solid #456070;border-radius:6px');out.appendChild(item);
+     line(item,'D1 note '+n.id,n.title);
+     para(item,String(n.content||'').slice(0,1800));
+     line(item,'Scope',n.scope);line(item,'Reviewed',n.reviewedAt);line(item,'Expires',n.expiresAt);
+     if(n.url){const a=el('a','Read original source');a.href=n.url;a.target='_blank';a.rel='noopener noreferrer';item.appendChild(a)}
+     btn(item,'Read redacted change history',async()=>{const box=el('div');item.appendChild(box);
+      try{const h=await api('/api/independent-brain/memory-history?noteId='+encodeURIComponent(n.id));
+       for(const c of h.changes||[])line(box,c.action,c.changedAt);
+       if(!(h.changes||[]).length)para(box,'No changes recorded in the D1 governance audit.');
+      }catch(e){error(box,e)}
+     });
+     for(const op of ['correct','replace','expire','archive','delete'])btn(item,op,()=>cloudflareChange(item,n,op));
+    }
+    if(!(data.notes||[]).length)para(out,'No unexpired notes returned for this agent.');
+   }catch(e){error(out,e)}
+  });
+ }
+ function cloudflareChange(parent,n,action){
+  const area=el('div');css(area,'padding:9px;margin:9px 0;border:1px solid #84b7bc;border-radius:8px');parent.appendChild(area);
+  headline(area,action+' D1 note '+n.id);
+  const title=['correct','replace'].includes(action)?input(area,'New reviewed title',n.title):null;
+  const content=['correct','replace'].includes(action)?input(area,'New reviewed content',n.content):null;
+  const expires=action==='expire'?input(area,'Future expiration date, YYYY-MM-DD'):null;
+  const privacy=check(area,'I confirm this note and any edits contain no private, client, account or production data.');
+  const summary=el('div');area.appendChild(summary);
+  btn(area,'Preview exact D1 change — no mutation',async()=>{
+   clear(summary);if(!privacy.checked){para(summary,'No request sent. Confirm the privacy statement first.');return}
+   const payload={stage:'preview',noteId:n.id,action,noPrivateDataConfirmed:true};
+   if(title){payload.title=title.value;payload.content=content.value;}
+   if(expires){payload.expiresAt=expires.value+'T00:00:00.000Z';}
+   try{
+    const p=await api('/api/independent-brain/memory-change',payload);
+    para(summary,p.reminder||'Review the before and after values.');
+    line(summary,'Old content',String(p.old?.content||'').slice(0,600));
+    line(summary,'Next content',p.next?.deleted?'Deleted':String(p.next?.content||'').slice(0,600));
+    line(summary,'Old expiry',p.old?.expiresAt);
+    line(summary,'New expiry',p.next?.deleted?'Deleted':p.next?.expiresAt);
+    const agree=check(summary,'I reviewed the exact preview and authorize this one D1 operation.');
+    btn(summary,'Confirm and apply reviewed D1 change',async()=>{
+     if(!agree.checked){para(summary,'Not applied. Confirm this preview first.');return}
+     try{
+      const applied=await api('/api/independent-brain/memory-change',{...payload,stage:'apply',previewToken:p.previewToken,approved:true,reviewAcknowledged:true});
+      para(summary,applied.verified?'Change independently read back and verified. Refresh notes.':'The change could not be verified; check the D1 database before retrying.');
+     }catch(e){error(summary,e)}
+    });
+   }catch(e){error(summary,e)}
+  });
+ }
  function showMissions(parent){
   const out=el('div');parent.appendChild(out);
   btn(parent,'Inspect saved Cloudflare missions',async()=>{clear(out);try{
@@ -180,6 +239,7 @@
   section(panel,'1 · Readiness, status and quota',showReadiness);
   section(panel,'2 · Agent selection and knowledge preview',showPreview);
   section(panel,'3 · Memory search, source review and change approval',showMemory);
+  section(panel,'Cloudflare · Reviewed D1 notes and governance',showCloudflareMemory);
   section(panel,'4 · Mission checkpoints and recovery evidence',showMissions);
   section(panel,'5 · Publisher source candidates',showSources);
   btn(panel,'Open existing System & Recovery',()=>{root.location.href='/system'});
