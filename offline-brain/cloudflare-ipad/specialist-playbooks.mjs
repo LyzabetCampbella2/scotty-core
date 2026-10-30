@@ -1,5 +1,6 @@
+import {departmentMethod,DEPARTMENT_PATTERNS} from './department-methods.mjs';
 /** Per-agent original working playbooks. No scraped, private or independently verified facts. */
-export const PLAYBOOK_VERSION='specialist-playbooks-v2';
+export const PLAYBOOK_VERSION='specialist-playbooks-v3';
 const references={
  'Security & Defense':['NIST','https://www.nist.gov/cyberframework'],
  'Research & Intelligence':['Crossref','https://www.crossref.org/documentation/'],
@@ -40,16 +41,14 @@ const focusMethods={
 };
 export function specialistPlaybook(agent){
  if(!agent||typeof agent.id!=='string'||!agent.id||typeof agent.department!=='string')throw Error('INVALID_SPECIALIST');
- const focus=String(agent.specialty||agent.department).slice(0,120),method=focusMethods[focus.toLowerCase()]||[
-  'Define the actual deliverable and its constraints in '+focus,
-  'Create a numbered procedure, explicit checkpoints and expected outputs',
-  'Synthetic example: compare two approaches to '+focus+' with stated assumptions',
-  'Do not assert specialist qualifications, current facts, sources or external execution without evidence'
- ];
+ const focus=String(agent.specialty||agent.department).slice(0,120);
+ const exact=focusMethods[focus.toLowerCase()];
+ const method=exact||departmentMethod(agent.department,focus);
  const source=references[agent.department];
  return {id:'playbook-'+agent.id,agentId:agent.id,version:PLAYBOOK_VERSION,
   reviewed:false,ownerReviewedAt:null,knowledgeStatus:'authored-methodology-pending-review',
-  focus,department:agent.department,foundation:'The task, its evidence and the acceptance criteria are separate. A profile is not a credential.',
+  focus,department:agent.department,methodCoverage:exact?'specialty-specific':'department-specific',
+  departmentPatternCount:Object.keys(DEPARTMENT_PATTERNS).length,foundation:'The task, its evidence and the acceptance criteria are separate. A profile is not a credential.',
   procedure:[method[0],method[1],'Map every material factual claim to permitted dated evidence','Record uncertainty and submit a concrete deliverable to the department chief'],
   workedExample:method[2],
   boundaries:[method[3],'No cross-agent or cross-project data access','Escalate safety-critical or professional decisions to appropriate qualified review'],
