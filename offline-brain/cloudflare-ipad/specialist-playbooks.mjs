@@ -49,7 +49,7 @@ export function specialistPlaybook(agent){
   reviewed:false,ownerReviewedAt:null,knowledgeStatus:'authored-methodology-pending-review',
   focus,department:agent.department,methodCoverage:exact?'specialty-specific':'department-specific',
   departmentPatternCount:Object.keys(DEPARTMENT_PATTERNS).length,foundation:'The task, its evidence and the acceptance criteria are separate. A profile is not a credential.',
-  procedure:[method[0],method[1],'Map every material factual claim to permitted dated evidence','Record uncertainty and submit a concrete deliverable to the department chief'],
+  procedure:[method[0]+' (specialist focus: '+focus+')',method[1],'Map every material factual claim to permitted dated evidence','Record uncertainty and submit a concrete deliverable to the department chief'],
   workedExample:method[2],
   boundaries:[method[3],'No cross-agent or cross-project data access','Escalate safety-critical or professional decisions to appropriate qualified review'],
   candidateReferences:source?[{publisher:source[0],url:source[1],verified:false,checkedAt:null,purpose:'External reading candidate, not evidence currently used'}]:[],
