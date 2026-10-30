@@ -396,6 +396,7 @@
   section(panel,'4 · Mission checkpoints and recovery evidence',showMissions);
   section(panel,'5 · Publisher source candidates',showSources);
   section(panel,'6 · Department-specific acceptance cases',showDepartmentAcceptance);
+  section(panel,'7 · Project Command Center — approved teams, evidence, missions and briefings',projectCommandCenter);
   btn(panel,'Open existing System & Recovery',()=>{root.location.href='/system'});
   panel.focus();
  }
