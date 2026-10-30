@@ -123,6 +123,17 @@
   para(parent,'Dedicated Cloudflare D1 memory is separate from Render PostgreSQL. This section reads only the chosen agent’s notes; changes require a new preview and explicit owner approval. Governance migration v2 must first be applied to the dedicated D1 database.');
   const agent=input(parent,'Exact Cloudflare specialist or chief ID','scotty');
   const out=el('div');parent.appendChild(out);
+  btn(parent,'Inspect conflicting D1 notes (read-only)',async()=>{
+   const id=agent.value.trim(),box=el('div');parent.appendChild(box);
+   if(!/^[a-zA-Z0-9-]{1,90}$/.test(id)){para(box,'Choose an exact agent ID.');return}
+   try{
+    const data=await api('/api/independent-brain/memory-conflicts?agentId='+encodeURIComponent(id));
+    line(box,'Active notes compared',data.searched);
+    line(box,'Conflicts requiring owner review',(data.conflicts||[]).length);
+    for(const issue of data.conflicts||[])line(box,'Conflict '+issue.key,'Notes '+issue.ids.join(', ')+'. '+issue.reason);
+    para(box,data.warning||'No automatic conflict resolution.');
+   }catch(e){error(box,e)}
+  });
   btn(parent,'Read reviewed D1 notes',async()=>{
    clear(out);
    const id=agent.value.trim();
