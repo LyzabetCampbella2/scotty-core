@@ -17,6 +17,6 @@ export async function storageReadiness(db){
 export async function readiness(env,{chiefCount=25,specialistCount=160}={}){
  const storage=await storageReadiness(env.BRAIN_DB);
  const checks={ownerAuthentication:typeof env.OWNER_BEARER_TOKEN==='string'&&env.OWNER_BEARER_TOKEN.length>=32,aiEnabled:env.AI_ENABLED==='true',aiBinding:typeof env.AI?.run==='function',storage,chiefCount,specialistCount,liveRosterVerified:false,freePlanVerifiedAutomatically:false};
- return {release:RELEASE,checks,canPlan:checks.ownerAuthentication,canInfer:checks.ownerAuthentication&&checks.aiEnabled&&checks.aiBinding&&(!storage.bound||storage.ready),canPersist:checks.ownerAuthentication&&storage.ready,providerCalls:0,
+ return {release:RELEASE,checks,canPlan:checks.ownerAuthentication,canInfer:checks.ownerAuthentication&&checks.aiEnabled&&checks.aiBinding&&(!storage.bound||storage.ready),canInferTeam:checks.ownerAuthentication&&checks.aiEnabled&&checks.aiBinding&&storage.ready,canPersist:checks.ownerAuthentication&&storage.ready,providerCalls:0,
   nextSteps:[...(!checks.aiEnabled?['Enable AI only in the dedicated Worker after confirming Workers Free.']:[]),...(!checks.aiBinding?['Connect the Cloudflare Workers AI binding named AI.']:[]),...(!storage.bound?['Create and bind the dedicated D1 memory database as BRAIN_DB.']:[]),...(storage.bound&&!storage.ready?['Apply memory-schema.sql to the dedicated lab database; verify its installation marker.']:[]),'Verify the actual original agent roster before declaring migration complete.']};
 }
