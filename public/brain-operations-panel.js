@@ -207,6 +207,25 @@
    }catch(e){error(status,e);para(status,'Project operations might be disabled by an owner feature flag. No changes were made.');}
   }
   btn(parent,'Load my real project list',loadProjects);
+  btn(parent,'Read all-project chief-of-staff briefing (read-only)',async()=>{
+   clear(result);
+   try{
+    const data=await api('/api/agent-brains/project-operations/brief-all'),b=data.brief||{};
+    line(result,'Projects covered',b.projectCount??0);
+    line(result,'As of',b.asOf||'Unknown');
+    for(const [k,name] of [['overdue','Overdue'],['upcoming','Upcoming'],['decisions','Awaiting decisions'],['blocked','Blocked'],['pendingHandoffs','Pending handoffs']])
+     line(result,name,b.totals?.[k]??'Not measured');
+    for(const p of b.projects||[]){
+     const item=el('div');css(item,'padding:8px;margin:7px 0;border:1px solid #456070');result.appendChild(item);
+     headline(item,p.name||p.id);
+     for(const alert of p.attention||[])line(item,alert.kind,alert.text+(alert.dueAt?' · '+alert.dueAt:''));
+     for(const gap of p.sourceGaps||[])para(item,'Source gap: '+gap);
+     line(item,'Saved connected-app snapshots',p.connectedAppSnapshots??'Unknown');
+     line(item,'Stale or undated snapshots',p.staleSnapshots??'Unknown');
+    }
+    para(result,b.note||'This briefing is on-demand and does not read live mail or calendar services.');
+   }catch(e){error(result,e)}
+  });
   btn(parent,'Manage preferred project team (owner approval required)',()=>{
    clear(result);const id=picker.value;
    if(!/^[A-Za-z0-9_-]{1,160}$/.test(id)){para(result,'Select a real project first.');return}
