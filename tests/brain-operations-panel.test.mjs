@@ -25,6 +25,13 @@ function harness({migrationReady=false}={}){
    boundaries:['Never claim real execution'],candidateReferences:[{publisher:'NIST',verified:false}]},references:[]}]};
  const fetch=async(path,options={})=>{
   calls.push({path,options});
+  if(path==='/api/agent-brains/project-operations')return Response.json({ok:true,projects:[{id:'project-bloodpool',name:'Bloodpool'},{id:'project-goldenhour',name:'Golden Hour Creative'}],realDraftsEnabled:false,ansjemEnabled:false,providerConfigured:false});
+  if(path==='/api/agent-brains/project-operations/project-bloodpool/brief')return Response.json({ok:true,brief:{asOf:'2026-10-30',overdue:[],upcoming:[{title:'Fictional draft review',dueAt:'2026-11-01'}],decisions:[{goal:'Approve fiction outline',status:'awaiting_approval'}],blocked:[],pendingHandoffs:1,gaps:['No live calendar connection']}});
+  if(path==='/api/agent-brains/project-operations/project-bloodpool/progress')return Response.json({ok:true,missions:[{id:'sample-mission',goal:'Fictional outline',status:'review',steps:[{agentId:'agent-one',status:'drafted',deliverable:'Three-scene outline'}]}]});
+  if(path==='/api/agent-brains/project-operations/project-bloodpool/team-status')return Response.json({ok:true,members:[{id:'agent-one',name:'First Agent'}]});
+  if(path==='/api/agent-brains/project-operations/project-bloodpool/evidence')return Response.json({ok:true,evidence:[{id:'evidence-one',title:'Fictional chapter extract',recipients:['agent-one']} ]});
+  if(path==='/api/connectors')return Response.json({ok:true,providers:[{provider:'notion',enabled:false},{provider:'googledocs',enabled:true}],vaultConfigured:false});
+  if(path==='/api/folders?structure=1')return Response.json({ok:true,folders:[{id:'folder-1'}],projects:[{id:'project-bloodpool'}]});
   if(path==='/api/independent-brain/operations')return Response.json({memoryReady:true,counts:{completed:7,running:2},total:9,staleRunningSample:[{missionId:'synthetic-running-00001',lastCheckpoint:'2026-10-01'}],quota:null,providerCalls:null});
   if(path==='/api/independent-brain/quality-cases')return Response.json({
    version:'department-acceptance-v1',modelCalls:0,cases:[{
@@ -111,4 +118,33 @@ test('owner operations panel displays actual checkpoint counts and unknown quota
  assert.match(view,/synthetic-running-00001/);
  assert.match(view,/Unavailable — check Cloudflare dashboard/);
  assert.equal(h.calls.filter(c=>c.path.includes('/team')).length,0);
+});
+
+test('read-only Project Command Center loads real projects and owner-scoped briefing without any writes',async()=>{
+ const h=harness();
+ const load=byLabel(h,'Load my real project list');
+ assert.ok(load);
+ await load.listeners.click();
+ assert.match(text(h.body),/Bloodpool/);
+ const inspect=byLabel(h,'Inspect selected project team, missions and briefing');
+ assert.ok(inspect);
+ const select=h.find(n=>n.tag==='select'&&n['aria-label']==='Choose a real SCOTTY project');
+ assert.ok(select);
+ select.value='project-bloodpool';
+ await inspect.listeners.click();
+ const shown=text(h.body);
+ assert.match(shown,/Fictional draft review/);
+ assert.match(shown,/Three-scene outline/);
+ assert.match(shown,/First Agent/);
+ assert.match(shown,/Fictional chapter extract/);
+ assert.ok(h.calls.filter(c=>c.path.startsWith('/api/agent-brains/project-operations/')).every(c=>!c.options.body));
+ assert.equal(h.calls.filter(c=>c.path.startsWith('/api/independent-brain/team')).length,0);
+});
+test('read-only connector and folder status never performs a third-party action',async()=>{
+ const h=harness();
+ await byLabel(h,'Check connector configuration (read-only)').listeners.click();
+ await byLabel(h,'Check original folder and document database (read-only)').listeners.click();
+ assert.match(text(h.body),/Configured/);
+ assert.match(text(h.body),/Available folders/);
+ assert.ok(h.calls.filter(c=>c.path.startsWith('/api/connectors')||c.path.startsWith('/api/folders')).every(c=>!c.options.body));
 });
