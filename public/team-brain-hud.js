@@ -45,7 +45,7 @@
    function finish(granted){
     if(pending!==entry)return;
     pending=null;clearTimeout(timer);signal?.removeEventListener('abort',cancel);
-    panel.remove();resolve(granted ? entry.teamSize : 0);
+    panel.remove();resolve(granted ? {teamSize:entry.teamSize,question:entry.question} : null);
    }
    const cancel=()=>finish(false);
    const entry={finish,question,teamSize:1,speak,createdAt:Date.now()};
@@ -58,7 +58,7 @@
    signal?.addEventListener('abort',cancel,{once:true});
    timer=setTimeout(cancel,180000);
    if(signal?.aborted)cancel();
-   else if(typeof speak==='function')Promise.resolve().then(()=>speak('I will send this request to Cloudflare Workers AI: '+question+'. Confirm it contains no private, client, account or production information. Say use one department or use two departments to choose the team size, then yes to approve this one request, or cancel.')).catch(()=>{});
+   else if(typeof speak==='function')Promise.resolve().then(()=>speak('I will send this request to Cloudflare Workers AI: '+question+'. Confirm it contains no private, client, account or production information. Say use specialist followed by the exact name to request a specialist. Say use one department or use two departments to choose the team size, then yes to approve this one request, or cancel.')).catch(()=>{});
   });
  }
  async function handleSpokenConsent(raw,meta={}){
@@ -71,6 +71,16 @@
     if(meta.capturedDuringSpeech===true||root.speaking===true)return true;
     pending.teamSize=/^(two|2)$/i.test(size[1])?2:1;
     if(typeof pending.speak==='function')await pending.speak('Selected '+pending.teamSize+' department'+(pending.teamSize===1?'':'s')+'. Say yes to approve or cancel.');
+    return true;
+   }
+   const chosen=s.match(/^use specialist (.{1,100})$/i);
+   if(chosen){
+    if(meta.capturedDuringSpeech===true||root.speaking===true)return true;
+    const original=pending.question.replace(/^use specialist [^:]+:\s*/i,'');
+    const revised='Use specialist '+chosen[1].trim()+': '+original;
+    if(revised.length>500){if(typeof pending.speak==='function')await pending.speak('Please shorten the assignment before selecting a specialist.');return true;}
+    pending.question=revised;
+    if(typeof pending.speak==='function')await pending.speak('Requested specialist '+chosen[1]+'. I will verify that name before making AI calls. Say yes to approve or cancel.');
     return true;
    }
    if(!grant&&!cancel)return false;
@@ -151,12 +161,13 @@
   memoryReview?.close();
   if(!shouldRoute(question))throw Error('Team routing requested for an unsupported command.');
   if(safeText(question).length>500)throw Error('Team Brain supports up to 500 characters. Shorten this request before sharing; it was not forwarded to Groq.');
-  const teamSize=await approve(question,signal,speak);
-  if(!teamSize)return {cancelled:true};
+  const selection=await approve(question,signal,speak);
+  if(!selection)return {cancelled:true};
+  const {teamSize}=selection;question=selection.question;
   if(signal?.aborted)return {cancelled:true};
   const preview=await call('team-preview',{data:{question,teamSize},signal});
   if(!preview.readers?.length)return {ok:true,reply:'No matching department was found. Please name the field and the deliverable you need.',provider:'cloudflare-team'};
-  if(typeof speak==='function')await speak('The selected team is '+preview.readers.map(r=>r.name+' as '+r.role).join(', ')+'. I will use their field guides and approved scoped notes.');
+  if(typeof speak==='function')await speak('The selected team is '+preview.readers.map(r=>r.name+' as '+r.role+(r.selectionReason?'. '+r.selectionReason:'')).join(', ')+'. I will use their field guides and approved scoped notes.');
   if(signal?.aborted)return {cancelled:true};
   const missionId=crypto.randomUUID();
   const data=await call('team',{data:{question,teamSize,missionId,ownerApproved:true,shareWithCloudflare:true,noPrivateDataConfirmed:true},signal});
