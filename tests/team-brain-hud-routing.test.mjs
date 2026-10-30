@@ -21,6 +21,7 @@ function harness({readback=true,teamFails=false}={}){
  const document={querySelector:select,createElement:element,body,head:element('head')};
  const fetcher=async(url,options={})=>{
   const req={url,options};requests.push(req);
+  if(url==='/api/independent-brain/team-preview')return Response.json({readers:[{name:'Sisko',role:'specialist'},{name:'GEORDI',role:'department chief'},{name:'SCOTTY',role:'overseer'}]});
   if(url==='/api/independent-brain/team'){
    if(teamFails)return Response.json({ok:false,error:'AI_SWITCH_OFF'},{status:409});
    const data=JSON.parse(options.body);
@@ -69,7 +70,7 @@ test('real typed HUD command routes specialist/chief/SCOTTY request and verifies
  await h.run('heard('+JSON.stringify(approval)+')');await pending;
  assert.equal(h.requests.filter(x=>x.url==='/api/independent-brain/team').length,1);
  assert.equal(h.requests.filter(x=>x.url==='/api/hud/command').length,0,'never silently fallback to Groq');
- const payload=JSON.parse(h.requests[0].options.body);
+ const payload=JSON.parse(h.requests.find(r=>r.url==='/api/independent-brain/team').options.body);
  assert.equal(payload.question,prompt);assert.equal(payload.ownerApproved,true);assert.equal(payload.shareWithCloudflare,true);assert.equal(payload.noPrivateDataConfirmed,true);
  assert.equal(h.ctx.SCOTTYTeamBrain.last.missionVerified,true);
  assert.equal(h.ctx.SCOTTYTeamBrain.last.reviewedMemoryVerified,false,'mission is not automatically promoted into knowledge');
@@ -80,7 +81,7 @@ test('recognized speech uses same routing with owner voice approval',async()=>{
  const h=harness();const first=h.run('heard('+JSON.stringify('Scotty, '+prompt)+')');
  await h.wait();assert.equal(h.requests.length,0);
  await h.run('heard('+JSON.stringify(approval)+')');await first;
- assert.equal(h.requests[0].url,'/api/independent-brain/team');
+ assert.equal(h.requests[0].url,'/api/independent-brain/team-preview');
  assert.equal(h.ctx.SCOTTYTeamBrain.last.missionVerified,true);
 });
 test('late or speaker-captured approvals are rejected and stop cancels without sending',async()=>{
@@ -159,4 +160,16 @@ test('spoken cancellation and stale memory after a new command cannot write',asy
  await h.run('heard("yes")');await task;
  await h.run('heard("save that")');await h.run('heard("cancel")');assert.equal(h.notes.size,0);
  await h.run('heard("skip")');await h.run('heard("yes")');assert.equal(h.notes.size,0);
+});
+
+test('voice team-size correction precedes consent and is forwarded to preview and mission',async()=>{
+ const h=harness();const work=h.run('SCOTTYTeamBrain.run('+JSON.stringify(prompt)+',{speak})');
+ await h.wait();
+ await h.ctx.SCOTTYTeamBrain.handleSpokenConsent('use two departments',{capturedDuringSpeech:true});
+ await h.ctx.SCOTTYTeamBrain.handleSpokenConsent('use two departments');
+ assert.equal(h.requests.length,0);
+ await h.ctx.SCOTTYTeamBrain.handleSpokenConsent('yes');await work;
+ for(const path of ['team-preview','team'])assert.equal(JSON.parse(h.requests.find(r=>r.url.endsWith('/'+path)).options.body).teamSize,2);
+ assert.ok(h.speech.some(s=>s.includes('GEORDI')));
+ h.ctx.SCOTTYTeamBrain.handleSpokenConsent('skip');
 });
