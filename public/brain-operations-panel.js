@@ -23,7 +23,7 @@
  function line(parent,name,value){const row=el('p');const strong=el('strong',name+': ');row.appendChild(strong);row.appendChild(document.createTextNode(String(value??'Not reported')));parent.appendChild(row)}
  function error(parent,e){para(parent,'Unavailable: '+String(e.message||e).slice(0,240))}
  function section(parent,name,fn){const wrap=el('section');css(wrap,'padding:12px;margin:10px 0;border:1px solid #456070;border-radius:9px');headline(wrap,name);parent.appendChild(wrap);fn(wrap);return wrap}
- async function checkRecoveryApproval(parent,missionId,checkpoint){
+ function checkRecoveryApproval(parent,missionId,checkpoint){
   return check(parent,'I investigated mission '+missionId+' and reviewed checkpoint '+checkpoint+'. I approve marking only that stale run incomplete, with no retry.');
  }
  function showReadiness(parent){
