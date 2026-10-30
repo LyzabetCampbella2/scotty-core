@@ -71,6 +71,11 @@ export async function noteChange(db,request,{now=new Date()}={}){
   latestReviewedAt:plan.action==='delete'?null:updatedAt,
   noteTextRetainedInAudit:false,modelCalls:0,productionWrites:0};
 }
+export async function governanceReadiness(db){
+ if(!db?.prepare||!db?.batch)return {ready:false,reason:'Transactional D1 binding not configured'};
+ try{await auditReady(db);return {ready:true,reason:null};}
+ catch(e){return {ready:false,reason:String(e.message||'Governance audit schema unavailable')};}
+}
 export async function noteAudit(db,id){
  await auditReady(db);
  if(typeof id!=='string'||!/^[a-z0-9-]{8,100}$/i.test(id))throw Error('INVALID_NOTE_ID');
