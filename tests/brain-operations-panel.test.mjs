@@ -270,6 +270,6 @@ test('voice health panel reports truthful provider readiness without calling syn
  assert.match(v,/For iPad acceptance/);
  const reads=h.calls.filter(x=>x.path==='/api/voice/status');
  assert.equal(reads.length,1);
- assert.equal(reads[0].options.method,undefined);
+ assert.equal(reads[0].options.method,'GET');
  assert.equal(h.calls.filter(x=>x.path.includes('/api/voice/speak')||x.path.includes('/api/tts')).length,0);
 });
