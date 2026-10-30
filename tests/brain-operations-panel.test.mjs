@@ -25,6 +25,7 @@ function harness({migrationReady=false}={}){
    boundaries:['Never claim real execution'],candidateReferences:[{publisher:'NIST',verified:false}]},references:[]}]};
  const fetch=async(path,options={})=>{
   calls.push({path,options});
+  if(path==='/api/independent-brain/operations')return Response.json({memoryReady:true,counts:{completed:7,running:2},total:9,staleRunningSample:[{missionId:'synthetic-running-00001',lastCheckpoint:'2026-10-01'}],quota:null,providerCalls:null});
   if(path==='/api/independent-brain/quality-cases')return Response.json({
    version:'department-acceptance-v1',modelCalls:0,cases:[{
     department:'Quality & Verification',chiefId:'chief-tuvok',specialistId:'agent-tuvok-01',
@@ -98,4 +99,16 @@ test('25-department acceptance section loads synthetic cases without inference o
  assert.equal(h.calls.filter(c=>c.path.includes('/team')).length,0);
  assert.match(text(h.body),/Quality & Verification/);
  assert.match(text(h.body),/Not run \/ owner review required/);
+});
+
+test('owner operations panel displays actual checkpoint counts and unknown quota',async()=>{
+ const h=harness();
+ await byLabel(h,'Refresh readiness (read-only)').listeners.click();
+ assert.ok(h.calls.some(c=>c.path==='/api/independent-brain/operations'));
+ const view=text(h.body);
+ assert.match(view,/Persisted mission count/);
+ assert.match(view,/Stale missions needing manual review/);
+ assert.match(view,/synthetic-running-00001/);
+ assert.match(view,/Unavailable — check Cloudflare dashboard/);
+ assert.equal(h.calls.filter(c=>c.path.includes('/team')).length,0);
 });
