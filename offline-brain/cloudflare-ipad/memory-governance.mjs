@@ -41,6 +41,9 @@ async function auditReady(db){
  if(!db?.batch||!db?.prepare)throw Error('TRANSACTIONAL_D1_REQUIRED');
  const r=await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='brain_note_change_audit'").all();
  if(!(r.results||[]).some(x=>x.name==='brain_note_change_audit'))throw Error('MEMORY_GOVERNANCE_MIGRATION_REQUIRED');
+ // A matching table name is insufficient; verify every column used by changes and audit reads.
+ try{await db.prepare('SELECT id,note_id,action,old_reviewed_at,new_reviewed_at,changed_at FROM brain_note_change_audit LIMIT 0').all();}
+ catch{throw Error('MEMORY_GOVERNANCE_SCHEMA_INCOMPLETE');}
 }
 export async function noteChange(db,request,{now=new Date()}={}){
  await auditReady(db);
