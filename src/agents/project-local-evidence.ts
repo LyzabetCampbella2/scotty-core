@@ -6,6 +6,7 @@ import {ensureProjectEvidence,approveEvidence,evidenceList} from './project-evid
 import {fileBytes} from '../workspace/cloud.ts';
 import {extractText} from '../workspace/exports.ts';
 import {previewKind} from '../workspace/model.ts';
+import {reviewedLocalAttachment,assertSameLocalFile} from './project-local-evidence-model.mjs';
 
 const pending=new Map<string,any>();
 const validId=(s:any)=>typeof s==='string'&&/^[a-z0-9_-]{8,180}$/i.test(s);
@@ -45,16 +46,12 @@ export async function previewProjectLocalFile(p:string,input:any,read=fileBytes,
 export async function attachProjectLocalFile(p:string,input:any,read=fileBytes){
  if(process.env.SCOTTY_PROJECT_DOCUMENTS_ENABLED!=='true')throw Error('PROJECT_DOCUMENTS_DISABLED');
  const preview=pending.get(input?.previewToken);
- if(!preview||preview.p!==p||preview.expires<Date.now())throw Error('FILE_PREVIEW_EXPIRED_OR_WRONG_PROJECT');
- if(input.approved!==true||input.reviewed!==true||!Array.isArray(input.agentIds)||!input.agentIds.length)
-  throw Error('OWNER_FILE_EVIDENCE_APPROVAL_REQUIRED');
+ const reviewed=reviewedLocalAttachment(preview,input,p);
  const file=await fileInProject(p,preview.fileId,read);
- if(file.sha256!==preview.sha256||file.name!==preview.name)throw Error('FILE_CHANGED_AFTER_PREVIEW');
+ assertSameLocalFile(preview,file);
  let text=preview.body,limitation='';
  if(preview.referenceOnly){
-  if(typeof input.description!=='string'||!input.description.trim()||input.description.length>1400)
-   throw Error('OWNER_IMAGE_DESCRIPTION_REQUIRED');
-  text='Owner description of image (not automatically verified from pixels): '+input.description.trim();
+  text='Owner description of image (not automatically verified from pixels): '+reviewed.description;
   limitation='Image remained in the project file store; the approved description is an owner-supplied reference, not image analysis.';
  }else limitation='Dated text snapshot only; formatting, figures and any later source edits are not included.';
  pending.delete(input.previewToken);
@@ -62,9 +59,9 @@ export async function attachProjectLocalFile(p:string,input:any,read=fileBytes){
  const result=await approveEvidence(p,{approved:true,kind:'note',title:title.slice(0,240),
   body:'[Source: project file '+preview.fileId+'; SHA256 '+preview.sha256+'; captured '+preview.createdAt+']\n'+
    '[Limit: '+limitation+']\n'+text,
-  reference:'workspace-file:'+preview.fileId,agentIds:input.agentIds});
+  reference:'workspace-file:'+preview.fileId,agentIds:reviewed.agentIds});
  const saved=(await evidenceList(p)).find((item:any)=>item.id===result.id);
- return {...result,evidenceReadbackVerified:Boolean(saved&&saved.recipients?.length===input.agentIds.length),
+ return {...result,evidenceReadbackVerified:Boolean(saved&&saved.recipients?.length===reviewed.agentIds.length),
   originalFileTransferred:false,externalUpload:false,sourceSha256:preview.sha256,
   snapshot:true,referenceOnly:preview.referenceOnly,limitation};
 }
