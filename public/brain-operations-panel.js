@@ -329,6 +329,26 @@
      line(tile,'Members',t.agentIds.join(', '));
      line(tile,'Lead chief',t.leadChiefId);
      line(tile,'Current access',t.active?'Current permitted members':'STALE — member removed or paused; do not reuse');
+     if(t.active){
+      const missionGoal=input(tile,'New goal for this preferred project team');
+      const evidenceNote=el('p','No evidence snapshots automatically shared. Add only owner-approved sources in the full mission editor.');tile.appendChild(evidenceNote);
+      const reviewPlan=check(tile,'I authorize saving a non-executing multi-step mission draft with these already permitted agents.');
+      const result=el('div');tile.appendChild(result);
+      btn(tile,'Prepare mission plan from preferred team',async()=>{
+       clear(result);
+       if(!reviewPlan.checked||!missionGoal.value.trim()||missionGoal.value.length>12000){
+        para(result,'Enter the mission goal and explicitly approve this team for a draft plan.');return;
+       }
+       try{
+        const data=await api(base+'/plan',{goal:missionGoal.value.trim(),
+         agentIds:[...t.agentIds],leadChiefId:t.leadChiefId,
+         evidenceIds:[],realDrafts:false,chiefReview:false});
+        line(result,'Saved mission plan',data.id||data.plan?.id||data.planId||'Created; verify in Mission Editor');
+        para(result,'No model calls, file sharing, or draft execution were requested. Review plan revision and steps in the full Mission Editor before starting.');
+        reviewPlan.checked=false;
+       }catch(e){error(result,e)}
+      });
+     }
     }
     const name=input(area,'Team name (example: Manuscript Review Team)');
     const selectChief=el('select');selectChief.setAttribute('aria-label','Lead project chief');area.appendChild(selectChief);
