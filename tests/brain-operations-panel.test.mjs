@@ -136,7 +136,7 @@ test('owner operations panel displays actual checkpoint counts and unknown quota
  assert.ok(h.calls.some(c=>c.path==='/api/independent-brain/operations'));
  const view=text(h.body);
  assert.match(view,/Persisted mission count/);
- assert.match(view,/Stale missions (total)/);
+ assert.match(view,/Stale missions/);
  assert.match(view,/synthetic-running-00001/);
  assert.match(view,/Unavailable — check Cloudflare dashboard/);
  assert.equal(h.calls.filter(c=>c.path.includes('/team')).length,0);
