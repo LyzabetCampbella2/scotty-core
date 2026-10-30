@@ -11,7 +11,7 @@ import {missionMemory} from "./mission-memory.mjs";
 import {readiness,storageReadiness,RELEASE} from "./brain-readiness.mjs";
 import {KNOWLEDGE_VERSION,FIELD_CARDS,fieldKnowledge} from "./field-knowledge.mjs";
 import {normalizeNote,memoryStore} from "./brain-memory.mjs";
-import {noteChange,noteAudit} from './memory-governance.mjs';
+import {noteChange,noteAudit,findNoteConflicts} from './memory-governance.mjs';
 import {normalizeProjectContext} from './project-evidence-policy.mjs';
 import {discoverFeed} from "./source-discovery.mjs";
 import {PUBLIC_FEEDS} from "../update-sources.mjs";
@@ -79,7 +79,7 @@ async function handleApi(request,env,url){
  const path=url.pathname;
  if(path==="/api/readiness"&&request.method==="GET")return response(await readiness(env));
  const storage=await storageReadiness(env.BRAIN_DB);
- if(storage.bound&&!storage.ready&&["/api/memory","/api/missions","/api/team","/api/ask","/api/team-preview","/api/memory-change","/api/memory-history"].includes(path))return failure(storage.reason,"Dedicated memory database is bound but its schema is not ready. Check Activation Status before proceeding.",503);
+ if(storage.bound&&!storage.ready&&["/api/memory","/api/missions","/api/team","/api/ask","/api/team-preview","/api/memory-change","/api/memory-history","/api/memory-conflicts"].includes(path))return failure(storage.reason,"Dedicated memory database is bound but its schema is not ready. Check Activation Status before proceeding.",503);
  if(path==="/api/status"&&request.method==="GET")return response({
   status:"ISOLATED_CLOUDFLARE_BRAIN_LAB",release:RELEASE,
   agentCount:brain.agentCount,chiefCount:brain.chiefCount,specialistCount:160,overseer:"SCOTTY",
@@ -115,6 +115,14 @@ async function handleApi(request,env,url){
   if(!agent)return failure("UNKNOWN_AGENT","Choose a known team member.");
   if(!env.BRAIN_DB?.prepare)return failure("MEMORY_NOT_CONNECTED","Dedicated Cloudflare memory storage is not connected.",503);
   return response({notes:await memoryStore(env.BRAIN_DB).read(agent),agentId:agent.id});
+ }
+ if(path==="/api/memory-conflicts"&&request.method==="GET"){
+  const agent=agents.get(url.searchParams.get("agentId"));
+  if(!agent)return failure("UNKNOWN_AGENT","Choose a known agent to inspect scoped memory.",400);
+  if(!env.BRAIN_DB?.prepare)return failure("MEMORY_NOT_CONNECTED","Dedicated memory storage is not connected.",503);
+  const notes=await memoryStore(env.BRAIN_DB).readAll(agent);
+  return response({agentId:agent.id,conflicts:findNoteConflicts(notes),searched:notes.length,
+   limitPerScope:80,automaticallyResolved:false,warning:"Bounded source review: only active notes in this agent's permitted scopes were compared."});
  }
  if(path==="/api/memory-history"&&request.method==="GET"){
   if(!env.BRAIN_DB?.prepare)return failure("MEMORY_NOT_CONNECTED","Dedicated Cloudflare memory storage is not connected.",503);
