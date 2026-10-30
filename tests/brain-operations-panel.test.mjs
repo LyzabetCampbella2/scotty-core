@@ -46,6 +46,14 @@ function harness({migrationReady=false}={}){
   if(path==='/api/voice/status')return Response.json({ok:true,provider:'Piper AWB Scottish',configured:true,ready:false,code:'voice_worker_unreachable'});
   if(path==='/api/connections')return Response.json({ok:true,connections:{google:{status:'connected',needsReconnect:false,refreshCapable:true,updatedAt:'2026-10-30T00:00:00Z',scopes:['https://www.googleapis.com/auth/gmail.send','https://www.googleapis.com/auth/calendar.events','https://www.googleapis.com/auth/drive.file']}}});
   if(path==='/api/folders?structure=1')return Response.json({ok:true,folders:[{id:'folder-1'}],projects:[{id:'project-bloodpool'}]});
+  if(path==='/api/independent-brain/mission-recovery'){
+   const input=JSON.parse(options.body||'{}');
+   if(input.stage==='preview')return Response.json({stage:'preview',missionId:input.missionId,
+    expectedUpdatedAt:'2026-10-01T00:00:00.000Z',staleMinutes:42000,
+    proposedStatus:'incomplete',warning:'Investigate the worker before closing'});
+   return Response.json({missionId:input.missionId,status:'incomplete',verified:true,preservedStages:2,
+    modelCalls:0,retryAttempted:false,deleted:false});
+  }
   if(path==='/api/independent-brain/operations')return Response.json({memoryReady:true,counts:{completed:7,running:2},total:9,staleRunningSample:[{missionId:'synthetic-running-00001',lastCheckpoint:'2026-10-01'}],quota:null,providerCalls:null});
   if(path==='/api/independent-brain/quality-cases')return Response.json({
    version:'department-acceptance-v1',modelCalls:0,cases:[{
@@ -272,4 +280,33 @@ test('voice health panel reports truthful provider readiness without calling syn
  assert.equal(reads.length,1);
  assert.equal(reads[0].options.method,'GET');
  assert.equal(h.calls.filter(x=>x.path.includes('/api/voice/speak')||x.path.includes('/api/tts')).length,0);
+});
+
+test('stale mission monitor requires independent owner review and one deliberate recovery call',async()=>{
+ const h=harness();
+ for(let i=0;i<60;i++)await Promise.resolve();
+ const review=byLabel(h,'Review stale mission — no retry');
+ assert.ok(review);
+ assert.equal(h.calls.filter(x=>x.path.includes('/mission-recovery')).length,0);
+ await review.listeners.click();
+ assert.equal(h.calls.filter(x=>x.path.includes('/mission-recovery')).length,1);
+ assert.equal(JSON.parse(h.calls.find(x=>x.path.includes('/mission-recovery')).options.body).stage,'preview');
+ const apply=byLabel(h,'Confirm this exact stale checkpoint');
+ assert.ok(apply);
+ await apply.listeners.click();
+ assert.equal(h.calls.filter(x=>x.path.includes('/mission-recovery')).length,1);
+ const check=h.find(n=>n.tag==='label'&&text(n).includes('I investigated mission synthetic-running'));
+ assert.ok(check);
+ check.children.find(n=>n.tag==='input').checked=true;
+ await apply.listeners.click();
+ const posts=h.calls.filter(x=>x.path.includes('/mission-recovery'));
+ assert.equal(posts.length,2);
+ const payload=JSON.parse(posts[1].options.body);
+ assert.equal(payload.stage,'apply');
+ assert.equal(payload.expectedUpdatedAt,'2026-10-01T00:00:00.000Z');
+ assert.equal(payload.ownerApproved,true);
+ assert.equal(payload.reviewAcknowledged,true);
+ assert.equal(posts[1].options.headers['x-scotty-csrf'],'1');
+ assert.match(text(h.body),/Verified incomplete/);
+ assert.equal(h.calls.filter(x=>x.path.includes('/api/independent-brain/team')).length,0);
 });
