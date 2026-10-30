@@ -45,6 +45,10 @@ export async function handleIndependentBrain(req,u,{
   const agentId=u.searchParams.get("agentId")||"";
   if(!/^[a-z0-9-]{1,90}$/i.test(agentId)||u.searchParams.size!==1)return error("AGENT_ID_REQUIRED");
   endpoint.searchParams.set("agentId",agentId);
+ }else if(req.method==="GET"&&route==="mission"){
+  const id=u.searchParams.get("missionId")||"";
+  if(!/^[a-z0-9-]{16,80}$/i.test(id)||u.searchParams.size!==1)return error("INVALID_MISSION_ID");
+  endpoint.searchParams.set("missionId",id);
  }else if(req.method==="GET"&&route==="memory-conflicts"){
   const agentId=u.searchParams.get("agentId")||"";
   if(!/^[A-Za-z0-9-]{1,90}$/.test(agentId)||u.searchParams.size!==1)return error("AGENT_ID_REQUIRED");
