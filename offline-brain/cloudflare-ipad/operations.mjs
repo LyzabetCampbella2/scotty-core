@@ -11,3 +11,54 @@ export async function operatingSnapshot(db,now=new Date()){
   staleRunningSample:stale,sampleLimit:20,quota:null,providerCalls:null,
   useProviderDashboardForQuota:true,automaticallyRetry:false};
 }
+
+/** A running mission older than ten minutes can be marked incomplete by an owner.
+ * Re-checks the exact checkpoint timestamp in the UPDATE: no retry, delete or AI call.
+ */
+const MISSION_ID=/^[a-z0-9-]{16,80}$/i;
+const STALE_AFTER_MS=600000;
+const stamped=s=>typeof s==='string'&&Number.isFinite(Date.parse(s))&&new Date(s).toISOString()===s;
+export async function staleMissionReview(db,input,now=new Date()){
+ if(typeof db?.prepare!=='function')throw Error('MISSION_STORAGE_NOT_CONNECTED');
+ if(!input||!MISSION_ID.test(input.missionId||''))throw Error('INVALID_MISSION_ID');
+ if(input.stage!=='preview'&&input.stage!=='apply')throw Error('INVALID_RECOVERY_STAGE');
+ if(input.stage==='apply'&&
+  (input.ownerApproved!==true||input.reviewAcknowledged!==true||!stamped(input.expectedUpdatedAt)))
+  throw Error('OWNER_RECOVERY_REVIEW_REQUIRED');
+ const r=await db.prepare('SELECT id,status,result_json,updated_at FROM brain_missions WHERE id=? LIMIT 1')
+  .bind(input.missionId).all();
+ const row=r.results?.[0];
+ if(!row)throw Error('MISSION_NOT_FOUND');
+ const age=now.getTime()-Date.parse(row.updated_at);
+ if(row.status!=='running'||!Number.isFinite(age)||age<STALE_AFTER_MS)throw Error('MISSION_NOT_STALE_OR_ALREADY_UPDATED');
+ if(input.stage==='preview')return {missionId:row.id,stage:'preview',status:'running',
+  expectedUpdatedAt:row.updated_at,staleMinutes:Math.floor(age/60000),
+  proposedStatus:'incomplete',willRunAI:false,willRetry:false,
+  willDeleteSavedResults:false,requiresOwnerApproval:true,
+  warning:'A slow worker may still finish. Only mark this checkpoint incomplete after investigating; exact timestamp prevents overwriting a newer update.'};
+ if(input.expectedUpdatedAt!==row.updated_at)throw Error('MISSION_CHECKPOINT_CHANGED');
+ // JSON mutation retains all saved stage findings and question context. The condition
+ // prevents overwriting an active worker checkpoint updated after this preview.
+ const cutoff=new Date(now.getTime()-STALE_AFTER_MS).toISOString();
+ const write=await db.prepare(`UPDATE brain_missions
+  SET status='incomplete',
+   result_json=json_set(result_json,
+    '$.status','incomplete',
+    '$.error','OWNER_REVIEWED_STALE_MISSION',
+    '$.retryAttempted',json('false')),
+   updated_at=?
+  WHERE id=? AND status='running' AND updated_at=? AND updated_at<?`)
+  .bind(now.toISOString(),input.missionId,input.expectedUpdatedAt,cutoff).run();
+ if(write.meta?.changes!==1)throw Error('MISSION_CHECKPOINT_CHANGED');
+ const check=await db.prepare('SELECT status,result_json,updated_at FROM brain_missions WHERE id=? LIMIT 1')
+  .bind(input.missionId).all();
+ const saved=check.results?.[0];
+ let result;
+ try{result=JSON.parse(saved?.result_json||'null');}catch{throw Error('MISSION_READBACK_UNVERIFIED');}
+ if(saved?.status!=='incomplete'||saved?.updated_at!==now.toISOString()||
+   result?.status!=='incomplete'||result?.error!=='OWNER_REVIEWED_STALE_MISSION'||
+   result?.retryAttempted!==false)throw Error('MISSION_READBACK_UNVERIFIED');
+ return {missionId:input.missionId,status:'incomplete',verified:true,
+  preservedStages:Array.isArray(result.results)?result.results.length:0,
+  retryAttempted:false,modelCalls:0,deleted:false};
+}
