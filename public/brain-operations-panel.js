@@ -7,7 +7,7 @@
  if(root.SCOTTYBrainOperations)return;
  const el=(tag,txt)=>{const n=document.createElement(tag);if(txt!=null)n.textContent=String(txt);return n};
  const css=(n,s)=>{n.style.cssText=s;return n};
- const btn=(parent,label,fn)=>{const b=el('button',label);b.type='button';css(b,'padding:8px 11px;border:1px solid #75b9cb;border-radius:8px;background:#142e46;color:#f0ffff;margin:4px;cursor:pointer');b.addEventListener('click',fn);parent.appendChild(b);return b};
+ const btn=(parent,label,fn)=>{const b=el('button',label);b.type='button';css(b,'padding:10px 13px;min-height:44px;touch-action:manipulation;border:1px solid #75b9cb;border-radius:8px;background:#142e46;color:#f0ffff;margin:4px;cursor:pointer');b.addEventListener('click',fn);parent.appendChild(b);return b};
  const para=(parent,txt)=>{const p=el('p',txt);parent.appendChild(p);return p};
  const headline=(parent,s)=>{const h=el('h3',s);css(h,'margin:14px 0 6px;font-size:17px');parent.appendChild(h);return h};
  const input=(parent,placeholder,value='')=>{const n=el('input');n.placeholder=placeholder;n.value=value;css(n,'display:block;box-sizing:border-box;width:100%;padding:9px;background:#fff;color:#111;border:1px solid #b7ccd1;border-radius:6px;margin:5px 0');parent.appendChild(n);return n};
@@ -449,6 +449,24 @@
    }catch(e){error(previewArea,e)}
   });
  }
+ function showVoiceDiagnostics(parent){
+  para(parent,'Voice health is read-only. A ready service does not prove an iPad microphone, exact Scottish pronunciation or uninterrupted spoken playback.');
+  const out=el('div');parent.appendChild(out);
+  btn(parent,'Inspect live Scottish TTS readiness and local voice state',async()=>{
+   clear(out);
+   try{
+    const result=await api('/api/voice/status');
+    line(out,'Scottish TTS provider',result.provider||'Not reported');
+    line(out,'Configured',result.configured===true);
+    line(out,'Provider ready',result.ready===true);
+    line(out,'Diagnostic code',result.code||'Unavailable');
+   }catch(e){error(out,e)}
+   line(out,'HUD voice transport',root.SCOTTYVoiceTransport?.state||'Not available');
+   line(out,'Conversation review mode',root.SCOTTYConversation?.preferences?.review===true?'Review on':root.SCOTTYConversation?.preferences?.review===false?'Hands-free recognition preference':'Not measured');
+   para(out,'For iPad acceptance, confirm the microphone permission, speak a fictional team request, listen for actual Scottish playback, interrupt with “Scotty stop”, and ensure no approval was accepted from speaker echo.');
+  });
+  btn(parent,'Open original voice conversation controls',()=>{root.SCOTTYConversation?.refresh?.();para(out,'Original voice controls refreshed where available. Use the existing microphone and conversation settings to test playback.');});
+ }
  function showConnectedActions(parent){
   para(parent,'Verify connections before asking SCOTTY to act. Viewing status performs no sends, calendar edits, Drive uploads or Notion writes. Actual changes require the existing connector action preview and owner confirmation.');
   const out=el('div');parent.appendChild(out);
@@ -655,6 +673,7 @@
   if(panel){panel.focus();return}
   panel=el('aside');panel.tabIndex=-1;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','SCOTTY Brain Operations');
   css(panel,'position:fixed;z-index:1000010;inset:5vh 3vw auto;max-width:700px;max-height:90vh;overflow:auto;margin:auto;padding:18px;background:#0b1b2c;color:#e8f7fa;border:2px solid #73cbd9;border-radius:12px;box-shadow:0 18px 65px #000d;font:14px/1.5 system-ui,sans-serif');
+  panel.addEventListener('keydown',event=>{if(event.key==='Escape'){panel.remove();panel=null;event.preventDefault?.();}});
   document.body.appendChild(panel);headline(panel,'SCOTTY · Brain Operations');
   para(panel,'Owner controls in the original HUD. All requests are authenticated. Nothing shown here certifies live microphone, provider quota, or database scope tests.');
   btn(panel,'Close',()=>{panel.remove();panel=null});
@@ -668,6 +687,7 @@
   section(panel,'6 · Department-specific acceptance cases',showDepartmentAcceptance);
   section(panel,'7 · Project Command Center — approved teams, evidence, missions and briefings',projectCommandCenter);
   section(panel,'8 · Connected apps, document workspace and Dawna exchange',showConnectedActions);
+  section(panel,'9 · Scottish voice health, interruption and iPad acceptance',showVoiceDiagnostics);
   btn(panel,'Open existing System & Recovery',()=>{root.location.href='/system'});
   panel.focus();
  }
