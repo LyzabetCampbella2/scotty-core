@@ -3,23 +3,22 @@
  */
 import {missionDb as db} from './mission-records.ts';
 import {ensureProjectEvidence,approveEvidence,evidenceList} from './project-evidence.ts';
-import {fileBytes} from '../workspace/cloud.ts';
-import {extractText} from '../workspace/exports.ts';
 import {previewKind} from '../workspace/model.ts';
 import {reviewedLocalAttachment,assertSameLocalFile} from './project-local-evidence-model.mjs';
 
 const pending=new Map<string,any>();
 const validId=(s:any)=>typeof s==='string'&&/^[a-z0-9_-]{8,180}$/i.test(s);
-async function fileInProject(p:string,id:string,read=fileBytes){
+async function fileInProject(p:string,id:string,read:any=null){
  if(!validId(id)||typeof p!=='string'||!/^[a-z0-9_-]{1,160}$/i.test(p))throw Error('INVALID_PROJECT_FILE');
  await ensureProjectEvidence();
  const rows=await db()`select id,name,project_id,mime_type from scotty_files where id::text=${id} and project_id=${p} limit 1`;
  if(!rows.length)throw Error('FILE_OUTSIDE_PROJECT_OR_MISSING');
- const file=await read(id);
+ const reader=read||(await import('../workspace/cloud.ts')).fileBytes;
+ const file=await reader(id);
  if(file.projectId&&file.projectId!==p)throw Error('FILE_PROJECT_CHANGED');
  return {...file,name:rows[0].name,projectId:p};
 }
-export async function previewProjectLocalFile(p:string,input:any,read=fileBytes,extract=extractText){
+export async function previewProjectLocalFile(p:string,input:any,read:any=null,extract:any=null){
  if(process.env.SCOTTY_PROJECT_DOCUMENTS_ENABLED!=='true')throw Error('PROJECT_DOCUMENTS_DISABLED');
  const file=await fileInProject(p,input?.fileId,read);
  if(file.bytes.length>20*1024*1024)throw Error('FILE_PREVIEW_LIMIT_EXCEEDED');
@@ -28,7 +27,8 @@ export async function previewProjectLocalFile(p:string,input:any,read=fileBytes,
  let body='',note='',referenceOnly=false;
  if(kind==='image'){referenceOnly=true;note='Image pixels are not analyzed here. Supply your own description and review the image before approving it for an agent.';}
  else{
-  const extracted=await extract(file);
+  const parser=extract||(await import('../workspace/exports.ts')).extractText;
+  const extracted=await parser(file);
   body=String(extracted.text||'');
   if(!body.trim())throw Error('NO_EXTRACTABLE_TEXT');
   if(body.length>21000){body=body.slice(0,21000);note='PARTIAL: first 21,000 characters only. Choose a smaller document for complete evidence.';}
@@ -43,7 +43,7 @@ export async function previewProjectLocalFile(p:string,input:any,read=fileBytes,
   sha256:file.sha256,referenceOnly,previewedAt:createdAt,expiresInSeconds:600,note,
   externalUploads:0,agentPermissionsGranted:0};
 }
-export async function attachProjectLocalFile(p:string,input:any,read=fileBytes){
+export async function attachProjectLocalFile(p:string,input:any,read:any=null){
  if(process.env.SCOTTY_PROJECT_DOCUMENTS_ENABLED!=='true')throw Error('PROJECT_DOCUMENTS_DISABLED');
  const preview=pending.get(input?.previewToken);
  const reviewed=reviewedLocalAttachment(preview,input,p);
