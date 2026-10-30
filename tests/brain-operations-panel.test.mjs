@@ -28,7 +28,8 @@ function harness({migrationReady=false}={}){
   if(path==='/api/agent-brains/project-operations')return Response.json({ok:true,projects:[{id:'project-bloodpool',name:'Bloodpool'},{id:'project-goldenhour',name:'Golden Hour Creative'}],realDraftsEnabled:false,ansjemEnabled:false,providerConfigured:false});
   if(path==='/api/agent-brains/project-operations/project-bloodpool/brief')return Response.json({ok:true,brief:{asOf:'2026-10-30',overdue:[],upcoming:[{title:'Fictional draft review',dueAt:'2026-11-01'}],decisions:[{goal:'Approve fiction outline',status:'awaiting_approval'}],blocked:[],pendingHandoffs:1,gaps:['No live calendar connection']}});
   if(path==='/api/agent-brains/project-operations/project-bloodpool/progress')return Response.json({ok:true,missions:[{id:'sample-mission',goal:'Fictional outline',status:'review',steps:[{agentId:'agent-one',status:'drafted',deliverable:'Three-scene outline'}]}]});
-  if(path==='/api/agent-brains/project-operations/project-bloodpool/team-status')return Response.json({ok:true,members:[{id:'agent-one',name:'First Agent'}]});
+  if(path==='/api/agent-brains/project-operations/project-bloodpool/team-status')return Response.json({ok:true,members:[{id:'chief-one',name:'Lead Chief',isChief:true},{id:'agent-one',name:'First Agent',isChief:false,chiefId:'chief-one'}]});
+  if(path==='/api/agent-brains/project-operations/project-bloodpool/team-presets')return Response.json({ok:true,teams:[],readOnly:true});
   if(path==='/api/agent-brains/project-operations/project-bloodpool/evidence')return Response.json({ok:true,evidence:[{id:'evidence-one',title:'Fictional chapter extract',recipients:['agent-one']} ]});
   if(path==='/api/connectors')return Response.json({ok:true,providers:[{provider:'notion',enabled:false},{provider:'googledocs',enabled:true}],vaultConfigured:false});
   if(path==='/api/folders?structure=1')return Response.json({ok:true,folders:[{id:'folder-1'}],projects:[{id:'project-bloodpool'}]});
@@ -147,4 +148,36 @@ test('read-only connector and folder status never performs a third-party action'
  assert.match(text(h.body),/Configured/);
  assert.match(text(h.body),/Available folders/);
  assert.ok(h.calls.filter(c=>c.path.startsWith('/api/connectors')||c.path.startsWith('/api/folders')).every(c=>!c.options.body));
+});
+
+test('preferred team save is blocked without review and never auto-grants agents',async()=>{
+ const h=harness();
+ await byLabel(h,'Load my real project list').listeners.click();
+ const picker=h.find(n=>n.tag==='select'&&n['aria-label']==='Choose a real SCOTTY project');
+ picker.value='project-bloodpool';
+ await byLabel(h,'Manage preferred project team (owner approval required)').listeners.click();
+ for(let i=0;i<8;i++)await Promise.resolve();
+ const button=byLabel(h,'Save owner-reviewed team preset');
+ assert.ok(button);
+ await button.listeners.click();
+ assert.equal(h.calls.filter(c=>c.options.method==='POST'&&c.path.includes('/team-presets')).length,0);
+ const proposed=h.find(n=>n.tag==='input'&&n.placeholder==='Team name (example: Manuscript Review Team)');
+ assert.ok(proposed);proposed.value='Manuscript Review Team';
+ const lead=h.find(n=>n.tag==='select'&&n['aria-label']==='Lead project chief');
+ lead.value='chief-one';
+ const choose=h.all(n=>n.tag==='label'&&(/Lead Chief|First Agent/.test(text(n))));
+ assert.equal(choose.length,2);
+ for(const lab of choose)lab.children.find(x=>x.tag==='input').checked=true;
+ const consent=h.find(n=>n.tag==='label'&&text(n).includes('I reviewed the exact team and confirm'));
+ assert.ok(consent);consent.children.find(n=>n.tag==='input').checked=true;
+ await button.listeners.click();
+ const writes=h.calls.filter(c=>c.options.method==='POST'&&c.path.endsWith('/team-presets'));
+ assert.equal(writes.length,1);
+ const payload=JSON.parse(writes[0].options.body);
+ assert.deepEqual(payload.agentIds,['chief-one','agent-one']);
+ assert.equal(payload.reviewed,true);
+ assert.equal(payload.approved,true);
+ assert.equal(payload.expectedRevision,0);
+ assert.equal(writes[0].options.headers['x-scotty-csrf'],'1');
+ assert.equal(h.calls.filter(c=>c.path.includes('/independent-brain/team')).length,0);
 });
