@@ -122,3 +122,58 @@ test('ambiguous or invalid specialist selection is checkpointed without any AI',
   assert.equal(calls,0);
  }finally{db.sql.close()}
 });
+
+test('project-scoped mission IDs never replay cached answers across different sources or projects',async()=>{
+ const db=database(),plan=selectTeam(roster,question,1),assignment=plan.assignments[0];
+ let calls=0;
+ const env={OWNER_BEARER_TOKEN:TOKEN,AI_ENABLED:'true',BRAIN_DB:db,
+  AI:{run:async()=>({response:'Safe synthetic project result '+ ++calls})}};
+ const context=(projectId,content)=>({
+  projectId,approved:true,noPrivateDataConfirmed:true,classification:'public-or-synthetic',
+  assignedAgentIds:[assignment.agentId,assignment.chiefId,'scotty'],
+  sources:[{id:'sample-doc-1',projectId,title:'Synthetic checklist',content,
+   ownerApproved:true,classification:'public-or-synthetic',
+   allowedAgentIds:[assignment.agentId,assignment.chiefId,'scotty']}]
+ });
+ const id='mission-scoped-replay-0001';
+ try{
+  const initial=context('synthetic-project-1','Private-looking but fully synthetic example alpha');
+  const body={question,missionId:id,teamSize:1,...consent,projectContext:initial};
+  const first=await worker.fetch(req('/api/team',body),env);
+  assert.equal(first.status,200);
+  assert.equal((await first.json()).missionReadbackVerified,true);
+  assert.equal(calls,3);
+  const key=db.sql.prepare('SELECT question FROM brain_missions WHERE id=?').get(id).question;
+  assert.ok(key.includes('approved-context-sha256:'));
+  assert.ok(!key.includes('synthetic example alpha'));
+  const identical=await worker.fetch(req('/api/team',body),env);
+  assert.equal(identical.status,200);
+  assert.equal((await identical.json()).cached,true);
+  assert.equal(calls,3);
+  for(const changed of [context('synthetic-project-1','Different synthetic evidence beta'),
+                         context('synthetic-project-2','Private-looking but fully synthetic example alpha')]){
+   const changedResult=await worker.fetch(req('/api/team',{...body,projectContext:changed}),env);
+   assert.equal(changedResult.status,409);
+   assert.equal((await changedResult.json()).error,'MISSION_STORAGE_CONFLICT');
+   assert.equal(calls,3);
+  }
+ }finally{db.sql.close();}
+});
+test('a project source missing approval for chief/SCOTTY is rejected before inference or writes',async()=>{
+ const db=database(),assignment=selectTeam(roster,question,1).assignments[0];
+ let calls=0;
+ const env={OWNER_BEARER_TOKEN:TOKEN,AI_ENABLED:'true',BRAIN_DB:db,
+  AI:{run:async()=>{calls++;return {response:'should never run'};}}};
+ const projectContext={projectId:'fictional-project-1',approved:true,classification:'public-or-synthetic',
+  noPrivateDataConfirmed:true,assignedAgentIds:[assignment.agentId],
+  sources:[{id:'dummy-file-1',projectId:'fictional-project-1',title:'Synthetic notes',
+   content:'Harmless example',ownerApproved:true,classification:'public-or-synthetic',
+   allowedAgentIds:[assignment.agentId]}]};
+ try{
+  const res=await worker.fetch(req('/api/team',{question,...consent,projectContext}),env);
+  assert.equal(res.status,403);
+  assert.equal((await res.json()).error,'PROJECT_REVIEW_CHAIN_DENIED');
+  assert.equal(calls,0);
+  assert.equal(db.sql.prepare('SELECT count(*) AS n FROM brain_missions').get().n,0);
+ }finally{db.sql.close();}
+});
