@@ -32,6 +32,11 @@ label.check{display:flex;align-items:flex-start;gap:10px;font-size:13px;font-wei
 <label class="check"><input type="checkbox" id="share">I agree this prompt will be sent to Cloudflare Workers AI.</label>
 <label class="check"><input type="checkbox" id="safe">I confirm this prompt contains no private or client information.</label>
 </section>
+<section class="panel wide"><h2>Department acceptance tests</h2>
+<p>Load the department checklist above, choose a case, then run the approved team. Reviews stay in this tab and are lost on refresh. These are owner assessments, not independent factual verification.</p>
+<select id="quality-case"><option value="">Load checklist first</option></select><button id="load-case">Load assignment</button>
+<div id="quality-review"></div><button id="record-review">Record assessment</button><button id="quality-results">Show assessments</button>
+</section>
 <section class="panel"><h2>Publisher discovery</h2><p class="muted">Headlines are unverified discovery results, not automatically promoted into agent knowledge.</p>
 <label for="feeds">Approved source ID</label><select id="feeds"><option value="">Load the approved publishers</option></select>
 <div class="actions"><button id="loadfeeds" class="secondary">Load publisher list</button><button id="discover">Fetch headlines</button></div>
@@ -54,6 +59,36 @@ label.check{display:flex;align-items:flex-start;gap:10px;font-size:13px;font-wei
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 let catalog=[],overseer=null,mission=null,teamBusy=false;
+let qualityCases=[],qualityRun=null,qualityReviews=[];
+const qualityCriteria=['Three concrete examples','Usable actions and expected results','Assumptions and limitations identified','No unsupported factual claims or invented sources','Chief review and final synthesis preserve the requested work'];
+$('load-case').onclick=()=>{
+ if(teamBusy)return;
+ const c=qualityCases.find(c=>c.agentId===$('quality-case').value);
+ if(!c){output('Load the department checklist and select a case.');return;}
+ $('question').value=c.question;$('teamSize').value='1';qualityRun=null;$('quality-review').replaceChildren();
+ for(const id of ['approve','share','safe'])$(id).checked=false;
+ output({case:c,status:'NOT_RUN'});
+};
+$('record-review').onclick=()=>{
+ if(!qualityRun||teamBusy){output('Complete a department test before recording an assessment.');return;}
+ const assessments=qualityCriteria.map((criterion,i)=>({criterion,result:$('criterion-'+i).value}));
+ if(assessments.some(a=>!a.result)){output('Assess every criterion as pass, fail or uncertain.');return;}
+ const record={...qualityRun,assessments,reviewedAt:new Date().toISOString(),status:assessments.every(a=>a.result==='pass')?'OWNER_REVIEW_PASSED':'NEEDS_WORK',independentlyVerified:false};
+ qualityReviews=qualityReviews.filter(r=>r.missionId!==record.missionId);qualityReviews.push(record);output(record);
+};
+$('quality-results').onclick=()=>output({testedDepartments:new Set(qualityReviews.map(r=>r.department)).size,totalDepartments:qualityCases.length,assessments:qualityReviews,storage:'This tab only; copy results before refreshing.'});
+function offerQualityReview(question,d){
+ qualityRun=null;$('quality-review').replaceChildren();
+ const c=qualityCases.find(c=>c.question===question);
+ if(!c||d.status!=='completed'||!d.answer?.trim()||!d.missionId)return;
+ qualityRun={department:c.department,agentId:c.agentId,missionId:d.missionId,answer:d.answer,stages:d.results||[],status:'AWAITING_OWNER_REVIEW'};
+ qualityCriteria.forEach((criterion,i)=>{
+  const label=document.createElement('label');label.textContent=criterion;
+  const select=document.createElement('select');select.id='criterion-'+i;
+  for(const [value,text] of [['','Choose assessment'],['pass','Pass'],['fail','Fail'],['uncertain','Uncertain']]){const o=document.createElement('option');o.value=value;o.textContent=text;select.append(o);}
+  label.append(select);$('quality-review').append(label);
+ });
+}
 const output=value=>{$('output').textContent=typeof value==='string'?value:JSON.stringify(value,null,2);};
 async function call(path,{post,data}={}){
  const res=await fetch('/api/independent-brain/'+path,{method:post?'POST':'GET',credentials:'same-origin',cache:'no-store',
@@ -90,7 +125,15 @@ $('catalog').onclick=()=>run('Loading catalog…',async()=>{
 $('preview').onclick=()=>run('Reading live team knowledge without AI calls or writes…',()=>call('team-preview',{post:true,data:{question:$('question').value.trim(),teamSize:Number($('teamSize').value)}}));
 $('quality').onclick=()=>run('Preparing department acceptance cases…',async()=>{
  const d=await call('catalog');
- return {status:'NOT_RUN',instructions:'Run each assignment separately with approval. Review the actual answer against every criterion. This checklist is not a quality pass.',cases:d.agents.filter(a=>a.isChief).map(a=>({department:a.department,chief:a.name,question:'For a fictional project in '+a.department+', provide three practical examples involving '+a.specialty+'. For each give an action, expected result and a limitation. Label assumptions.',criteria:['Three concrete examples','Actions and expected results are usable','Assumptions and limitations identified','No invented sources or claims of completed external actions','Chief review and SCOTTY final answer preserve the requested work']})),voiceAcceptance:['Spoken request reaches Team Brain','Playback cannot approve itself','Choose one or two departments by voice','Say yes or cancel','Hear final answer','Mission read-back verified','Review, correct and save memory by voice','Memory read-back verified']};
+ qualityCases=d.agents.filter(a=>a.isChief).map(chief=>{
+  const a=d.agents.find(a=>!a.isChief&&a.chiefId===chief.id);
+  if(!a)throw Error('Missing specialist for '+chief.department);
+  const question='Use specialist '+a.id+': For a fictional project, give three practical examples in your specialty. For each state an action, expected result and limitation. Label assumptions. Do not invent sources.';
+  return {department:chief.department,chief:chief.name,agentId:a.id,question,criteria:qualityCriteria};
+ });
+ const chooser=$('quality-case');chooser.replaceChildren();
+ for(const c of qualityCases){const o=document.createElement('option');o.value=c.agentId;o.textContent=c.department;chooser.append(o);}
+ return {status:'NOT_RUN',cases:qualityCases,instructions:'Choose a department, load its assignment, approve and run the team, then assess all five criteria.'};
 });
 $('plan').onclick=()=>run('Generating a rule-based, no-AI team plan…',()=>call('plan',{post:true,data:{question:$('question').value.trim()}}));
 $('team').onclick=async()=>{
@@ -100,10 +143,11 @@ $('team').onclick=async()=>{
   if(!$('approve').checked||!$('share').checked||!$('safe').checked)throw Error('All three approvals are required.');
   const question=$('question').value.trim(),teamSize=Number($('teamSize').value);
   if(!question)throw Error('Enter an assignment.');
+  qualityRun=null;$('quality-review').replaceChildren();
   // Reuse the same ID after transport failure; the Worker deduplicates it.
   if(!mission||mission.question!==question||mission.teamSize!==teamSize)mission={question,teamSize,missionId:crypto.randomUUID()};
   const d=await call('team',{post:true,data:{...mission,ownerApproved:true,shareWithCloudflare:true,noPrivateDataConfirmed:true}});
-  mission=null;
+  mission=null;offerQualityReview(question,d);
   for(const id of ['approve','share','safe'])$(id).checked=false;
   return d;
  });
