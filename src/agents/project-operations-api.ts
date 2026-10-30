@@ -1,6 +1,7 @@
 import {missionProjectChoices,createProjectMission,projectMissionDetail} from './project-missions.ts';
 import {buildReleasedDeliverable} from './project-deliverables.mjs';
 import {previewProjectLocalFile,attachProjectLocalFile} from './project-local-evidence.ts';
+import {lessonCandidatesFromCorrections} from './project-lessons.mjs';
 import {evidenceCandidates,evidenceList,approveEvidence,revokeEvidence} from './project-evidence.ts';
 import {recommendProjectTeam,proposedTeamPlan,dailyProjectBrief,missionProgress,allProjectChiefBrief} from './project-operations.ts';
 import {agentDevelopment,recordAgentDevelopment,weeklyProjectReview,projectTeamStatus} from './project-insights.ts';
@@ -15,7 +16,7 @@ export async function handleProjectOperations(req:Request,u:URL){
   if(u.pathname===root+'/brief-all'&&req.method==='GET')return json({ok:true,brief:await allProjectChiefBrief()});
   if(u.pathname===root&&req.method==='GET')return json({ok:true,projects:await missionProjectChoices(),ansjemEnabled:process.env.SCOTTY_ANSJEM_WORK_ENABLED==='true',ansjemDeliveryEnabled:process.env.SCOTTY_ANSJEM_DELIVERY_ENABLED==='true',ansjemCoordinationEnabled:process.env.SCOTTY_ANSJEM_COORDINATION_ENABLED==='true',realDraftsEnabled:process.env.SCOTTY_REAL_PROJECT_DRAFTS_ENABLED==='true'&&!!process.env.GROQ_API_KEY,providerConfigured:!!process.env.GROQ_API_KEY});
   const work=u.pathname.match(/^\/api\/agent-brains\/project-operations\/([\w-]{1,160})\/ansjem(?:\/(ANSJEM-DEV-\d{4,20}))?$/);if(work)return handleAnsjemWork(req,u,work[1],work[2]);
-  const match=u.pathname.match(/^\/api\/agent-brains\/project-operations\/([\w-]{1,160})\/(brief|progress|evidence|candidates|team|team-presets|plan|development|weekly|team-status|documents|local-file-evidence|deliverable)$/);if(!match)return json({ok:false,error:'Route not found'},404);const [,p,kind]=match;
+  const match=u.pathname.match(/^\/api\/agent-brains\/project-operations\/([\w-]{1,160})\/(brief|progress|evidence|candidates|team|team-presets|plan|development|lesson-proposals|weekly|team-status|documents|local-file-evidence|deliverable)$/);if(!match)return json({ok:false,error:'Route not found'},404);const [,p,kind]=match;
   if(req.method==='GET'&&kind==='deliverable'){
    const missionId=u.searchParams.get('missionId')||'',stepId=u.searchParams.get('stepId')||null,
     revision=Number(u.searchParams.get('revision')),format=u.searchParams.get('format')||'md';
@@ -30,6 +31,7 @@ export async function handleProjectOperations(req:Request,u:URL){
   if(req.method==='GET'){
    if(kind==='weekly')return json({ok:true,review:await weeklyProjectReview(p)});
    if(kind==='development')return json({ok:true,...await agentDevelopment(p)});
+   if(kind==='lesson-proposals')return json({ok:true,proposals:lessonCandidatesFromCorrections(p,(await agentDevelopment(p)).agents),automaticMemoryWrites:0,ownerReviewRequired:true});
    if(kind==='team-status')return json({ok:true,...await projectTeamStatus(p)});
    if(kind==='team-presets')return json({ok:true,...await preferredTeams(p)});
    if(kind==='brief')return json({ok:true,brief:await dailyProjectBrief(p)});
