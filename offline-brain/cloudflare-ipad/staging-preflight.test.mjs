@@ -4,10 +4,10 @@ import {readFileSync} from "node:fs";
 import {stagingPreflight,LAB_BRANCH,LAB_NAME} from "./staging-preflight.mjs";
 const original=JSON.parse(readFileSync(new URL("./wrangler.jsonc",import.meta.url),"utf8"));
 const clone=x=>JSON.parse(JSON.stringify(x));
-test("activated Worker is scoped to the dedicated lab memory",()=>{
+test("default-off Worker is scoped to the dedicated lab memory",()=>{
  const p=stagingPreflight({config:clone(original)});
  assert.equal(p.pass,true,p.errors.join(", "));
- assert.equal(p.name,LAB_NAME);assert.equal(p.aiDefault,"ON");assert.equal(p.productionConnections,0);
+ assert.equal(p.name,LAB_NAME);assert.equal(p.aiDefault,"OFF");assert.equal(p.productionConnections,0);
  assert.equal(p.billingPlanCheckedProgrammatically,false);
 });
 test("Cloudflare CI fails before any deploy until account Free and exact isolated branch confirmed",()=>{
@@ -42,4 +42,11 @@ test("database substitution, additional bindings and preview overrides are refus
  }
  const cfg=clone(original);cfg.d1_databases.push({...cfg.d1_databases[0]});assert.equal(stagingPreflight({config:cfg}).pass,false);
  const off=clone(original);off.vars.AI_ENABLED="false";delete off.d1_databases;assert.equal(stagingPreflight({config:off}).pass,true);
+});
+
+test("staging configuration never enables AI before explicit owner activation",()=>{
+ assert.equal(original.vars.AI_ENABLED,"false");
+ const state=stagingPreflight({config:clone(original)});
+ assert.equal(state.pass,true);
+ assert.equal(state.aiDefault,"OFF");
 });
