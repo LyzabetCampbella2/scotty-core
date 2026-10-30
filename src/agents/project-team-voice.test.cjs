@@ -125,8 +125,9 @@ test('voice preferred team requires exact one-time confirmation and never grants
  const proposed=await f.say('Save preferred team as Manuscript Review Team');
  assert.match(proposed,/only a team preference/);
  assert.equal(f.requests.filter(x=>x.path.endsWith('/team-presets')&&x.body).length,0);
+ const exact=f.confirm();
  assert.match(await f.say('yes'),/general yes cannot/);
- await f.say(f.confirm());
+ await f.say(exact);
  const writes=f.requests.filter(x=>x.path.endsWith('/team-presets')&&x.body);
  assert.equal(writes.length,1);
  assert.deepEqual(writes[0].body.agentIds,['chief','writer']);
