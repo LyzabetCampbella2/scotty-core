@@ -7,9 +7,16 @@ export async function operatingSnapshot(db,now=new Date()){
  const counts=Object.fromEntries(rows.map(r=>[String(r.status),Number(r.count)]));
  const stale=running.filter(r=>Number.isFinite(Date.parse(r.updated_at))&&
   now.getTime()-Date.parse(r.updated_at)>600000).map(r=>({missionId:r.id,lastCheckpoint:r.updated_at}));
+ const cutoff=new Date(now.getTime()-600000).toISOString();
+ const staleTotalQuery=await db.prepare("SELECT COUNT(*) AS count FROM brain_missions WHERE status='running' AND updated_at < ?")
+  .bind(cutoff).all();
+ const staleRunningTotal=Number(staleTotalQuery.results?.[0]?.count||0);
  return {memoryReady:true,counts,total:Object.values(counts).reduce((a,b)=>a+b,0),
-  staleRunningSample:stale,sampleLimit:20,quota:null,providerCalls:null,
-  useProviderDashboardForQuota:true,automaticallyRetry:false};
+  staleRunningSample:stale,staleRunningTotal,sampleLimit:20,
+  requiresOwnerReview:Number(counts.incomplete||0)+staleRunningTotal,
+  recoveryPolicy:{manualOnly:true,minimumStaleMinutes:10,preservesSavedStages:true,
+    compareAndSwap:true,automaticRetry:false,ownerApprovedMutationRequired:true},
+  quota:null,providerCalls:null,useProviderDashboardForQuota:true,automaticallyRetry:false};
 }
 
 /** A running mission older than ten minutes can be marked incomplete by an owner.
