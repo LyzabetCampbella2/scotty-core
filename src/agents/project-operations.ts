@@ -1,6 +1,7 @@
 import {missionDb as db} from './mission-records.ts';
 import {ensureCoordination,coordinationSnapshot} from './chief-coordination.ts';
-import {projectMissionList,projectMissionDetail,missionRecommendations,missionHandoffChoices} from './project-missions.ts';
+import {projectMissionList,projectMissionDetail,missionRecommendations,missionHandoffChoices,missionProjectChoices} from './project-missions.ts';
+import {dailyChiefSummary} from './daily-chief-brief.mjs';
 import {evidenceList} from './project-evidence.ts';
 import {profileInput,projectAllowed} from './team-model.ts';
 import {departmentSkills} from './skills.ts';
@@ -35,4 +36,15 @@ export async function dailyProjectBrief(p:string,now=new Date()){
  const decisions=progress.missions.filter((m:any)=>['awaiting_approval','needs_review','revision_requested'].includes(m.status)).map((m:any)=>({missionId:m.id,goal:m.goal,status:m.status,revision:m.revision}));
  const blocked=progress.missions.flatMap((m:any)=>[...(m.blocker?[{missionId:m.id,reason:m.blocker}]:[]),...m.steps.filter((s:any)=>s.blocker||['failed','unknown','held','abandoned'].includes(s.status)).map((s:any)=>({missionId:m.id,stepId:s.id,agentId:s.agentId,reason:s.blocker||s.status}))]);
  return {project:progress.project,asOf,timezone:'America/Los_Angeles',through,overdue:tasks.filter(t=>+new Date(t.dueAt)<+now),upcoming:tasks.filter(t=>+new Date(t.dueAt)>=+now),decisions,pendingHandoffs:pending,blocked,connectedAppItems:appItems,gaps,limits:{tasks:100,appSnapshots:100,missions:100},readOnly:true,scheduled:false};
+}
+
+/** Bounded read-only aggregation: a summary is not a fresh Gmail/Calendar read. */
+export async function allProjectChiefBrief(now=new Date()){
+ const projects=(await missionProjectChoices()).slice(0,15),items:any[]=[];
+ for(const p of projects){
+  try{items.push({project:p,brief:await dailyProjectBrief(p.id,now)});}
+  catch{items.push({project:p,errors:['Project brief unavailable; no data was invented']});}
+ }
+ return {...dailyChiefSummary(items,now),truncated:(await missionProjectChoices()).length>15,
+  sourceProjectLimit:15};
 }
