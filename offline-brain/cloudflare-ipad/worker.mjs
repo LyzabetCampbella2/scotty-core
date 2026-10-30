@@ -82,6 +82,11 @@ async function handleApi(request,env,url){
  if(path==="/api/readiness"&&request.method==="GET")return response(await readiness(env));
  const storage=await storageReadiness(env.BRAIN_DB);
  if(storage.bound&&!storage.ready&&["/api/memory","/api/missions","/api/mission","/api/team","/api/ask","/api/team-preview","/api/memory-change","/api/memory-history","/api/memory-conflicts"].includes(path))return failure(storage.reason,"Dedicated memory database is bound but its schema is not ready. Check Activation Status before proceeding.",503);
+ if(path==="/api/operations"&&request.method==="GET"){
+  if(!storage.ready)return response({memoryReady:false,reason:storage.reason,quota:null,providerCalls:null});
+  try{return response(await operatingSnapshot(env.BRAIN_DB));}
+  catch{return failure("OPERATIONS_UNAVAILABLE","Read-only mission counts could not be retrieved.",503);}
+ }
  if(path==="/api/status"&&request.method==="GET"){const gov=await governanceReadiness(env.BRAIN_DB);return response({
   status:"ISOLATED_CLOUDFLARE_BRAIN_LAB",release:RELEASE,
   agentCount:brain.agentCount,chiefCount:brain.chiefCount,specialistCount:160,overseer:"SCOTTY",
