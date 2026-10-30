@@ -60,8 +60,20 @@
      const item=el('div');css(item,'padding:8px;margin:6px 0;border-left:3px solid #84d5df');out.appendChild(item);
      line(item,r.name||r.agentId,r.role||'reader');
      const a=assignments.find(a=>a.agentId===r.agentId||a.chiefId===r.agentId);
-     if(a)line(item,'Why selected',a.selectionReason||a.reason||a.specialty||'Department routing match');
+     if(a||r.selectionReason)line(item,'Why selected',r.selectionReason||a?.selectionReason||a?.reason||'Department routing match');
      if(r.fieldKnowledge)line(item,'Knowledge guide',r.fieldKnowledge.title||r.fieldKnowledge.id||r.fieldKnowledge.version||'Field guide');
+     if(r.specialistPlaybook){
+      const book=r.specialistPlaybook;
+      line(item,'Specialist playbook',book.focus+' · '+book.version);
+      line(item,'Knowledge verification',book.reviewed===true?'Owner reviewed':'Authored methodology — not verified field facts');
+      if(book.foundation)para(item,book.foundation);
+      for(const step of (book.procedure||[]).slice(0,5))para(item,'Procedure: '+String(step).slice(0,280));
+      if(book.workedExample)para(item,'Synthetic example: '+String(book.workedExample).slice(0,360));
+      for(const boundary of (book.boundaries||[]).slice(0,3))para(item,'Limit: '+String(boundary).slice(0,240));
+      for(const candidate of (book.candidateReferences||[]).slice(0,2)){
+       line(item,'Research candidate',candidate.publisher+' (unverified; requires owner/source review)');
+      }
+     }
      const refs=r.references||[];
      line(item,'Scoped notes visible to this reader',refs.length);
      for(const note of refs.slice(0,12))line(item,'  '+(note.scope||'note')+' — '+(note.title||note.id),String(note.text||'').slice(0,140));
@@ -255,7 +267,16 @@
        line(info,'Fetched at',found.fetchedAt||'Not reported');
        for(const item of found.items||[]){
         const a=el('a',item.title);a.href=item.url;a.target='_blank';a.rel='noopener noreferrer';a.style.display='block';info.appendChild(a);
-        line(info,'Publication date',item.publishedAt||'Not provided — review source');line(info,'Trust','Unverified candidate; no update applied');
+        line(info,'Publication date',item.publishedAt||'Not provided — review source');
+        line(info,'Publisher',item.publisher||found.publisher||'Not reported');
+        const proposal=item.proposedKnowledgeUpdate;
+        if(proposal){
+         line(info,'Update state',proposal.status||'Pending owner review');
+         line(info,'Target fields',(proposal.targetDepartments||[]).join(', ')||'Not assigned');
+         para(info,proposal.proposedAction||'Read the original publication and verify each claim before approving a knowledge note.');
+         line(info,'Verified claims',Array.isArray(proposal.verifiedClaims)?proposal.verifiedClaims.length:'Not verified');
+        }
+        line(info,'Trust','Unverified candidate; no automatic publishing or memory update');
        }
       }catch(e){error(info,e)}
      });
