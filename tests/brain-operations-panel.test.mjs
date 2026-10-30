@@ -43,6 +43,7 @@ function harness({migrationReady=false}={}){
     limitation:'Text only, no original PDF transferred'});
   }
   if(path==='/api/connectors')return Response.json({ok:true,providers:[{provider:'notion',enabled:false},{provider:'googledocs',enabled:true}],vaultConfigured:false});
+  if(path==='/api/connections')return Response.json({ok:true,connections:{google:{status:'connected',needsReconnect:false,refreshCapable:true,updatedAt:'2026-10-30T00:00:00Z',scopes:['https://www.googleapis.com/auth/gmail.send','https://www.googleapis.com/auth/calendar.events','https://www.googleapis.com/auth/drive.file']}}});
   if(path==='/api/folders?structure=1')return Response.json({ok:true,folders:[{id:'folder-1'}],projects:[{id:'project-bloodpool'}]});
   if(path==='/api/independent-brain/operations')return Response.json({memoryReady:true,counts:{completed:7,running:2},total:9,staleRunningSample:[{missionId:'synthetic-running-00001',lastCheckpoint:'2026-10-01'}],quota:null,providerCalls:null});
   if(path==='/api/independent-brain/quality-cases')return Response.json({
@@ -243,4 +244,18 @@ test('preferred team can prepare a multi-step mission with no automatic executio
  assert.equal(body.realDrafts,false);
  assert.deepEqual(body.evidenceIds,[]);
  assert.equal(posts[0].options.headers['x-scotty-csrf'],'1');
+});
+
+test('native Google OAuth panel distinguishes granted scopes from unverified Gmail read access',async()=>{
+ const h=harness();
+ await byLabel(h,'Verify native Google Gmail, Calendar and Drive scope grants').listeners.click();
+ const rendered=text(h.body);
+ assert.match(rendered,/Gmail send/);
+ assert.match(rendered,/Gmail read/);
+ assert.match(rendered,/Calendar event create\/update/);
+ assert.match(rendered,/Not confirmed/);
+ assert.match(rendered,/Scope grants confirm recorded authorization/);
+ const calls=h.calls.filter(c=>c.path==='/api/connections');
+ assert.equal(calls.length,1);
+ assert.ok(!calls[0].options.body);
 });
