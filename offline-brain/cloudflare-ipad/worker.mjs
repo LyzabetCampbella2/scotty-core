@@ -8,7 +8,7 @@ import {connectedRoster} from "./connected-roster.mjs";
 import {planAssignment,brainProfile} from "./team-expansion.mjs";
 import {runTeam,selectTeam,previewTeamKnowledge} from "./team-runtime.mjs";
 import {missionMemory,missionRequestKey} from "./mission-memory.mjs";
-import {operatingSnapshot} from "./operations.mjs";
+import {operatingSnapshot,staleMissionReview} from "./operations.mjs";
 import {readiness,storageReadiness,RELEASE} from "./brain-readiness.mjs";
 import {KNOWLEDGE_VERSION,FIELD_CARDS,fieldKnowledge} from "./field-knowledge.mjs";
 import {normalizeNote,memoryStore} from "./brain-memory.mjs";
@@ -81,11 +81,20 @@ async function handleApi(request,env,url){
  const path=url.pathname;
  if(path==="/api/readiness"&&request.method==="GET")return response(await readiness(env));
  const storage=await storageReadiness(env.BRAIN_DB);
- if(storage.bound&&!storage.ready&&["/api/memory","/api/missions","/api/mission","/api/team","/api/ask","/api/team-preview","/api/memory-change","/api/memory-history","/api/memory-conflicts"].includes(path))return failure(storage.reason,"Dedicated memory database is bound but its schema is not ready. Check Activation Status before proceeding.",503);
+ if(storage.bound&&!storage.ready&&["/api/memory","/api/missions","/api/mission","/api/team","/api/ask","/api/team-preview","/api/memory-change","/api/memory-history","/api/memory-conflicts","/api/mission-recovery"].includes(path))return failure(storage.reason,"Dedicated memory database is bound but its schema is not ready. Check Activation Status before proceeding.",503);
  if(path==="/api/operations"&&request.method==="GET"){
   if(!storage.ready)return response({memoryReady:false,reason:storage.reason,quota:null,providerCalls:null});
   try{return response(await operatingSnapshot(env.BRAIN_DB));}
   catch{return failure("OPERATIONS_UNAVAILABLE","Read-only mission counts could not be retrieved.",503);}
+ }
+ if(path==="/api/mission-recovery"&&request.method==="POST"){
+  if(!storage.ready)return failure("MISSION_STORAGE_NOT_READY","Dedicated D1 schema must be ready before recovery.",503);
+  let input;
+  try{input=await bodyJson(request);}catch{return failure("INVALID_RECOVERY_BODY","Provide a bounded JSON recovery preview or reviewed apply request.",400);}
+  try{return response(await staleMissionReview(env.BRAIN_DB,input));}
+  catch(e){const code=String(e?.message||"RECOVERY_UNAVAILABLE");
+   return failure(code,"No mission recovery was confirmed. Read the current checkpoint and prepare a new owner review before any further action.",
+    code==="MISSION_NOT_FOUND"?404:code==="MISSION_NOT_STALE_OR_ALREADY_UPDATED"||code==="MISSION_CHECKPOINT_CHANGED"?409:400);}
  }
  if(path==="/api/status"&&request.method==="GET"){const gov=await governanceReadiness(env.BRAIN_DB);return response({
   status:"ISOLATED_CLOUDFLARE_BRAIN_LAB",release:RELEASE,
