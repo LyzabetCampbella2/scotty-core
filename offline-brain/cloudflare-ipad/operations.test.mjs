@@ -12,11 +12,15 @@ test('mission operations aggregate only statuses, detect stale work and leave qu
   insert.run('test-running-0000001','running','2026-10-30T10:00:00Z');
   insert.run('test-finished-00001','completed','2026-10-30T10:14:00Z');
   insert.run('test-stopped-00001','incomplete','2026-10-30T10:12:00Z');
-  const db={prepare:q=>({bind:()=>({all:async()=>({results:sql.prepare(q).all()})})})};
+  const db={prepare:q=>({bind:(...args)=>({all:async()=>({results:sql.prepare(q).all(...args)})})})};
   const result=await operatingSnapshot(db,new Date('2026-10-30T10:20:00Z'));
   assert.equal(result.total,3);
   assert.deepEqual(result.counts,{completed:1,incomplete:1,running:1});
   assert.equal(result.staleRunningSample.length,1);
+  assert.equal(result.staleRunningTotal,1);
+  assert.equal(result.requiresOwnerReview,2);
+  assert.equal(result.recoveryPolicy.automaticRetry,false);
+  assert.equal(result.recoveryPolicy.compareAndSwap,true);
   assert.equal(result.staleRunningSample[0].missionId,'test-running-0000001');
   assert.equal(result.quota,null);
   assert.equal(result.providerCalls,null);
