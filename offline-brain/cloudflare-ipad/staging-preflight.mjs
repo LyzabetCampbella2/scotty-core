@@ -26,8 +26,7 @@ export function stagingPreflight({config,env={}}={}){
   databases[0]?.binding==="BRAIN_DB"&&databases[0]?.database_name==="scotty-brain-memory"&&
   databases[0]?.database_id==="2da492e2-84fe-43a1-9afe-66b81300def1"&&
   Object.keys(databases[0]).every(k=>["binding","database_name","database_id"].includes(k));
- if(databases!=null&&!dedicated)fail("Only the owner's dedicated lab memory database is allowed");
- if(config.vars?.AI_ENABLED==="true"&&!dedicated)fail("AI activation requires the dedicated memory binding");
+ if(!dedicated)fail("Exactly the owner-approved dedicated lab D1 binding is required, even when AI is disabled");
  if(config.vars?.BRAIN_ENVIRONMENT!=="ISOLATED_RESEARCH_ONLY")fail("Only isolated research mode allowed");
  if(config.ai?.binding!=="AI")fail("Only an explicit AI binding may be added");
  for(const key of ["routes","route","triggers","kv_namespaces","r2_buckets",
