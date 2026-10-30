@@ -19,6 +19,8 @@ test('project switch, revoked source and private content classification are all 
  const mutate=[
   p=>{p.sources[0].projectId='fictional-project-other';},
   p=>{p.sources[0].revoked=true;},
+  p=>{p.sources[0].expiresAt='not-a-date';},
+  p=>{p.sources[0].expiresAt='2026-01-01T00:00:00Z';},
   p=>{p.sources[0].classification='private';},
   p=>{p.noPrivateDataConfirmed=false;},
   p=>{p.sources[0].allowedAgentIds=[other.id];},
