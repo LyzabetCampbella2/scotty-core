@@ -177,3 +177,68 @@ test('a project source missing approval for chief/SCOTTY is rejected before infe
   assert.equal(db.sql.prepare('SELECT count(*) AS n FROM brain_missions').get().n,0);
  }finally{db.sql.close();}
 });
+
+test('duplicate mission remains unverified while original model is still running',async()=>{
+ const db=database();
+ let release;const wait=new Promise(resolve=>{release=resolve});
+ let calls=0;
+ const env={OWNER_BEARER_TOKEN:TOKEN,AI_ENABLED:'true',BRAIN_DB:db,
+  AI:{run:async()=>{calls++;await wait;return {response:'Synthetic pending finding'}}}};
+ const body={question,missionId:'running-readback-00000001',...consent};
+ try{
+  const work=worker.fetch(req('/api/team',body),env);
+  for(let n=0;n<15;n++)await Promise.resolve();
+  const res=await worker.fetch(req('/api/team',body),env);
+  assert.equal(res.status,409);
+  const data=await res.json();
+  assert.equal(data.status,'running');
+  assert.equal(data.missionReadbackVerified,false);
+  assert.equal(data.missionPersisted,false);
+  assert.equal(calls,1);
+  release();
+  assert.equal((await work).status,200);
+ }finally{release();db.sql.close()}
+});
+test('previous checkpoint cannot be verified by an inconsistent replay',async()=>{
+ const db=database();let calls=0;
+ const env={OWNER_BEARER_TOKEN:TOKEN,AI_ENABLED:'true',BRAIN_DB:db,
+  AI:{run:async()=>({response:'Synthetic finding '+ ++calls})}};
+ const body={question,missionId:'corrupt-replay-00000001',...consent};
+ try{
+  assert.equal((await worker.fetch(req('/api/team',body),env)).status,200);
+  const row=db.sql.prepare('SELECT result_json FROM brain_missions WHERE id=?').get(body.missionId);
+  const wrong={...JSON.parse(row.result_json),status:'running'};
+  db.sql.prepare('UPDATE brain_missions SET result_json=? WHERE id=?').run(JSON.stringify(wrong),body.missionId);
+  const reply=await worker.fetch(req('/api/team',body),env);
+  assert.equal(reply.status,502);
+  const answer=await reply.json();
+  assert.equal(answer.error,'MISSION_REPLAY_READBACK_UNVERIFIED');
+  assert.equal(calls,3);
+ }finally{db.sql.close()}
+});
+test('owner can inspect any mission ID even when older than 20 history records',async()=>{
+ const db=database();let calls=0;
+ const env={OWNER_BEARER_TOKEN:TOKEN,BRAIN_DB:db,
+  AI:{run:async()=>{calls++;throw Error('Unexpected AI')}}};
+ const stamp='2026-10-30T00:00:00.000Z';
+ try{
+  for(let index=1;index<=25;index++){
+   const id='historical-mission-'+String(index).padStart(5,'0');
+   const result={status:'completed',answer:'Synthetic saved answer '+index,results:[]};
+   db.sql.prepare('INSERT INTO brain_missions(id,question,team_size,status,result_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?)')
+    .run(id,'Synthetic question',1,'completed',JSON.stringify(result),stamp,stamp);
+  }
+  const url='/api/mission?missionId=historical-mission-00001';
+  const res=await worker.fetch(req(url),env);
+  assert.equal(res.status,200);
+  const data=await res.json();
+  assert.equal(data.missionReadbackVerified,true);
+  assert.equal(data.answer,'Synthetic saved answer 1');
+  assert.equal(data.modelCalls,0);
+  const nonexistent=await worker.fetch(req('/api/mission?missionId=historical-mission-09999'),env);
+  assert.equal(nonexistent.status,404);
+  const invalid=await worker.fetch(req('/api/mission?missionId=bad'),env);
+  assert.equal(invalid.status,400);
+  assert.equal(calls,0);
+ }finally{db.sql.close()}
+});
