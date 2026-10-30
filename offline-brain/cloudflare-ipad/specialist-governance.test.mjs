@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {connectedRoster} from './connected-roster.mjs';
 import {brainProfile} from './team-expansion.mjs';
 import {buildSpecialistGuides} from './specialist-playbooks.mjs';
+import {DEPARTMENT_PATTERNS} from './department-methods.mjs';
 import {selectTeam,previewTeamKnowledge} from './team-runtime.mjs';
 const roster=connectedRoster();
 test('all 160 specialists have unique authored playbooks with procedures, examples and honest limits',()=>{
@@ -37,4 +38,19 @@ test('previews contain the correct specialist playbook and selected team reason 
  assert.equal(view.readers[0].agentId,agent.id);
  assert.equal(view.readers[0].specialistPlaybook.agentId,agent.id);
  assert.match(view.readers[0].selectionReason,/Explicit owner/);
+});
+
+test('all 25 specialist departments have non-generic authored procedures and safe synthetic examples',()=>{
+ const guides=buildSpecialistGuides(roster);
+ assert.equal(Object.keys(DEPARTMENT_PATTERNS).length,25);
+ assert.equal(new Set(guides.map(g=>g.department)).size,25);
+ for(const guide of guides){
+  assert.ok(DEPARTMENT_PATTERNS[guide.department],guide.department);
+  assert.ok(['specialty-specific','department-specific'].includes(guide.methodCoverage));
+  assert.ok(guide.procedure[0].length>30);
+  assert.ok(guide.workedExample.length>45);
+  assert.equal(guide.departmentPatternCount,25);
+  assert.equal(guide.reviewed,false);
+  assert.ok(!guide.procedure.some(x=>x.includes('Define the actual deliverable and its constraints in ')));
+ }
 });
