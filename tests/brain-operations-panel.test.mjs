@@ -29,7 +29,8 @@ function harness({migrationReady=false}={}){
   if(path==='/api/agent-brains/project-operations/project-bloodpool/brief')return Response.json({ok:true,brief:{asOf:'2026-10-30',overdue:[],upcoming:[{title:'Fictional draft review',dueAt:'2026-11-01'}],decisions:[{goal:'Approve fiction outline',status:'awaiting_approval'}],blocked:[],pendingHandoffs:1,gaps:['No live calendar connection']}});
   if(path==='/api/agent-brains/project-operations/project-bloodpool/progress')return Response.json({ok:true,missions:[{id:'sample-mission',goal:'Fictional outline',status:'review',steps:[{agentId:'agent-one',status:'drafted',deliverable:'Three-scene outline'}]}]});
   if(path==='/api/agent-brains/project-operations/project-bloodpool/team-status')return Response.json({ok:true,members:[{id:'chief-one',name:'Lead Chief',isChief:true},{id:'agent-one',name:'First Agent',isChief:false,chiefId:'chief-one'}]});
-  if(path==='/api/agent-brains/project-operations/project-bloodpool/team-presets')return Response.json({ok:true,teams:[],readOnly:true});
+  if(path==='/api/agent-brains/project-operations/project-bloodpool/team-presets')return Response.json({ok:true,teams:[{name:'Creative Team',agentIds:['chief-one','agent-one'],leadChiefId:'chief-one',revision:2,active:true}],readOnly:true});
+  if(path==='/api/agent-brains/project-operations/project-bloodpool/plan')return Response.json({ok:true,id:'fake-plan-id',status:'awaiting_approval'});
   if(path==='/api/agent-brains/project-operations/project-bloodpool/evidence')return Response.json({ok:true,evidence:[{id:'evidence-one',title:'Fictional chapter extract',recipients:['agent-one']} ]});
   if(path==='/api/workspace/project?id=project-bloodpool')return Response.json({ok:true,
    project:{id:'project-bloodpool'},files:[{id:'file-12345678',name:'fictional-chapter.pdf',mimeType:'application/pdf'}]});
@@ -216,4 +217,30 @@ test('uploaded PDF preview cannot attach without explicit source and recipient a
  assert.deepEqual(JSON.parse(writes[0].options.body).agentIds,['chief-one']);
  assert.equal(writes[0].options.headers['x-scotty-csrf'],'1');
  assert.equal(h.calls.filter(x=>x.path.includes('/independent-brain/team')).length,0);
+});
+
+test('preferred team can prepare a multi-step mission with no automatic execution or source sharing',async()=>{
+ const h=harness();
+ await byLabel(h,'Load my real project list').listeners.click();
+ const project=h.find(n=>n.tag==='select'&&n['aria-label']==='Choose a real SCOTTY project');
+ project.value='project-bloodpool';
+ await byLabel(h,'Manage preferred project team (owner approval required)').listeners.click();
+ for(let n=0;n<10;n++)await Promise.resolve();
+ const goal=h.find(n=>n.tag==='input'&&n.placeholder==='New goal for this preferred project team');
+ assert.ok(goal);goal.value='Prepare three fictional scene outlines';
+ const propose=byLabel(h,'Prepare mission plan from preferred team');
+ assert.ok(propose);
+ await propose.listeners.click();
+ assert.equal(h.calls.filter(x=>x.path.endsWith('/plan')&&x.options.method==='POST').length,0);
+ const checkbox=h.find(n=>n.tag==='label'&&text(n).includes('I authorize saving a non-executing multi-step mission draft'));
+ assert.ok(checkbox);checkbox.children.find(n=>n.tag==='input').checked=true;
+ await propose.listeners.click();
+ const posts=h.calls.filter(x=>x.path.endsWith('/plan')&&x.options.method==='POST');
+ assert.equal(posts.length,1);
+ const body=JSON.parse(posts[0].options.body);
+ assert.equal(body.goal,'Prepare three fictional scene outlines');
+ assert.deepEqual(body.agentIds,['chief-one','agent-one']);
+ assert.equal(body.realDrafts,false);
+ assert.deepEqual(body.evidenceIds,[]);
+ assert.equal(posts[0].options.headers['x-scotty-csrf'],'1');
 });
