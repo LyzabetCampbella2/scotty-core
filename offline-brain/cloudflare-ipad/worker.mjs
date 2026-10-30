@@ -129,7 +129,7 @@ async function handleApi(request,env,url){
  if(path==="/api/team-preview"){
   if(!storage.ready)return failure("MEMORY_NOT_CONNECTED","Connect memory before checking live retrieval.",503);
   try{selectTeam(roster,question,body.teamSize??1);}catch{return failure("INVALID_TEAM_SIZE","Choose one or two specialist departments.");}
-  return response(await previewTeamKnowledge({roster,question,teamSize:body.teamSize??1,getEvidence:agent=>memoryStore(env.BRAIN_DB).read(agent)}));
+  return response(await previewTeamKnowledge({roster,question,teamSize:body.teamSize??1,getEvidence:agent=>memoryStore(env.BRAIN_DB).read(agent,question)}));
  }
  if(path==="/api/plan"){
   const plan=planAssignment(roster,question,{maxAgents:4});
@@ -151,7 +151,7 @@ async function handleApi(request,env,url){
    if(!claim.claimed)return response({missionId,cached:true,status:claim.status,...claim.result},claim.status==="running"?409:200);
   }
   const result=await runTeam({roster,question,AI:env.AI,approved:true,teamSize,
-   getEvidence:async agent=>env.BRAIN_DB?.prepare?await memoryStore(env.BRAIN_DB).read(agent):[],
+   getEvidence:async agent=>env.BRAIN_DB?.prepare?await memoryStore(env.BRAIN_DB).read(agent,question):[],
    onCheckpoint:async result=>{if(storage)await storage.checkpoint(missionId,result);}
   });
   if(storage&&result.status==="needs-clarification")await storage.checkpoint(missionId,result);
