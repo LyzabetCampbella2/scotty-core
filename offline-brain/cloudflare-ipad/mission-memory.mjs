@@ -33,7 +33,13 @@ export function missionMemory(db){
    if(!row||row.question!==question||Number(row.team_size)!==teamSize)throw Error('MISSION_ID_CONFLICT');
    return {claimed:false,status:row.status,result:JSON.parse(row.result_json)};
   },
-  async checkpoint(id,result){await db.prepare('UPDATE brain_missions SET status=?,result_json=?,updated_at=? WHERE id=?').bind(result.status,JSON.stringify(result),new Date().toISOString(),id).run();},
+  async checkpoint(id,result){
+   if(typeof result?.status!=='string'||!['running','completed','incomplete','needs-clarification'].includes(result.status))
+    throw Error('INVALID_MISSION_CHECKPOINT_STATUS');
+   const update=await db.prepare("UPDATE brain_missions SET status=?,result_json=?,updated_at=? WHERE id=? AND status='running'")
+    .bind(result.status,JSON.stringify(result),new Date().toISOString(),id).run();
+   if(update.meta?.changes!==1)throw Error('MISSION_CHECKPOINT_CLOSED_OR_MISSING');
+  },
   async readback(id){
    if(typeof id!=='string'||!/^[a-z0-9-]{16,80}$/i.test(id))throw Error('INVALID_MISSION_ID');
    const query=await db.prepare('SELECT id,question,team_size,status,result_json,updated_at FROM brain_missions WHERE id=? LIMIT 1').bind(id).all();
