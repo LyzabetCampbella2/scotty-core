@@ -433,6 +433,7 @@
   section(panel,'5 · Publisher source candidates',showSources);
   section(panel,'6 · Department-specific acceptance cases',showDepartmentAcceptance);
   section(panel,'7 · Project Command Center — approved teams, evidence, missions and briefings',projectCommandCenter);
+  section(panel,'8 · Connected apps, document workspace and Dawna exchange',showConnectedActions);
   btn(panel,'Open existing System & Recovery',()=>{root.location.href='/system'});
   panel.focus();
  }
