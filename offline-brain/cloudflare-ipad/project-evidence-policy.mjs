@@ -39,3 +39,26 @@ export function projectEvidenceFor(agent,ctx){
  return ctx.sources.filter(s=>s.projectId===ctx.projectId&&s.ownerApproved===true&&s.allowedAgentIds.includes(agent.id))
   .map(s=>({id:'project:'+s.projectId+':'+s.id,title:s.title,content:s.content,url:s.url,scope:'project',retrievalReason:'Explicitly assigned public/synthetic project evidence for '+agent.id,reviewedAt:s.reviewedAt}));
 }
+
+/** Every downstream reviewer must be on each source's explicit grant list.
+ * Specialist findings can contain source-derived material, even when original
+ * excerpts are not copied verbatim. Never use an implicit chief/SCOTTY grant.
+ */
+export function assertApprovedReviewChain(context,plan){
+ if(!context)return {permitted:true,sourceChecks:0};
+ if(!Array.isArray(plan?.assignments)||!plan.assignments.length)throw Error('PROJECT_TEAM_NOT_SELECTED');
+ let checks=0;
+ for(const a of plan.assignments){
+  const specialist=a.agentId,chief=a.chiefId;
+  if(typeof specialist!=='string'||typeof chief!=='string')throw Error('INVALID_PROJECT_REVIEW_CHAIN');
+  for(const source of context.sources){
+   const granted=new Set(source.allowedAgentIds||[]);
+   if(granted.has(specialist)){
+    if(!granted.has(chief)||!granted.has('scotty'))throw Error('PROJECT_REVIEW_CHAIN_NOT_APPROVED');
+    checks++;
+   }
+   if(granted.has(chief)&&!granted.has('scotty'))throw Error('PROJECT_CHIEF_HANDOFF_NOT_APPROVED');
+  }
+ }
+ return {permitted:true,sourceChecks:checks,downstreamRecipientsVerified:true};
+}
