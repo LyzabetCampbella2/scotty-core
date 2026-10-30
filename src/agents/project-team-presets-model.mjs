@@ -20,7 +20,7 @@ export function teamPresetInput(input,projectId,members){
   const agent=permitted.get(id);
   if(!agent.isChief&&!chiefs.includes(agent.chiefId))throw Error('SPECIALIST_REQUIRES_OWN_CHIEF');
  }
- const revision=Number(input.expectedRevision);
+ const revision=input.expectedRevision;
  if(!Number.isInteger(revision)||revision<0)throw Error('EXPECTED_TEAM_REVISION_REQUIRED');
  return {projectId,name,agentIds:[...ids],leadChiefId:lead.id,
   expectedRevision:revision,ownerReviewed:true,automaticallyStarted:false,grantsPermissions:false};
