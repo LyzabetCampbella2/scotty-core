@@ -85,6 +85,7 @@ async function handleApi(request,env,url){
   memoryConnected:storage.ready,memoryBound:storage.bound,memoryReason:storage.reason,teamMaxCalls:5,
   knowledgeMethodGuideCount:brain.documentCount,
   knowledgeVersion:KNOWLEDGE_VERSION,fieldKnowledgeProfiles:roster.length+1,fieldKnowledgeDepartments:Object.keys(FIELD_CARDS).length,
+  specialistPlaybooks:160,specialistPlaybooksOwnerReviewed:0,specialistPlaybooksVerification:'authored-pending-source-review',
   memoryPolicy:{perScopeLimit:4,scopes:["agent","department","shared"]},
   domainFactStoreConnected:false,updatedLiveKnowledge:false,
   aiEnabled:env.AI_ENABLED==="true"&&typeof env.AI?.run==="function",
