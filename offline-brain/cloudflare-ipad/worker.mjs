@@ -200,7 +200,7 @@ async function handleApi(request,env,url){
   let verified=false;
   try{
    const persisted=await store.readback(missionId);
-   verified=Boolean(persisted&&persisted.question===question&&persisted.teamSize===teamSize&&
+   verified=Boolean(persisted&&persisted.question===requestKey&&persisted.teamSize===teamSize&&
     persisted.status===result.status&&
     JSON.stringify(persisted.result?.results||[])===JSON.stringify(result.results||[])&&
     (persisted.result?.answer??null)===(result.answer??null));
