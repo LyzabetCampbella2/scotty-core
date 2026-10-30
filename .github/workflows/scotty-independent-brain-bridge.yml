@@ -34,7 +34,8 @@ jobs:
         with:
           node-version: "24"
       - name: Test auth, endpoint allowlists, no-secret browser boundary, AI consent and memory write gate
-        run: node --test src/brain/independent-bridge.test.mjs src/brain/independent-governance.test.mjs src/agents/brain-roster-sync.test.mjs tests/team-brain-hud-routing.test.mjs
+        run: |
+          node --test src/brain/independent-bridge.test.mjs src/brain/independent-governance.test.mjs src/agents/brain-roster-sync.test.mjs tests/team-brain-hud-routing.test.mjs
           node --check public/brain-operations-panel.js
       - uses: oven-sh/setup-bun@v2
       - name: Bundle SCOTTY production server without starting it or connecting to any database
