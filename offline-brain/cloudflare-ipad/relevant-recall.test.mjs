@@ -38,5 +38,9 @@ test('publisher discovery reports source date and never promotes an unreviewed h
  assert.equal(result.items[0].publishedAt,'2026-10-28T12:00:00.000Z');
  assert.equal(result.items[0].verified,false);
  assert.equal(result.items[0].reviewRequired,true);
+ assert.equal(result.items[0].proposedKnowledgeUpdate.status,'pending-owner-review');
+ assert.deepEqual(result.items[0].proposedKnowledgeUpdate.verifiedClaims,[]);
+ assert.equal(result.items[0].proposedKnowledgeUpdate.autoPromote,false);
+ assert.equal(result.items[0].publisher,result.publisher);
  assert.equal(result.automaticallySaved,false);
 });
