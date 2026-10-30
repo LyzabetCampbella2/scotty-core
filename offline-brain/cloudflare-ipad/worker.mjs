@@ -206,6 +206,8 @@ async function handleApi(request,env,url){
   if(!claim.claimed){
    let prior=null;
    try{prior=await store.readback(missionId);}catch{}
+   if(prior?.status==="running"&&prior.question===requestKey&&prior.teamSize===teamSize)
+    return response({missionId,cached:true,status:"running",missionPersisted:false,missionReadbackVerified:false},409);
    const verified=Boolean(prior&&prior.question===requestKey&&prior.teamSize===teamSize&&
     prior.status===claim.status&&prior.result?.status===prior.status&&
     JSON.stringify(prior.result)===JSON.stringify(claim.result));
