@@ -11,7 +11,7 @@ import {missionMemory} from "./mission-memory.mjs";
 import {readiness,storageReadiness,RELEASE} from "./brain-readiness.mjs";
 import {KNOWLEDGE_VERSION,FIELD_CARDS,fieldKnowledge} from "./field-knowledge.mjs";
 import {normalizeNote,memoryStore} from "./brain-memory.mjs";
-import {noteChange,noteAudit,findNoteConflicts} from './memory-governance.mjs';
+import {noteChange,noteAudit,findNoteConflicts,governanceReadiness} from './memory-governance.mjs';
 import {normalizeProjectContext} from './project-evidence-policy.mjs';
 import {discoverFeed} from "./source-discovery.mjs";
 import {PUBLIC_FEEDS} from "../update-sources.mjs";
@@ -80,7 +80,7 @@ async function handleApi(request,env,url){
  if(path==="/api/readiness"&&request.method==="GET")return response(await readiness(env));
  const storage=await storageReadiness(env.BRAIN_DB);
  if(storage.bound&&!storage.ready&&["/api/memory","/api/missions","/api/team","/api/ask","/api/team-preview","/api/memory-change","/api/memory-history","/api/memory-conflicts"].includes(path))return failure(storage.reason,"Dedicated memory database is bound but its schema is not ready. Check Activation Status before proceeding.",503);
- if(path==="/api/status"&&request.method==="GET")return response({
+ if(path==="/api/status"&&request.method==="GET"){const gov=await governanceReadiness(env.BRAIN_DB);return response({
   status:"ISOLATED_CLOUDFLARE_BRAIN_LAB",release:RELEASE,
   agentCount:brain.agentCount,chiefCount:brain.chiefCount,specialistCount:160,overseer:"SCOTTY",
   rosterSource:"production-source-fallback-plus-proposed-additions",liveRosterVerified:false,
@@ -96,8 +96,10 @@ async function handleApi(request,env,url){
   dbCreated:false,storageCreated:false,privateDataLoaded:false,
   freePlanOnlyExpected:true,spendingEnforcement:"CLOUDFLARE_FREE_PLAN_QUOTA",
   dataPolicy:"Do not enter private memories, client content, personal documents or credentials. Explicit prompts are sent to Cloudflare AI only when authorized.",
-  caution:"Fallback source names preserved; live database roster unverified. Guides are methods, not expert factual knowledge."
- });
+  caution:"Fallback source names preserved; live database roster unverified. Guides are methods, not expert factual knowledge.",
+  governanceMigrationReady:gov.ready,governanceReadinessReason:gov.reason,
+  quotaRemaining:null,quotaSource:"No programmatic quota counter available from this Worker; check provider dashboard."
+ });}
  if(path==="/api/catalog"&&request.method==="GET")return response({
   overseer:agentPublic(scotty),agents:roster.map(agentPublic),agentCount:roster.length,synthetic:false,liveRosterVerified:false});
  if(path==="/api/sources"&&request.method==="GET")return response({
