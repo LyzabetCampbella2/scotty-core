@@ -247,6 +247,42 @@
   link(parent,'Open voice-driven folder workspace','/workspace');
   para(parent,'Voice commands already available when enabled: “Scotty, list my projects”, “Read my daily briefing”, “Read mission progress”, “Build a project team”, “List my Google Docs”, and “List my Notion pages”. Physical microphone recognition is still unverified.');
  }
+ function showConnectedActions(parent){
+  para(parent,'Verify connections before asking SCOTTY to act. Viewing status performs no sends, calendar edits, Drive uploads or Notion writes. Actual changes require the existing connector action preview and owner confirmation.');
+  const out=el('div');parent.appendChild(out);
+  btn(parent,'Check connector configuration (read-only)',async()=>{
+   clear(out);
+   try{
+    const d=await api('/api/connectors');
+    const desired=['notion','googledocs','google','gmail','googlecalendar','googledrive','appleplanner'];
+    const entries=Array.isArray(d.providers)?d.providers:Object.entries(d.providers||{}).map(([provider,data])=>({provider,...(data||{})}));
+    for(const name of desired){
+     const x=entries.find(v=>v.provider===name||v.name===name||v.id===name);
+     line(out,name,x?String(x.status||x.state||(x.enabled?'Configured':'Listed; check account')||'Unverified'):'Not listed — do not assume connected');
+    }
+    if(d.vaultConfigured===false)para(out,'Connector vault is not configured; do not attempt external actions.');
+    para(out,'A listed connector is not proof that the account is reachable, a token is valid, or a requested operation is permitted. Verify in the full Connectors screen.');
+   }catch(e){error(out,e);para(out,'Cannot verify connected apps from this environment. Avoid making provider actions.')}
+  });
+  btn(parent,'Check original folder and document database (read-only)',async()=>{
+   const box=el('div');parent.appendChild(box);
+   try{
+    const d=await api('/api/folders?structure=1');
+    line(box,'Available folders',(d.folders||[]).length);
+    line(box,'Available projects',(d.projects||[]).length);
+    para(box,'These are same-origin records; no changes or sharing have occurred.');
+   }catch(e){error(box,e)}
+  });
+  const links=[
+   ['Open existing app Connectors','/connectors'],
+   ['Review Google Docs and Notion evidence permissions','/agents/project-operations'],
+   ['Open native folders and files','/workspace'],
+   ['Open approved ANSJEM / Dawna work exchange','/agents/project-operations']
+  ];
+  for(const [label,url] of links){const a=el('a',label);a.href=url;a.target='_self';css(a,'display:block;margin:5px;color:#a9eafa');parent.appendChild(a);}
+  para(parent,'SCOTTY–Dawna: this is the existing Ansjem work-request and handoff workflow, not an automatically established live API connection. Both systems retain independent ownership; sharing and releases remain owner-approved.');
+  para(parent,'Deliverables: use the project mission editor and existing file workspace to review reports, outlines, schedules and content plans. A draft is not a downloadable PDF, DOCX or completed external action until its output is generated and verified.');
+ }
  function showCloudflareMemory(parent){
   para(parent,'Dedicated Cloudflare D1 memory is separate from Render PostgreSQL. This section reads only the chosen agent’s notes; changes require a new preview and explicit owner approval. Governance migration v2 must first be applied to the dedicated D1 database.');
   const agent=input(parent,'Exact Cloudflare specialist or chief ID','scotty');
