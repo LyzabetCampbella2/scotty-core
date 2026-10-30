@@ -192,8 +192,18 @@ async function handleApi(request,env,url){
   const missionId=body.missionId||crypto.randomUUID();
   const requestKey=await missionRequestKey(question,projectContext);
   let claim;try{claim=await store.claim(missionId,requestKey,teamSize);}catch{return failure("MISSION_STORAGE_CONFLICT","Mission could not be claimed. No AI calls made.",409);}
-  if(!claim.claimed)return response({missionId,cached:true,status:claim.status,...claim.result,missionPersisted:true,
-   missionReadbackVerified:true},claim.status==="running"?409:200);
+  if(!claim.claimed){
+   let prior=null;
+   try{prior=await store.readback(missionId);}catch{}
+   const verified=Boolean(prior&&prior.question===requestKey&&prior.teamSize===teamSize&&
+    prior.status===claim.status&&prior.result?.status===prior.status&&
+    JSON.stringify(prior.result)===JSON.stringify(claim.result));
+   if(!verified)return failure("MISSION_REPLAY_READBACK_UNVERIFIED","Prior checkpoint not verified.",502);
+   if(prior.status==="running")return response({missionId,cached:true,status:"running",
+    missionPersisted:false,missionReadbackVerified:false},409);
+   return response({...prior.result,missionId,cached:true,status:prior.status,
+    missionPersisted:true,missionReadbackVerified:true},prior.status==="incomplete"?502:200);
+  }
   const result=await runTeam({roster,question,AI:env.AI,approved:true,teamSize,projectContext,
    getEvidence:agent=>memoryStore(env.BRAIN_DB).read(agent,question),
    onCheckpoint:record=>store.checkpoint(missionId,record)
