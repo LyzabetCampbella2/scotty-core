@@ -150,6 +150,30 @@
   }
   para(parent,'Never paste a DATABASE_URL or recovery key here. Configure the internal connection URL in Render private environment settings only. Do not enable exports, change billing, or migrate without an explicitly approved recovery plan.');
  }
+ function showDepartmentAcceptance(parent){
+  para(parent,'One tailored fictional assignment per department. Viewing does not contact a model or save memory; each real answer still requires an owner review before PASS.');
+  const out=el('div');parent.appendChild(out);
+  btn(parent,'Load 25 practical department acceptance cases (read-only)',async()=>{
+   clear(out);
+   try{
+    const d=await api('/api/independent-brain/quality-cases');
+    line(out,'Authored test version',d.version||'Not reported');
+    line(out,'Department cases',(d.cases||[]).length);
+    line(out,'Model calls',d.modelCalls??0);
+    for(const c of d.cases||[]){
+     const item=el('details');css(item,'padding:8px;margin:6px 0;border:1px solid #456070;border-radius:8px');out.appendChild(item);
+     const heading=el('summary',c.department+' — '+(c.synthetic?'Synthetic':'Unknown evidence'));item.appendChild(heading);
+     line(item,'Assigned specialist',c.specialistId);
+     line(item,'Reviewing chief',c.chiefId);
+     para(item,c.question);
+     for(const criterion of c.reviewCriteria||[])para(item,'Review: '+criterion);
+     line(item,'Status',c.ownerReviewRequired?'Not run / owner review required':'Unverified');
+    }
+    para(out,d.warning||'Do not interpret the test fixture as verified agent competence.');
+   }catch(e){error(out,e)}
+  });
+  btn(parent,'Open existing Brain Lab to run owner-reviewed acceptance',()=>{root.location.href='/brain-lab'});
+ }
  function showCloudflareMemory(parent){
   para(parent,'Dedicated Cloudflare D1 memory is separate from Render PostgreSQL. This section reads only the chosen agent’s notes; changes require a new preview and explicit owner approval. Governance migration v2 must first be applied to the dedicated D1 database.');
   const agent=input(parent,'Exact Cloudflare specialist or chief ID','scotty');
@@ -298,6 +322,7 @@
   section(panel,'Recovery · verified backup and November 7 continuity',showBackupContinuity);
   section(panel,'4 · Mission checkpoints and recovery evidence',showMissions);
   section(panel,'5 · Publisher source candidates',showSources);
+  section(panel,'6 · Department-specific acceptance cases',showDepartmentAcceptance);
   btn(panel,'Open existing System & Recovery',()=>{root.location.href='/system'});
   panel.focus();
  }
