@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {connectedRoster} from './connected-roster.mjs';
+import worker from './worker.mjs';
 import {selectTeam,runTeam} from './team-runtime.mjs';
 import {departmentAcceptanceCases,ACCEPTANCE_RUBRIC,ACCEPTANCE_VERSION} from './department-acceptance-cases.mjs';
 
@@ -44,4 +45,20 @@ test('all 25 synthetic assignments traverse specialist/chief/SCOTTY with no fact
 test('fixtures cannot represent an owner-approved live department assessment',()=>{
  assert.equal(ACCEPTANCE_VERSION,'department-acceptance-v1');
  assert.ok(cases.every(c=>c.state==='not-run'&&c.modelResultVerified===false));
+});
+
+test('owner-authenticated acceptance catalog is read-only, truthful and consumes no AI quota',async()=>{
+ const token='owner-test-token-12345678901234567890123456789';
+ let calls=0;
+ const env={OWNER_BEARER_TOKEN:token,AI_ENABLED:'true',AI:{run:async()=>{calls++;throw Error('Unexpected AI call')}}};
+ const make=(authorized)=>new Request('https://fixture.workers.dev/api/quality-cases',{headers:authorized?{authorization:'Bearer '+token}:{}});
+ assert.equal((await worker.fetch(make(false),env)).status,401);
+ const response=await worker.fetch(make(true),env);
+ assert.equal(response.status,200);
+ const body=await response.json();
+ assert.equal(body.cases.length,25);
+ assert.equal(body.modelCalls,0);
+ assert.equal(body.memoryWrites,0);
+ assert.ok(body.cases.every(c=>c.modelResultVerified===false));
+ assert.equal(calls,0);
 });
