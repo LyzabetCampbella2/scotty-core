@@ -27,7 +27,7 @@ label.check{display:flex;align-items:flex-start;gap:10px;font-size:13px;font-wei
 <section class="panel"><h2>Choose a specialist team</h2>
 <label for="question">Task (public or synthetic information only)</label><textarea id="question" maxlength="500" placeholder="Review a synthetic astronomy lesson outline…"></textarea>
 <label for="teamSize">Departments</label><select id="teamSize"><option value="1">One department · specialist → chief → SCOTTY</option><option value="2">Two departments · both chiefs → SCOTTY</option></select>
-<div class="actions"><button id="plan">Recommend agents (no AI)</button><button class="secondary" id="team">Run approved team</button></div>
+<div class="actions"><button id="plan">Recommend agents (no AI)</button><button class="secondary" id="preview">Preview team knowledge</button><button class="secondary" id="quality">Department test checklist</button><button class="secondary" id="team">Run approved team</button></div>
 <label class="check"><input type="checkbox" id="approve">I approve this one AI mission.</label>
 <label class="check"><input type="checkbox" id="share">I agree this prompt will be sent to Cloudflare Workers AI.</label>
 <label class="check"><input type="checkbox" id="safe">I confirm this prompt contains no private or client information.</label>
@@ -86,6 +86,11 @@ $('catalog').onclick=()=>run('Loading catalog…',async()=>{
  const p=document.createElement('p');p.textContent=a.department+' · '+(a.specialty||'');
  tile.append(head,p);area.append(tile);}
  return {profiles:d.agentCount,chiefs:(d.agents||[]).filter(a=>a.isChief).length,liveRosterVerified:d.liveRosterVerified};
+});
+$('preview').onclick=()=>run('Reading live team knowledge without AI calls or writes…',()=>call('team-preview',{post:true,data:{question:$('question').value.trim(),teamSize:Number($('teamSize').value)}}));
+$('quality').onclick=()=>run('Preparing department acceptance cases…',async()=>{
+ const d=await call('catalog');
+ return {status:'NOT_RUN',instructions:'Run each assignment separately with approval. Review the actual answer against every criterion. This checklist is not a quality pass.',cases:d.agents.filter(a=>a.isChief).map(a=>({department:a.department,chief:a.name,question:'For a fictional project in '+a.department+', provide three practical examples involving '+a.specialty+'. For each give an action, expected result and a limitation. Label assumptions.',criteria:['Three concrete examples','Actions and expected results are usable','Assumptions and limitations identified','No invented sources or claims of completed external actions','Chief review and SCOTTY final answer preserve the requested work']})),voiceAcceptance:['Spoken request reaches Team Brain','Playback cannot approve itself','Choose one or two departments by voice','Say yes or cancel','Hear final answer','Mission read-back verified','Review, correct and save memory by voice','Memory read-back verified']};
 });
 $('plan').onclick=()=>run('Generating a rule-based, no-AI team plan…',()=>call('plan',{post:true,data:{question:$('question').value.trim()}}));
 $('team').onclick=async()=>{

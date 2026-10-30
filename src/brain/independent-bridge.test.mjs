@@ -118,3 +118,12 @@ test('HUD retries failed transport with same mission ID and blocks double clicks
  const first=get('team').onclick();await get('team').onclick();assert.equal(posts.length,1);release();await first;
  await get('team').onclick();assert.equal(posts.length,2);assert.equal(posts[0].missionId,posts[1].missionId);assert.equal(get('approve').checked,false);
 });
+
+test('knowledge preview is owner-only, validates assignment and requires no AI activation',async()=>{
+ const data={question:'Fictional engineering tests',teamSize:1};
+ const ok=await run('team-preview',{method:'POST',data});assert.equal(ok.status,200);
+ assert.match(ok.last.url,/\/api\/team-preview$/);
+ const denied=await run('team-preview',{method:'POST',data,authenticated:false});assert.equal(denied.status,401);assert.equal(denied.calls,0);
+ const blank=await run('team-preview',{method:'POST',data:{question:''}});assert.equal(blank.status,400);assert.equal(blank.calls,0);
+ const cross=await run('team-preview',{method:'POST',data,origin:'https://other.example'});assert.equal(cross.status,403);
+});
