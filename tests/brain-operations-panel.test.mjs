@@ -25,6 +25,12 @@ function harness({migrationReady=false}={}){
    boundaries:['Never claim real execution'],candidateReferences:[{publisher:'NIST',verified:false}]},references:[]}]};
  const fetch=async(path,options={})=>{
   calls.push({path,options});
+  if(path==='/api/independent-brain/quality-cases')return Response.json({
+   version:'department-acceptance-v1',modelCalls:0,cases:[{
+    department:'Quality & Verification',chiefId:'chief-tuvok',specialistId:'agent-tuvok-01',
+    question:'Use specialist agent-tuvok-01: Design three synthetic verification cases.',
+    synthetic:true,ownerReviewRequired:true,reviewCriteria:['Expected results','Source limits']
+   }]});
   if(path==='/api/independent-brain/team-preview')return Response.json(answer);
   if(path==='/api/independent-brain/status')return Response.json({status:'ISOLATED',governanceMigrationReady:migrationReady});
   if(path==='/api/independent-brain/memory?agentId=scotty')return Response.json({notes:[{id:'00000000-0000-0000-0000-000000000001',title:'Synthetic note',content:'A harmless synthetic reminder',scope:'agent',reviewedAt:'2026-10-30',expiresAt:'2026-11-30'}]});
@@ -81,4 +87,15 @@ test('recovery display distinguishes dated last verified backup from live provid
  assert.match(displayed,/October 18, 2026/);
  assert.match(displayed,/November 7, 2026/);
  assert.match(displayed,/not a live Render control-plane feed/);
+});
+
+test('25-department acceptance section loads synthetic cases without inference or memory writes',async()=>{
+ const h=harness();
+ const b=byLabel(h,'Load 25 practical department acceptance cases (read-only)');
+ assert.ok(b);
+ await b.listeners.click();
+ assert.equal(h.calls.filter(c=>c.path==='/api/independent-brain/quality-cases').length,1);
+ assert.equal(h.calls.filter(c=>c.path.includes('/team')).length,0);
+ assert.match(text(h.body),/Quality & Verification/);
+ assert.match(text(h.body),/Not run \/ owner review required/);
 });
