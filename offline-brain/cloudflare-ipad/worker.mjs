@@ -212,7 +212,7 @@ export default {
    return new Response(browserScript,{headers:{"content-type":"text/javascript; charset=utf-8",...headers}});
   }
   if(request.method==="GET"&&url.pathname==="/health")return response({
-   status:"STAGED_INDEPENDENT_LAB",release:RELEASE,knowledgeVersion:KNOWLEDGE_VERSION,knowledgePreviewVersion:"team-knowledge-preview-v1",singleAgentVersion:"profile-inference-v1",privateDataAccessible:false,
+   status:"STAGED_INDEPENDENT_LAB",release:RELEASE,knowledgeVersion:KNOWLEDGE_VERSION,knowledgePreviewVersion:"team-knowledge-preview-v1",singleAgentVersion:"profile-inference-v1",teamSelectionVersion:"explicit-specialist-v1",privateDataAccessible:false,
    productionConnected:false,aiUsed:false});
   if(!url.pathname.startsWith("/api/"))return failure("NOT_FOUND","Unknown page.",404);
   try{return await handleApi(request,env,url);}catch{
