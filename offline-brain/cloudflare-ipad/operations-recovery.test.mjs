@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {staleMissionReview} from './operations.mjs';
+import {missionMemory} from './mission-memory.mjs';
 import worker from './worker.mjs';
 
 function fixture(){
@@ -84,4 +85,19 @@ test('anonymous remote recovery and unready database are fail-closed without AI 
  assert.equal(denied.status,503);
  const d=await denied.json();
  assert.equal(d.error,'MISSION_STORAGE_NOT_READY');
+});
+
+test('late AI worker cannot reopen or overwrite an owner-reviewed stale mission',async()=>{
+ const f=fixture();
+ try{
+  await staleMissionReview(f.db,{stage:'apply',missionId:f.id,
+   expectedUpdatedAt:f.updated,ownerApproved:true,reviewAcknowledged:true},now);
+  await assert.rejects(()=>missionMemory(f.db).checkpoint(f.id,{
+   status:'completed',answer:'Delayed synthetic response',results:[{text:'Unsafe delayed completion'}]
+  }),/MISSION_CHECKPOINT_CLOSED_OR_MISSING/);
+  const row=f.sqlite.prepare('SELECT status,result_json FROM brain_missions WHERE id=?').get(f.id);
+  assert.equal(row.status,'incomplete');
+  assert.equal(JSON.parse(row.result_json).results[0].text,'Synthetic draft');
+  assert.equal(row.result_json.includes('Unsafe delayed completion'),false);
+ }finally{f.close()}
 });
