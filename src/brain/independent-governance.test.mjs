@@ -39,3 +39,20 @@ test('redacted history requires owner authentication and an exact note ID',async
  const bad=await handleIndependentBrain(new Request(malformed),new URL(malformed),opts);
  assert.equal(bad.status,400);
 });
+
+test('read-only memory and conflict-history routes also require an explicitly enabled memory proxy',async()=>{
+ let calls=0;
+ const locked={...env,SCOTTY_INDEPENDENT_BRAIN_MEMORY_PROXY_ENABLED:'false'};
+ const opts={env:locked,authenticated:async()=>true,fetcher:async()=>{calls++;return Response.json({notes:[]})}};
+ for(const suffix of [
+   'memory?agentId=scotty',
+   'memory-history?noteId=00000000-0000-0000-0000-000000000001',
+   'memory-conflicts?agentId=scotty'
+ ]){
+  const u=owner+'/api/independent-brain/'+suffix;
+  const res=await handleIndependentBrain(new Request(u),new URL(u),opts);
+  assert.equal(res.status,503);
+  assert.equal((await res.json()).error,'MEMORY_PROXY_DISABLED');
+ }
+ assert.equal(calls,0);
+});
