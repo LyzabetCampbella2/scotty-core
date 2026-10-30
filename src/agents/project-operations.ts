@@ -40,11 +40,11 @@ export async function dailyProjectBrief(p:string,now=new Date()){
 
 /** Bounded read-only aggregation: a summary is not a fresh Gmail/Calendar read. */
 export async function allProjectChiefBrief(now=new Date()){
- const projects=(await missionProjectChoices()).slice(0,15),items:any[]=[];
+ const all=await missionProjectChoices(),projects=all.slice(0,15),items:any[]=[];
  for(const p of projects){
   try{items.push({project:p,brief:await dailyProjectBrief(p.id,now)});}
   catch{items.push({project:p,errors:['Project brief unavailable; no data was invented']});}
  }
- return {...dailyChiefSummary(items,now),truncated:(await missionProjectChoices()).length>15,
+ return {...dailyChiefSummary(items,now),truncated:all.length>15,
   sourceProjectLimit:15};
 }
