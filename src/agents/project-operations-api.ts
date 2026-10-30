@@ -1,4 +1,5 @@
-import {missionProjectChoices,createProjectMission} from './project-missions.ts';
+import {missionProjectChoices,createProjectMission,projectMissionDetail} from './project-missions.ts';
+import {buildReleasedDeliverable} from './project-deliverables.mjs';
 import {evidenceCandidates,evidenceList,approveEvidence,revokeEvidence} from './project-evidence.ts';
 import {recommendProjectTeam,proposedTeamPlan,dailyProjectBrief,missionProgress} from './project-operations.ts';
 import {agentDevelopment,recordAgentDevelopment,weeklyProjectReview,projectTeamStatus} from './project-insights.ts';
@@ -12,7 +13,18 @@ export async function handleProjectOperations(req:Request,u:URL){
  try{
   if(u.pathname===root&&req.method==='GET')return json({ok:true,projects:await missionProjectChoices(),ansjemEnabled:process.env.SCOTTY_ANSJEM_WORK_ENABLED==='true',ansjemDeliveryEnabled:process.env.SCOTTY_ANSJEM_DELIVERY_ENABLED==='true',ansjemCoordinationEnabled:process.env.SCOTTY_ANSJEM_COORDINATION_ENABLED==='true',realDraftsEnabled:process.env.SCOTTY_REAL_PROJECT_DRAFTS_ENABLED==='true'&&!!process.env.GROQ_API_KEY,providerConfigured:!!process.env.GROQ_API_KEY});
   const work=u.pathname.match(/^\/api\/agent-brains\/project-operations\/([\w-]{1,160})\/ansjem(?:\/(ANSJEM-DEV-\d{4,20}))?$/);if(work)return handleAnsjemWork(req,u,work[1],work[2]);
-  const match=u.pathname.match(/^\/api\/agent-brains\/project-operations\/([\w-]{1,160})\/(brief|progress|evidence|candidates|team|team-presets|plan|development|weekly|team-status|documents)$/);if(!match)return json({ok:false,error:'Route not found'},404);const [,p,kind]=match;
+  const match=u.pathname.match(/^\/api\/agent-brains\/project-operations\/([\w-]{1,160})\/(brief|progress|evidence|candidates|team|team-presets|plan|development|weekly|team-status|documents|deliverable)$/);if(!match)return json({ok:false,error:'Route not found'},404);const [,p,kind]=match;
+  if(req.method==='GET'&&kind==='deliverable'){
+   const missionId=u.searchParams.get('missionId')||'',stepId=u.searchParams.get('stepId')||null,
+    revision=Number(u.searchParams.get('revision')),format=u.searchParams.get('format')||'md';
+   if(!/^[a-f0-9-]{36}$/i.test(missionId)||stepId&&!/^[a-z0-9_-]{1,100}$/i.test(stepId)||
+      !Number.isInteger(revision)||revision<1||!['md','txt'].includes(format))throw Error('Valid mission, step, current revision and md/txt format required');
+   const file=buildReleasedDeliverable(await projectMissionDetail(p,missionId),{projectId:p,stepId,revision,format});
+   return new Response(file.content,{status:200,headers:{
+    'Content-Type':file.mime,'Content-Disposition':'attachment; filename="'+file.filename+'"',
+    'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'
+   }});
+  }
   if(req.method==='GET'){
    if(kind==='weekly')return json({ok:true,review:await weeklyProjectReview(p)});
    if(kind==='development')return json({ok:true,...await agentDevelopment(p)});
