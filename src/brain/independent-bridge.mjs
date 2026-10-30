@@ -32,6 +32,8 @@ export async function handleIndependentBrain(req,u,{
  if(!["GET","POST"].includes(req.method))return error("METHOD_NOT_ALLOWED",405);
  const config=configured(env);
  if(config.error)return error(config.error,503);
+ if(['memory','memory-history','memory-conflicts','memory-change'].includes(route)&&env.SCOTTY_INDEPENDENT_BRAIN_MEMORY_PROXY_ENABLED!=='true')
+  return error('MEMORY_PROXY_DISABLED',503);
  if(req.method==="POST"){
   const origin=req.headers.get("origin");
   if(origin&&origin!==u.origin)return error("ORIGIN_DENIED",403);
