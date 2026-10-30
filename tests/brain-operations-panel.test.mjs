@@ -43,6 +43,7 @@ function harness({migrationReady=false}={}){
     limitation:'Text only, no original PDF transferred'});
   }
   if(path==='/api/connectors')return Response.json({ok:true,providers:[{provider:'notion',enabled:false},{provider:'googledocs',enabled:true}],vaultConfigured:false});
+  if(path==='/api/voice/status')return Response.json({ok:true,provider:'Piper AWB Scottish',configured:true,ready:false,code:'voice_worker_unreachable'});
   if(path==='/api/connections')return Response.json({ok:true,connections:{google:{status:'connected',needsReconnect:false,refreshCapable:true,updatedAt:'2026-10-30T00:00:00Z',scopes:['https://www.googleapis.com/auth/gmail.send','https://www.googleapis.com/auth/calendar.events','https://www.googleapis.com/auth/drive.file']}}});
   if(path==='/api/folders?structure=1')return Response.json({ok:true,folders:[{id:'folder-1'}],projects:[{id:'project-bloodpool'}]});
   if(path==='/api/independent-brain/operations')return Response.json({memoryReady:true,counts:{completed:7,running:2},total:9,staleRunningSample:[{missionId:'synthetic-running-00001',lastCheckpoint:'2026-10-01'}],quota:null,providerCalls:null});
@@ -258,4 +259,17 @@ test('native Google OAuth panel distinguishes granted scopes from unverified Gma
  const calls=h.calls.filter(c=>c.path==='/api/connections');
  assert.equal(calls.length,1);
  assert.ok(!calls[0].options.body);
+});
+
+test('voice health panel reports truthful provider readiness without calling synthesis or microphone',async()=>{
+ const h=harness();
+ await byLabel(h,'Inspect live Scottish TTS readiness and local voice state').listeners.click();
+ const v=text(h.body);
+ assert.match(v,/Piper AWB Scottish/);
+ assert.match(v,/voice_worker_unreachable/);
+ assert.match(v,/For iPad acceptance/);
+ const reads=h.calls.filter(x=>x.path==='/api/voice/status');
+ assert.equal(reads.length,1);
+ assert.equal(reads[0].options.method,undefined);
+ assert.equal(h.calls.filter(x=>x.path.includes('/api/voice/speak')||x.path.includes('/api/tts')).length,0);
 });
