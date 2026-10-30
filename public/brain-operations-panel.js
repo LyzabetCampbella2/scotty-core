@@ -381,7 +381,7 @@
   });
   btn(area,'Attach owner-approved project evidence',async()=>{
    if(!consent.checked||!token||selected!==chooser.value){para(previewArea,'Not attached. Review the current file and confirm recipients.');return}
-   const agentIds=Array.from(recipients.children).filter(n=>n.tagName==='LABEL'&&n.children[0]?.checked).map(n=>n.children[0].value);
+   const agentIds=Array.from(recipients.children).filter(n=>n.children[0]?.checked).map(n=>n.children[0].value);
    if(!agentIds.length){para(previewArea,'Select at least one current project agent.');return}
    try{
     const data=await post({action:'attach',previewToken:token,agentIds,approved:true,reviewed:true,description:description.value});
