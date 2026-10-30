@@ -41,7 +41,7 @@ test("database substitution, additional bindings and preview overrides are refus
   const cfg=clone(original);change(cfg.d1_databases[0]);assert.equal(stagingPreflight({config:cfg}).pass,false);
  }
  const cfg=clone(original);cfg.d1_databases.push({...cfg.d1_databases[0]});assert.equal(stagingPreflight({config:cfg}).pass,false);
- const off=clone(original);off.vars.AI_ENABLED="false";delete off.d1_databases;assert.equal(stagingPreflight({config:off}).pass,true);
+ const off=clone(original);off.vars.AI_ENABLED="false";delete off.d1_databases;assert.equal(stagingPreflight({config:off}).pass,false);
 });
 
 test("staging configuration never enables AI before explicit owner activation",()=>{
