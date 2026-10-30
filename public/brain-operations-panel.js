@@ -127,6 +127,22 @@
     line(row,'Mission '+m.id,m.status);
     if(m.error)line(row,'Blocker',m.error);
     if(m.result?.answer)para(row,String(m.result.answer).slice(0,200));
+    if(m.result?.answer){
+     btn(row,'Review deliverable quality',async()=>{
+      const note=el('div');row.appendChild(note);
+      try{
+       const d=await api('/api/hud/brain-upgrades/review',{
+        question:String(m.result.question||m.question||m.task||'').slice(0,500),
+        answer:String(m.result.answer).slice(0,16000),
+        results:Array.isArray(m.result.results)?m.result.results.slice(0,12):[],
+        references:Array.isArray(m.result.references)?m.result.references.slice(0,30):[]
+       });
+       line(note,'Review verdict',d.review.verdict);
+       for(const issue of d.review.flags||[])para(note,'Needs checking: '+issue);
+       para(note,d.review.warning);
+      }catch(e){error(note,e)}
+     });
+    }
    }
    if(!(d.missions||[]).length)para(out,'No stored mission checkpoints returned. This is not proof of durable writes.');
   }catch(e){error(out,e)}});
