@@ -119,6 +119,25 @@
    }catch(e){error(out,e)}
   });
  }
+ function showBackupContinuity(parent){
+  para(parent,'Verified as of October 30, 2026. These are dated review notes, not a live Render control-plane feed; recheck the provider before acting.');
+  const expiry=new Date('2026-11-07T17:46:59.110Z').getTime();
+  const now=Date.now();
+  line(parent,'Free PostgreSQL expiry','November 7, 2026, 17:46 UTC (09:46 Pacific standard time)');
+  line(parent,'Time until recorded deadline',now<expiry?Math.ceil((expiry-now)/86400000)+' calendar-day equivalent(s)':'Recorded date has passed; verify status directly with Render');
+  line(parent,'Last verified full PostgreSQL restore','October 18, 2026 — 77 tables / 6 sequences / 128 agents / 12 chiefs');
+  line(parent,'October 24 backup attempts','Failed — DATABASE_URL missing from existing backup cron');
+  para(parent,'The October 18 encrypted production snapshot was independently restored. Any later changes need a more recent verified recovery point.');
+  const links=[
+    ['Render PostgreSQL database','https://dashboard.render.com/d/dpg-db3te4rbc2fs73bt4p50-a'],
+    ['Existing encrypted backup cron','https://dashboard.render.com/cron/crn-dba53f61egvs739d4ivg'],
+    ['Recovery and deadline checklist','https://github.com/LyzabetCampbella2/scotty-core/issues/55']
+  ];
+  for(const [label,url] of links){
+   const a=el('a',label);a.href=url;a.target='_blank';a.rel='noopener noreferrer';css(a,'display:block;margin:5px;color:#a9eafa');parent.appendChild(a);
+  }
+  para(parent,'Never paste a DATABASE_URL or recovery key here. Configure the internal connection URL in Render private environment settings only. Do not enable exports, change billing, or migrate without an explicitly approved recovery plan.');
+ }
  function showCloudflareMemory(parent){
   para(parent,'Dedicated Cloudflare D1 memory is separate from Render PostgreSQL. This section reads only the chosen agent’s notes; changes require a new preview and explicit owner approval. Governance migration v2 must first be applied to the dedicated D1 database.');
   const agent=input(parent,'Exact Cloudflare specialist or chief ID','scotty');
@@ -251,6 +270,7 @@
   section(panel,'2 · Agent selection and knowledge preview',showPreview);
   section(panel,'3 · Memory search, source review and change approval',showMemory);
   section(panel,'Cloudflare · Reviewed D1 notes and governance',showCloudflareMemory);
+  section(panel,'Recovery · verified backup and November 7 continuity',showBackupContinuity);
   section(panel,'4 · Mission checkpoints and recovery evidence',showMissions);
   section(panel,'5 · Publisher source candidates',showSources);
   btn(panel,'Open existing System & Recovery',()=>{root.location.href='/system'});
