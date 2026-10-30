@@ -1,6 +1,7 @@
 /** Cloudflare-only teamwork, bounded to two departments and five model calls. */
 import {planAssignment,brainProfile} from './team-expansion.mjs';
 import {requestedSpecialist,matchSpecialist,selectionRationale} from './selection-policy.mjs';
+import {evaluateTeamDeliverable} from './chief-quality.mjs';
 export const TEAM_MODEL='@cf/meta/llama-3.2-3b-instruct';
 export function selectTeam(roster,question,teamSize=1){
  if(!Number.isInteger(teamSize)||teamSize<1||teamSize>2)throw Error('INVALID_TEAM_SIZE');
@@ -43,7 +44,7 @@ export async function runTeam({roster,question,AI,approved=false,evidence=[],get
  if(!plan.assignments.length)return {...plan,results:[],aiCalls:0,attemptedCalls:0};
  const results=[];let attempts=0,phase='starting';
  const catalog=new Map(roster.map(a=>[a.id,a]));
- const snapshot=status=>({...plan,status,results:[...results],aiCalls:results.length,attemptedCalls:attempts,executed:attempts>0,answer:status==='completed'?results.at(-1).text:null,verified:false,memorySaved:false});
+ const snapshot=status=>{const answer=status==='completed'?results.at(-1)?.text||null:null;return {...plan,status,results:[...results],aiCalls:results.length,attemptedCalls:attempts,executed:attempts>0,answer,verified:false,memorySaved:false,qualityReview:status==='completed'?evaluateTeamDeliverable({question,answer,results,references:results.flatMap(x=>x.referenceIds||[])}):null};};
  const call=async(agent,role,task)=>{
   phase='evidence';
   // Each consumer retrieves its own notes. Raw private notes are never reused for another agent.
