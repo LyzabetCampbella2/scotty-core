@@ -27,7 +27,7 @@ test('iPad controller unlocks, shows brains, runs a team and clears owner sessio
  const els=new Map();const element=id=>{if(!els.has(id))els.set(id,{value:'',checked:false,disabled:false,textContent:'',events:{},addEventListener(n,fn){this.events[n]=fn;},replaceChildren(){},appendChild(){}});return els.get(id);};
  const db=dbAdapter();const env={OWNER_BEARER_TOKEN:TOKEN,AI_ENABLED:'true',BRAIN_DB:db,AI:{run:async()=>({response:'Reviewed mock result'})}};
  runInNewContext(browserScript,{document:{getElementById:element,createElement:()=>({appendChild(){}})},Option:function(){},crypto,fetch:async(path,opt)=>worker.fetch(new Request('https://test.invalid'+path,opt),env)});
- element('owner-token').value=TOKEN;await element('connect').events.click();assert.match(element('status').textContent,/25 chiefs/);assert.equal(element('team').disabled,false);assert.equal(element('save-note').disabled,true);
+ element('owner-token').value=TOKEN;await element('connect').events.click();assert.match(element('status').textContent,/25 chiefs/);assert.equal(element('team').disabled,false);assert.equal(element('save-note').disabled,false);
  element('agent').value='scotty';element('agent').events.change();assert.equal(element('ask').disabled,true);element('profile').events.click();assert.match(element('answer').textContent,/overseer/);
  element('agent').value='chief-spock';element('profile').events.click();assert.match(element('answer').textContent,/SPOCK/);
  element('question').value='backend engineering';for(const id of ['approved','share','safe'])element(id).checked=true;await element('team').events.click();assert.match(element('answer').textContent,/Reviewed mock result/);assert.equal(element('approved').checked,false);
