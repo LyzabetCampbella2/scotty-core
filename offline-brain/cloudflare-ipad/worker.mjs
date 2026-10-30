@@ -11,6 +11,7 @@ import {missionMemory} from "./mission-memory.mjs";
 import {readiness,storageReadiness,RELEASE} from "./brain-readiness.mjs";
 import {KNOWLEDGE_VERSION,FIELD_CARDS,fieldKnowledge} from "./field-knowledge.mjs";
 import {normalizeNote,memoryStore} from "./brain-memory.mjs";
+import {noteChange,noteAudit} from './memory-governance.mjs';
 import {discoverFeed} from "./source-discovery.mjs";
 import {PUBLIC_FEEDS} from "../update-sources.mjs";
 import {pageHtml} from "./page.mjs";
@@ -77,7 +78,7 @@ async function handleApi(request,env,url){
  const path=url.pathname;
  if(path==="/api/readiness"&&request.method==="GET")return response(await readiness(env));
  const storage=await storageReadiness(env.BRAIN_DB);
- if(storage.bound&&!storage.ready&&["/api/memory","/api/missions","/api/team","/api/ask","/api/team-preview"].includes(path))return failure(storage.reason,"Dedicated memory database is bound but its schema is not ready. Check Activation Status before proceeding.",503);
+ if(storage.bound&&!storage.ready&&["/api/memory","/api/missions","/api/team","/api/ask","/api/team-preview","/api/memory-change","/api/memory-history"].includes(path))return failure(storage.reason,"Dedicated memory database is bound but its schema is not ready. Check Activation Status before proceeding.",503);
  if(path==="/api/status"&&request.method==="GET")return response({
   status:"ISOLATED_CLOUDFLARE_BRAIN_LAB",release:RELEASE,
   agentCount:brain.agentCount,chiefCount:brain.chiefCount,specialistCount:160,overseer:"SCOTTY",
@@ -114,11 +115,21 @@ async function handleApi(request,env,url){
   if(!env.BRAIN_DB?.prepare)return failure("MEMORY_NOT_CONNECTED","Dedicated Cloudflare memory storage is not connected.",503);
   return response({notes:await memoryStore(env.BRAIN_DB).read(agent),agentId:agent.id});
  }
- if(request.method!=="POST"||!["/api/plan","/api/ask","/api/team","/api/memory","/api/discover","/api/team-preview"].includes(path))return failure("NOT_FOUND","Unsupported endpoint or method.",404);
+ if(path==="/api/memory-history"&&request.method==="GET"){
+  if(!env.BRAIN_DB?.prepare)return failure("MEMORY_NOT_CONNECTED","Dedicated Cloudflare memory storage is not connected.",503);
+  try{return response(await noteAudit(env.BRAIN_DB,url.searchParams.get('noteId')));}
+  catch(e){return failure(String(e.message||'MEMORY_HISTORY_UNAVAILABLE'),"Apply the reviewed governance migration to the dedicated D1 database first.",503);}
+ }
+ if(request.method!=="POST"||!["/api/plan","/api/ask","/api/team","/api/memory","/api/discover","/api/team-preview","/api/memory-change"].includes(path))return failure("NOT_FOUND","Unsupported endpoint or method.",404);
  let body;
  try{body=await bodyJson(request);}catch(e){return failure("BAD_REQUEST",String(e.message),400);}
  if(path==="/api/discover"){
   try{return response(await discoverFeed(body.feedId));}catch{return failure("SOURCE_UNAVAILABLE","Publisher could not be read. Nothing was saved or treated as verified.",502);}
+ }
+ if(path==="/api/memory-change"){
+  if(!env.BRAIN_DB?.prepare)return failure("MEMORY_NOT_CONNECTED","Dedicated Cloudflare memory storage is not connected.",503);
+  try{return response(await noteChange(env.BRAIN_DB,body));}
+  catch(e){const code=String(e?.message||"MEMORY_CHANGE_UNAVAILABLE");return failure(code,"Memory change not applied. Review a current preview, owner approval, and the D1 governance migration.",code==="MEMORY_GOVERNANCE_MIGRATION_REQUIRED"?503:400);}
  }
  if(path==="/api/memory"){
   if(!env.BRAIN_DB?.prepare)return failure("MEMORY_NOT_CONNECTED","Dedicated Cloudflare memory storage is not connected.",503);
