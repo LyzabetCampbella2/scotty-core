@@ -65,3 +65,60 @@ test('all brains require useful deliverables while preserving evidence boundarie
  assert.match(JSON.parse(calls[2].messages[1].content).task,/Do not claim the task was answered/);
  assert.ok(calls.every(c=>c.max_tokens===480&&c.messages[0].content.includes('Never invent facts')));
 });
+
+test('team route refuses inference without dedicated D1 even when AI consent and binding exist',async()=>{
+ let calls=0;
+ const env={OWNER_BEARER_TOKEN:TOKEN,AI_ENABLED:'true',AI:{run:async()=>{calls++;return {response:'Unsafe stateless team run'};}}};
+ const res=await worker.fetch(req('/api/team',{question,...consent}),env);
+ assert.equal(res.status,503);
+ const body=await res.json();
+ assert.equal(body.error,'MISSION_STORAGE_NOT_READY');
+ assert.equal(calls,0);
+});
+test('successful D1 readback confirms exact stored answer and completed stage count',async()=>{
+ const db=database();let calls=0;
+ try{
+  const env={OWNER_BEARER_TOKEN:TOKEN,AI_ENABLED:'true',BRAIN_DB:db,AI:{run:async()=>({response:'Synthetic field finding '+ ++calls})}};
+  const id='verified-readback-00000001';
+  const res=await worker.fetch(req('/api/team',{question,teamSize:1,missionId:id,...consent}),env);
+  assert.equal(res.status,200);
+  const body=await res.json();
+  assert.equal(body.missionPersisted,true);
+  assert.equal(body.missionReadbackVerified,true);
+  const row=db.sql.prepare('SELECT status,result_json FROM brain_missions WHERE id=?').get(id);
+  assert.equal(row.status,'completed');
+  const saved=JSON.parse(row.result_json);
+  assert.equal(saved.answer,body.answer);
+  assert.deepEqual(saved.results,body.results);
+  assert.equal(calls,3);
+ }finally{db.sql.close()}
+});
+test('missing independent readback cannot masquerade as persisted success',async()=>{
+ const fixture=database();let calls=0;
+ try{
+  const db={prepare:q=>q.startsWith('SELECT id,question,team_size,status,result_json,updated_at FROM brain_missions WHERE id=')
+   ?{bind:()=>({all:async()=>({results:[]})})}:fixture.prepare(q)};
+  const env={OWNER_BEARER_TOKEN:TOKEN,AI_ENABLED:'true',BRAIN_DB:db,AI:{run:async()=>({response:'Synthetic answer '+ ++calls})}};
+  const res=await worker.fetch(req('/api/team',{question,missionId:'unverified-readback-00001',...consent}),env);
+  assert.equal(res.status,502);
+  const body=await res.json();
+  assert.equal(body.status,'completed');
+  assert.equal(body.missionPersisted,false);
+  assert.equal(body.missionReadbackVerified,false);
+  assert.match(body.readbackWarning,/independently verified/);
+  assert.equal(calls,3);
+ }finally{fixture.sql.close()}
+});
+test('ambiguous or invalid specialist selection is checkpointed without any AI',async()=>{
+ const db=database();let calls=0;
+ try{
+  const env={OWNER_BEARER_TOKEN:TOKEN,AI_ENABLED:'true',BRAIN_DB:db,AI:{run:async()=>{calls++;return {response:'not expected'};}}};
+  const res=await worker.fetch(req('/api/team',{question:'Use specialist Invented Name: Review fictional plan',missionId:'no-team-00000000000001',...consent}),env);
+  assert.equal(res.status,200);
+  const body=await res.json();
+  assert.equal(body.status,'needs-clarification');
+  assert.equal(body.missionPersisted,true);
+  assert.equal(body.results.length,0);
+  assert.equal(calls,0);
+ }finally{db.sql.close()}
+});
