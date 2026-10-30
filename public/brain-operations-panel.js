@@ -87,7 +87,7 @@
      line(div,'Source',m.sourceTitle||'Unlabeled');line(div,'Evidence',m.evidenceState||'Unverified');
      if(m.reviewAfter)line(div,'Review due',m.reviewAfter);
      const actions=el('div');div.appendChild(actions);
-     for(const op of ['correct','review','supersede','forget']){
+     for(const op of ['correct','review','move','supersede','forget']){
       btn(actions,op,()=>memoryChange(div,m,op));
      }
     }
@@ -98,6 +98,7 @@
   const controls=el('div');css(controls,'padding:8px;border:1px solid #9fb9c8');parent.appendChild(controls);
   headline(controls,'Preview '+op+' — '+m.id);
   const text=op==='correct'?input(controls,'Replacement memory wording',m.text):op==='review'?input(controls,'Next review date (YYYY-MM-DD)'):null;
+  const targetSpace=op==='move'?input(controls,'Move into existing memory space ID'):null;
   const reason=input(controls,'Reason for change (recorded in history)');
   const out=el('div');controls.appendChild(out);
   btn(controls,'Generate change preview',async()=>{clear(out);
@@ -105,7 +106,7 @@
    if(op==='review'&&!/^\d{4}-\d{2}-\d{2}$/.test(text.value)){para(out,'Enter review date YYYY-MM-DD.');return}
    const changes=op==='correct'?{text:text.value}:op==='review'?{reviewAfter:text.value}:{};
    try{
-    const p=await api('/api/knowledge/preview',{id:m.id,operation:op,changes,reason:reason.value});
+    const p=await api('/api/knowledge/preview',{id:m.id,operation:op,changes,reviewAfter:op==='review'?text.value:undefined,scope:op==='move'?targetSpace.value.trim():undefined,reason:reason.value});
     para(out,p.notice||'Review the effect carefully.');
     line(out,'Operation',p.operation);line(out,'Current revision',p.before?.revision);
     line(out,'Expected next state',p.after?.status||'active');
