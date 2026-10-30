@@ -33,6 +33,15 @@
      if(name==='Render operations'){
       line(block,'Overall state',d.status||d.health||'Reported by server');
       if(d.counts)for(const key of ['agents','chiefs','memory','missions','pendingApprovals'])if(d.counts[key]!=null)line(block,key,d.counts[key]);
+     }else if(name==='Cloudflare mission operations'){
+      line(block,'Dedicated memory ready',d.memoryReady);
+      line(block,'Persisted mission count',d.total??'Not measured');
+      for(const [state,count] of Object.entries(d.counts||{}))line(block,'  '+state,count);
+      line(block,'Stale missions needing manual review',(d.staleRunningSample||[]).length);
+      for(const m of d.staleRunningSample||[])line(block,'  Mission '+m.missionId,m.lastCheckpoint);
+      line(block,'Provider quota',d.quota??'Unavailable — check Cloudflare dashboard');
+      line(block,'Provider calls',d.providerCalls??'Unavailable — not measured');
+      para(block,'These are stored checkpoint counts only. No inference, provider quota check or automatic retry occurred.');
      }else{
       for(const key of ['release','memoryConnected','memoryBound','liveRosterVerified','aiEnabled','teamMaxCalls','memoryReason','ready'])if(d[key]!==undefined)line(block,key,d[key]);
       line(block,'Remaining provider quota',d.quota??'Unavailable — not measured');
