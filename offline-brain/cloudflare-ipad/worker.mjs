@@ -12,7 +12,7 @@ import {readiness,storageReadiness,RELEASE} from "./brain-readiness.mjs";
 import {KNOWLEDGE_VERSION,FIELD_CARDS,fieldKnowledge} from "./field-knowledge.mjs";
 import {normalizeNote,memoryStore} from "./brain-memory.mjs";
 import {noteChange,noteAudit,findNoteConflicts,governanceReadiness} from './memory-governance.mjs';
-import {normalizeProjectContext} from './project-evidence-policy.mjs';
+import {normalizeProjectContext,assertApprovedReviewChain} from './project-evidence-policy.mjs';
 import {discoverFeed} from "./source-discovery.mjs";
 import {PUBLIC_FEEDS} from "../update-sources.mjs";
 import {pageHtml} from "./page.mjs";
@@ -157,7 +157,10 @@ async function handleApi(request,env,url){
  }
  if(path==="/api/team-preview"){
   if(!storage.ready)return failure("MEMORY_NOT_CONNECTED","Connect memory before checking live retrieval.",503);
-  try{selectTeam(roster,question,body.teamSize??1);}catch{return failure("INVALID_TEAM_SIZE","Choose one or two specialist departments.");}
+  let previewPlan;try{previewPlan=selectTeam(roster,question,body.teamSize??1);}
+  catch{return failure("INVALID_TEAM_SIZE","Choose one or two specialist departments.");}
+  if(projectContext)try{assertApprovedReviewChain(projectContext,previewPlan);}
+  catch{return failure("PROJECT_REVIEW_CHAIN_DENIED","Explicitly approve each source for the selected specialist, department chief and SCOTTY before previewing or sending it.",403);}
   return response(await previewTeamKnowledge({roster,question,teamSize:body.teamSize??1,getEvidence:agent=>memoryStore(env.BRAIN_DB).read(agent,question),projectContext}));
  }
  if(path==="/api/plan"){
@@ -177,6 +180,8 @@ async function handleApi(request,env,url){
    "The dedicated Cloudflare mission database must be connected and initialized before team inference. No AI calls made.",503);
   const teamSize=body.teamSize??1;
   let plan;try{plan=selectTeam(roster,question,teamSize);}catch{return failure("INVALID_TEAM_SIZE","Choose one or two specialist departments.");}
+  if(projectContext)try{assertApprovedReviewChain(projectContext,plan);}
+  catch{return failure("PROJECT_REVIEW_CHAIN_DENIED","The project source must explicitly permit specialist, chief and SCOTTY handoffs. No AI calls made.",403);}
   const store=missionMemory(env.BRAIN_DB);
   const missionId=body.missionId||crypto.randomUUID();
   let claim;try{claim=await store.claim(missionId,question,teamSize);}catch{return failure("MISSION_STORAGE_CONFLICT","Mission could not be claimed. No AI calls made.",409);}
