@@ -6,7 +6,7 @@ export function lessonCandidatesFromCorrections(projectId,agents){
    for(const correction of Array.isArray(w.corrections)?w.corrections:[]){
     if(!['rejected','revision_requested'].includes(String(correction.decision||'')))continue;
     const feedback=String(correction.note||'').trim();
-    if(feedback.length<8||feedback.length>2000)continue;
+    if(feedback.length<12||feedback.length>2000)continue;
     const key=[projectId,a.id,w.missionId,w.stepId,feedback.toLowerCase()].join('|');
     if(seen.has(key))continue;seen.add(key);
     const title=String(w.deliverable||'the assigned work').slice(0,110);
