@@ -3,6 +3,24 @@ export const MISSION_SCHEMA=`CREATE TABLE IF NOT EXISTS brain_missions (
  id TEXT PRIMARY KEY, question TEXT NOT NULL, team_size INTEGER NOT NULL,
  status TEXT NOT NULL, result_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS brain_missions_recent ON brain_missions(updated_at);`;
+/** Context-bound replay key without persisting project excerpt content in the idempotency field.
+ * Existing project-free mission IDs retain the original question key.
+ */
+export async function missionRequestKey(question,context=null){
+ if(!context)return question;
+ if(typeof question!=='string'||!context.projectId||!Array.isArray(context.sources))throw Error('INVALID_MISSION_CONTEXT');
+ const stable=JSON.stringify({
+  projectId:context.projectId,
+  recipients:[...(context.assignedAgentIds||[])].sort(),
+  sources:context.sources.map(s=>({
+   id:s.id,projectId:s.projectId,title:s.title,content:s.content,url:s.url,
+   recipients:[...(s.allowedAgentIds||[])].sort(),reviewedAt:s.reviewedAt
+  })).sort((a,b)=>String(a.id).localeCompare(String(b.id)))
+ });
+ const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(stable));
+ const hex=Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+ return question+'\\n[approved-context-sha256:'+hex+']';
+}
 export function missionMemory(db){
  if(typeof db?.prepare!=='function')throw Error('MISSION_STORAGE_NOT_CONNECTED');
  return {
