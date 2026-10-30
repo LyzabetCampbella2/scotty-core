@@ -183,6 +183,70 @@
   });
   btn(parent,'Open existing Brain Lab to run owner-reviewed acceptance',()=>{root.location.href='/brain-lab'});
  }
+ function projectCommandCenter(parent){
+  para(parent,'This reads existing owner-authorized Render projects and mission status. No documents or private notes are sent to Cloudflare; actions still require their original per-operation approvals.');
+  const status=el('div');parent.appendChild(status);
+  const picker=el('select');picker.setAttribute('aria-label','Choose a real SCOTTY project');css(picker,'display:block;width:100%;padding:9px');parent.appendChild(picker);
+  const result=el('div');parent.appendChild(result);
+  const link=(where,label,url)=>{
+   const a=el('a',label);a.href=url;a.target='_self';a.rel='noopener noreferrer';
+   css(a,'display:block;padding:5px;color:#a9eafa');where.appendChild(a);
+  };
+  async function loadProjects(){
+   clear(status);clear(picker);clear(result);
+   try{
+    const d=await api('/api/agent-brains/project-operations');
+    line(status,'Existing projects',(d.projects||[]).length);
+    line(status,'Live draft calls enabled',d.realDraftsEnabled===true);
+    line(status,'Provider configured',d.providerConfigured===true?'Yes':'No or unavailable');
+    line(status,'Ansjem collaboration enabled',d.ansjemEnabled===true);
+    for(const p of d.projects||[]){
+     const opt=el('option',String(p.name||p.id));opt.value=p.id;picker.appendChild(opt);
+    }
+    if(!(d.projects||[]).length)para(status,'No permitted projects returned. Open the native project workspace to create or authorize one.');
+   }catch(e){error(status,e);para(status,'Project operations might be disabled by an owner feature flag. No changes were made.');}
+  }
+  btn(parent,'Load my real project list',loadProjects);
+  btn(parent,'Inspect selected project team, missions and briefing',async()=>{
+   clear(result);const id=picker.value;
+   if(!/^[A-Za-z0-9_-]{1,160}$/.test(id)){para(result,'Select a valid existing project first.');return}
+   const base='/api/agent-brains/project-operations/'+encodeURIComponent(id);
+   for(const [title,slug] of [['Daily chief-of-staff briefing','brief'],['Mission stages and blockers','progress'],['Selected project team','team-status'],['Approved document/evidence register','evidence']]){
+    const item=el('div');css(item,'padding:7px;border-bottom:1px solid #456070');result.appendChild(item);
+    try{
+     const d=await api(base+'/'+slug);
+     line(item,title,'Available — current owner-authenticated response');
+     if(slug==='brief'){
+      const b=d.brief||{};
+      line(item,'As of',b.asOf||'Unknown');
+      for(const [key,name] of [['overdue','Overdue tasks'],['upcoming','Upcoming deadlines'],['decisions','Owner decisions'],['blocked','Blockers']])line(item,name,(b[key]||[]).length);
+      line(item,'Pending handoffs',b.pendingHandoffs??'Not reported');
+      for(const t of (b.upcoming||[]).slice(0,7))line(item,'Upcoming',t.title+' · '+(t.dueAt||'Date unavailable'));
+      for(const x of (b.decisions||[]).slice(0,7))line(item,'Decision',x.goal+' · '+x.status);
+      for(const gap of (b.gaps||[]).slice(0,6))para(item,'Source gap: '+gap);
+      para(item,'Saved connected-app snapshots are not equivalent to fresh Calendar, Gmail or Drive access.');
+     }
+     if(slug==='progress')for(const m of (d.missions||[]).slice(0,15)){
+      line(item,'Mission',m.goal+' · '+m.status);
+      line(item,'Stages',(m.steps||[]).length);
+      if(m.blocker)line(item,'Blocked',m.blocker);
+      for(const step of (m.steps||[]).slice(0,10))line(item,'  '+step.agentId,step.status+' · '+step.deliverable);
+     }
+     if(slug==='team-status')line(item,'Current members',(d.members||[]).map(x=>x.name||x.id).slice(0,20).join(', ')||'None reported');
+     if(slug==='evidence'){
+      const items=d.evidence||[];
+      line(item,'Owner-approved sources',items.filter(x=>!x.revoked_at).length);
+      for(const x of items.slice(0,12))line(item,'  '+x.title,x.revoked_at?'Revoked':'Approved recipient IDs: '+(x.recipients||[]).length);
+     }
+    }catch(e){line(item,title,'Unavailable or disabled');error(item,e)}
+   }
+  });
+  link(parent,'Open full Project Operations (teams, documents, deadlines, decisions)','/agents/project-operations');
+  link(parent,'Open multi-step Mission Editor','/agents/project-missions');
+  link(parent,'Open approval-controlled cross-team inbox','/agents/collaboration-inbox');
+  link(parent,'Open voice-driven folder workspace','/workspace');
+  para(parent,'Voice commands already available when enabled: “Scotty, list my projects”, “Read my daily briefing”, “Read mission progress”, “Build a project team”, “List my Google Docs”, and “List my Notion pages”. Physical microphone recognition is still unverified.');
+ }
  function showCloudflareMemory(parent){
   para(parent,'Dedicated Cloudflare D1 memory is separate from Render PostgreSQL. This section reads only the chosen agent’s notes; changes require a new preview and explicit owner approval. Governance migration v2 must first be applied to the dedicated D1 database.');
   const agent=input(parent,'Exact Cloudflare specialist or chief ID','scotty');
