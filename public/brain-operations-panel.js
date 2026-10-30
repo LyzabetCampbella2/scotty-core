@@ -226,6 +226,12 @@
     para(result,b.note||'This briefing is on-demand and does not read live mail or calendar services.');
    }catch(e){error(result,e)}
   });
+  btn(parent,'Attach uploaded PDF, document or image evidence',()=>{
+   clear(result);
+   const id=picker.value;
+   if(!/^[A-Za-z0-9_-]{1,160}$/.test(id)){para(result,'Choose a real project first.');return}
+   projectLocalEvidence(result,id);
+  });
   btn(parent,'Manage preferred project team (owner approval required)',()=>{
    clear(result);const id=picker.value;
    if(!/^[A-Za-z0-9_-]{1,160}$/.test(id)){para(result,'Select a real project first.');return}
