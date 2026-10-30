@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {memoryStore} from './brain-memory.mjs';
 import {selectRelevantNotes} from './relevant-recall.mjs';
+import {discoverFeed} from './source-discovery.mjs';
+import {PUBLIC_FEEDS} from '../update-sources.mjs';
 
 test('query-aware recall retrieves relevant older note beyond the newest four',async()=>{
  const sql=new DatabaseSync(':memory:');
@@ -26,4 +28,15 @@ test('search excludes expired records and preserves latest-first behavior for em
  const now=new Date('2026-10-29T00:00:00Z');
  assert.deepEqual(selectRelevantNotes(notes,'',4,now).map(x=>x.id),['new','old']);
  assert.equal(selectRelevantNotes(notes,'solar',4,now)[0].id,'old');
+});
+
+test('publisher discovery reports source date and never promotes an unreviewed headline',async()=>{
+ const id=PUBLIC_FEEDS[0].id;
+ const xml='<rss><channel><item><title>Example finding</title><link>https://example.org/finding</link><pubDate>Wed, 28 Oct 2026 12:00:00 GMT</pubDate></item></channel></rss>';
+ const result=await discoverFeed(id,async()=>new Response(xml,{status:200}));
+ assert.equal(result.items.length,1);
+ assert.equal(result.items[0].publishedAt,'2026-10-28T12:00:00.000Z');
+ assert.equal(result.items[0].verified,false);
+ assert.equal(result.items[0].reviewRequired,true);
+ assert.equal(result.automaticallySaved,false);
 });
