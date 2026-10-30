@@ -7,7 +7,7 @@ import {createOfflineBrain} from "../engine.mjs";
 import {connectedRoster} from "./connected-roster.mjs";
 import {planAssignment,brainProfile} from "./team-expansion.mjs";
 import {runTeam,selectTeam,previewTeamKnowledge} from "./team-runtime.mjs";
-import {missionMemory} from "./mission-memory.mjs";
+import {missionMemory,missionRequestKey} from "./mission-memory.mjs";
 import {readiness,storageReadiness,RELEASE} from "./brain-readiness.mjs";
 import {KNOWLEDGE_VERSION,FIELD_CARDS,fieldKnowledge} from "./field-knowledge.mjs";
 import {normalizeNote,memoryStore} from "./brain-memory.mjs";
