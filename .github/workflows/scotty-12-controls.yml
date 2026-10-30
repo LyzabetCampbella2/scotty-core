@@ -6,6 +6,7 @@ on:
       - 'src/brain/upgrade-api*'
       - 'public/brain-operations-panel.js'
       - 'src/agents/project-team-presets*'
+      - 'src/agents/project-deliverables*'
       - 'src/agents/project-operations-api.ts'
       - 'tests/brain-operations-panel.test.mjs'
       - 'src/server-cloud-v2.ts'
@@ -29,10 +30,11 @@ jobs:
         with:
           node-version: '24'
       - name: Run review and privacy controls tests
-        run: node --test src/brain/upgrade-checks.test.mjs src/brain/upgrade-api.test.mjs tests/brain-operations-panel.test.mjs src/agents/project-team-presets-model.test.mjs
+        run: node --test src/brain/upgrade-checks.test.mjs src/brain/upgrade-api.test.mjs tests/brain-operations-panel.test.mjs src/agents/project-team-presets-model.test.mjs src/agents/project-deliverables.test.mjs
       - name: Check HUD and server-side module syntax
         run: |
           node --check public/brain-operations-panel.js
+          node --check src/agents/project-deliverables.mjs
           node --check src/agents/project-team-presets-model.mjs
           node --check src/brain/upgrade-checks.mjs
           node --check src/brain/upgrade-api.mjs
