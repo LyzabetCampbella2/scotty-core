@@ -55,14 +55,14 @@ test("health reports isolation without secrets, production or AI calls",async()=
  assert.equal(x.status,200);assert.equal(x.body.productionConnected,false);
  assert.equal(x.body.aiUsed,false);assert.ok(!JSON.stringify(x.body).includes(TOKEN));
 });
-test("128 synthetic agents and 12 chiefs, not real production records",async()=>{
+test("185 source-fallback and proposed profiles; 25 chiefs; live records unverified",async()=>{
  const r=await json(await worker.fetch(request("/api/catalog"),environment()));
  assert.equal(r.status,200);
- assert.equal(r.body.agentCount,128);
- assert.equal(r.body.agents.filter(a=>a.isChief).length,12);
- assert.equal(r.body.agents.every(a=>a.synthetic===true),true);
+ assert.equal(r.body.agentCount,185);
+ assert.equal(r.body.agents.filter(a=>a.isChief).length,25);
+ assert.equal(r.body.liveRosterVerified,false);
  const unique=new Set(r.body.agents.map(a=>a.id));
- assert.equal(unique.size,128);
+ assert.equal(unique.size,185);
 });
 test("brain is disabled by default; neither plans nor sources use AI",async()=>{
  let calls=0;
@@ -113,7 +113,7 @@ test("one explicitly approved Workers AI call, no fallback or production access"
  assert.equal(r.body.factualClaimsVerified,false);
  assert.equal(calls.length,1);
  assert.equal(calls[0].model,"@cf/meta/llama-3.2-3b-instruct");
- assert.equal(calls[0].payload.max_tokens,160);
+ assert.equal(calls[0].payload.max_tokens,480);
  assert.equal(calls[0].payload.stream,false);
  assert.ok(JSON.stringify(calls[0].payload).includes("Reviewed factual evidence: NONE"));
  assert.ok(!JSON.stringify(calls[0].payload).includes("scotty-memory"));
@@ -139,6 +139,70 @@ test("unverified methodology pack is not falsely presented as expert facts",asyn
 });
 test("no need to provision KV, D1, R2, or paid database",()=>{
  assert.equal(designAudit.hasRuntimeLogs,false);
- assert.equal(designAudit.maxOutputTokens,160);
+ assert.equal(designAudit.maxOutputTokens,480);
  assert.ok(pageHtml().includes("token stays in this browser tab"));
+});
+
+
+
+test('field knowledge version is observable and single-agent inference receives its authored guide',async()=>{
+ const health=await json(await worker.fetch(request('/health',{token:null}),environment()));
+ assert.equal(health.body.knowledgeVersion,'field-foundations-v1');
+ let prompt;
+ const r=await json(await worker.fetch(request('/api/ask',{method:'POST',data:approve}),environment({AI_ENABLED:'true',AI:{run:async(_,payload)=>{prompt=payload.messages[1].content;return {response:'Synthetic test plan'};}}})));
+ assert.equal(r.status,200);assert.match(prompt,/field-agent-geordi-01/);assert.match(prompt,/Synthetic example:/);
+});
+
+test('knowledge preview requires authentication and ready memory without invoking AI',async()=>{
+ let calls=0;
+ const env=environment({AI:{run:async()=>{calls++;throw Error('unexpected')}}});
+ for(const [token,status] of [[null,401],[TOKEN,503]]){
+  const r=await worker.fetch(request('/api/team-preview',{method:'POST',token,data:{question:sampleQuestion}}),env);
+  assert.equal(r.status,status);
+ }
+ assert.equal(calls,0);
+ assert.ok(pageHtml().includes('id="preview-knowledge"'));
+ assert.ok(browserScript.includes('/api/team-preview'));
+ new Function(browserScript);
+});
+
+test('authenticated preview reads real SQLite notes and fails closed for wrong database',async()=>{
+ const {DatabaseSync}=await import('node:sqlite');
+ const {readFileSync}=await import('node:fs');
+ const sql=new DatabaseSync(':memory:');
+ try{
+  sql.exec(readFileSync(new URL('./memory-schema.sql',import.meta.url),'utf8'));
+  sql.prepare('INSERT INTO brain_notes VALUES(?,?,?,?,?,?,?,?)').run('preview-shared','shared','shared','Synthetic example','Shared fixture',null,'2020-01-01','2099-01-01');
+  let calls=0;
+  const db={prepare:q=>({bind:(...args)=>({all:async()=>({results:sql.prepare(q).all(...args)})})})};
+  const env=environment({BRAIN_DB:db,AI:{run:async()=>{calls++;throw Error('unexpected')}}});
+  const r=await json(await worker.fetch(request('/api/team-preview',{method:'POST',data:{question:sampleQuestion}}),env));
+  assert.equal(r.status,200);assert.equal(r.body.readers.length,3);
+  for(const reader of r.body.readers)assert.deepEqual(reader.references.map(n=>n.id),['preview-shared']);
+  assert.equal(sql.prepare('SELECT count(*) AS n FROM brain_notes').get().n,1);
+  assert.equal(sql.prepare('SELECT count(*) AS n FROM brain_missions').get().n,0);
+  const invalid=await worker.fetch(request('/api/team-preview',{method:'POST',data:{question:sampleQuestion,teamSize:3}}),env);
+  assert.equal(invalid.status,400);assert.equal(calls,0);
+  sql.exec("UPDATE brain_installation SET lab_name='wrong'");
+  const wrong=await worker.fetch(request('/api/team-preview',{method:'POST',data:{question:sampleQuestion}}),env);
+  assert.equal(wrong.status,503);
+ }finally{sql.close();}
+});
+
+test('individual inference applies the selected brain profile and traces its knowledge',async()=>{
+ let input;
+ const r=await json(await worker.fetch(request('/api/ask',{method:'POST',data:approve}),environment({AI_ENABLED:'true',AI:{run:async(_,p)=>{input=p;return {response:'Three concrete synthetic test cases.'}}}})));
+ assert.equal(r.status,200);
+ assert.match(input.messages[0].content,/Working method:/);
+ assert.match(input.messages[0].content,/Produce the requested deliverable/);
+ assert.equal(input.max_tokens,480);
+ assert.deepEqual(r.body.knowledgeIds,['field-'+approve.agentId]);
+ assert.deepEqual(r.body.referenceIds,[]);
+ assert.ok(r.body.profileVersion);
+});
+test('individual inference rejects empty model output',async()=>{
+ for(const answer of ['', '  \n ']){
+  const r=await worker.fetch(request('/api/ask',{method:'POST',data:approve}),environment({AI_ENABLED:'true',AI:{run:async()=>({response:answer})}}));
+  assert.equal(r.status,502);
+ }
 });

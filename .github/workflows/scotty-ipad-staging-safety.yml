@@ -1,0 +1,36 @@
+name: SCOTTY iPad Cloudflare Staging — Safety Gates
+on:
+  pull_request:
+    paths:
+      - "offline-brain/cloudflare-ipad/**"
+      - ".github/workflows/scotty-ipad-staging-safety.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-no-production-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ""
+      GROQ_API_KEY: ""
+      XAI_API_KEY: ""
+      OPENAI_API_KEY: ""
+      CLOUDFLARE_API_TOKEN: ""
+      CLOUDFLARE_ACCOUNT_ID: ""
+      SCOTTY_STAGING_FREE_CONFIRMED: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify standalone staging Worker configuration
+        run: node offline-brain/cloudflare-ipad/staging-preflight.mjs
+      - name: Verify branch and billing attestation are fail closed
+        run: |
+          node --test offline-brain/cloudflare-ipad/staging-preflight.test.mjs
+          node --test offline-brain/cloudflare-ipad/worker.test.mjs
+      - name: Compile only; NEVER deploy or use live Cloudflare API
+        run: npx --yes wrangler@4 deploy --dry-run --config offline-brain/cloudflare-ipad/wrangler.jsonc --outdir /tmp/scotty-staging-dryrun
+      - name: Verify build output exists and production remains untouched
+        run: test -d /tmp/scotty-staging-dryrun

@@ -28,13 +28,13 @@ jobs:
           node-version: "22"
       - name: Test authenticated iPad-only Worker with mocked AI
         run: |
-          node --test offline-brain/cloudflare-ipad/worker.test.mjs
+          node --test offline-brain/cloudflare-ipad/*.test.mjs
           node --check offline-brain/cloudflare-ipad/worker.mjs
           node --check offline-brain/cloudflare-ipad/browser-script.mjs
           node --check offline-brain/cloudflare-ipad/page.mjs
       - name: Validate free Worker scope and no paid bindings
         run: |
-          node -e "const c=JSON.parse(require('fs').readFileSync('offline-brain/cloudflare-ipad/wrangler.jsonc','utf8')); if(c.vars.AI_ENABLED!=='false'||!c.ai||c.ai.binding!=='AI'||c.kv_namespaces||c.d1_databases||c.r2_buckets||c.durable_objects||c.triggers||c.vars.OWNER_BEARER_TOKEN)process.exit(1)"
+          node offline-brain/cloudflare-ipad/staging-preflight.mjs
       - name: Compile Worker without deploying or logging in
         run: |
           npx --yes wrangler@4 deploy --dry-run --config offline-brain/cloudflare-ipad/wrangler.jsonc --outdir /tmp/scotty-ipad-brain-dryrun
