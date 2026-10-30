@@ -4,8 +4,17 @@ export const TEAM_MODEL='@cf/meta/llama-3.2-3b-instruct';
 export function selectTeam(roster,question,teamSize=1){
  if(!Number.isInteger(teamSize)||teamSize<1||teamSize>2)throw Error('INVALID_TEAM_SIZE');
  const plan=planAssignment(roster,question,{maxAgents:8});const seen=new Set();
- const selected=plan.assignments.filter(a=>{if(seen.has(a.chiefId))return false;seen.add(a.chiefId);return true;}).slice(0,teamSize);
- return {...plan,assignments:selected,chiefIds:selected.map(a=>a.chiefId),maxCalls:selected.length?selected.length*2+1:0};
+ const requested=question.match(/^use specialist ([^:]{1,100}):\s*/i);
+ let preferred=null;
+ if(requested){
+  const name=requested[1].trim().toLowerCase();
+  const candidates=roster.filter(a=>!a.isChief&&(a.name.toLowerCase()===name||a.id.toLowerCase()===name));
+  if(candidates.length!==1)return {...plan,status:'needs-clarification',assignments:[],chiefIds:[],maxCalls:0,selectionIssue:'Name exactly one known specialist; chiefs cannot be selected as specialists.'};
+  preferred={agentId:candidates[0].id,chiefId:candidates[0].chiefId,score:0,matched:[],selectionReason:'Explicitly selected by the owner'};
+ }
+ const ranked=preferred?[preferred,...plan.assignments.filter(a=>a.agentId!==preferred.agentId)]:plan.assignments;
+ const selected=ranked.filter(a=>{if(seen.has(a.chiefId))return false;seen.add(a.chiefId);return true;}).slice(0,teamSize);
+ return {...plan,status:selected.length?'proposed':'needs-clarification',assignments:selected.map(a=>({...a,selectionReason:a.selectionReason||'Matched assignment terms: '+a.matched.join(', ')})),chiefIds:selected.map(a=>a.chiefId),maxCalls:selected.length?selected.length*2+1:0};
 }
 export function evidenceReferences(notes){
  return (notes||[]).slice(0,12).map(s=>({id:s.id,title:s.title,url:s.url,scope:s.scope||'unspecified',text:String(s.content||'').slice(0,500)}));
@@ -20,7 +29,7 @@ export async function previewTeamKnowledge({roster,question,teamSize=1,getEviden
  const readers=[];
  for(const {agent,role} of stages){
   const profile=brainProfile(agent),references=evidenceReferences(await getEvidence(agent));
-  readers.push({agentId:agent.id,name:agent.name,role,fieldKnowledge:profile.fieldKnowledge,memoryNamespaces:profile.memory,references,
+  readers.push({selectionReason:role==='specialist'?plan.assignments.find(a=>a.agentId===agent.id)?.selectionReason:role==='department chief'?'Reviews the selected specialist in this department':'Combines chief-reviewed findings',agentId:agent.id,name:agent.name,role,fieldKnowledge:profile.fieldKnowledge,memoryNamespaces:profile.memory,references,
    scopeCounts:Object.fromEntries(['agent','department','shared'].map(scope=>[scope,references.filter(r=>r.scope===scope).length]))});
  }
  return {previewVersion:'team-knowledge-preview-v1',plan,readers,providerCalls:0,memoryWrites:0,
