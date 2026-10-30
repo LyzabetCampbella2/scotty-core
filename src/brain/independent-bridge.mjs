@@ -4,7 +4,7 @@
  * automatic memory import, background jobs, or AI inference is enabled by this file.
  */
 const PREFIX="/api/independent-brain";
-const GET_PATHS=new Set(["status","readiness","catalog","sources","missions","memory","memory-history"]);
+const GET_PATHS=new Set(["status","readiness","catalog","sources","missions","memory","memory-history","memory-conflicts"]);
 const POST_PATHS=new Set(["plan","discover","team","ask","memory","memory-change","team-preview"]);
 const LIMIT=5000;
 const json=(data,status=200)=>Response.json(data,{status,headers:{"cache-control":"no-store","x-content-type-options":"nosniff"}});
@@ -42,6 +42,10 @@ export async function handleIndependentBrain(req,u,{
  if(req.method==="GET"&&route==="memory"){
   const agentId=u.searchParams.get("agentId")||"";
   if(!/^[a-z0-9-]{1,90}$/i.test(agentId)||u.searchParams.size!==1)return error("AGENT_ID_REQUIRED");
+  endpoint.searchParams.set("agentId",agentId);
+ }else if(req.method==="GET"&&route==="memory-conflicts"){
+  const agentId=u.searchParams.get("agentId")||"";
+  if(!/^[A-Za-z0-9-]{1,90}$/.test(agentId)||u.searchParams.size!==1)return error("AGENT_ID_REQUIRED");
   endpoint.searchParams.set("agentId",agentId);
  }else if(req.method==="GET"&&route==="memory-history"){
   const noteId=u.searchParams.get("noteId")||"";
