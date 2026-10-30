@@ -1,7 +1,7 @@
 import {missionProjectChoices,createProjectMission,projectMissionDetail} from './project-missions.ts';
 import {buildReleasedDeliverable} from './project-deliverables.mjs';
 import {evidenceCandidates,evidenceList,approveEvidence,revokeEvidence} from './project-evidence.ts';
-import {recommendProjectTeam,proposedTeamPlan,dailyProjectBrief,missionProgress} from './project-operations.ts';
+import {recommendProjectTeam,proposedTeamPlan,dailyProjectBrief,missionProgress,allProjectChiefBrief} from './project-operations.ts';
 import {agentDevelopment,recordAgentDevelopment,weeklyProjectReview,projectTeamStatus} from './project-insights.ts';
 import {projectDocumentChoices,previewProjectDocument,attachProjectDocument} from './project-documents.ts';
 import {handleAnsjemWork} from './ansjem-work-api.ts';
@@ -11,6 +11,7 @@ export async function handleProjectOperations(req:Request,u:URL){
  if(process.env.SCOTTY_PROJECT_OPERATIONS_ENABLED!=='true'||process.env.SCOTTY_PROJECT_MISSIONS_ENABLED!=='true')return json({ok:false,error:'Project operations disabled'},503);
  const root='/api/agent-brains/project-operations';
  try{
+  if(u.pathname===root+'/brief-all'&&req.method==='GET')return json({ok:true,brief:await allProjectChiefBrief()});
   if(u.pathname===root&&req.method==='GET')return json({ok:true,projects:await missionProjectChoices(),ansjemEnabled:process.env.SCOTTY_ANSJEM_WORK_ENABLED==='true',ansjemDeliveryEnabled:process.env.SCOTTY_ANSJEM_DELIVERY_ENABLED==='true',ansjemCoordinationEnabled:process.env.SCOTTY_ANSJEM_COORDINATION_ENABLED==='true',realDraftsEnabled:process.env.SCOTTY_REAL_PROJECT_DRAFTS_ENABLED==='true'&&!!process.env.GROQ_API_KEY,providerConfigured:!!process.env.GROQ_API_KEY});
   const work=u.pathname.match(/^\/api\/agent-brains\/project-operations\/([\w-]{1,160})\/ansjem(?:\/(ANSJEM-DEV-\d{4,20}))?$/);if(work)return handleAnsjemWork(req,u,work[1],work[2]);
   const match=u.pathname.match(/^\/api\/agent-brains\/project-operations\/([\w-]{1,160})\/(brief|progress|evidence|candidates|team|team-presets|plan|development|weekly|team-status|documents|deliverable)$/);if(!match)return json({ok:false,error:'Route not found'},404);const [,p,kind]=match;
