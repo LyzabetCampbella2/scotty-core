@@ -7,6 +7,7 @@ import {recommendProjectTeam,proposedTeamPlan,dailyProjectBrief,missionProgress,
 import {agentDevelopment,recordAgentDevelopment,weeklyProjectReview,projectTeamStatus} from './project-insights.ts';
 import {projectDocumentChoices,previewProjectDocument,attachProjectDocument} from './project-documents.ts';
 import {handleAnsjemWork} from './ansjem-work-api.ts';
+import {exchangeConnection} from './ansjem-coordination.ts';
 import {preferredTeams,savePreferredTeam,archivePreferredTeam} from './project-team-presets.ts';
 const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 export async function handleProjectOperations(req:Request,u:URL){
@@ -14,7 +15,7 @@ export async function handleProjectOperations(req:Request,u:URL){
  const root='/api/agent-brains/project-operations';
  try{
   if(u.pathname===root+'/brief-all'&&req.method==='GET')return json({ok:true,brief:await allProjectChiefBrief()});
-  if(u.pathname===root&&req.method==='GET')return json({ok:true,projects:await missionProjectChoices(),ansjemEnabled:process.env.SCOTTY_ANSJEM_WORK_ENABLED==='true',ansjemDeliveryEnabled:process.env.SCOTTY_ANSJEM_DELIVERY_ENABLED==='true',ansjemCoordinationEnabled:process.env.SCOTTY_ANSJEM_COORDINATION_ENABLED==='true',realDraftsEnabled:process.env.SCOTTY_REAL_PROJECT_DRAFTS_ENABLED==='true'&&!!process.env.GROQ_API_KEY,providerConfigured:!!process.env.GROQ_API_KEY});
+  if(u.pathname===root&&req.method==='GET')return json({ok:true,projects:await missionProjectChoices(),ansjemEnabled:process.env.SCOTTY_ANSJEM_WORK_ENABLED==='true',ansjemDeliveryEnabled:process.env.SCOTTY_ANSJEM_DELIVERY_ENABLED==='true',ansjemCoordinationEnabled:process.env.SCOTTY_ANSJEM_COORDINATION_ENABLED==='true',ansjemBridge:{...exchangeConnection},realDraftsEnabled:process.env.SCOTTY_REAL_PROJECT_DRAFTS_ENABLED==='true'&&!!process.env.GROQ_API_KEY,providerConfigured:!!process.env.GROQ_API_KEY});
   const work=u.pathname.match(/^\/api\/agent-brains\/project-operations\/([\w-]{1,160})\/ansjem(?:\/(ANSJEM-DEV-\d{4,20}))?$/);if(work)return handleAnsjemWork(req,u,work[1],work[2]);
   const match=u.pathname.match(/^\/api\/agent-brains\/project-operations\/([\w-]{1,160})\/(brief|progress|evidence|candidates|team|team-presets|plan|development|lesson-proposals|weekly|team-status|documents|local-file-evidence|deliverable)$/);if(!match)return json({ok:false,error:'Route not found'},404);const [,p,kind]=match;
   if(req.method==='GET'&&kind==='deliverable'){
