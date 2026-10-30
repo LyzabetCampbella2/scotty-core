@@ -30,7 +30,7 @@ export async function previewProjectLocalFile(p:string,input:any,read=fileBytes,
   const extracted=await extract(file);
   body=String(extracted.text||'');
   if(!body.trim())throw Error('NO_EXTRACTABLE_TEXT');
-  if(body.length>24000){body=body.slice(0,24000);note='PARTIAL: first 24,000 characters only. Choose a smaller document for complete evidence.';}
+  if(body.length>21000){body=body.slice(0,21000);note='PARTIAL: first 21,000 characters only. Choose a smaller document for complete evidence.';}
   else note=extracted.note||'Text snapshot; original layout and images are not included.';
  }
  const token=crypto.randomUUID(),createdAt=new Date().toISOString();
