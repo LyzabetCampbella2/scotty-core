@@ -207,6 +207,11 @@
    }catch(e){error(status,e);para(status,'Project operations might be disabled by an owner feature flag. No changes were made.');}
   }
   btn(parent,'Load my real project list',loadProjects);
+  btn(parent,'Manage preferred project team (owner approval required)',()=>{
+   clear(result);const id=picker.value;
+   if(!/^[A-Za-z0-9_-]{1,160}$/.test(id)){para(result,'Select a real project first.');return}
+   projectTeamPresets(result,id);
+  });
   btn(parent,'Inspect selected project team, missions and briefing',async()=>{
    clear(result);const id=picker.value;
    if(!/^[A-Za-z0-9_-]{1,160}$/.test(id)){para(result,'Select a valid existing project first.');return}
