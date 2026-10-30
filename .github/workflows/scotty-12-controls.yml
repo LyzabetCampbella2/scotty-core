@@ -26,11 +26,12 @@ jobs:
         with:
           node-version: '24'
       - name: Run review and privacy controls tests
-        run: node --test src/brain/upgrade-checks.test.mjs
+        run: node --test src/brain/upgrade-checks.test.mjs src/brain/upgrade-api.test.mjs
       - name: Check HUD and server-side module syntax
         run: |
           node --check public/brain-operations-panel.js
           node --check src/brain/upgrade-checks.mjs
+          node --check src/brain/upgrade-api.mjs
       - uses: oven-sh/setup-bun@v2
       - name: Bundle gateway without running or connecting to production
         run: |
