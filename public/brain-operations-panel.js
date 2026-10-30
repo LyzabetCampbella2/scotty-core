@@ -466,6 +466,24 @@
     para(out,'A listed connector is not proof that the account is reachable, a token is valid, or a requested operation is permitted. Verify in the full Connectors screen.');
    }catch(e){error(out,e);para(out,'Cannot verify connected apps from this environment. Avoid making provider actions.')}
   });
+  btn(parent,'Verify native Google Gmail, Calendar and Drive scope grants',async()=>{
+   const box=el('div');parent.appendChild(box);
+   try{
+    const data=await api('/api/connections'),google=data.connections?.google||{};
+    const scopes=new Set(google.scopes||[]);
+    line(box,'Google OAuth account',google.status||'Not connected');
+    line(box,'Reconnect required',google.needsReconnect===true);
+    line(box,'Token refresh configured',google.refreshCapable===true);
+    line(box,'Last updated',google.updatedAt||'Not available');
+    for(const [name,permission] of [
+      ['Gmail send','https://www.googleapis.com/auth/gmail.send'],
+      ['Gmail read','https://www.googleapis.com/auth/gmail.readonly'],
+      ['Calendar event create/update','https://www.googleapis.com/auth/calendar.events'],
+      ['Drive files created/opened by SCOTTY','https://www.googleapis.com/auth/drive.file']
+    ])line(box,name,google.status==='connected'&&scopes.has(permission)?'Granted in saved OAuth record':'Not confirmed');
+    para(box,'Scope grants confirm recorded authorization, not current provider reachability or permission for a specific send/edit/upload. Each actual action still requires its own reviewed owner approval.');
+   }catch(e){error(box,e)}
+  });
   btn(parent,'Inspect SCOTTY–Dawna bridge readiness (read-only)',async()=>{
    const box=el('div');parent.appendChild(box);
    try{
