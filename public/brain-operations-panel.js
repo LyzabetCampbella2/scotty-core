@@ -158,6 +158,9 @@
    const id=agent.value.trim();
    if(!/^[a-zA-Z0-9-]{1,90}$/.test(id)){para(out,'Choose a valid exact agent ID.');return}
    try{
+    const readiness=await api('/api/independent-brain/status');
+    const ready=readiness.governanceMigrationReady===true;
+    line(out,'D1 governance migration',ready?'Verified ready by Worker':'Unavailable — edits disabled');
     const data=await api('/api/independent-brain/memory?agentId='+encodeURIComponent(id));
     for(const n of data.notes||[]){
      const item=el('div');css(item,'padding:10px;margin:10px 0;border:1px solid #456070;border-radius:6px');out.appendChild(item);
@@ -165,6 +168,7 @@
      para(item,String(n.content||'').slice(0,1800));
      line(item,'Scope',n.scope);line(item,'Reviewed',n.reviewedAt);line(item,'Expires',n.expiresAt);
      if(n.url){const a=el('a','Read original source');a.href=n.url;a.target='_blank';a.rel='noopener noreferrer';item.appendChild(a)}
+     if(!ready){para(item,'Read-only: the isolated D1 governance schema has not been verified. No changes or history requests are enabled.');continue;}
      btn(item,'Read redacted change history',async()=>{const box=el('div');item.appendChild(box);
       try{const h=await api('/api/independent-brain/memory-history?noteId='+encodeURIComponent(n.id));
        for(const c of h.changes||[])line(box,c.action,c.changedAt);
