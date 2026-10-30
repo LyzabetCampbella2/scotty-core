@@ -5,7 +5,7 @@
  */
 const PREFIX="/api/independent-brain";
 const GET_PATHS=new Set(["status","readiness","operations","catalog","quality-cases","sources","missions","mission","memory","memory-history","memory-conflicts"]);
-const POST_PATHS=new Set(["plan","discover","team","ask","memory","memory-change","team-preview"]);
+const POST_PATHS=new Set(["plan","discover","team","ask","memory","memory-change","team-preview","mission-recovery"]);
 const LIMIT=5000;
 const json=(data,status=200)=>Response.json(data,{status,headers:{"cache-control":"no-store","x-content-type-options":"nosniff"}});
 const error=(message,status=400)=>json({ok:false,error:message},status);
@@ -34,6 +34,8 @@ export async function handleIndependentBrain(req,u,{
  if(config.error)return error(config.error,503);
  if(['memory','memory-history','memory-conflicts','memory-change'].includes(route)&&env.SCOTTY_INDEPENDENT_BRAIN_MEMORY_PROXY_ENABLED!=='true')
   return error('MEMORY_PROXY_DISABLED',503);
+ if(route==="mission-recovery"&&env.SCOTTY_INDEPENDENT_BRAIN_RECOVERY_ENABLED!=="true")
+  return error("RECOVERY_PROXY_DISABLED",503);
  if(req.method==="POST"){
   const origin=req.headers.get("origin");
   if(origin&&origin!==u.origin)return error("ORIGIN_DENIED",403);
@@ -74,6 +76,17 @@ export async function handleIndependentBrain(req,u,{
   if(route==="memory"){
    if(env.SCOTTY_INDEPENDENT_BRAIN_MEMORY_PROXY_ENABLED!=="true")return error("MEMORY_PROXY_DISABLED",503);
    if(payload.approved!==true||payload.noPrivateDataConfirmed!==true)return error("OWNER_MEMORY_APPROVAL_REQUIRED",403);
+  }
+  if(route==="mission-recovery"){
+   if(req.headers.get("origin")!==u.origin||req.headers.get("x-scotty-csrf")!=="1")
+    return error("RECOVERY_ORIGIN_CSRF_REQUIRED",403);
+   if(!["preview","apply"].includes(payload.stage)||
+     typeof payload.missionId!=="string"||!/^[a-z0-9-]{16,80}$/i.test(payload.missionId))
+    return error("INVALID_RECOVERY_PREVIEW",400);
+   if(payload.stage==="apply"&&
+    (payload.ownerApproved!==true||payload.reviewAcknowledged!==true||
+     typeof payload.expectedUpdatedAt!=="string"||!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(payload.expectedUpdatedAt)))
+    return error("EXACT_OWNER_RECOVERY_APPROVAL_REQUIRED",403);
   }
   if(route==="memory-change"){
    if(env.SCOTTY_INDEPENDENT_BRAIN_MEMORY_PROXY_ENABLED!=="true")return error("MEMORY_PROXY_DISABLED",503);
