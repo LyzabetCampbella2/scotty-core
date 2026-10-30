@@ -24,7 +24,9 @@ test('team model enforces review and prevents unrelated agents or missing chiefs
   {...original,agentIds:['agent-scene']},
   {...original,agentIds:['chief-story','agent-scene','agent-scene']},
   {...original,leadChiefId:'agent-scene'},
-  {...original,expectedRevision:-1}
+  {...original,expectedRevision:-1},
+  {...original,expectedRevision:null},
+  {...original,expectedRevision:'0'}
  ])assert.throws(()=>teamPresetInput(changed,'project-bloodpool',roster));
  assert.throws(()=>teamPresetInput(original,'../another-project',roster));
  assert.throws(()=>teamPresetInput(original,'project-bloodpool',roster.filter(a=>a.id!=='agent-scene')));
