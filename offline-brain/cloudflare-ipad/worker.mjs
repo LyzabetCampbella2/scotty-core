@@ -12,6 +12,7 @@ import {readiness,storageReadiness,RELEASE} from "./brain-readiness.mjs";
 import {KNOWLEDGE_VERSION,FIELD_CARDS,fieldKnowledge} from "./field-knowledge.mjs";
 import {normalizeNote,memoryStore} from "./brain-memory.mjs";
 import {noteChange,noteAudit} from './memory-governance.mjs';
+import {normalizeProjectContext} from './project-evidence-policy.mjs';
 import {discoverFeed} from "./source-discovery.mjs";
 import {PUBLIC_FEEDS} from "../update-sources.mjs";
 import {pageHtml} from "./page.mjs";
@@ -138,10 +139,16 @@ async function handleApi(request,env,url){
  }
  let question;
  try{question=validateQuestion(body.question);}catch{return failure("INVALID_QUESTION","Enter a question containing 1 to 500 characters.",400);}
+ let projectContext=null;
+ if(body.projectContext!==undefined){
+  if(path!=="/api/team-preview"&&path!=="/api/team")return failure("PROJECT_CONTEXT_NOT_SUPPORTED","Only approved team tasks and previews can use a project evidence snapshot.",400);
+  try{projectContext=normalizeProjectContext(body.projectContext,roster);}
+  catch(e){return failure("PROJECT_CONTEXT_DENIED",String(e.message||"Project source not permitted"),403);}
+ }
  if(path==="/api/team-preview"){
   if(!storage.ready)return failure("MEMORY_NOT_CONNECTED","Connect memory before checking live retrieval.",503);
   try{selectTeam(roster,question,body.teamSize??1);}catch{return failure("INVALID_TEAM_SIZE","Choose one or two specialist departments.");}
-  return response(await previewTeamKnowledge({roster,question,teamSize:body.teamSize??1,getEvidence:agent=>memoryStore(env.BRAIN_DB).read(agent,question)}));
+  return response(await previewTeamKnowledge({roster,question,teamSize:body.teamSize??1,getEvidence:agent=>memoryStore(env.BRAIN_DB).read(agent,question),projectContext}));
  }
  if(path==="/api/plan"){
   const plan=planAssignment(roster,question,{maxAgents:4});
@@ -162,7 +169,7 @@ async function handleApi(request,env,url){
    let claim;try{claim=await storage.claim(missionId,question,teamSize);}catch{return failure("MISSION_STORAGE_CONFLICT","Mission could not be claimed. No AI calls made.",409);}
    if(!claim.claimed)return response({missionId,cached:true,status:claim.status,...claim.result},claim.status==="running"?409:200);
   }
-  const result=await runTeam({roster,question,AI:env.AI,approved:true,teamSize,
+  const result=await runTeam({roster,question,AI:env.AI,approved:true,teamSize,projectContext,
    getEvidence:async agent=>env.BRAIN_DB?.prepare?await memoryStore(env.BRAIN_DB).read(agent,question):[],
    onCheckpoint:async result=>{if(storage)await storage.checkpoint(missionId,result);}
   });
