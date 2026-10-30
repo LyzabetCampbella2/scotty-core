@@ -15,7 +15,10 @@ export async function discoverFeed(id,fetcher=fetch){
   const title=text(block.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||'').slice(0,200);
   const raw=block.match(/<link[^>]*>([\s\S]*?)<\/link>/i)?.[1]||block.match(/<link\b[^>]*href=["']([^"']+)/i)?.[1];
   let url=null;try{const u=new URL(text(raw||''));if(u.protocol==='https:'&&!u.username&&!u.password)url=u.href;}catch{}
-  return {title,url,verified:false};
+  const dateRaw=text(block.match(/<(?:pubDate|published|updated|dc:date)[^>]*>(.*?)<\/(?:pubDate|published|updated|dc:date)>/is)?.[1]||'');
+  const d=dateRaw?new Date(dateRaw):null;
+  const publishedAt=d&&Number.isFinite(d.getTime())?d.toISOString():null;
+  return {title,url,publishedAt,verified:false,provenance:'publisher-feed',reviewRequired:true,proposedKnowledgeUpdate:null};
  }).filter(i=>i.title&&i.url);
  return {publisher:feed.publisher,feedId:feed.id,sourceUrl:feed.url,fetchedAt:new Date().toISOString(),items,trust:'discovery-only',automaticallySaved:false};
 }
