@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
-import {noteChange,noteAudit,findNoteConflicts} from './memory-governance.mjs';
+import {noteChange,noteAudit,findNoteConflicts,governanceReadiness} from './memory-governance.mjs';
 function fixture(){
  const sql=new DatabaseSync(':memory:');
  sql.exec("CREATE TABLE brain_notes(id TEXT PRIMARY KEY,agent_id TEXT NOT NULL,scope TEXT NOT NULL,title TEXT NOT NULL,content TEXT NOT NULL,url TEXT,reviewed_at TEXT NOT NULL,expires_at TEXT NOT NULL);");
@@ -72,4 +72,16 @@ test('conflicts remain owner review candidates not automatically overwritten',()
  const conflicts=findNoteConflicts([{...base,id:'1',content:'open'},{...base,id:'2',content:'closed'},{...base,id:'3',content:'open',agentId:'beta'}]);
  assert.equal(conflicts.length,1);
  assert.equal(conflicts[0].automaticallyResolved,false);
+});
+
+test('audit table with missing columns is not considered a ready governance migration',async()=>{
+ const t=fixture();
+ try{
+  t.sql.exec('DROP TABLE brain_note_change_audit;CREATE TABLE brain_note_change_audit(id TEXT PRIMARY KEY)');
+  const state=await governanceReadiness(t.db);
+  assert.equal(state.ready,false);
+  assert.equal(state.reason,'MEMORY_GOVERNANCE_SCHEMA_INCOMPLETE');
+  await assert.rejects(()=>noteChange(t.db,{stage:'preview',action:'delete',noteId:t.id},{now:NOW}),/SCHEMA_INCOMPLETE/);
+  assert.equal(t.sql.prepare('SELECT count(*) AS n FROM brain_notes').get().n,1);
+ }finally{t.close()}
 });
