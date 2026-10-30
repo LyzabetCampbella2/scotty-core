@@ -247,6 +247,62 @@
   link(parent,'Open voice-driven folder workspace','/workspace');
   para(parent,'Voice commands already available when enabled: “Scotty, list my projects”, “Read my daily briefing”, “Read mission progress”, “Build a project team”, “List my Google Docs”, and “List my Notion pages”. Physical microphone recognition is still unverified.');
  }
+ function projectTeamPresets(parent,projectId){
+  const area=el('div');css(area,'padding:8px;border:1px solid #456070;border-radius:8px');parent.appendChild(area);
+  para(area,'Project team presets are owner-reviewed templates only. They do not start AI, share evidence, create agents, or grant project membership.');
+  async function load(){
+   clear(area);para(area,'Stored teams are checked against current project grants. Revoked agents disable reuse.');
+   try{
+    const base='/api/agent-brains/project-operations/'+encodeURIComponent(projectId);
+    const [members,templates]=await Promise.all([api(base+'/team-status'),api(base+'/team-presets')]);
+    const people=members.members||[],current=templates.teams||[];
+    line(area,'Project members available',people.length);
+    for(const t of current){
+     const tile=el('div');css(tile,'padding:7px;border-bottom:1px solid #456070');area.appendChild(tile);
+     line(tile,'Preferred team '+t.name,'revision '+t.revision);
+     line(tile,'Members',t.agentIds.join(', '));
+     line(tile,'Lead chief',t.leadChiefId);
+     line(tile,'Current access',t.active?'Current permitted members':'STALE — member removed or paused; do not reuse');
+    }
+    const name=input(area,'Team name (example: Manuscript Review Team)');
+    const selectChief=el('select');selectChief.setAttribute('aria-label','Lead project chief');area.appendChild(selectChief);
+    for(const p of people.filter(x=>x.isChief===true)){const op=el('option',p.name||p.id);op.value=p.id;selectChief.appendChild(op)}
+    const selections=el('div');area.appendChild(selections);
+    const boxes=[];
+    for(const p of people){
+     const choice=check(selections,(p.name||p.id)+(p.isChief?' · chief':' · specialist'));boxes.push({id:p.id,checked:choice});
+    }
+    const approval=check(area,'I reviewed the exact team and confirm the selected agents already have permission for this project.');
+    const preview=el('div');area.appendChild(preview);
+    btn(area,'Review preferred team (no write)',()=>{
+     clear(preview);
+     line(preview,'Team',name.value.trim());
+     line(preview,'Selected existing members',boxes.filter(x=>x.checked.checked).map(x=>x.id).join(', ')||'None');
+     line(preview,'Lead chief',selectChief.value);
+     para(preview,'No source sharing, external action, model call or permission grant will occur. A subsequent save requires approval.');
+    });
+    btn(area,'Save owner-reviewed team preset',async()=>{
+     const chosen=boxes.filter(x=>x.checked.checked).map(x=>x.id),teamName=name.value.trim();
+     const existing=current.find(x=>x.name.toLowerCase()===teamName.toLowerCase());
+     if(!approval.checked){para(preview,'Not saved — review and approve the exact team first.');return}
+     if(chosen.length<2||chosen.length>8||!selectChief.value||!teamName){para(preview,'Choose a team name, lead chief and 2–8 approved project members.');return}
+     const body={action:'save',name:teamName,agentIds:chosen,leadChiefId:selectChief.value,
+      expectedRevision:existing?.revision||0,reviewed:true,approved:true};
+     try{
+      const response=await fetch(base+'/team-presets',{method:'POST',credentials:'same-origin',cache:'no-store',
+       headers:{'content-type':'application/json','x-scotty-csrf':'1'},body:JSON.stringify(body)});
+      const data=await response.json();
+      if(!response.ok||data.ok===false)throw Error(data.error||'Save rejected');
+      clear(preview);line(preview,'Saved team ID',data.id);line(preview,'Revision',data.revision);
+      para(preview,'Team template stored. No model run or project permission grant occurred. Reload to independently verify.');
+      approval.checked=false;
+     }catch(e){error(preview,e)}
+    });
+   }catch(e){error(area,e)}
+  }
+  btn(area,'Reload preferred project teams',load);
+  load();
+ }
  function showConnectedActions(parent){
   para(parent,'Verify connections before asking SCOTTY to act. Viewing status performs no sends, calendar edits, Drive uploads or Notion writes. Actual changes require the existing connector action preview and owner confirmation.');
   const out=el('div');parent.appendChild(out);
