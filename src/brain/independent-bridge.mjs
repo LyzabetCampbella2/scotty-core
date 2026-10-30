@@ -4,7 +4,7 @@
  * automatic memory import, background jobs, or AI inference is enabled by this file.
  */
 const PREFIX="/api/independent-brain";
-const GET_PATHS=new Set(["status","readiness","catalog","quality-cases","sources","missions","mission","memory","memory-history","memory-conflicts"]);
+const GET_PATHS=new Set(["status","readiness","operations","catalog","quality-cases","sources","missions","mission","memory","memory-history","memory-conflicts"]);
 const POST_PATHS=new Set(["plan","discover","team","ask","memory","memory-change","team-preview"]);
 const LIMIT=5000;
 const json=(data,status=200)=>Response.json(data,{status,headers:{"cache-control":"no-store","x-content-type-options":"nosniff"}});
