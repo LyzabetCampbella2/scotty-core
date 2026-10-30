@@ -83,3 +83,17 @@ No GitHub Actions step publishes code, installs production credentials, calls re
 - No paid services or account modifications.
 
 **Keep this as a draft; do not merge or deploy until separately authorized.**
+
+## October 30 staging extension — priorities 6–12
+
+The earlier 128-agent/12-chief single-specialist description above documents the initial Phase 5 prototype. Current **draft source on this branch** proposes **25 chiefs + 160 specialists** and SCOTTY oversight. The 160 playbooks are authored methods and explicitly **not** separately fact-validated expertise. Production source, paid infrastructure and private account data remain untouched.
+
+- Worker agent selection chooses one or two departments, then specialist → responsible chief → SCOTTY (up to five AI calls on the separate lab, only after opt-in and AI activation).
+- D1 memory is scoped to individual, department, or shared notes with explicit reviewed attribution. Optional governance migration adds owner-previewed correction/expiry/archive/deletion and a redacted audit. The D1 migration has **not** been applied by these commits.
+- D1 team missions store checkpoints; replay is keyed to project and exact approved source hashes where supplied. Every completion response independently reads back the mission ID and results. An acknowledged write alone is insufficient.
+- Owner-only `GET /api/operations` reads checkpoint counts, up to 20 stale mission samples, the **total** stale mission count, and the number requiring owner attention. Real provider quota and historical provider usage remain unknown and are never inferred.
+- Owner-only `POST /api/mission-recovery` with `stage=preview` can read the exact timestamp of a checkpoint stuck in `running` for over 10 minutes. A separate `stage=apply` requires that timestamp, `ownerApproved:true`, and `reviewAcknowledged:true`. Its database update is conditional on the unchanged checkpoint and running state; it marks the mission incomplete while preserving prior stage text, **never** starting AI or retrying. Delayed model calls cannot overwrite a closed mission. An actively finishing worker may still be in flight: investigate before marking it incomplete.
+- The companion original-HUD preview/confirmation controls are staged in Render PR #54 behind `SCOTTY_INDEPENDENT_BRAIN_RECOVERY_ENABLED=true`. The flag is **off by default**. Neither PR deploys or triggers a D1 recovery.
+- Failure modes tested with synthetic SQLite: no consent, mismatched revision/time, no D1 binding, concurrent updates, delayed AI, idempotence, and preserved partial work.
+
+**Deployment order:** verify a recent full PostgreSQL backup and independent restore; then independently review and deploy the Cloudflare Worker with its D1 migration as appropriate; test authenticated readback and Free-tier quota; only then review the Render HUD proxy and turn on a narrowly scoped recovery flag. Never enable an autonomous retry or production export as part of these steps.
