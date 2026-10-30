@@ -23,7 +23,10 @@
  function line(parent,name,value){const row=el('p');const strong=el('strong',name+': ');row.appendChild(strong);row.appendChild(document.createTextNode(String(value??'Not reported')));parent.appendChild(row)}
  function error(parent,e){para(parent,'Unavailable: '+String(e.message||e).slice(0,240))}
  function section(parent,name,fn){const wrap=el('section');css(wrap,'padding:12px;margin:10px 0;border:1px solid #456070;border-radius:9px');headline(wrap,name);parent.appendChild(wrap);fn(wrap);return wrap}
- async function showReadiness(parent){
+ async function checkRecoveryApproval(parent,missionId,checkpoint){
+  return check(parent,'I investigated mission '+missionId+' and reviewed checkpoint '+checkpoint+'. I approve marking only that stale run incomplete, with no retry.');
+ }
+ function showReadiness(parent){
   const out=el('div');parent.appendChild(out);
   async function refresh(){clear(out);
    const jobs=[['Render operations','/api/system/status'],['Cloudflare readiness','/api/independent-brain/readiness'],['Cloudflare status','/api/independent-brain/status'],['Cloudflare mission operations','/api/independent-brain/operations']];
@@ -38,7 +41,36 @@
       line(block,'Persisted mission count',d.total??'Not measured');
       for(const [state,count] of Object.entries(d.counts||{}))line(block,'  '+state,count);
       line(block,'Stale missions needing manual review',(d.staleRunningSample||[]).length);
-      for(const m of d.staleRunningSample||[])line(block,'  Mission '+m.missionId,m.lastCheckpoint);
+      for(const m of d.staleRunningSample||[]){
+       const item=el('div');css(item,'padding:8px;margin:6px 0;border-left:3px solid #7999ab');block.appendChild(item);
+       line(item,'Stale mission',m.missionId);
+       line(item,'Last checkpoint',m.lastCheckpoint);
+       const warning=el('div');item.appendChild(warning);
+       btn(item,'Review stale mission — no retry',async()=>{
+        clear(warning);
+        try{
+         const p=await api('/api/independent-brain/mission-recovery',{stage:'preview',missionId:m.missionId});
+         line(warning,'Verified checkpoint',p.expectedUpdatedAt);
+         line(warning,'Inactivity',p.staleMinutes+' minutes');
+         line(warning,'Proposed action','Mark incomplete, preserving saved stages');
+         para(warning,p.warning||'The worker may still be active. Do not retry automatically.');
+         const check=checkRecoveryApproval(warning,m.missionId,p.expectedUpdatedAt);
+         btn(warning,'Confirm this exact stale checkpoint',async()=>{
+          if(!check.checked){para(warning,'No recovery sent. Review and check the approval first.');return}
+          try{
+           const result=await api('/api/independent-brain/mission-recovery',{
+            stage:'apply',missionId:m.missionId,expectedUpdatedAt:p.expectedUpdatedAt,
+            ownerApproved:true,reviewAcknowledged:true
+           });
+           line(warning,'Independent readback',result.verified===true?'Verified incomplete':'UNVERIFIED');
+           line(warning,'Preserved work stages',result.preservedStages??'Unknown');
+           para(warning,'AI calls: zero; no automatic retry, delete, source sharing or restoration was requested. Refresh operations and inspect the saved mission before choosing next steps.');
+           check.checked=false;
+          }catch(e){error(warning,e);para(warning,'No automatic repeat. Reload the actual checkpoint before any further attempt.')}
+         });
+        }catch(e){error(warning,e);para(warning,'Recovery is locked unless the explicit owner flag and D1 schema are ready.')}
+       });
+      }
       line(block,'Provider quota',d.quota??'Unavailable — check Cloudflare dashboard');
       line(block,'Provider calls',d.providerCalls??'Unavailable — not measured');
       para(block,'These are stored checkpoint counts only. No inference, provider quota check or automatic retry occurred.');
