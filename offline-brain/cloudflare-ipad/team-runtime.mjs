@@ -2,7 +2,7 @@
 import {planAssignment,brainProfile} from './team-expansion.mjs';
 import {requestedSpecialist,matchSpecialist,selectionRationale} from './selection-policy.mjs';
 import {evaluateTeamDeliverable} from './chief-quality.mjs';
-import {projectEvidenceFor} from './project-evidence-policy.mjs';
+import {projectEvidenceFor,assertApprovedReviewChain} from './project-evidence-policy.mjs';
 export const TEAM_MODEL='@cf/meta/llama-3.2-3b-instruct';
 export function selectTeam(roster,question,teamSize=1){
  if(!Number.isInteger(teamSize)||teamSize<1||teamSize>2)throw Error('INVALID_TEAM_SIZE');
@@ -23,6 +23,7 @@ export function evidenceReferences(notes){
 }
 export async function previewTeamKnowledge({roster,question,teamSize=1,getEvidence,projectContext=null}){
  const plan=selectTeam(roster,question,teamSize),catalog=new Map(roster.map(a=>[a.id,a])),stages=[];
+ if(projectContext)assertApprovedReviewChain(projectContext,plan);
  for(const assignment of plan.assignments){
   const specialist=catalog.get(assignment.agentId);
   stages.push({agent:specialist,role:'specialist'},{agent:catalog.get(specialist.chiefId),role:'department chief'});
@@ -42,6 +43,7 @@ export async function runTeam({roster,question,AI,approved=false,evidence=[],get
  if(approved!==true)throw Error('TEAM_APPROVAL_REQUIRED');
  if(typeof AI?.run!=='function')throw Error('AI_BINDING_MISSING');
  const plan=selectTeam(roster,question,teamSize);
+ if(projectContext)assertApprovedReviewChain(projectContext,plan);
  if(!plan.assignments.length)return {...plan,results:[],aiCalls:0,attemptedCalls:0};
  const results=[];let attempts=0,phase='starting';
  const catalog=new Map(roster.map(a=>[a.id,a]));
