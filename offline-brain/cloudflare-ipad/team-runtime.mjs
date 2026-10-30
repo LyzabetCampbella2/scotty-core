@@ -8,7 +8,7 @@ export function selectTeam(roster,question,teamSize=1){
  return {...plan,assignments:selected,chiefIds:selected.map(a=>a.chiefId),maxCalls:selected.length?selected.length*2+1:0};
 }
 export function evidenceReferences(notes){
- return (notes||[]).slice(0,12).map(s=>({id:s.id,title:s.title,url:s.url,scope:s.scope||'unspecified',text:String(s.content||'').slice(0,500)}));
+ return (notes||[]).slice(0,12).map(s=>({id:s.id,title:s.title,url:s.url,scope:s.scope||'unspecified',text:String(s.content||'').slice(0,500),retrievalReason:String(s.retrievalReason||'Reviewed note in permitted scope').slice(0,200)}));
 }
 export async function previewTeamKnowledge({roster,question,teamSize=1,getEvidence}){
  const plan=selectTeam(roster,question,teamSize),catalog=new Map(roster.map(a=>[a.id,a])),stages=[];
