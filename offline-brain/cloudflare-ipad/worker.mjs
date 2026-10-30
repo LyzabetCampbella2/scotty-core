@@ -114,6 +114,16 @@ async function handleApi(request,env,url){
   feeds:PUBLIC_FEEDS.map(f=>({id:f.id,publisher:f.publisher,url:f.url,departments:f.departments})),
   warning:"These are candidate references. POST /api/discover fetches one selected feed on demand. No automatic refresh, fact verification or memory promotion occurs."
  });
+ if(path==="/api/mission"&&request.method==="GET"){
+  const id=url.searchParams.get("missionId")||"";
+  if(!/^[a-z0-9-]{16,80}$/i.test(id)||url.searchParams.size!==1)
+   return failure("INVALID_MISSION_ID","Use one valid mission identifier.",400);
+  const saved=await missionMemory(env.BRAIN_DB).readback(id);
+  if(!saved)return failure("MISSION_NOT_FOUND","No checkpoint for that identifier.",404);
+  if(saved.status!==saved.result?.status)return failure("MISSION_INCONSISTENT","Checkpoint conflict.",502);
+  return response({missionId:id,status:saved.status,answer:saved.result?.answer??null,
+   missionReadbackVerified:true,storageReadback:true,modelCalls:0});
+ }
  if(path==="/api/missions"&&request.method==="GET"){
   if(!env.BRAIN_DB?.prepare)return failure("MISSION_STORAGE_NOT_CONNECTED","Connect the dedicated memory database to retain missions.",503);
   return response({missions:await missionMemory(env.BRAIN_DB).recent()});
