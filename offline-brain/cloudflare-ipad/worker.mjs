@@ -184,7 +184,8 @@ async function handleApi(request,env,url){
   catch{return failure("PROJECT_REVIEW_CHAIN_DENIED","The project source must explicitly permit specialist, chief and SCOTTY handoffs. No AI calls made.",403);}
   const store=missionMemory(env.BRAIN_DB);
   const missionId=body.missionId||crypto.randomUUID();
-  let claim;try{claim=await store.claim(missionId,question,teamSize);}catch{return failure("MISSION_STORAGE_CONFLICT","Mission could not be claimed. No AI calls made.",409);}
+  const requestKey=await missionRequestKey(question,projectContext);
+  let claim;try{claim=await store.claim(missionId,requestKey,teamSize);}catch{return failure("MISSION_STORAGE_CONFLICT","Mission could not be claimed. No AI calls made.",409);}
   if(!claim.claimed)return response({missionId,cached:true,status:claim.status,...claim.result,missionPersisted:true,
    missionReadbackVerified:true},claim.status==="running"?409:200);
   const result=await runTeam({roster,question,AI:env.AI,approved:true,teamSize,projectContext,
