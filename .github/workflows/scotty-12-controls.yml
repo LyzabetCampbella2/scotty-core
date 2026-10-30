@@ -11,6 +11,8 @@ on:
       - 'src/agents/project-local-evidence*'
       - 'src/agents/project-lessons*'
       - 'src/agents/project-operations.ts'
+      - 'public/hud/project-operations.js'
+      - 'src/agents/project-team-voice.test.cjs'
       - 'src/agents/project-operations-api.ts'
       - 'tests/brain-operations-panel.test.mjs'
       - 'src/server-cloud-v2.ts'
@@ -34,9 +36,10 @@ jobs:
         with:
           node-version: '24'
       - name: Run review and privacy controls tests
-        run: node --test src/brain/upgrade-checks.test.mjs src/brain/upgrade-api.test.mjs tests/brain-operations-panel.test.mjs src/agents/project-team-presets-model.test.mjs src/agents/project-deliverables.test.mjs src/agents/daily-chief-brief.test.mjs src/agents/project-local-evidence-model.test.mjs src/agents/project-lessons.test.mjs
+        run: node --test src/brain/upgrade-checks.test.mjs src/brain/upgrade-api.test.mjs tests/brain-operations-panel.test.mjs src/agents/project-team-voice.test.cjs src/agents/project-team-presets-model.test.mjs src/agents/project-deliverables.test.mjs src/agents/daily-chief-brief.test.mjs src/agents/project-local-evidence-model.test.mjs src/agents/project-lessons.test.mjs
       - name: Check HUD and server-side module syntax
         run: |
+          node --check public/hud/project-operations.js
           node --check public/brain-operations-panel.js
           node --check src/agents/project-lessons.mjs
           node --check src/agents/project-local-evidence-model.mjs
