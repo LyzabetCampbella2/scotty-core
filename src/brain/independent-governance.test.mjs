@@ -56,3 +56,42 @@ test('read-only memory and conflict-history routes also require an explicitly en
  }
  assert.equal(calls,0);
 });
+
+
+test('stale-mission recovery refuses disabled proxy and missing exact owner CSRF approval',async()=>{
+ const url=owner+'/api/independent-brain/mission-recovery',missionId='test-stale-mission-00000001';
+ let calls=0;
+ const opts={env:{...env,SCOTTY_INDEPENDENT_BRAIN_RECOVERY_ENABLED:'false'},authenticated:async()=>true,
+  fetcher:async()=>{calls++;return Response.json({ok:true})}};
+ const req=(body,headers={})=>new Request(url,{method:'POST',headers:{'content-type':'application/json',origin:owner,...headers},body:JSON.stringify(body)});
+ const disabled=await handleIndependentBrain(req({stage:'preview',missionId}),new URL(url),opts);
+ assert.equal(disabled.status,503);
+ assert.equal(calls,0);
+ const enabled={...opts,env:{...opts.env,SCOTTY_INDEPENDENT_BRAIN_RECOVERY_ENABLED:'true'}};
+ const withoutCSRF=await handleIndependentBrain(req({stage:'preview',missionId}),new URL(url),enabled);
+ assert.equal(withoutCSRF.status,403);
+ const incomplete=await handleIndependentBrain(req({stage:'apply',missionId,ownerApproved:true}, {'x-scotty-csrf':'1'}),new URL(url),enabled);
+ assert.equal(incomplete.status,403);
+ assert.equal(calls,0);
+});
+test('owner-reviewed exact stale checkpoint forwards once, no model calls or private mission text',async()=>{
+ const url=owner+'/api/independent-brain/mission-recovery';
+ const envWithRecovery={...env,SCOTTY_INDEPENDENT_BRAIN_RECOVERY_ENABLED:'true'};
+ const missionId='test-stale-mission-00000001',timestamp='2026-10-30T10:00:00.000Z';
+ const input={stage:'apply',missionId,expectedUpdatedAt:timestamp,ownerApproved:true,reviewAcknowledged:true};
+ let forwarded=0;
+ const request=new Request(url,{method:'POST',headers:{origin:owner,'x-scotty-csrf':'1','content-type':'application/json'},body:JSON.stringify(input)});
+ const response=await handleIndependentBrain(request,new URL(url),{
+  env:envWithRecovery,authenticated:async()=>true,fetcher:async(endpoint,opts)=>{
+   forwarded++;
+   assert.equal(endpoint,env.SCOTTY_INDEPENDENT_BRAIN_URL+'/api/mission-recovery');
+   assert.equal(opts.headers.authorization,'Bearer '+env.SCOTTY_INDEPENDENT_BRAIN_TOKEN);
+   assert.deepEqual(JSON.parse(opts.body),input);
+   assert.equal(opts.headers.cookie,undefined);
+   return Response.json({missionId,status:'incomplete',verified:true,modelCalls:0});
+  }
+ });
+ assert.equal(response.status,200);
+ assert.equal(forwarded,1);
+ assert.equal((await response.json()).verified,true);
+});
