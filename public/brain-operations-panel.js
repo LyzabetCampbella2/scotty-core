@@ -40,7 +40,9 @@
       line(block,'Dedicated memory ready',d.memoryReady);
       line(block,'Persisted mission count',d.total??'Not measured');
       for(const [state,count] of Object.entries(d.counts||{}))line(block,'  '+state,count);
-      line(block,'Stale missions needing manual review',(d.staleRunningSample||[]).length);
+      line(block,'Stale missions (total)',d.staleRunningTotal??'Not measured');
+      line(block,'Mission records needing owner review',d.requiresOwnerReview??'Not measured');
+      line(block,'Stale mission sample displayed',(d.staleRunningSample||[]).length);
       for(const m of d.staleRunningSample||[]){
        const item=el('div');css(item,'padding:8px;margin:6px 0;border-left:3px solid #7999ab');block.appendChild(item);
        line(item,'Stale mission',m.missionId);
