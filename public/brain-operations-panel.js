@@ -207,6 +207,37 @@
    }catch(e){error(status,e);para(status,'Project operations might be disabled by an owner feature flag. No changes were made.');}
   }
   btn(parent,'Load my real project list',loadProjects);
+  btn(parent,'Review reusable lessons from project corrections',async()=>{
+   clear(result);const id=picker.value;
+   if(!/^[A-Za-z0-9_-]{1,160}$/.test(id)){para(result,'Select an existing project first.');return}
+   const base='/api/agent-brains/project-operations/'+encodeURIComponent(id);
+   try{
+    const data=await api(base+'/lesson-proposals');
+    line(result,'Review-only proposals',(data.proposals||[]).length);
+    line(result,'Automatic memory writes',data.automaticMemoryWrites);
+    for(const candidate of data.proposals||[]){
+     const item=el('div');css(item,'padding:10px;margin:6px 0;border:1px solid #456070');result.appendChild(item);
+     line(item,'Agent',candidate.agentName||candidate.agentId);
+     line(item,'Original decision',candidate.sourceDecision);
+     line(item,'Mission and step',(candidate.missionId||'Not recorded')+' / '+(candidate.stepId||'Not recorded'));
+     const wording=input(item,'Edit the proposed reusable lesson',candidate.proposedLesson);
+     const consent=check(item,'I reviewed this project-specific lesson, its original correction and the assigned agent.');
+     btn(item,'Save this owner-reviewed lesson only',async()=>{
+      if(picker.value!==id||!consent.checked||!wording.value.trim()){para(item,'Not saved. Review the project, correction, wording and recipient first.');return}
+      const body={agentId:candidate.agentId,kind:'lesson',body:wording.value.trim(),approved:true};
+      try{
+       const response=await fetch(base+'/development',{method:'POST',credentials:'same-origin',
+        headers:{'content-type':'application/json','x-scotty-csrf':'1'},body:JSON.stringify(body)});
+       const saved=await response.json();if(!response.ok||saved.ok===false)throw Error(saved.error||'Lesson save rejected');
+       line(item,'Owner-reviewed record',saved.id||'Request acknowledged');
+       para(item,'Development record saved for this project and agent. This does not retrain a model or automatically change permanent memory.');
+       consent.checked=false;
+      }catch(e){error(item,e)}
+     });
+    }
+    if(!(data.proposals||[]).length)para(result,'No owner-rejected or revision-requested work with useful corrections was returned.');
+   }catch(e){error(result,e)}
+  });
   btn(parent,'Read all-project chief-of-staff briefing (read-only)',async()=>{
    clear(result);
    try{
