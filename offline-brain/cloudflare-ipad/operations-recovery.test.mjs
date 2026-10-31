@@ -216,6 +216,6 @@ test('authenticated Worker incident history performs redacted readback with no A
   const anonymous=await worker.fetch(new Request(base+'/mission-incidents'),env);
   assert.equal(anonymous.status,401);
   const malformed=await worker.fetch(req('/mission-incidents?missionId=bad/id'),env);
-  assert.equal(malformed.status,503);
+  assert.equal(malformed.status,400);
  }finally{f.close()}
 });
