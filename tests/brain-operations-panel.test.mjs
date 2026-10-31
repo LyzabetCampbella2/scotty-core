@@ -46,6 +46,11 @@ function harness({migrationReady=false}={}){
   if(path==='/api/voice/status')return Response.json({ok:true,provider:'Piper AWB Scottish',configured:true,ready:false,code:'voice_worker_unreachable'});
   if(path==='/api/connections')return Response.json({ok:true,connections:{google:{status:'connected',needsReconnect:false,refreshCapable:true,updatedAt:'2026-10-30T00:00:00Z',scopes:['https://www.googleapis.com/auth/gmail.send','https://www.googleapis.com/auth/calendar.events','https://www.googleapis.com/auth/drive.file']}}});
   if(path==='/api/folders?structure=1')return Response.json({ok:true,folders:[{id:'folder-1'}],projects:[{id:'project-bloodpool'}]});
+  if(path==='/api/independent-brain/mission-incidents')return Response.json({
+   version:'mission-recovery-audit-v1',readOnly:true,containsPrivateOutputs:false,incidents:[
+    {missionId:'synthetic-running-00001',eventId:'synthetic-audit-00001',
+     completedAt:'2026-10-30T22:00:00.000Z',previousStatus:'running',newStatus:'incomplete',preservedStageCount:2}
+   ]});
   if(path==='/api/independent-brain/mission-recovery'){
    const input=JSON.parse(options.body||'{}');
    if(input.stage==='preview')return Response.json({stage:'preview',missionId:input.missionId,
@@ -54,7 +59,7 @@ function harness({migrationReady=false}={}){
    return Response.json({missionId:input.missionId,status:'incomplete',verified:true,preservedStages:2,
     modelCalls:0,retryAttempted:false,deleted:false});
   }
-  if(path==='/api/independent-brain/operations')return Response.json({memoryReady:true,counts:{completed:7,running:2},total:9,staleRunningTotal:1,requiresOwnerReview:1,staleRunningSample:[{missionId:'synthetic-running-00001',lastCheckpoint:'2026-10-01'}],quota:null,providerCalls:null});
+  if(path==='/api/independent-brain/operations')return Response.json({memoryReady:true,counts:{completed:7,running:2},total:9,staleRunningTotal:1,requiresOwnerReview:1,recoveryAudit:{ready:true,version:'mission-recovery-audit-v1'},staleRunningSample:[{missionId:'synthetic-running-00001',lastCheckpoint:'2026-10-01'}],quota:null,providerCalls:null});
   if(path==='/api/independent-brain/quality-cases')return Response.json({
    version:'department-acceptance-v1',modelCalls:0,cases:[{
     department:'Quality & Verification',chiefId:'chief-tuvok',specialistId:'agent-tuvok-01',
@@ -62,7 +67,7 @@ function harness({migrationReady=false}={}){
     synthetic:true,ownerReviewRequired:true,reviewCriteria:['Expected results','Source limits']
    }]});
   if(path==='/api/independent-brain/team-preview')return Response.json(answer);
-  if(path==='/api/independent-brain/status')return Response.json({status:'ISOLATED',governanceMigrationReady:migrationReady});
+  if(path==='/api/independent-brain/status')return Response.json({status:'ISOLATED',governanceMigrationReady:migrationReady,recoveryAuditMigrationReady:true,recoveryAuditReason:null});
   if(path==='/api/independent-brain/memory?agentId=scotty')return Response.json({notes:[{id:'00000000-0000-0000-0000-000000000001',title:'Synthetic note',content:'A harmless synthetic reminder',scope:'agent',reviewedAt:'2026-10-30',expiresAt:'2026-11-30'}]});
   if(path==='/api/independent-brain/readiness')return Response.json({ready:false});
   if(path==='/api/system/status')return Response.json({status:'accessible'});
@@ -309,4 +314,22 @@ test('stale mission monitor requires independent owner review and one deliberate
  assert.equal(posts[1].options.headers['x-scotty-csrf'],'1');
  assert.match(text(h.body),/Verified incomplete/);
  assert.equal(h.calls.filter(x=>x.path.includes('/api/independent-brain/team')).length,0);
+});
+
+test('owner HUD recovery incident history is opt-in, redacted, and read only',async()=>{
+ const h=harness();
+ for(let n=0;n<50;n++)await Promise.resolve();
+ assert.equal(h.calls.filter(c=>c.path.includes('/mission-incidents')).length,0);
+ assert.match(text(h.body),/Recovery audit migration/);
+ const btn=byLabel(h,'Inspect redacted recovery audit (read-only)');
+ assert.ok(btn);
+ await btn.listeners.click();
+ const reads=h.calls.filter(c=>c.path==='/api/independent-brain/mission-incidents');
+ assert.equal(reads.length,1);
+ assert.equal(reads[0].options.method,'GET');
+ const output=text(h.body);
+ assert.match(output,/synthetic-audit-00001/);
+ assert.match(output,/Preserved stages/);
+ assert.match(output,/No prompt, files, private notes/);
+ assert.equal(h.calls.filter(c=>c.options.method==='POST'&&c.path.includes('/mission-recovery')).length,0);
 });
