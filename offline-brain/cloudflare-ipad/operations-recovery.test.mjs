@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {staleMissionReview} from './operations.mjs';
@@ -16,10 +17,7 @@ function fixture(){
   attemptedCalls:1,qualityReview:null};
  sqlite.prepare('INSERT INTO brain_missions VALUES(?,?,?,?,?,?,?)')
   .run(id,'fictional example',1,'running',JSON.stringify(original),updated,updated);
- sqlite.exec(`CREATE TABLE brain_mission_recovery_audit(
- event_id TEXT PRIMARY KEY, mission_id TEXT NOT NULL,event_type TEXT NOT NULL,
- previous_status TEXT NOT NULL,new_status TEXT NOT NULL,expected_updated_at TEXT NOT NULL,
- completed_at TEXT NOT NULL,preserved_stage_count INTEGER NOT NULL,actor_type TEXT NOT NULL)`);
+ sqlite.exec(readFileSync(new URL('./mission-recovery-v1.sql',import.meta.url),'utf8'));
  const db={
   prepare(q){return {bind(...args){return {
    _q:q,_args:args,
