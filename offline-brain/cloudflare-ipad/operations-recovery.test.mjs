@@ -18,6 +18,11 @@ function fixture(){
  sqlite.prepare('INSERT INTO brain_missions VALUES(?,?,?,?,?,?,?)')
   .run(id,'fictional example',1,'running',JSON.stringify(original),updated,updated);
  sqlite.exec(readFileSync(new URL('./mission-recovery-v1.sql',import.meta.url),'utf8'));
+ sqlite.exec(`CREATE TABLE brain_notes(id TEXT PRIMARY KEY,agent_id TEXT,scope TEXT,title TEXT,
+  content TEXT,url TEXT,reviewed_at TEXT,expires_at TEXT);
+  CREATE TABLE brain_installation(id INTEGER PRIMARY KEY,lab_name TEXT,schema_version INTEGER);
+  INSERT INTO brain_installation VALUES(1,'scotty-independent-ipad-brain-lab',1);`);
+
  const db={
   prepare(q){return {bind(...args){return {
    _q:q,_args:args,
@@ -178,5 +183,39 @@ test('stale checkpoint racing to new timestamp has no recovery audit or status c
    expectedUpdatedAt:f.updated,ownerApproved:true,reviewAcknowledged:true},now));
   assert.equal(f.sqlite.prepare('SELECT status FROM brain_missions').get().status,'running');
   assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS c FROM brain_mission_recovery_audit').get().c,0);
+ }finally{f.close()}
+});
+
+test('authenticated Worker incident history performs redacted readback with no AI inference',async()=>{
+ const f=fixture();
+ const token='synthetic-owner-recovery-token-123456789012345';
+ const base='https://worker.invalid/api';
+ const req=(path,body)=>new Request(base+path,{method:body?'POST':'GET',
+  headers:{authorization:'Bearer '+token,...(body?{'content-type':'application/json'}:{})},
+  ...(body?{body:JSON.stringify(body)}:{})});
+ try{
+  const env={OWNER_BEARER_TOKEN:token,BRAIN_DB:f.db,AI_ENABLED:'false'};
+  const preview=await worker.fetch(req('/mission-recovery',{missionId:f.id,stage:'preview'}),env);
+  assert.equal(preview.status,200);
+  const pre=await preview.json();
+  assert.equal(pre.canApply,true);
+  const commit=await worker.fetch(req('/mission-recovery',{
+   missionId:f.id,stage:'apply',expectedUpdatedAt:pre.expectedUpdatedAt,
+   ownerApproved:true,reviewAcknowledged:true
+  }),env);
+  assert.equal(commit.status,200);
+  const result=await commit.json();
+  assert.equal(result.auditVerified,true);
+  const history=await worker.fetch(req('/mission-incidents?missionId='+f.id),env);
+  assert.equal(history.status,200);
+  const payload=await history.json();
+  assert.equal(payload.incidents.length,1);
+  assert.equal(payload.incidents[0].eventId,result.auditEventId);
+  assert.equal(payload.modelCalls,0);
+  assert.ok(!JSON.stringify(payload).includes('Synthetic draft'));
+  const anonymous=await worker.fetch(new Request(base+'/mission-incidents'),env);
+  assert.equal(anonymous.status,401);
+  const malformed=await worker.fetch(req('/mission-incidents?missionId=bad/id'),env);
+  assert.equal(malformed.status,503);
  }finally{f.close()}
 });
