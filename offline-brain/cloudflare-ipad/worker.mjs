@@ -91,7 +91,9 @@ async function handleApi(request,env,url){
  if(path==="/api/mission-incidents"&&request.method==="GET"){
   if(!storage.ready)return failure("MISSION_STORAGE_NOT_READY","Dedicated D1 memory must be available.",503);
   const id=url.searchParams.get('missionId')||null;
-  if(url.searchParams.size>(id?1:0))return failure('INVALID_INCIDENT_QUERY','Specify at most one valid mission ID.',400);
+  if(url.searchParams.size>(id?1:0)||
+     (id&&!/^[a-z0-9-]{16,80}$/i.test(id)))
+   return failure('INVALID_INCIDENT_QUERY','Specify at most one valid mission ID.',400);
   try{return response(await missionRecoveryIncidents(env.BRAIN_DB,{missionId:id}));}
   catch(e){const code=String(e?.message||'MISSION_INCIDENT_READ_FAILED');
    return failure(code,'Incident audit is unavailable; verify isolated D1 recovery migration.',503);}
