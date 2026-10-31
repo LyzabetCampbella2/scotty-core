@@ -9,6 +9,7 @@ import {planAssignment,brainProfile} from "./team-expansion.mjs";
 import {runTeam,selectTeam,previewTeamKnowledge} from "./team-runtime.mjs";
 import {missionMemory,missionRequestKey} from "./mission-memory.mjs";
 import {operatingSnapshot,staleMissionReview} from "./operations.mjs";
+import {missionRecoveryAuditReady,missionRecoveryIncidents} from "./mission-recovery-audit.mjs";
 import {readiness,storageReadiness,RELEASE} from "./brain-readiness.mjs";
 import {KNOWLEDGE_VERSION,FIELD_CARDS,fieldKnowledge} from "./field-knowledge.mjs";
 import {normalizeNote,memoryStore} from "./brain-memory.mjs";
@@ -87,6 +88,14 @@ async function handleApi(request,env,url){
   try{return response(await operatingSnapshot(env.BRAIN_DB));}
   catch{return failure("OPERATIONS_UNAVAILABLE","Read-only mission counts could not be retrieved.",503);}
  }
+ if(path==="/api/mission-incidents"&&request.method==="GET"){
+  if(!storage.ready)return failure("MISSION_STORAGE_NOT_READY","Dedicated D1 memory must be available.",503);
+  const id=url.searchParams.get('missionId')||null;
+  if(url.searchParams.size>(id?1:0))return failure('INVALID_INCIDENT_QUERY','Specify at most one valid mission ID.',400);
+  try{return response(await missionRecoveryIncidents(env.BRAIN_DB,{missionId:id}));}
+  catch(e){const code=String(e?.message||'MISSION_INCIDENT_READ_FAILED');
+   return failure(code,'Incident audit is unavailable; verify isolated D1 recovery migration.',503);}
+ }
  if(path==="/api/mission-recovery"&&request.method==="POST"){
   if(!storage.ready)return failure("MISSION_STORAGE_NOT_READY","Dedicated D1 schema must be ready before recovery.",503);
   let input;
@@ -94,9 +103,12 @@ async function handleApi(request,env,url){
   try{return response(await staleMissionReview(env.BRAIN_DB,input));}
   catch(e){const code=String(e?.message||"RECOVERY_UNAVAILABLE");
    return failure(code,"No mission recovery was confirmed. Read the current checkpoint and prepare a new owner review before any further action.",
-    code==="MISSION_NOT_FOUND"?404:code==="MISSION_NOT_STALE_OR_ALREADY_UPDATED"||code==="MISSION_CHECKPOINT_CHANGED"?409:400);}
+    code==="MISSION_NOT_FOUND"?404:code==="MISSION_NOT_STALE_OR_ALREADY_UPDATED"||code==="MISSION_CHECKPOINT_CHANGED"?409:
+    code==='MISSION_RECOVERY_AUDIT_MIGRATION_REQUIRED'||code==='MISSION_RECOVERY_ATOMIC_BATCH_UNAVAILABLE'?503:400);}
  }
- if(path==="/api/status"&&request.method==="GET"){const gov=await governanceReadiness(env.BRAIN_DB);return response({
+ if(path==="/api/status"&&request.method==="GET"){const gov=await governanceReadiness(env.BRAIN_DB);
+  const recovery=await missionRecoveryAuditReady(env.BRAIN_DB);
+  return response({
   status:"ISOLATED_CLOUDFLARE_BRAIN_LAB",release:RELEASE,
   agentCount:brain.agentCount,chiefCount:brain.chiefCount,specialistCount:160,overseer:"SCOTTY",
   rosterSource:"production-source-fallback-plus-proposed-additions",liveRosterVerified:false,
@@ -114,6 +126,7 @@ async function handleApi(request,env,url){
   dataPolicy:"Do not enter private memories, client content, personal documents or credentials. Explicit prompts are sent to Cloudflare AI only when authorized.",
   caution:"Fallback source names preserved; live database roster unverified. Guides are methods, not expert factual knowledge.",
   governanceMigrationReady:gov.ready,governanceReadinessReason:gov.reason,
+  recoveryAuditMigrationReady:recovery.ready,recoveryAuditReason:recovery.reason,
   quotaRemaining:null,quotaSource:"No programmatic quota counter available from this Worker; check provider dashboard."
  });}
  if(path==="/api/quality-cases"&&request.method==="GET")return response({
