@@ -95,3 +95,27 @@ test('owner-reviewed exact stale checkpoint forwards once, no model calls or pri
  assert.equal(forwarded,1);
  assert.equal((await response.json()).verified,true);
 });
+
+test('recovery incident history is read-only and separately owner-gated',async()=>{
+ const base=owner+'/api/independent-brain/mission-incidents';
+ let called=0;
+ const opts={env:{...env,SCOTTY_INDEPENDENT_BRAIN_RECOVERY_ENABLED:'false'},
+  authenticated:async()=>true,fetcher:async()=>{called++;return Response.json({incidents:[]})}};
+ const denied=await handleIndependentBrain(new Request(base),new URL(base),opts);
+ assert.equal(denied.status,503);assert.equal(called,0);
+ const enabled={...opts,env:{...opts.env,SCOTTY_INDEPENDENT_BRAIN_RECOVERY_ENABLED:'true'},fetcher:async(endpoint,init)=>{
+  called++;assert.equal(endpoint,opts.env.SCOTTY_INDEPENDENT_BRAIN_URL+'/api/mission-incidents?missionId=example-mission-00001');
+  assert.equal(init.method,'GET');
+  assert.equal(init.headers.authorization,'Bearer '+opts.env.SCOTTY_INDEPENDENT_BRAIN_TOKEN);
+  return Response.json({incidents:[{missionId:'example-mission-00001',eventId:'synthetic-event',newStatus:'incomplete'}],readOnly:true});
+ }};
+ const u=base+'?missionId=example-mission-00001';
+ const okay=await handleIndependentBrain(new Request(u),new URL(u),enabled);
+ assert.equal(okay.status,200);assert.equal(called,1);
+ assert.equal((await okay.json()).incidents.length,1);
+ const malformed=base+'?missionId=../other-project';
+ const bad=await handleIndependentBrain(new Request(malformed),new URL(malformed),enabled);
+ assert.equal(bad.status,400);assert.equal(called,1);
+ const noAuth=await handleIndependentBrain(new Request(u),new URL(u),{...enabled,authenticated:async()=>false});
+ assert.equal(noAuth.status,401);assert.equal(called,1);
+});
