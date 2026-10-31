@@ -42,6 +42,7 @@
       for(const [state,count] of Object.entries(d.counts||{}))line(block,'  '+state,count);
       line(block,'Stale missions (total)',d.staleRunningTotal??'Not measured');
       line(block,'Mission records needing owner review',d.requiresOwnerReview??'Not measured');
+      line(block,'Recovery audit migration',d.recoveryAudit?.ready===true?'Ready':'NOT VERIFIED — recovery apply must remain disabled');
       line(block,'Stale mission sample displayed',(d.staleRunningSample||[]).length);
       for(const m of d.staleRunningSample||[]){
        const item=el('div');css(item,'padding:8px;margin:6px 0;border-left:3px solid #7999ab');block.appendChild(item);
@@ -73,11 +74,28 @@
         }catch(e){error(warning,e);para(warning,'Recovery is locked unless the explicit owner flag and D1 schema are ready.')}
        });
       }
+      const incidents=el('div');block.appendChild(incidents);
+      btn(block,'Inspect redacted recovery audit (read-only)',async()=>{
+       clear(incidents);
+       try{
+        const state=await api('/api/independent-brain/mission-incidents');
+        line(incidents,'Recovery incidents shown',(state.incidents||[]).length);
+        para(incidents,'Owner-confirmed checkpoint closures only. No prompt, files, private notes, model outputs or credentials are included.');
+        for(const x of state.incidents||[]){
+         const item=el('div');css(item,'padding:6px;border-bottom:1px solid #456070');incidents.appendChild(item);
+         line(item,'Mission',x.missionId);
+         line(item,'Audit event',x.eventId);
+         line(item,'Closed at',x.completedAt);
+         line(item,'Previous → new status',String(x.previousStatus)+' → '+String(x.newStatus));
+         line(item,'Preserved stages',x.preservedStageCount);
+        }
+       }catch(e){error(incidents,e);para(incidents,'Incident readback unavailable; no recovery action was made. Check D1 migration and recovery proxy approval.')}
+      });
       line(block,'Provider quota',d.quota??'Unavailable — check Cloudflare dashboard');
       line(block,'Provider calls',d.providerCalls??'Unavailable — not measured');
       para(block,'These are stored checkpoint counts only. No inference, provider quota check or automatic retry occurred.');
      }else{
-      for(const key of ['release','memoryConnected','memoryBound','liveRosterVerified','aiEnabled','teamMaxCalls','memoryReason','ready'])if(d[key]!==undefined)line(block,key,d[key]);
+      for(const key of ['release','memoryConnected','memoryBound','liveRosterVerified','aiEnabled','teamMaxCalls','memoryReason','recoveryAuditMigrationReady','recoveryAuditReason','ready'])if(d[key]!==undefined)line(block,key,d[key]);
       line(block,'Remaining provider quota',d.quota??'Unavailable — not measured');
      }
     }catch(e){line(block,name,'Not verified');error(block,e)}
