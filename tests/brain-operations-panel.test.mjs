@@ -55,7 +55,7 @@ function harness({migrationReady=false}={}){
    const input=JSON.parse(options.body||'{}');
    if(input.stage==='preview')return Response.json({stage:'preview',missionId:input.missionId,
     expectedUpdatedAt:'2026-10-01T00:00:00.000Z',staleMinutes:42000,
-    proposedStatus:'incomplete',warning:'Investigate the worker before closing'});
+    proposedStatus:'incomplete',canApply:true,auditMigrationReady:true,warning:'Investigate the worker before closing'});
    return Response.json({missionId:input.missionId,status:'incomplete',verified:true,preservedStages:2,
     modelCalls:0,retryAttempted:false,deleted:false});
   }
