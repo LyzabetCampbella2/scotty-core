@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {staleMissionReview} from './operations.mjs';
+import {missionRecoveryAuditReady,missionRecoveryIncidents} from './mission-recovery-audit.mjs';
 import {missionMemory} from './mission-memory.mjs';
 import worker from './worker.mjs';
 
@@ -15,10 +16,25 @@ function fixture(){
   attemptedCalls:1,qualityReview:null};
  sqlite.prepare('INSERT INTO brain_missions VALUES(?,?,?,?,?,?,?)')
   .run(id,'fictional example',1,'running',JSON.stringify(original),updated,updated);
- const db={prepare(q){return {bind(...args){return {
-  async all(){return {results:sqlite.prepare(q).all(...args)}},
-  async run(){return {meta:{changes:sqlite.prepare(q).run(...args).changes}}}
- }}}}};
+ sqlite.exec(`CREATE TABLE brain_mission_recovery_audit(
+ event_id TEXT PRIMARY KEY, mission_id TEXT NOT NULL,event_type TEXT NOT NULL,
+ previous_status TEXT NOT NULL,new_status TEXT NOT NULL,expected_updated_at TEXT NOT NULL,
+ completed_at TEXT NOT NULL,preserved_stage_count INTEGER NOT NULL,actor_type TEXT NOT NULL)`);
+ const db={
+  prepare(q){return {bind(...args){return {
+   _q:q,_args:args,
+   async all(){return {results:sqlite.prepare(q).all(...args)}},
+   async run(){return {meta:{changes:sqlite.prepare(q).run(...args).changes}}}
+  }}}},
+  async batch(statements){
+   sqlite.exec('BEGIN IMMEDIATE');
+   try{
+    const results=statements.map(stmt=>({meta:{changes:sqlite.prepare(stmt._q).run(...stmt._args).changes}}));
+    sqlite.exec('COMMIT');
+    return results;
+   }catch(e){sqlite.exec('ROLLBACK');throw e}
+  }
+ };
  return {sqlite,db,id,updated,original,close:()=>sqlite.close()};
 }
 const now=new Date('2026-10-30T10:20:00.000Z');
@@ -43,6 +59,8 @@ test('explicit owner-reviewed recovery preserves all specialist findings with in
   },now);
   assert.equal(r.status,'incomplete');
   assert.equal(r.verified,true);
+  assert.equal(r.auditVerified,true);
+  assert.equal(typeof r.auditEventId,'string');
   assert.equal(r.preservedStages,1);
   assert.equal(r.retryAttempted,false);
   assert.equal(r.modelCalls,0);
@@ -99,5 +117,68 @@ test('late AI worker cannot reopen or overwrite an owner-reviewed stale mission'
   assert.equal(row.status,'incomplete');
   assert.equal(JSON.parse(row.result_json).results[0].text,'Synthetic draft');
   assert.equal(row.result_json.includes('Unsafe delayed completion'),false);
+ }finally{f.close()}
+});
+
+test('all owner recoveries produce redacted permanent event history without mission text',async()=>{
+ const f=fixture();
+ try{
+  const readiness=await missionRecoveryAuditReady(f.db);
+  assert.equal(readiness.ready,true);
+  const before=await missionRecoveryIncidents(f.db,{missionId:f.id});
+  assert.equal(before.incidents.length,0);
+  const saved=await staleMissionReview(f.db,{stage:'apply',missionId:f.id,
+   expectedUpdatedAt:f.updated,ownerApproved:true,reviewAcknowledged:true},now);
+  const history=await missionRecoveryIncidents(f.db,{missionId:f.id});
+  assert.equal(history.incidents.length,1);
+  assert.equal(history.incidents[0].eventId,saved.auditEventId);
+  assert.equal(history.incidents[0].preservedStageCount,1);
+  assert.equal(history.incidents[0].actorType,'authenticated-owner');
+  assert.equal(history.containsPrivateOutputs,false);
+  assert.equal(history.modelCalls,0);
+  assert.ok(!JSON.stringify(history).includes('Synthetic draft'));
+  await assert.rejects(()=>missionRecoveryIncidents(f.db,{missionId:'bad/other'}),/INVALID_MISSION_ID/);
+ }finally{f.close()}
+});
+test('missing audit migration and missing transactional batch block recovery without any mission writes',async()=>{
+ const f=fixture();
+ try{
+  f.sqlite.exec('DROP TABLE brain_mission_recovery_audit');
+  const x=await missionRecoveryAuditReady(f.db);
+  assert.equal(x.ready,false);
+  await assert.rejects(()=>staleMissionReview(f.db,{stage:'apply',missionId:f.id,
+   expectedUpdatedAt:f.updated,ownerApproved:true,reviewAcknowledged:true},now),/MIGRATION_REQUIRED/);
+  assert.equal(f.sqlite.prepare('SELECT status FROM brain_missions').get().status,'running');
+  f.sqlite.exec(`CREATE TABLE brain_mission_recovery_audit(
+   event_id TEXT PRIMARY KEY,mission_id TEXT NOT NULL,event_type TEXT,
+   previous_status TEXT,new_status TEXT,expected_updated_at TEXT,
+   completed_at TEXT,preserved_stage_count INTEGER,actor_type TEXT)`);
+  const unsafe={prepare:f.db.prepare};
+  await assert.rejects(()=>staleMissionReview(unsafe,{stage:'apply',missionId:f.id,
+   expectedUpdatedAt:f.updated,ownerApproved:true,reviewAcknowledged:true},now),/ATOMIC_BATCH_UNAVAILABLE/);
+  assert.equal(f.sqlite.prepare('SELECT status FROM brain_missions').get().status,'running');
+ }finally{f.close()}
+});
+test('failed audit insert rolls back mission status and retains all checkpoints',async()=>{
+ const f=fixture();
+ try{
+  f.sqlite.exec("CREATE TRIGGER stop_audit BEFORE INSERT ON brain_mission_recovery_audit BEGIN SELECT RAISE(FAIL, 'synthetic audit insert failed'); END;");
+  await assert.rejects(()=>staleMissionReview(f.db,{stage:'apply',missionId:f.id,
+   expectedUpdatedAt:f.updated,ownerApproved:true,reviewAcknowledged:true},now),/MISSION_RECOVERY_TRANSACTION_FAILED/);
+  const saved=f.sqlite.prepare('SELECT status,result_json,updated_at FROM brain_missions').get();
+  assert.equal(saved.status,'running');
+  assert.equal(saved.updated_at,f.updated);
+  assert.equal(saved.result_json,JSON.stringify(f.original));
+  assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS c FROM brain_mission_recovery_audit').get().c,0);
+ }finally{f.close()}
+});
+test('stale checkpoint racing to new timestamp has no recovery audit or status change',async()=>{
+ const f=fixture();
+ try{
+  f.sqlite.prepare('UPDATE brain_missions SET updated_at=? WHERE id=?').run('2026-10-30T10:19:00.000Z',f.id);
+  await assert.rejects(()=>staleMissionReview(f.db,{stage:'apply',missionId:f.id,
+   expectedUpdatedAt:f.updated,ownerApproved:true,reviewAcknowledged:true},now));
+  assert.equal(f.sqlite.prepare('SELECT status FROM brain_missions').get().status,'running');
+  assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS c FROM brain_mission_recovery_audit').get().c,0);
  }finally{f.close()}
 });
