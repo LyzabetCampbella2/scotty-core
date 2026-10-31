@@ -41,11 +41,17 @@ export async function staleMissionReview(db,input,now=new Date()){
  if(!row)throw Error('MISSION_NOT_FOUND');
  const age=now.getTime()-Date.parse(row.updated_at);
  if(row.status!=='running'||!Number.isFinite(age)||age<STALE_AFTER_MS)throw Error('MISSION_NOT_STALE_OR_ALREADY_UPDATED');
- if(input.stage==='preview')return {missionId:row.id,stage:'preview',status:'running',
-  expectedUpdatedAt:row.updated_at,staleMinutes:Math.floor(age/60000),
-  proposedStatus:'incomplete',willRunAI:false,willRetry:false,
-  willDeleteSavedResults:false,requiresOwnerApproval:true,
-  warning:'A slow worker may still finish. Only mark this checkpoint incomplete after investigating; exact timestamp prevents overwriting a newer update.'};
+ if(input.stage==='preview'){
+  const audit=await missionRecoveryAuditReady(db);
+  return {missionId:row.id,stage:'preview',status:'running',
+   expectedUpdatedAt:row.updated_at,staleMinutes:Math.floor(age/60000),
+   proposedStatus:'incomplete',auditMigrationReady:audit.ready,canApply:audit.ready,
+   auditMigrationReason:audit.reason,willRunAI:false,willRetry:false,
+   willDeleteSavedResults:false,requiresOwnerApproval:true,
+   warning:audit.ready?
+    'A slow worker may still finish. Investigate before closing; exact timestamp prevents overwriting a newer update.':
+    'Recovery is blocked until mission-recovery-v1.sql has been separately reviewed and applied to the isolated D1 database.'};
+ }
  if(input.expectedUpdatedAt!==row.updated_at)throw Error('MISSION_CHECKPOINT_CHANGED');
  // A status change without a matching audit row would be an unauditable action.
  // Cloudflare D1 batch statements are transactional; fail closed when unavailable.
