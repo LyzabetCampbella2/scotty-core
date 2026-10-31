@@ -4,7 +4,7 @@
  * automatic memory import, background jobs, or AI inference is enabled by this file.
  */
 const PREFIX="/api/independent-brain";
-const GET_PATHS=new Set(["status","readiness","operations","catalog","quality-cases","sources","missions","mission","memory","memory-history","memory-conflicts"]);
+const GET_PATHS=new Set(["status","readiness","operations","catalog","quality-cases","sources","missions","mission","mission-incidents","memory","memory-history","memory-conflicts"]);
 const POST_PATHS=new Set(["plan","discover","team","ask","memory","memory-change","team-preview","mission-recovery"]);
 const LIMIT=5000;
 const json=(data,status=200)=>Response.json(data,{status,headers:{"cache-control":"no-store","x-content-type-options":"nosniff"}});
@@ -34,7 +34,7 @@ export async function handleIndependentBrain(req,u,{
  if(config.error)return error(config.error,503);
  if(['memory','memory-history','memory-conflicts','memory-change'].includes(route)&&env.SCOTTY_INDEPENDENT_BRAIN_MEMORY_PROXY_ENABLED!=='true')
   return error('MEMORY_PROXY_DISABLED',503);
- if(route==="mission-recovery"&&env.SCOTTY_INDEPENDENT_BRAIN_RECOVERY_ENABLED!=="true")
+ if(["mission-recovery","mission-incidents"].includes(route)&&env.SCOTTY_INDEPENDENT_BRAIN_RECOVERY_ENABLED!=="true")
   return error("RECOVERY_PROXY_DISABLED",503);
  if(req.method==="POST"){
   const origin=req.headers.get("origin");
@@ -47,6 +47,12 @@ export async function handleIndependentBrain(req,u,{
   const agentId=u.searchParams.get("agentId")||"";
   if(!/^[a-z0-9-]{1,90}$/i.test(agentId)||u.searchParams.size!==1)return error("AGENT_ID_REQUIRED");
   endpoint.searchParams.set("agentId",agentId);
+ }else if(req.method==="GET"&&route==="mission-incidents"){
+  const missionId=u.searchParams.get('missionId');
+  if(u.searchParams.size>(missionId?1:0)||
+     (missionId&&!/^[a-z0-9-]{16,80}$/i.test(missionId)))
+   return error("INVALID_INCIDENT_QUERY",400);
+  if(missionId)endpoint.searchParams.set('missionId',missionId);
  }else if(req.method==="GET"&&route==="mission"){
   const id=u.searchParams.get("missionId")||"";
   if(!/^[a-z0-9-]{16,80}$/i.test(id)||u.searchParams.size!==1)return error("INVALID_MISSION_ID");
