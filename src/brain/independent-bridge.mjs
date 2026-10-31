@@ -4,8 +4,8 @@
  * automatic memory import, background jobs, or AI inference is enabled by this file.
  */
 const PREFIX="/api/independent-brain";
-const GET_PATHS=new Set(["status","readiness","catalog","sources","missions","memory"]);
-const POST_PATHS=new Set(["plan","discover","team","ask","memory","team-preview"]);
+const GET_PATHS=new Set(["status","readiness","operations","catalog","quality-cases","sources","missions","mission","mission-incidents","memory","memory-history","memory-conflicts"]);
+const POST_PATHS=new Set(["plan","discover","team","ask","memory","memory-change","team-preview","mission-recovery"]);
 const LIMIT=5000;
 const json=(data,status=200)=>Response.json(data,{status,headers:{"cache-control":"no-store","x-content-type-options":"nosniff"}});
 const error=(message,status=400)=>json({ok:false,error:message},status);
@@ -32,6 +32,10 @@ export async function handleIndependentBrain(req,u,{
  if(!["GET","POST"].includes(req.method))return error("METHOD_NOT_ALLOWED",405);
  const config=configured(env);
  if(config.error)return error(config.error,503);
+ if(['memory','memory-history','memory-conflicts','memory-change'].includes(route)&&env.SCOTTY_INDEPENDENT_BRAIN_MEMORY_PROXY_ENABLED!=='true')
+  return error('MEMORY_PROXY_DISABLED',503);
+ if(["mission-recovery","mission-incidents"].includes(route)&&env.SCOTTY_INDEPENDENT_BRAIN_RECOVERY_ENABLED!=="true")
+  return error("RECOVERY_PROXY_DISABLED",503);
  if(req.method==="POST"){
   const origin=req.headers.get("origin");
   if(origin&&origin!==u.origin)return error("ORIGIN_DENIED",403);
@@ -43,6 +47,24 @@ export async function handleIndependentBrain(req,u,{
   const agentId=u.searchParams.get("agentId")||"";
   if(!/^[a-z0-9-]{1,90}$/i.test(agentId)||u.searchParams.size!==1)return error("AGENT_ID_REQUIRED");
   endpoint.searchParams.set("agentId",agentId);
+ }else if(req.method==="GET"&&route==="mission-incidents"){
+  const missionId=u.searchParams.get('missionId');
+  if(u.searchParams.size>(missionId?1:0)||
+     (missionId&&!/^[a-z0-9-]{16,80}$/i.test(missionId)))
+   return error("INVALID_INCIDENT_QUERY",400);
+  if(missionId)endpoint.searchParams.set('missionId',missionId);
+ }else if(req.method==="GET"&&route==="mission"){
+  const id=u.searchParams.get("missionId")||"";
+  if(!/^[a-z0-9-]{16,80}$/i.test(id)||u.searchParams.size!==1)return error("INVALID_MISSION_ID");
+  endpoint.searchParams.set("missionId",id);
+ }else if(req.method==="GET"&&route==="memory-conflicts"){
+  const agentId=u.searchParams.get("agentId")||"";
+  if(!/^[A-Za-z0-9-]{1,90}$/.test(agentId)||u.searchParams.size!==1)return error("AGENT_ID_REQUIRED");
+  endpoint.searchParams.set("agentId",agentId);
+ }else if(req.method==="GET"&&route==="memory-history"){
+  const noteId=u.searchParams.get("noteId")||"";
+  if(!/^[A-Za-z0-9-]{8,100}$/.test(noteId)||u.searchParams.size!==1)return error("NOTE_ID_REQUIRED");
+  endpoint.searchParams.set("noteId",noteId);
  }else if(u.search)return error("QUERY_NOT_ALLOWED");
  if(req.method==="POST"){
   let raw;
@@ -60,6 +82,23 @@ export async function handleIndependentBrain(req,u,{
   if(route==="memory"){
    if(env.SCOTTY_INDEPENDENT_BRAIN_MEMORY_PROXY_ENABLED!=="true")return error("MEMORY_PROXY_DISABLED",503);
    if(payload.approved!==true||payload.noPrivateDataConfirmed!==true)return error("OWNER_MEMORY_APPROVAL_REQUIRED",403);
+  }
+  if(route==="mission-recovery"){
+   if(req.headers.get("origin")!==u.origin||req.headers.get("x-scotty-csrf")!=="1")
+    return error("RECOVERY_ORIGIN_CSRF_REQUIRED",403);
+   if(!["preview","apply"].includes(payload.stage)||
+     typeof payload.missionId!=="string"||!/^[a-z0-9-]{16,80}$/i.test(payload.missionId))
+    return error("INVALID_RECOVERY_PREVIEW",400);
+   if(payload.stage==="apply"&&
+    (payload.ownerApproved!==true||payload.reviewAcknowledged!==true||
+     typeof payload.expectedUpdatedAt!=="string"||!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(payload.expectedUpdatedAt)))
+    return error("EXACT_OWNER_RECOVERY_APPROVAL_REQUIRED",403);
+  }
+  if(route==="memory-change"){
+   if(env.SCOTTY_INDEPENDENT_BRAIN_MEMORY_PROXY_ENABLED!=="true")return error("MEMORY_PROXY_DISABLED",503);
+   if(!["preview","apply"].includes(payload.stage)||payload.noPrivateDataConfirmed!==true)return error("OWNER_MEMORY_APPROVAL_REQUIRED",403);
+   if(payload.stage==="apply"&&(payload.approved!==true||payload.reviewAcknowledged!==true||typeof payload.previewToken!=="string"))
+    return error("OWNER_MEMORY_CHANGE_APPROVAL_REQUIRED",403);
   }
   if(["plan","team-preview"].includes(route)&&(typeof payload.question!=="string"||payload.question.length>500||!payload.question.trim()))
    return error("INVALID_QUESTION");
