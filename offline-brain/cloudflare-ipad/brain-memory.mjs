@@ -33,6 +33,13 @@ export function memoryStore(db){
    const department=agent.id==='scotty'?[]:await read('department',agent.chiefId||agent.id);
    const shared=await read('shared','shared');
    return [...selectRelevantNotes(individual,question,4),...selectRelevantNotes(department,question,4),...selectRelevantNotes(shared,question,4)];
+  },
+  async readAll(agent){
+   if(!agent?.id)throw Error('UNKNOWN_AGENT');
+   const columns='id,title,content,url,scope,agent_id AS agentId,reviewed_at AS reviewedAt,expires_at AS expiresAt';
+   const now=new Date().toISOString();
+   const read=async(scope,id)=>{const r=await db.prepare(`SELECT ${columns} FROM brain_notes WHERE scope=? AND agent_id=? AND expires_at > ? AND reviewed_at <= ? ORDER BY reviewed_at DESC,id ASC LIMIT 80`).bind(scope,id,now,now).all();return r.results||[];};
+   return [...await read('agent',agent.id),...(agent.id==='scotty'?[]:await read('department',agent.chiefId||agent.id)),...await read('shared','shared')];
   }
  };
 }

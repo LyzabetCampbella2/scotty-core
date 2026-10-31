@@ -65,3 +65,180 @@ test('all brains require useful deliverables while preserving evidence boundarie
  assert.match(JSON.parse(calls[2].messages[1].content).task,/Do not claim the task was answered/);
  assert.ok(calls.every(c=>c.max_tokens===480&&c.messages[0].content.includes('Never invent facts')));
 });
+
+test('team route refuses inference without dedicated D1 even when AI consent and binding exist',async()=>{
+ let calls=0;
+ const env={OWNER_BEARER_TOKEN:TOKEN,AI_ENABLED:'true',AI:{run:async()=>{calls++;return {response:'Unsafe stateless team run'};}}};
+ const res=await worker.fetch(req('/api/team',{question,...consent}),env);
+ assert.equal(res.status,503);
+ const body=await res.json();
+ assert.equal(body.error,'MISSION_STORAGE_NOT_READY');
+ assert.equal(calls,0);
+});
+test('successful D1 readback confirms exact stored answer and completed stage count',async()=>{
+ const db=database();let calls=0;
+ try{
+  const env={OWNER_BEARER_TOKEN:TOKEN,AI_ENABLED:'true',BRAIN_DB:db,AI:{run:async()=>({response:'Synthetic field finding '+ ++calls})}};
+  const id='verified-readback-00000001';
+  const res=await worker.fetch(req('/api/team',{question,teamSize:1,missionId:id,...consent}),env);
+  assert.equal(res.status,200);
+  const body=await res.json();
+  assert.equal(body.missionPersisted,true);
+  assert.equal(body.missionReadbackVerified,true);
+  const row=db.sql.prepare('SELECT status,result_json FROM brain_missions WHERE id=?').get(id);
+  assert.equal(row.status,'completed');
+  const saved=JSON.parse(row.result_json);
+  assert.equal(saved.answer,body.answer);
+  assert.deepEqual(saved.results,body.results);
+  assert.equal(calls,3);
+ }finally{db.sql.close()}
+});
+test('missing independent readback cannot masquerade as persisted success',async()=>{
+ const fixture=database();let calls=0;
+ try{
+  const db={prepare:q=>q.startsWith('SELECT id,question,team_size,status,result_json,updated_at FROM brain_missions WHERE id=')
+   ?{bind:()=>({all:async()=>({results:[]})})}:fixture.prepare(q)};
+  const env={OWNER_BEARER_TOKEN:TOKEN,AI_ENABLED:'true',BRAIN_DB:db,AI:{run:async()=>({response:'Synthetic answer '+ ++calls})}};
+  const res=await worker.fetch(req('/api/team',{question,missionId:'unverified-readback-00001',...consent}),env);
+  assert.equal(res.status,502);
+  const body=await res.json();
+  assert.equal(body.status,'completed');
+  assert.equal(body.missionPersisted,false);
+  assert.equal(body.missionReadbackVerified,false);
+  assert.match(body.readbackWarning,/independently verified/);
+  assert.equal(calls,3);
+ }finally{fixture.sql.close()}
+});
+test('ambiguous or invalid specialist selection is checkpointed without any AI',async()=>{
+ const db=database();let calls=0;
+ try{
+  const env={OWNER_BEARER_TOKEN:TOKEN,AI_ENABLED:'true',BRAIN_DB:db,AI:{run:async()=>{calls++;return {response:'not expected'};}}};
+  const res=await worker.fetch(req('/api/team',{question:'Use specialist Invented Name: Review fictional plan',missionId:'no-team-00000000000001',...consent}),env);
+  assert.equal(res.status,200);
+  const body=await res.json();
+  assert.equal(body.status,'needs-clarification');
+  assert.equal(body.missionPersisted,true);
+  assert.equal(body.results.length,0);
+  assert.equal(calls,0);
+ }finally{db.sql.close()}
+});
+
+test('project-scoped mission IDs never replay cached answers across different sources or projects',async()=>{
+ const db=database(),plan=selectTeam(roster,question,1),assignment=plan.assignments[0];
+ let calls=0;
+ const env={OWNER_BEARER_TOKEN:TOKEN,AI_ENABLED:'true',BRAIN_DB:db,
+  AI:{run:async()=>({response:'Safe synthetic project result '+ ++calls})}};
+ const context=(projectId,content)=>({
+  projectId,approved:true,noPrivateDataConfirmed:true,classification:'public-or-synthetic',
+  assignedAgentIds:[assignment.agentId,assignment.chiefId,'scotty'],
+  sources:[{id:'sample-doc-1',projectId,title:'Synthetic checklist',content,
+   ownerApproved:true,classification:'public-or-synthetic',
+   allowedAgentIds:[assignment.agentId,assignment.chiefId,'scotty']}]
+ });
+ const id='mission-scoped-replay-0001';
+ try{
+  const initial=context('synthetic-project-1','Private-looking but fully synthetic example alpha');
+  const body={question,missionId:id,teamSize:1,...consent,projectContext:initial};
+  const first=await worker.fetch(req('/api/team',body),env);
+  assert.equal(first.status,200);
+  assert.equal((await first.json()).missionReadbackVerified,true);
+  assert.equal(calls,3);
+  const key=db.sql.prepare('SELECT question FROM brain_missions WHERE id=?').get(id).question;
+  assert.ok(key.includes('approved-context-sha256:'));
+  assert.ok(!key.includes('synthetic example alpha'));
+  const identical=await worker.fetch(req('/api/team',body),env);
+  assert.equal(identical.status,200);
+  assert.equal((await identical.json()).cached,true);
+  assert.equal(calls,3);
+  for(const changed of [context('synthetic-project-1','Different synthetic evidence beta'),
+                         context('synthetic-project-2','Private-looking but fully synthetic example alpha')]){
+   const changedResult=await worker.fetch(req('/api/team',{...body,projectContext:changed}),env);
+   assert.equal(changedResult.status,409);
+   assert.equal((await changedResult.json()).error,'MISSION_STORAGE_CONFLICT');
+   assert.equal(calls,3);
+  }
+ }finally{db.sql.close();}
+});
+test('a project source missing approval for chief/SCOTTY is rejected before inference or writes',async()=>{
+ const db=database(),assignment=selectTeam(roster,question,1).assignments[0];
+ let calls=0;
+ const env={OWNER_BEARER_TOKEN:TOKEN,AI_ENABLED:'true',BRAIN_DB:db,
+  AI:{run:async()=>{calls++;return {response:'should never run'};}}};
+ const projectContext={projectId:'fictional-project-1',approved:true,classification:'public-or-synthetic',
+  noPrivateDataConfirmed:true,assignedAgentIds:[assignment.agentId],
+  sources:[{id:'dummy-file-1',projectId:'fictional-project-1',title:'Synthetic notes',
+   content:'Harmless example',ownerApproved:true,classification:'public-or-synthetic',
+   allowedAgentIds:[assignment.agentId]}]};
+ try{
+  const res=await worker.fetch(req('/api/team',{question,...consent,projectContext}),env);
+  assert.equal(res.status,403);
+  assert.equal((await res.json()).error,'PROJECT_REVIEW_CHAIN_DENIED');
+  assert.equal(calls,0);
+  assert.equal(db.sql.prepare('SELECT count(*) AS n FROM brain_missions').get().n,0);
+ }finally{db.sql.close();}
+});
+
+test('duplicate mission remains unverified while original model is still running',async()=>{
+ const db=database();
+ let release;const wait=new Promise(resolve=>{release=resolve});
+ let calls=0;
+ const env={OWNER_BEARER_TOKEN:TOKEN,AI_ENABLED:'true',BRAIN_DB:db,
+  AI:{run:async()=>{calls++;await wait;return {response:'Synthetic pending finding'}}}};
+ const body={question,missionId:'running-readback-00000001',...consent};
+ try{
+  const work=worker.fetch(req('/api/team',body),env);
+  for(let n=0;n<15;n++)await Promise.resolve();
+  const res=await worker.fetch(req('/api/team',body),env);
+  assert.equal(res.status,409);
+  const data=await res.json();
+  assert.equal(data.status,'running');
+  assert.equal(data.missionReadbackVerified,false);
+  assert.equal(data.missionPersisted,false);
+  assert.equal(calls,1);
+  release();
+  assert.equal((await work).status,200);
+ }finally{release();db.sql.close()}
+});
+test('previous checkpoint cannot be verified by an inconsistent replay',async()=>{
+ const db=database();let calls=0;
+ const env={OWNER_BEARER_TOKEN:TOKEN,AI_ENABLED:'true',BRAIN_DB:db,
+  AI:{run:async()=>({response:'Synthetic finding '+ ++calls})}};
+ const body={question,missionId:'corrupt-replay-00000001',...consent};
+ try{
+  assert.equal((await worker.fetch(req('/api/team',body),env)).status,200);
+  const row=db.sql.prepare('SELECT result_json FROM brain_missions WHERE id=?').get(body.missionId);
+  const wrong={...JSON.parse(row.result_json),status:'running'};
+  db.sql.prepare('UPDATE brain_missions SET result_json=? WHERE id=?').run(JSON.stringify(wrong),body.missionId);
+  const reply=await worker.fetch(req('/api/team',body),env);
+  assert.equal(reply.status,502);
+  const answer=await reply.json();
+  assert.equal(answer.error,'MISSION_REPLAY_READBACK_UNVERIFIED');
+  assert.equal(calls,3);
+ }finally{db.sql.close()}
+});
+test('owner can inspect any mission ID even when older than 20 history records',async()=>{
+ const db=database();let calls=0;
+ const env={OWNER_BEARER_TOKEN:TOKEN,BRAIN_DB:db,
+  AI:{run:async()=>{calls++;throw Error('Unexpected AI')}}};
+ const stamp='2026-10-30T00:00:00.000Z';
+ try{
+  for(let index=1;index<=25;index++){
+   const id='historical-mission-'+String(index).padStart(5,'0');
+   const result={status:'completed',answer:'Synthetic saved answer '+index,results:[]};
+   db.sql.prepare('INSERT INTO brain_missions(id,question,team_size,status,result_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?)')
+    .run(id,'Synthetic question',1,'completed',JSON.stringify(result),stamp,stamp);
+  }
+  const url='/api/mission?missionId=historical-mission-00001';
+  const res=await worker.fetch(req(url),env);
+  assert.equal(res.status,200);
+  const data=await res.json();
+  assert.equal(data.missionReadbackVerified,true);
+  assert.equal(data.answer,'Synthetic saved answer 1');
+  assert.equal(data.modelCalls,0);
+  const nonexistent=await worker.fetch(req('/api/mission?missionId=historical-mission-09999'),env);
+  assert.equal(nonexistent.status,404);
+  const invalid=await worker.fetch(req('/api/mission?missionId=bad'),env);
+  assert.equal(invalid.status,400);
+  assert.equal(calls,0);
+ }finally{db.sql.close()}
+});

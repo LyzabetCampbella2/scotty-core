@@ -7,10 +7,15 @@ import {createOfflineBrain} from "../engine.mjs";
 import {connectedRoster} from "./connected-roster.mjs";
 import {planAssignment,brainProfile} from "./team-expansion.mjs";
 import {runTeam,selectTeam,previewTeamKnowledge} from "./team-runtime.mjs";
-import {missionMemory} from "./mission-memory.mjs";
+import {missionMemory,missionRequestKey} from "./mission-memory.mjs";
+import {operatingSnapshot,staleMissionReview} from "./operations.mjs";
+import {missionRecoveryAuditReady,missionRecoveryIncidents} from "./mission-recovery-audit.mjs";
 import {readiness,storageReadiness,RELEASE} from "./brain-readiness.mjs";
 import {KNOWLEDGE_VERSION,FIELD_CARDS,fieldKnowledge} from "./field-knowledge.mjs";
 import {normalizeNote,memoryStore} from "./brain-memory.mjs";
+import {noteChange,noteAudit,findNoteConflicts,governanceReadiness} from './memory-governance.mjs';
+import {normalizeProjectContext,assertApprovedReviewChain} from './project-evidence-policy.mjs';
+import {departmentAcceptanceCases,ACCEPTANCE_VERSION} from './department-acceptance-cases.mjs';
 import {discoverFeed} from "./source-discovery.mjs";
 import {PUBLIC_FEEDS} from "../update-sources.mjs";
 import {pageHtml} from "./page.mjs";
@@ -77,14 +82,42 @@ async function handleApi(request,env,url){
  const path=url.pathname;
  if(path==="/api/readiness"&&request.method==="GET")return response(await readiness(env));
  const storage=await storageReadiness(env.BRAIN_DB);
- if(storage.bound&&!storage.ready&&["/api/memory","/api/missions","/api/team","/api/ask","/api/team-preview"].includes(path))return failure(storage.reason,"Dedicated memory database is bound but its schema is not ready. Check Activation Status before proceeding.",503);
- if(path==="/api/status"&&request.method==="GET")return response({
+ if(storage.bound&&!storage.ready&&["/api/memory","/api/missions","/api/mission","/api/team","/api/ask","/api/team-preview","/api/memory-change","/api/memory-history","/api/memory-conflicts","/api/mission-recovery"].includes(path))return failure(storage.reason,"Dedicated memory database is bound but its schema is not ready. Check Activation Status before proceeding.",503);
+ if(path==="/api/operations"&&request.method==="GET"){
+  if(!storage.ready)return response({memoryReady:false,reason:storage.reason,quota:null,providerCalls:null});
+  try{return response(await operatingSnapshot(env.BRAIN_DB));}
+  catch{return failure("OPERATIONS_UNAVAILABLE","Read-only mission counts could not be retrieved.",503);}
+ }
+ if(path==="/api/mission-incidents"&&request.method==="GET"){
+  if(!storage.ready)return failure("MISSION_STORAGE_NOT_READY","Dedicated D1 memory must be available.",503);
+  const id=url.searchParams.get('missionId')||null;
+  if(url.searchParams.size>(id?1:0)||
+     (id&&!/^[a-z0-9-]{16,80}$/i.test(id)))
+   return failure('INVALID_INCIDENT_QUERY','Specify at most one valid mission ID.',400);
+  try{return response(await missionRecoveryIncidents(env.BRAIN_DB,{missionId:id}));}
+  catch(e){const code=String(e?.message||'MISSION_INCIDENT_READ_FAILED');
+   return failure(code,'Incident audit is unavailable; verify isolated D1 recovery migration.',503);}
+ }
+ if(path==="/api/mission-recovery"&&request.method==="POST"){
+  if(!storage.ready)return failure("MISSION_STORAGE_NOT_READY","Dedicated D1 schema must be ready before recovery.",503);
+  let input;
+  try{input=await bodyJson(request);}catch{return failure("INVALID_RECOVERY_BODY","Provide a bounded JSON recovery preview or reviewed apply request.",400);}
+  try{return response(await staleMissionReview(env.BRAIN_DB,input));}
+  catch(e){const code=String(e?.message||"RECOVERY_UNAVAILABLE");
+   return failure(code,"No mission recovery was confirmed. Read the current checkpoint and prepare a new owner review before any further action.",
+    code==="MISSION_NOT_FOUND"?404:code==="MISSION_NOT_STALE_OR_ALREADY_UPDATED"||code==="MISSION_CHECKPOINT_CHANGED"?409:
+    code==='MISSION_RECOVERY_AUDIT_MIGRATION_REQUIRED'||code==='MISSION_RECOVERY_ATOMIC_BATCH_UNAVAILABLE'?503:400);}
+ }
+ if(path==="/api/status"&&request.method==="GET"){const gov=await governanceReadiness(env.BRAIN_DB);
+  const recovery=await missionRecoveryAuditReady(env.BRAIN_DB);
+  return response({
   status:"ISOLATED_CLOUDFLARE_BRAIN_LAB",release:RELEASE,
   agentCount:brain.agentCount,chiefCount:brain.chiefCount,specialistCount:160,overseer:"SCOTTY",
   rosterSource:"production-source-fallback-plus-proposed-additions",liveRosterVerified:false,
   memoryConnected:storage.ready,memoryBound:storage.bound,memoryReason:storage.reason,teamMaxCalls:5,
   knowledgeMethodGuideCount:brain.documentCount,
   knowledgeVersion:KNOWLEDGE_VERSION,fieldKnowledgeProfiles:roster.length+1,fieldKnowledgeDepartments:Object.keys(FIELD_CARDS).length,
+  specialistPlaybooks:160,specialistPlaybooksOwnerReviewed:0,specialistPlaybooksVerification:'authored-pending-source-review',
   memoryPolicy:{perScopeLimit:4,scopes:["agent","department","shared"]},
   domainFactStoreConnected:false,updatedLiveKnowledge:false,
   aiEnabled:env.AI_ENABLED==="true"&&typeof env.AI?.run==="function",
@@ -93,7 +126,15 @@ async function handleApi(request,env,url){
   dbCreated:false,storageCreated:false,privateDataLoaded:false,
   freePlanOnlyExpected:true,spendingEnforcement:"CLOUDFLARE_FREE_PLAN_QUOTA",
   dataPolicy:"Do not enter private memories, client content, personal documents or credentials. Explicit prompts are sent to Cloudflare AI only when authorized.",
-  caution:"Fallback source names preserved; live database roster unverified. Guides are methods, not expert factual knowledge."
+  caution:"Fallback source names preserved; live database roster unverified. Guides are methods, not expert factual knowledge.",
+  governanceMigrationReady:gov.ready,governanceReadinessReason:gov.reason,
+  recoveryAuditMigrationReady:recovery.ready,recoveryAuditReason:recovery.reason,
+  quotaRemaining:null,quotaSource:"No programmatic quota counter available from this Worker; check provider dashboard."
+ });}
+ if(path==="/api/quality-cases"&&request.method==="GET")return response({
+  version:ACCEPTANCE_VERSION,cases:departmentAcceptanceCases(roster),
+  source:'authored synthetic testing fixture',modelCalls:0,memoryWrites:0,
+  warning:'Test assignments only; owners must assess live team outputs individually. No department has passed a real model assessment through this endpoint.'
  });
  if(path==="/api/catalog"&&request.method==="GET")return response({
   overseer:agentPublic(scotty),agents:roster.map(agentPublic),agentCount:roster.length,synthetic:false,liveRosterVerified:false});
@@ -103,6 +144,17 @@ async function handleApi(request,env,url){
   feeds:PUBLIC_FEEDS.map(f=>({id:f.id,publisher:f.publisher,url:f.url,departments:f.departments})),
   warning:"These are candidate references. POST /api/discover fetches one selected feed on demand. No automatic refresh, fact verification or memory promotion occurs."
  });
+ if(path==="/api/mission"&&request.method==="GET"){
+  if(!storage.ready)return failure("MISSION_STORAGE_NOT_READY","Dedicated mission storage is not ready.",503);
+  const id=url.searchParams.get("missionId")||"";
+  if(!/^[a-z0-9-]{16,80}$/i.test(id)||url.searchParams.size!==1)
+   return failure("INVALID_MISSION_ID","Use one valid mission identifier.",400);
+  const saved=await missionMemory(env.BRAIN_DB).readback(id);
+  if(!saved)return failure("MISSION_NOT_FOUND","No checkpoint for that identifier.",404);
+  if(saved.status!==saved.result?.status)return failure("MISSION_INCONSISTENT","Checkpoint conflict.",502);
+  return response({missionId:id,status:saved.status,answer:saved.result?.answer??null,
+   missionReadbackVerified:true,storageReadback:true,modelCalls:0});
+ }
  if(path==="/api/missions"&&request.method==="GET"){
   if(!env.BRAIN_DB?.prepare)return failure("MISSION_STORAGE_NOT_CONNECTED","Connect the dedicated memory database to retain missions.",503);
   return response({missions:await missionMemory(env.BRAIN_DB).recent()});
@@ -113,11 +165,29 @@ async function handleApi(request,env,url){
   if(!env.BRAIN_DB?.prepare)return failure("MEMORY_NOT_CONNECTED","Dedicated Cloudflare memory storage is not connected.",503);
   return response({notes:await memoryStore(env.BRAIN_DB).read(agent),agentId:agent.id});
  }
- if(request.method!=="POST"||!["/api/plan","/api/ask","/api/team","/api/memory","/api/discover","/api/team-preview"].includes(path))return failure("NOT_FOUND","Unsupported endpoint or method.",404);
+ if(path==="/api/memory-conflicts"&&request.method==="GET"){
+  const agent=agents.get(url.searchParams.get("agentId"));
+  if(!agent)return failure("UNKNOWN_AGENT","Choose a known agent to inspect scoped memory.",400);
+  if(!env.BRAIN_DB?.prepare)return failure("MEMORY_NOT_CONNECTED","Dedicated memory storage is not connected.",503);
+  const notes=await memoryStore(env.BRAIN_DB).readAll(agent);
+  return response({agentId:agent.id,conflicts:findNoteConflicts(notes),searched:notes.length,
+   limitPerScope:80,automaticallyResolved:false,warning:"Bounded source review: only active notes in this agent's permitted scopes were compared."});
+ }
+ if(path==="/api/memory-history"&&request.method==="GET"){
+  if(!env.BRAIN_DB?.prepare)return failure("MEMORY_NOT_CONNECTED","Dedicated Cloudflare memory storage is not connected.",503);
+  try{return response(await noteAudit(env.BRAIN_DB,url.searchParams.get('noteId')));}
+  catch(e){return failure(String(e.message||'MEMORY_HISTORY_UNAVAILABLE'),"Apply the reviewed governance migration to the dedicated D1 database first.",503);}
+ }
+ if(request.method!=="POST"||!["/api/plan","/api/ask","/api/team","/api/memory","/api/discover","/api/team-preview","/api/memory-change"].includes(path))return failure("NOT_FOUND","Unsupported endpoint or method.",404);
  let body;
  try{body=await bodyJson(request);}catch(e){return failure("BAD_REQUEST",String(e.message),400);}
  if(path==="/api/discover"){
   try{return response(await discoverFeed(body.feedId));}catch{return failure("SOURCE_UNAVAILABLE","Publisher could not be read. Nothing was saved or treated as verified.",502);}
+ }
+ if(path==="/api/memory-change"){
+  if(!env.BRAIN_DB?.prepare)return failure("MEMORY_NOT_CONNECTED","Dedicated Cloudflare memory storage is not connected.",503);
+  try{return response(await noteChange(env.BRAIN_DB,body));}
+  catch(e){const code=String(e?.message||"MEMORY_CHANGE_UNAVAILABLE");return failure(code,"Memory change not applied. Review a current preview, owner approval, and the D1 governance migration.",code==="MEMORY_GOVERNANCE_MIGRATION_REQUIRED"?503:400);}
  }
  if(path==="/api/memory"){
   if(!env.BRAIN_DB?.prepare)return failure("MEMORY_NOT_CONNECTED","Dedicated Cloudflare memory storage is not connected.",503);
@@ -126,10 +196,19 @@ async function handleApi(request,env,url){
  }
  let question;
  try{question=validateQuestion(body.question);}catch{return failure("INVALID_QUESTION","Enter a question containing 1 to 500 characters.",400);}
+ let projectContext=null;
+ if(body.projectContext!==undefined){
+  if(path!=="/api/team-preview"&&path!=="/api/team")return failure("PROJECT_CONTEXT_NOT_SUPPORTED","Only approved team tasks and previews can use a project evidence snapshot.",400);
+  try{projectContext=normalizeProjectContext(body.projectContext,roster);}
+  catch(e){return failure("PROJECT_CONTEXT_DENIED",String(e.message||"Project source not permitted"),403);}
+ }
  if(path==="/api/team-preview"){
   if(!storage.ready)return failure("MEMORY_NOT_CONNECTED","Connect memory before checking live retrieval.",503);
-  try{selectTeam(roster,question,body.teamSize??1);}catch{return failure("INVALID_TEAM_SIZE","Choose one or two specialist departments.");}
-  return response(await previewTeamKnowledge({roster,question,teamSize:body.teamSize??1,getEvidence:agent=>memoryStore(env.BRAIN_DB).read(agent,question)}));
+  let previewPlan;try{previewPlan=selectTeam(roster,question,body.teamSize??1);}
+  catch{return failure("INVALID_TEAM_SIZE","Choose one or two specialist departments.");}
+  if(projectContext)try{assertApprovedReviewChain(projectContext,previewPlan);}
+  catch{return failure("PROJECT_REVIEW_CHAIN_DENIED","Explicitly approve each source for the selected specialist, department chief and SCOTTY before previewing or sending it.",403);}
+  return response(await previewTeamKnowledge({roster,question,teamSize:body.teamSize??1,getEvidence:agent=>memoryStore(env.BRAIN_DB).read(agent,question),projectContext}));
  }
  if(path==="/api/plan"){
   const plan=planAssignment(roster,question,{maxAgents:4});
@@ -142,20 +221,52 @@ async function handleApi(request,env,url){
  if(body.noPrivateDataConfirmed!==true)return failure("PRIVATE_DATA_NOT_CONFIRMED","Confirm the prompt contains no private, client or production information.",403);
  if(typeof env.AI?.run!=="function")return failure("AI_BINDING_MISSING","The Workers AI binding is not configured.",503);
  if(path==="/api/team"){
+  // Durable mission checkpoints are mandatory for the team workflow: no
+  // specialist/chief calls may begin until the dedicated D1 schema is ready.
+  if(!storage.ready||!env.BRAIN_DB?.prepare)return failure("MISSION_STORAGE_NOT_READY",
+   "The dedicated Cloudflare mission database must be connected and initialized before team inference. No AI calls made.",503);
   const teamSize=body.teamSize??1;
   let plan;try{plan=selectTeam(roster,question,teamSize);}catch{return failure("INVALID_TEAM_SIZE","Choose one or two specialist departments.");}
-  const storage=env.BRAIN_DB?.prepare?missionMemory(env.BRAIN_DB):null;
+  if(projectContext)try{assertApprovedReviewChain(projectContext,plan);}
+  catch{return failure("PROJECT_REVIEW_CHAIN_DENIED","The project source must explicitly permit specialist, chief and SCOTTY handoffs. No AI calls made.",403);}
+  const store=missionMemory(env.BRAIN_DB);
   const missionId=body.missionId||crypto.randomUUID();
-  if(storage){
-   let claim;try{claim=await storage.claim(missionId,question,teamSize);}catch{return failure("MISSION_STORAGE_CONFLICT","Mission could not be claimed. No AI calls made.",409);}
-   if(!claim.claimed)return response({missionId,cached:true,status:claim.status,...claim.result},claim.status==="running"?409:200);
+  const requestKey=await missionRequestKey(question,projectContext);
+  let claim;try{claim=await store.claim(missionId,requestKey,teamSize);}catch{return failure("MISSION_STORAGE_CONFLICT","Mission could not be claimed. No AI calls made.",409);}
+  if(!claim.claimed){
+   let prior=null;
+   try{prior=await store.readback(missionId);}catch{}
+   if(prior?.status==="running"&&prior.question===requestKey&&prior.teamSize===teamSize)
+    return response({missionId,cached:true,status:"running",missionPersisted:false,missionReadbackVerified:false},409);
+   const verified=Boolean(prior&&prior.question===requestKey&&prior.teamSize===teamSize&&
+    prior.status===claim.status&&prior.result?.status===prior.status&&
+    JSON.stringify(prior.result)===JSON.stringify(claim.result));
+   if(!verified)return failure("MISSION_REPLAY_READBACK_UNVERIFIED","Prior checkpoint not verified.",502);
+   if(prior.status==="running")return response({missionId,cached:true,status:"running",
+    missionPersisted:false,missionReadbackVerified:false},409);
+   return response({...prior.result,missionId,cached:true,status:prior.status,
+    missionPersisted:true,missionReadbackVerified:true},prior.status==="incomplete"?502:200);
   }
-  const result=await runTeam({roster,question,AI:env.AI,approved:true,teamSize,
-   getEvidence:async agent=>env.BRAIN_DB?.prepare?await memoryStore(env.BRAIN_DB).read(agent,question):[],
-   onCheckpoint:async result=>{if(storage)await storage.checkpoint(missionId,result);}
+  const result=await runTeam({roster,question,AI:env.AI,approved:true,teamSize,projectContext,
+   getEvidence:agent=>memoryStore(env.BRAIN_DB).read(agent,question),
+   onCheckpoint:record=>store.checkpoint(missionId,record)
   });
-  if(storage&&result.status==="needs-clarification")await storage.checkpoint(missionId,result);
-  return response({...result,missionId,missionPersisted:Boolean(storage)&&result.checkpointSaved!==false},result.status==="incomplete"?502:200);
+  if(result.status==="needs-clarification"){
+   try{await store.checkpoint(missionId,result);}catch{return response({...result,missionId,missionPersisted:false,missionReadbackVerified:false,error:"MISSION_CHECKPOINT_UNAVAILABLE"},502);}
+  }
+  // An acknowledged write alone is not evidence of durability. Read the
+  // exact mission ID back independently and compare status, output and stages.
+  let verified=false;
+  try{
+   const persisted=await store.readback(missionId);
+   verified=Boolean(persisted&&persisted.question===requestKey&&persisted.teamSize===teamSize&&
+    persisted.status===result.status&&
+    JSON.stringify(persisted.result?.results||[])===JSON.stringify(result.results||[])&&
+    (persisted.result?.answer??null)===(result.answer??null));
+  }catch{verified=false;}
+  return response({...result,missionId,missionPersisted:verified,missionReadbackVerified:verified,
+   ...(verified?{}:{readbackWarning:"Saved mission could not be independently verified. Do not claim persistence."})},
+   !verified||result.status==="incomplete"?502:200);
  }
 
  const agent=agents.get(body.agentId);

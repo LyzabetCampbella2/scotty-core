@@ -1,4 +1,5 @@
 import {fieldKnowledge} from './field-knowledge.mjs';
+import {specialistPlaybook} from './specialist-playbooks.mjs';
 /** Pure development planner. No provider calls, storage, or production imports. */
 export const target = Object.freeze({chiefs:25, agents:160, overseer:'SCOTTY'});
 export const departments = [
@@ -65,6 +66,7 @@ export function brainProfile(agent){
   completionPolicy:{deliverableFirst:true,hypotheticalAssumptions:'explicitly-labeled',inventSources:false,reviewRequestedOutcome:true,automaticQualityVerification:false},
   learning:{automaticPromotion:false,requiresOwnerReview:true,generatedFindingsAreFacts:false},
   fieldKnowledge:fieldKnowledge(agent),
+  specialistPlaybook:agent.id!=='scotty'&&!chief(agent)?specialistPlaybook(agent):null,
   knowledge:{namespace:`agent/${agent.id}`,approvedSources:[],lastReviewedAt:null,refreshState:'not-configured'},
   memory:{privateNamespace:`agent/${agent.id}`,departmentNamespace:agent.id==='scotty'?null:`department/${agent.chiefId||agent.id}`,sharedNamespace:'shared-reviewed',persisted:false},
   permissions:{tools:[],crossProjectAccess:false,autoPublish:false},

@@ -83,3 +83,30 @@ No GitHub Actions step publishes code, installs production credentials, calls re
 - No paid services or account modifications.
 
 **Keep this as a draft; do not merge or deploy until separately authorized.**
+
+## October 30 staging extension — priorities 6–12
+
+The earlier 128-agent/12-chief single-specialist description above documents the initial Phase 5 prototype. Current **draft source on this branch** proposes **25 chiefs + 160 specialists** and SCOTTY oversight. The 160 playbooks are authored methods and explicitly **not** separately fact-validated expertise. Production source, paid infrastructure and private account data remain untouched.
+
+- Worker agent selection chooses one or two departments, then specialist → responsible chief → SCOTTY (up to five AI calls on the separate lab, only after opt-in and AI activation).
+- D1 memory is scoped to individual, department, or shared notes with explicit reviewed attribution. Optional governance migration adds owner-previewed correction/expiry/archive/deletion and a redacted audit. The D1 migration has **not** been applied by these commits.
+- D1 team missions store checkpoints; replay is keyed to project and exact approved source hashes where supplied. Every completion response independently reads back the mission ID and results. An acknowledged write alone is insufficient.
+- Owner-only `GET /api/operations` reads checkpoint counts, up to 20 stale mission samples, the **total** stale mission count, and the number requiring owner attention. Real provider quota and historical provider usage remain unknown and are never inferred.
+- Owner-only `POST /api/mission-recovery` with `stage=preview` can read the exact timestamp of a checkpoint stuck in `running` for over 10 minutes. A separate `stage=apply` requires that timestamp, `ownerApproved:true`, and `reviewAcknowledged:true`. Its database update is conditional on the unchanged checkpoint and running state; it marks the mission incomplete while preserving prior stage text, **never** starting AI or retrying. Delayed model calls cannot overwrite a closed mission. An actively finishing worker may still be in flight: investigate before marking it incomplete.
+- The companion original-HUD preview/confirmation controls are staged in Render PR #54 behind `SCOTTY_INDEPENDENT_BRAIN_RECOVERY_ENABLED=true`. The flag is **off by default**. Neither PR deploys or triggers a D1 recovery.
+- Failure modes tested with synthetic SQLite: no consent, mismatched revision/time, no D1 binding, concurrent updates, delayed AI, idempotence, and preserved partial work.
+
+**Deployment order:** verify a recent full PostgreSQL backup and independent restore; then independently review and deploy the Cloudflare Worker with its D1 migration as appropriate; test authenticated readback and Free-tier quota; only then review the Render HUD proxy and turn on a narrowly scoped recovery flag. Never enable an autonomous retry or production export as part of these steps.
+
+## Owner-reviewed recovery audit migration (new isolated D1 capability, October 30)
+
+Recovery changes are **blocked by default** until the dedicated D1 database has the separate, additive `mission-recovery-v1.sql` table. The Worker now treats that schema plus D1 transactional batch support as mandatory for any owner-confirmed stale-mission closure; status and preview report audit migration readiness. A missing migration produces a blocked preview with no apply control.
+
+- **No live migration has been executed.** First confirm Workers Free plan and which dedicated D1 instance is bound to the isolated lab. Complete approved D1 backup / export readiness before applying any new SQL. Do not apply to Render PostgreSQL or an unrelated D1 database.
+- Review `offline-brain/cloudflare-ipad/mission-recovery-v1.sql` and its redacted columns: random event ID, mission ID, transition, previous checkpoint time, closure timestamp, stage count, and owner-authenticated actor category. No question text, agent findings, documents, passwords, R2 keys, or bearer tokens are saved in this audit.
+- After a separately approved staging D1 migration, verify `GET /api/status` reports `recoveryAuditMigrationReady:true`. The owner-only `GET /api/mission-incidents` can then return up to 20 redacted events (optionally filter by exact `missionId`). This is a *history of confirmed recovery actions*, not proof that a model's answer is factually correct.
+- A checked owner must preview a stale (>10 minutes) mission, investigate whether it is still running, and explicitly approve the exact timestamp in the original HUD. Render's server-to-server proxy additionally requires the separately enabled `SCOTTY_INDEPENDENT_BRAIN_RECOVERY_ENABLED=true`, owner session, exact same-origin POST and CSRF marker. No authenticated endpoint exists publicly without the Worker secret.
+- D1 applies the status change and redacted event insertion in **one transaction**, compares the checkpoint timestamp, and independently reads back the exact resulting mission and audit ID. If logging, migration, conditional update or readback fails, **no successful recovery is claimed**. Existing stage findings are kept; no uncertain model calls are retried or automatically sent to another provider.
+- Test evidence: `operations-recovery.test.mjs` loads the **actual migration SQL** into synthetic SQLite, verifies atomic rollback when a synthetic audit trigger fails, status races, permission checks, late model writes, and redacted read-only incident history. Synthetic CI alone is not live D1 acceptance or iPad approval.
+
+This capability does not address the separate November 7, 2026 Render Free PostgreSQL expiry. Preserve a newer independently restore-verified encrypted backup **before** executing any production-affecting release.
