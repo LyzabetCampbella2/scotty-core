@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-function harness({migrationReady=false}={}){
+function harness({migrationReady=false,recoveryAuditReady=true}={}){
  class Node{
   constructor(tag='div',text=''){this.tag=tag;this.textContent=String(text);this.children=[];this.style={};this.listeners={};this.parentNode=null;this.value='';this.checked=false;this.id='';this.href='';}
   appendChild(x){x.parentNode=this;this.children.push(x);return x}
@@ -55,11 +55,11 @@ function harness({migrationReady=false}={}){
    const input=JSON.parse(options.body||'{}');
    if(input.stage==='preview')return Response.json({stage:'preview',missionId:input.missionId,
     expectedUpdatedAt:'2026-10-01T00:00:00.000Z',staleMinutes:42000,
-    proposedStatus:'incomplete',canApply:true,auditMigrationReady:true,warning:'Investigate the worker before closing'});
+    proposedStatus:'incomplete',canApply:recoveryAuditReady,auditMigrationReady:recoveryAuditReady,auditMigrationReason:recoveryAuditReady?null:'MISSION_RECOVERY_AUDIT_MIGRATION_REQUIRED',warning:'Investigate the worker before closing'});
    return Response.json({missionId:input.missionId,status:'incomplete',verified:true,preservedStages:2,
     modelCalls:0,retryAttempted:false,deleted:false});
   }
-  if(path==='/api/independent-brain/operations')return Response.json({memoryReady:true,counts:{completed:7,running:2},total:9,staleRunningTotal:1,requiresOwnerReview:1,recoveryAudit:{ready:true,version:'mission-recovery-audit-v1'},staleRunningSample:[{missionId:'synthetic-running-00001',lastCheckpoint:'2026-10-01'}],quota:null,providerCalls:null});
+  if(path==='/api/independent-brain/operations')return Response.json({memoryReady:true,counts:{completed:7,running:2},total:9,staleRunningTotal:1,requiresOwnerReview:1,recoveryAudit:{ready:recoveryAuditReady,version:'mission-recovery-audit-v1'},staleRunningSample:[{missionId:'synthetic-running-00001',lastCheckpoint:'2026-10-01'}],quota:null,providerCalls:null});
   if(path==='/api/independent-brain/quality-cases')return Response.json({
    version:'department-acceptance-v1',modelCalls:0,cases:[{
     department:'Quality & Verification',chiefId:'chief-tuvok',specialistId:'agent-tuvok-01',
@@ -332,4 +332,16 @@ test('owner HUD recovery incident history is opt-in, redacted, and read only',as
  assert.match(output,/Preserved stages/);
  assert.match(output,/No prompt, files, private notes/);
  assert.equal(h.calls.filter(c=>c.options.method==='POST'&&c.path.includes('/mission-recovery')).length,0);
+});
+
+test('missing D1 recovery audit migration hides confirmation even after owner previews stale mission',async()=>{
+ const h=harness({recoveryAuditReady:false});
+ for(let n=0;n<60;n++)await Promise.resolve();
+ assert.match(text(h.body),/NOT VERIFIED — recovery apply must remain disabled/);
+ const preview=byLabel(h,'Review stale mission — no retry');
+ assert.ok(preview);await preview.listeners.click();
+ assert.equal(byLabel(h,'Confirm this exact stale checkpoint'),undefined);
+ assert.match(text(h.body),/MISSION_RECOVERY_AUDIT_MIGRATION_REQUIRED/);
+ assert.equal(h.calls.filter(c=>c.path.includes('/mission-recovery')&&
+  JSON.parse(c.options.body||'{}').stage==='apply').length,0);
 });
