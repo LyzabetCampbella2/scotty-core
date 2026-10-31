@@ -57,6 +57,11 @@
          line(warning,'Inactivity',p.staleMinutes+' minutes');
          line(warning,'Proposed action','Mark incomplete, preserving saved stages');
          para(warning,p.warning||'The worker may still be active. Do not retry automatically.');
+         if(p.canApply!==true||p.auditMigrationReady!==true){
+          line(warning,'Recovery blocked',p.auditMigrationReason||'D1 audit migration not verified');
+          para(warning,'Apply the reviewed isolated D1 migration after backup and staging approval. No recovery action is available.');
+          return;
+         }
          const check=checkRecoveryApproval(warning,m.missionId,p.expectedUpdatedAt);
          btn(warning,'Confirm this exact stale checkpoint',async()=>{
           if(!check.checked){para(warning,'No recovery sent. Review and check the approval first.');return}
