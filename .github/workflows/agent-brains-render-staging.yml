@@ -5,6 +5,10 @@ on:
     paths: ['public/hud/ansjem-coordination-voice.js', 'public/hud/ansjem-delivery-voice.js', 'src/agents/**', 'public/render-hotfix.js', 'src/voice/cloud.ts', 'tests/voice-recovery.test.mjs', 'public/hud/project-operations.js', 'public/hud/project-sandbox.js', 'scripts/build-project-sandbox.ts', 'public/hud/sidebar-voice-live.js', 'public/index.html', '.github/workflows/agent-brains-render-staging.yml']
   pull_request:
     paths:
+      - 'src/agents/agent-bio*'
+      - 'src/agents/team-model.ts'
+      - 'src/agents/teamwork.ts'
+      - 'public/teamwork.js'
       - 'src/agents/ansjem-*'
       - 'public/hud/ansjem-work-voice.js'
       - 'public/hud/ansjem-delivery-voice.js'
@@ -81,6 +85,11 @@ jobs:
           ln -s /tmp/scotty-agent-ci/node_modules node_modules
       - name: Unit tests for access isolation and fail-closed Render bridge
         run: bun test src/agents/brain.test.ts src/agents/render-bridge.test.ts src/agents/project-mission-model.test.ts src/agents/project-draft-model.test.ts src/agents/project-documents.test.ts
+      - name: Agent bio projection and syntax
+        run: |
+          node --test src/agents/agent-bio.test.mjs
+          node --check public/teamwork.js
+          bun build src/server-cloud-v2.ts --target=bun --packages external --outfile=/tmp/scotty-bio.js
       - name: Conversational project voice safety
         run: node --test src/agents/ansjem-coordination-voice.test.cjs src/agents/ansjem-delivery-voice.test.cjs src/agents/project-team-voice.test.cjs src/agents/ansjem-work-voice.test.cjs src/agents/scottish-playback.test.cjs src/agents/voice-gateway.test.cjs tests/voice-recovery.test.mjs
       - name: End-to-end PostgreSQL data integrity and learning reviews
@@ -89,6 +98,7 @@ jobs:
           DATABASE_URL: postgres://scotty_ci:scotty_ci_password@127.0.0.1:5432/scotty_brain_ci
           SCOTTY_BRAIN_DB_SSL: disable
         run: |
+          bun test src/agents/agent-bio.integration.test.ts
           bun test src/agents/postgres.integration.test.ts
           bun test src/agents/project-missions.integration.test.ts
           bun test src/agents/chief-coordination.integration.test.ts
@@ -105,6 +115,8 @@ jobs:
         run: node_modules/.bin/playwright install --with-deps chromium webkit
       - name: Synthetic tablet owner approval flow
         run: |
+          bun test src/agents/agent-bio.browser.test.ts
+          SCOTTY_UI_BROWSER=webkit bun test src/agents/agent-bio.browser.test.ts
           bun test src/agents/project-mission-ui.browser.test.ts
           bun test src/agents/ansjem-coordination.browser.test.ts
           SCOTTY_UI_BROWSER=webkit bun test src/agents/ansjem-coordination.browser.test.ts
