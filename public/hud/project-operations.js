@@ -13,12 +13,17 @@
  const numbered=items=>items.slice(0,12).map((x,i)=>(i+1)+': '+(x.name||x.title||x.goal||x.deliverable)).join('. ')+(items.length>12?'. More items exist; use an exact name.':'');
  const choose=(items,value)=>{const q=norm(value).replace(/^(?:number|agent|document|mission|source|evidence|handoff|draft|chief) /,'');const words=['one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve'];const n=/^\d+$/.test(q)?Number(q):words.indexOf(q)+1;if(n>0&&n<=Math.min(12,items.length))return items[n-1];const matches=items.filter(x=>[x.name,x.title,x.goal,x.deliverable].some(s=>norm(s)===q));if(matches.length!==1)throw Error('Use one exact name or a number from the current list; that choice is missing or ambiguous.');return matches[0];};
  const many=(items,value)=>{const parts=value.split(/\s+and\s+|,\s*/i);if(!parts.length||parts.length>8)throw Error('Choose one to eight explicit recipients or agents');const selected=parts.map(x=>choose(items,x));if(new Set(selected.map(x=>x.id)).size!==selected.length)throw Error('Each agent or evidence item must be listed only once');return selected;};
- const help='Project voice commands: list my projects; use project followed by its name; read my daily briefing; recommend agents for followed by your goal; use agents one and two; lead chief one; compare chiefs; use evidence one; save project plan; read mission progress; choose mission one; approve selected mission; start selected mission; pause selected mission; read selected draft; list Google documents; list Notion documents; preview document one; share with agents one and two; attach document; project note is followed by text; list project evidence; preview source one; read chief disagreements; read my weekly project review; list agent records; choose record agent one; project lesson is followed by text; save development record; list handoff approvals; choose handoff one; approve selected handoff. Say cancel project action to discard a pending change. Each write requires its own exact confirmation.';
+ const help='Project voice commands: read all project briefing; list preferred project teams; save preferred team as followed by a name; open project command center; list my projects; use project followed by its name; read my daily briefing; recommend agents for followed by your goal; use agents one and two; lead chief one; compare chiefs; use evidence one; save project plan; read mission progress; choose mission one; approve selected mission; start selected mission; pause selected mission; read selected draft; list Google documents; list Notion documents; preview document one; share with agents one and two; attach document; project note is followed by text; list project evidence; preview source one; read chief disagreements; read my weekly project review; list agent records; choose record agent one; project lesson is followed by text; save development record; list handoff approvals; choose handoff one; approve selected handoff. Say cancel project action to discard a pending change. Each write requires its own exact confirmation.';
  function execute(raw){
   if(window.SCOTTYAnsjemVoice?.execute(raw))return true;
   const spoken=clean(raw);let q=norm(spoken);const confirmationWords=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty'];if(q.startsWith('confirm project '))q=q.replace(/\b([a-z]+)$/,word=>confirmationWords.includes(word)?String(confirmationWords.indexOf(word)):word);
+  if(q==='open project command center'||q==='open brain operations'){
+   window.SCOTTYBrainOperations?.open();
+   reply('Project Command Center opened. Project information remains permission scoped and actions require approval.');
+   return true;
+  }
   let projectAnswer=false;if(projectQuestion&&Date.now()<projectQuestion.expires&&projectQuestion.thread===window.SCOTTYConversation?.db.state.active){try{choose(projectQuestion.projects,spoken);projectAnswer=true;}catch{}}
-  const recognized=projectAnswer||/^(?:list my projects|use project|choose project|list available agents|add agent .+ to project|(?:use|choose|open) (?:my )?project .+|(?:use|open) my .+ project|(?:open|close) project (?:tools|operations|teamwork)|(?:build|start) (?:a )?project team|project voice help|help with project teamwork|what can i (?:say|do) (?:here|with projects)|repeat project request|cancel project action|confirm project .+|approve all project .+|(?:yes|approve|confirm|approve it)|(?:read|show|give me) (?:my |the )?(?:daily briefing|daily chief of staff briefing|mission progress|chief disagreements|project evidence|project sources|agent records)|(?:explain|show|tell me) what needs my approval|(?:whos|who is) helping with .+|(?:give|show|read)(?: me)? (?:my |the )?weekly project review|(?:recommend agents for|project goal is) .+|use agents .+|lead chief .+|compare chiefs|standard team review|use evidence .+|no project evidence|save project plan|choose mission .+|(?:approve|reject|start|pause|resume|cancel) selected mission|(?:read|release|reject|revise) selected draft|choose draft .+|draft review note is .+|list (?:google|notion) documents(?: matching .+)?|preview document .+|share with agents .+|attach document|project note is .+|note title is .+|attach project note|list project (?:sources|evidence)|preview source .+|revoke evidence .+|list agent records|choose record agent .+|project (?:lesson|correction) is .+|save development record|list handoff approvals|choose handoff .+|(?:approve|reject) selected handoff|read more project text|generate next project draft)$/.test(q);
+  const recognized=projectAnswer||/^(?:list my projects|use project|choose project|list available agents|add agent .+ to project|(?:use|choose|open) (?:my )?project .+|(?:use|open) my .+ project|(?:open|close) project (?:tools|operations|teamwork)|(?:build|start) (?:a )?project team|project voice help|help with project teamwork|what can i (?:say|do) (?:here|with projects)|repeat project request|cancel project action|confirm project .+|approve all project .+|(?:yes|approve|confirm|approve it)|(?:read|show|give me) (?:my |the )?(?:daily briefing|daily chief of staff briefing|mission progress|chief disagreements|project evidence|project sources|agent records)|(?:explain|show|tell me) what needs my approval|(?:whos|who is) helping with .+|(?:give|show|read)(?: me)? (?:my |the )?weekly project review|(?:recommend agents for|project goal is) .+|use agents .+|lead chief .+|compare chiefs|standard team review|use evidence .+|no project evidence|save project plan|list preferred project teams|save preferred team as .+|read all project briefing|choose mission .+|(?:approve|reject|start|pause|resume|cancel) selected mission|(?:read|release|reject|revise) selected draft|choose draft .+|draft review note is .+|list (?:google|notion) documents(?: matching .+)?|preview document .+|share with agents .+|attach document|project note is .+|note title is .+|attach project note|list project (?:sources|evidence)|preview source .+|revoke evidence .+|list agent records|choose record agent .+|project (?:lesson|correction) is .+|save development record|list handoff approvals|choose handoff .+|(?:approve|reject) selected handoff|read more project text|generate next project draft)$/.test(q);
   if((q==='stop'||q==='cancel')&&pending){serial++;pending=null;return false;}
   if(!recognized)return false;
   if(/^(yes|approve|confirm|approve it)$/.test(q)&&!pending)return false;
@@ -48,6 +53,16 @@
    if(q==='open project tools'||q==='open project operations'||q==='open project teamwork'){show();return reply('Project tools opened. Say list my projects, then use project and its name.');}
    const data=await call(root);
    if(q==='list my projects')return reply('Your projects: '+numbered(data.projects)+'. Say use project followed by a name or number.');
+   if(q==='read all project briefing'){
+    const response=await call(root+'/brief-all'),b=response.brief||{},t=b.totals||{};
+    return read('All projects: '+(b.projectCount??0)+'. '+(t.overdue??0)+' overdue, '+
+     (t.upcoming??0)+' upcoming deadlines, '+(t.decisions??0)+' decisions, '+
+     (t.blocked??0)+' blockers, '+(t.pendingHandoffs??0)+' handoffs. '+
+     (b.projects||[]).slice(0,12).map(p=>p.name+': '+(p.attention||[]).slice(0,3)
+      .map(a=>a.kind+', '+a.text).join('; ')).join('. ')+
+     '. On-demand project snapshots only; live email and calendar have not been checked.');
+   }
+
    const recommendTeam=async wanted=>{goal=wanted;const d=await api('team',{goal});team=d.candidates;teamIds=d.recommended;lead=team.find(a=>a.isChief&&teamIds.includes(a.id))?.id||'';return read(d.note+'. '+numbered(team)+'. '+team.slice(0,12).map(a=>a.name+': '+a.reason).join('. ')+'. Say use agents and explicit numbers or names, then lead chief and a name.');};
    const use=spoken.match(/^(?:use|choose|open) (?:my )?project (.+)$/i)||spoken.match(/^(?:use|open) my (.+ project)$/i);
    if(use||projectAnswer){const p=choose(data.projects,use?use[1]:spoken),resume=projectQuestion&&Date.now()<projectQuestion.expires&&projectQuestion.thread===window.SCOTTYConversation?.db.state.active?projectQuestion.goal:'';clear();selected=p.id;project=p;show();sync();if(resume)return recommendTeam(resume);return reply('Using '+p.name+'. Say build a project team, read my daily briefing, or list Google documents.');}
@@ -70,6 +85,28 @@
    if(q==='list project evidence'||q==='read project evidence'||q==='show project evidence'){approvedEvidence=(await api('evidence')).evidence.filter(e=>!e.revoked_at);return read('Approved project evidence: '+numbered(approvedEvidence)+'. Say use evidence followed by numbers or exact titles.');}
    m=spoken.match(/^use evidence (.+)$/i);if(m){const e=many(approvedEvidence,m[1]);evidenceIds=e.map(x=>x.id);return reply('Mission draft will use only these approved evidence items: '+e.map(x=>x.title).join(', ')+'. Each agent still needs explicit source permission.');}
    if(q==='no project evidence'){evidenceIds=[];return reply('No evidence selected. Any resulting work must disclose missing evidence.');}
+   if(q==='list preferred project teams'){
+    const presets=await api('team-presets');
+    return read('Owner-reviewed preferred teams for '+project.name+': '+
+     numbered(presets.teams||[])+'. '+(presets.teams||[]).slice(0,12)
+     .map(t=>t.name+', revision '+t.revision+', '+(t.active?'active':'stale; access changed')).join('. ')+
+     '. Team templates do not share private documents or start agent work.');
+   }
+   m=spoken.match(/^save preferred team as (.{1,80})$/i);
+   if(m){
+    if(!teamIds.length||!lead||!team.find(a=>a.id===lead&&a.isChief))throw Error('Recommend and select permitted agents and a lead chief first.');
+    const name=m[1].trim(),ids=[...teamIds],chief=lead;
+    const current=(await api('team-presets')).teams||[];
+    const existing=current.find(t=>norm(t.name)===norm(name));
+    const body={action:'save',name,agentIds:ids,leadChiefId:chief,
+     expectedRevision:existing?.revision||0,approved:true,reviewed:true};
+    return stage('team','Save preferred team '+name+' for '+project.name+'. Existing members: '+
+     team.filter(a=>ids.includes(a.id)).map(a=>a.name).join(', ')+'. Lead chief: '+
+     (team.find(a=>a.id===chief)?.name||chief)+
+     '. This is only a team preference; no permissions, evidence, agent work or AI calls are granted.',
+     t=>write(t,root+'/'+encodeURIComponent(project.id)+'/team-presets',body),
+     'The reviewed preferred team has been saved. Reload team presets to verify the revision.');
+   }
    if(q==='save project plan'){
     if(!goal||!teamIds.length||!lead)throw Error('Describe the goal, select agents, and select the lead chief first');
     if(chiefComparison&&(teamIds.length<2||teamIds.some(id=>!team.find(a=>a.id===id)?.isChief)))throw Error('Chief comparison needs at least two explicitly selected project chiefs');
