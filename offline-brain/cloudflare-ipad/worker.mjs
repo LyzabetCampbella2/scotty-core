@@ -20,6 +20,7 @@ import {discoverFeed} from "./source-discovery.mjs";
 import {PUBLIC_FEEDS} from "../update-sources.mjs";
 import {pageHtml} from "./page.mjs";
 import {browserScript} from "./browser-script.mjs";
+import {portfolioBrowserEvents} from "./agent-portfolio-browser.mjs";
 import {portfolioReadiness,listProjects,createProject,recordAssignment,agentBio} from "./agent-portfolio.mjs";
 
 const MODEL="@cf/meta/llama-3.2-3b-instruct";
@@ -366,7 +367,9 @@ export default {
     "content-security-policy":"default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"}});
   }
   if(request.method==="GET"&&url.pathname==="/ui.js"){
-   return new Response(browserScript,{headers:{"content-type":"text/javascript; charset=utf-8",...headers}});
+   // Add the bio controls within the existing in-memory owner-token closure.
+    const ui=browserScript.replace(" updateButtons();\n})();",portfolioBrowserEvents+"\n updateButtons();\n})();");
+    return new Response(ui,{headers:{"content-type":"text/javascript; charset=utf-8",...headers}});
   }
   if(request.method==="GET"&&url.pathname==="/health")return response({
    status:"STAGED_INDEPENDENT_LAB",release:RELEASE,knowledgeVersion:KNOWLEDGE_VERSION,knowledgePreviewVersion:"team-knowledge-preview-v1",privateDataAccessible:false,
