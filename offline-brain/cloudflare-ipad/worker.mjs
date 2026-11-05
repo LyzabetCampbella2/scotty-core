@@ -20,6 +20,8 @@ import {discoverFeed} from "./source-discovery.mjs";
 import {PUBLIC_FEEDS} from "../update-sources.mjs";
 import {pageHtml} from "./page.mjs";
 import {browserScript} from "./browser-script.mjs";
+import {portfolioBrowserEvents} from "./agent-portfolio-browser.mjs";
+import {portfolioReadiness,listProjects,createProject,recordAssignment,agentBio} from "./agent-portfolio.mjs";
 
 const MODEL="@cf/meta/llama-3.2-3b-instruct";
 const MAX_QUESTION=500;
@@ -81,6 +83,27 @@ async function handleApi(request,env,url){
  if(auth!=="YES")return failure("UNAUTHORIZED","Valid owner token required.",401);
  const path=url.pathname;
  if(path==="/api/readiness"&&request.method==="GET")return response(await readiness(env));
+ if(["/api/projects","/api/agent-bio","/api/agent-assignment"].includes(path)){
+  const portfolio=await portfolioReadiness(env.BRAIN_DB);
+  if(!portfolio.ready)return failure(portfolio.reason,"Isolated D1 project-bio migration is not applied.",503);
+  if(path==="/api/projects"&&request.method==="GET")return response(await listProjects(env.BRAIN_DB,roster));
+  if(path==="/api/agent-bio"&&request.method==="GET"){
+   const id=url.searchParams.get("agentId");
+   if(url.searchParams.size!==1||!agents.has(id))return failure("UNKNOWN_AGENT","Choose a known agent.",400);
+   return response(await agentBio(env.BRAIN_DB,agents.get(id),roster));
+  }
+  if(path==="/api/projects"&&request.method==="POST"){
+   let input;try{input=await bodyJson(request);}catch(e){return failure("BAD_REQUEST",String(e.message),400);}
+   try{return response({created:true,project:await createProject(env.BRAIN_DB,input)},201);}
+   catch(e){return failure(String(e.message||"INVALID_PROJECT"),"Project not created; review metadata and approval.",400);}
+  }
+  if(path==="/api/agent-assignment"&&request.method==="POST"){
+   let input;try{input=await bodyJson(request);}catch(e){return failure("BAD_REQUEST",String(e.message),400);}
+   try{return response(await recordAssignment(env.BRAIN_DB,roster,input));}
+   catch(e){return failure(String(e.message||"INVALID_ASSIGNMENT"),"Assignment not recorded; check ID, project and owner approval.",400);}
+  }
+  return failure("NOT_FOUND","Unsupported portfolio endpoint.",404);
+ }
  const storage=await storageReadiness(env.BRAIN_DB);
  if(storage.bound&&!storage.ready&&["/api/memory","/api/missions","/api/mission","/api/team","/api/ask","/api/team-preview","/api/memory-change","/api/memory-history","/api/memory-conflicts","/api/mission-recovery"].includes(path))return failure(storage.reason,"Dedicated memory database is bound but its schema is not ready. Check Activation Status before proceeding.",503);
  if(path==="/api/operations"&&request.method==="GET"){
@@ -110,6 +133,7 @@ async function handleApi(request,env,url){
  }
  if(path==="/api/status"&&request.method==="GET"){const gov=await governanceReadiness(env.BRAIN_DB);
   const recovery=await missionRecoveryAuditReady(env.BRAIN_DB);
+  const portfolio=await portfolioReadiness(env.BRAIN_DB);
   return response({
   status:"ISOLATED_CLOUDFLARE_BRAIN_LAB",release:RELEASE,
   agentCount:brain.agentCount,chiefCount:brain.chiefCount,specialistCount:160,overseer:"SCOTTY",
@@ -129,6 +153,7 @@ async function handleApi(request,env,url){
   caution:"Fallback source names preserved; live database roster unverified. Guides are methods, not expert factual knowledge.",
   governanceMigrationReady:gov.ready,governanceReadinessReason:gov.reason,
   recoveryAuditMigrationReady:recovery.ready,recoveryAuditReason:recovery.reason,
+   agentPortfolioReady:portfolio.ready,agentPortfolioReason:portfolio.reason,
   quotaRemaining:null,quotaSource:"No programmatic quota counter available from this Worker; check provider dashboard."
  });}
  if(path==="/api/quality-cases"&&request.method==="GET")return response({
@@ -264,7 +289,24 @@ async function handleApi(request,env,url){
     JSON.stringify(persisted.result?.results||[])===JSON.stringify(result.results||[])&&
     (persisted.result?.answer??null)===(result.answer??null));
   }catch{verified=false;}
+    // Only verified execution participants are recorded. No prompt text or generated findings.
+  let biographyRecorded=false,biographyWarning=null;
+  if(verified&&Array.isArray(result.results)&&result.results.length){
+   try{
+    if((await portfolioReadiness(env.BRAIN_DB)).ready){
+     const ids=[...new Set(result.results.map(r=>r.agentId).filter(id=>agents.has(id)))];
+     if(ids.length){
+      await recordAssignment(env.BRAIN_DB,roster,{
+       agentIds:ids,projectId:projectContext?.projectId||null,
+       kind:"mission",referenceId:missionId,title:"SCOTTY team mission"
+      },{verifiedRun:true});
+      biographyRecorded=true;
+     }
+    }else biographyWarning="Portfolio migration not applied; mission saved without bio update.";
+   }catch{biographyWarning="Mission saved; biography activity not verified.";}
+  }
   return response({...result,missionId,missionPersisted:verified,missionReadbackVerified:verified,
+   biographyRecorded,biographyWarning,
    ...(verified?{}:{readbackWarning:"Saved mission could not be independently verified. Do not claim persistence."})},
    !verified||result.status==="incomplete"?502:200);
  }
@@ -297,8 +339,18 @@ async function handleApi(request,env,url){
  }catch(e){return cfAIFail(e);}
  if(!result||typeof result.response!=="string"||result.response.length>12000)
   return failure("UNEXPECTED_MODEL_RESPONSE","AI did not return a valid bounded response.",502);
- return response({
+  // Log generic question activity only; the original question stays out of the bio.
+ let biographyRecorded=false;
+ try{
+  if((await portfolioReadiness(env.BRAIN_DB)).ready){
+   await recordAssignment(env.BRAIN_DB,roster,{agentIds:[agent.id],kind:"question",
+    referenceId:crypto.randomUUID(),title:"Owner-approved specialist question"},{verifiedRun:true});
+   biographyRecorded=true;
+  }
+ }catch{biographyRecorded=false;}
+return response({
   status:"UNVERIFIED_CLOUDFLARE_METHOD_DEMO",answer:result.response,
+  biographyRecorded,
   agent:agentPublic(agent),sourceMethodIds:methods.map(x=>x.sourceId),
   model:MODEL,modelLocation:"CLOUDFLARE",
   factualClaimsVerified:false,sourceMaterialsAreNotFactChecked:true,
@@ -315,7 +367,9 @@ export default {
     "content-security-policy":"default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"}});
   }
   if(request.method==="GET"&&url.pathname==="/ui.js"){
-   return new Response(browserScript,{headers:{"content-type":"text/javascript; charset=utf-8",...headers}});
+   // Add the bio controls within the existing in-memory owner-token closure.
+    const ui=browserScript.replace(" updateButtons();\n})();",portfolioBrowserEvents+"\n updateButtons();\n})();");
+    return new Response(ui,{headers:{"content-type":"text/javascript; charset=utf-8",...headers}});
   }
   if(request.method==="GET"&&url.pathname==="/health")return response({
    status:"STAGED_INDEPENDENT_LAB",release:RELEASE,knowledgeVersion:KNOWLEDGE_VERSION,knowledgePreviewVersion:"team-knowledge-preview-v1",privateDataAccessible:false,
