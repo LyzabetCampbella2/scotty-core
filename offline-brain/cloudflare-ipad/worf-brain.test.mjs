@@ -1,0 +1,12 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {WORF_PROFILE,worfAccessDecision,worfIncidentReview,worfSecurityReview,worfMemoryProposal,worfBio} from './worf-brain.mjs';
+test('owner authority and strict privacy defaults',()=>{assert.equal(WORF_PROFILE.privacyDefault,'private');assert.equal(WORF_PROFILE.protectionStyle,'strict');assert.equal(WORF_PROFILE.maySelfGrantAccess,false);});
+test('access denied without owner, requester and grant',()=>{const d=worfAccessDecision({category:'credentials'});assert.equal(d.allowed,false);assert.ok(d.reasons.includes('OWNER_AUTH_NOT_VERIFIED'));});
+test('sensitive access denied without explicit approval',()=>{const d=worfAccessDecision({ownerVerified:true,requesterVerified:true,requesterId:'agent-1',projectId:'p1',authorizedProjects:['p1'],purpose:'approved review',category:'identity',existingGrant:true});assert.equal(d.allowed,false);assert.ok(d.reasons.includes('SENSITIVE_APPROVAL_REQUIRED'));});
+test('cross-project requests fail closed',()=>{const d=worfAccessDecision({ownerVerified:true,requesterVerified:true,requesterId:'agent-1',projectId:'p2',authorizedProjects:['p1'],purpose:'review',category:'public',existingGrant:true});assert.equal(d.allowed,false);});
+test('valid access is a policy preview only',()=>{const d=worfAccessDecision({ownerVerified:true,requesterVerified:true,requesterId:'agent-1',projectId:'p1',authorizedProjects:['p1'],purpose:'review',category:'identity',existingGrant:true,ownerApproved:true});assert.equal(d.allowed,true);assert.equal(d.requiresAudit,true);});
+test('critical incident cannot auto-contain or claim alert',()=>{const d=worfIncidentReview({severity:'critical',summary:'synthetic test'});assert.equal(d.escalationRecommended,true);assert.equal(d.automaticContainment,false);assert.equal(d.alertSent,false);});
+test('security review cannot approve releases',()=>{const d=worfSecurityReview({projectId:'p1'});assert.equal(d.releaseApproved,false);assert.equal(d.productionChanged,false);});
+test('learning proposals never save automatically',()=>{const d=worfMemoryProposal({category:'lesson',lesson:'synthetic',source:'test'});assert.equal(d.saved,false);});
+test('unauthorized biography hides records',()=>{const d=worfBio({projects:[{private:'secret'}]});assert.equal(d.privateDataHidden,true);assert.equal(d.projects,undefined);});
