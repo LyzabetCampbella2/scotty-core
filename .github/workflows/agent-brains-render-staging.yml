@@ -5,6 +5,14 @@ on:
     paths: ['public/hud/ansjem-coordination-voice.js', 'public/hud/ansjem-delivery-voice.js', 'src/agents/**', 'public/render-hotfix.js', 'src/voice/cloud.ts', 'tests/voice-recovery.test.mjs', 'public/hud/project-operations.js', 'public/hud/project-sandbox.js', 'scripts/build-project-sandbox.ts', 'public/hud/sidebar-voice-live.js', 'public/index.html', '.github/workflows/agent-brains-render-staging.yml']
   pull_request:
     paths:
+      - 'src/memory/recall.ts'
+      - 'src/memory/knowledge.ts'
+      - 'src/brain/cloud.ts'
+      - 'tests/recall.test.mjs'
+      - 'tests/knowledge.test.mjs'
+      - 'tests/conversation.test.mjs'
+      - 'public/knowledge.js'
+      - 'public/conversation.js'
       - 'src/agents/agent-bio*'
       - 'src/agents/team-model.ts'
       - 'src/agents/teamwork.ts'
@@ -87,7 +95,9 @@ jobs:
         run: bun test src/agents/brain.test.ts src/agents/render-bridge.test.ts src/agents/project-mission-model.test.ts src/agents/project-draft-model.test.ts src/agents/project-documents.test.ts
       - name: Agent bio projection and syntax
         run: |
-          node --test src/agents/agent-bio.test.mjs
+          node --test src/agents/agent-bio.test.mjs tests/recall.test.mjs tests/knowledge.test.mjs tests/conversation.test.mjs tests/teamwork.test.mjs
+          node --check public/knowledge.js
+          node --check public/conversation.js
           node --check public/teamwork.js
           bun build src/server-cloud-v2.ts --target=bun --packages external --outfile=/tmp/scotty-bio.js
       - name: Conversational project voice safety

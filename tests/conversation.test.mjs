@@ -1,3 +1,4 @@
+import {consumerRecall,recallNotice} from '../src/memory/recall.ts';
 import {voiceLanguages} from '../src/control/workspace-voice-model.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -60,7 +61,7 @@ test('speech capture waits for voice and silence rather than fixed sentence cuto
 function backend(rows=[],reply='{"reply":"Which date?","clarification":{"question":"Which date?"}}'){
  const writes=[],queries=[],model=[];
  const sql=(strings,...values)=>{const q=strings.join('?');queries.push(q);if(/select id,title as name,title,'task'/.test(q))return Promise.resolve([{id:'t',name:'Draft',title:'Draft',type:'task'}]);if(/select id,name from scotty_agents/.test(q))return Promise.resolve(rows);if(/insert into scotty_tasks|update scotty_tasks/.test(q)){writes.push(values);return Promise.resolve([{id:'t'}])}return Promise.resolve([])};sql.json=x=>x;
- const ctx=vm.createContext({voiceLanguages,postgres:()=>sql,knowledgeContext:async(text,space)=>{queries.push('memory space '+space);return {text:'',sources:[]}},supportingSources:()=>[],process:{env:{DATABASE_URL:'test'}},Response,Request,URL,AbortSignal,crypto:{randomUUID:()=> 'id'}});
+ const ctx=vm.createContext({consumerRecall,recallNotice,voiceLanguages,postgres:()=>sql,knowledgeContext:async(text,space)=>{queries.push('memory space '+space);return {text:'',sources:[]}},supportingSources:()=>[],process:{env:{DATABASE_URL:'test'}},Response,Request,URL,AbortSignal,crypto:{randomUUID:()=> 'id'}});
  const helpers=stripTypeScriptTypes(read('src/brain/conversation.ts')).replace(/export /g,'');
  const source=stripTypeScriptTypes(read('src/brain/cloud.ts')).replace(/^import .*;\n/gm,'').replace(/export /g,'');
  vm.runInContext(helpers+'\n'+source,ctx);ctx.mockThink=async(messages,tokens,signal)=>{model.push({messages,tokens,signal});return {text:reply,model:'stub'}};vm.runInContext('groqThink=mockThink',ctx);

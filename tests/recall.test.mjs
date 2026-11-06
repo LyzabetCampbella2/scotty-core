@@ -1,0 +1,23 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {selectRecall,consumerRecall,recallNotice} from '../src/memory/recall.ts';
+const m=(id,text,extra={})=>({id,text,scope:'shared',status:'active',kind:'fact',evidenceState:'owner-stated',...extra});
+const recall=(rows,q,limit=18)=>selectRecall(rows,q,'shared',{allAgents:true},'writer',limit,new Date('2026-11-05'));
+test('only related active records enter recall; raw model results never do',()=>{const r=recall([m('1','Bloodpool canon'),m('2','Cat videos'),m('3','Bloodpool draft',{kind:'agent-result',evidenceState:'unverified'}),m('4','Bloodpool old',{status:'forgotten'}),m('5','Bloodpool private',{scope:'personal'})],'Bloodpool');assert.deepEqual(r.memories.map(m=>m.id),['1']);assert.equal(recall([m('1','Cat videos')],'Bloodpool').status,'empty')});
+test('private access is checked before searching',()=>{const r=selectRecall([m('1','Secret')],'Secret','shared',{allAgents:false,agentIds:[]},'writer');assert.equal(r.status,'denied');assert.deepEqual(r.memories,[])});
+test('competing keyed facts remain together even when only one matches',()=>{const r=recall([m('1','Bloodpool launch December',{factKey:'launch',factValue:'December'}),m('2','Moved to January',{factKey:'launch',factValue:'January'})],'Bloodpool');assert.equal(r.memories.length,2);assert.equal(r.warnings[0].type,'conflict')});
+test('stale dates and truncated conflicts are disclosed',()=>{const r=recall([m('1','Bloodpool',{factKey:'date',factValue:'one',reviewAfter:'2020-01-01'}),m('2','Other',{factKey:'date',factValue:'two'})],'Bloodpool',1);assert.equal(r.truncated,true);assert.ok(r.warnings.some(w=>w.type==='stale'));assert.ok(r.warnings.some(w=>w.type==='conflict'));assert.ok(r.warnings.some(w=>w.type==='limit'))});
+test('empty queries do not dump recent unrelated records',()=>assert.equal(recall([m('1','private detail')],'').memories.length,0));
+test('consumer identity and scope reach loader; failures have no context or fabricated sources',async()=>{let args;await consumerRecall(async(...a)=>{args=a;return {text:'ok'}},'query','personal','agent-1');assert.deepEqual(args,['query','personal','agent-1',18]);const r=await consumerRecall(async()=>{throw Error('secret connection details')},'query');assert.equal(r.recall.status,'unavailable');assert.equal(r.text,'');assert.deepEqual(r.sources,[]);assert.ok(!JSON.stringify(r).includes('secret'));assert.match(recallNotice(r.recall),/unavailable/)});
+test('agent runner discards caller context and recalls as the actual agent',async()=>{
+ const {readFileSync}=await import('node:fs'),{stripTypeScriptTypes}=await import('node:module'),vm=await import('node:vm');
+ const src=stripTypeScriptTypes(readFileSync('src/agents/cloud.ts','utf8')).replace(/export /g,'');let request,consumer;
+ const sql=async()=>[];sql.json=x=>x;
+ const c=vm.createContext({db:()=>sql,claimAgent:async()=>({ok:true,slot:'slot',profile:{workingBrief:'Preserve approved canon'}}),releaseAgent:async()=>{},addActivity:async()=>{},consumerRecall,recallNotice,knowledgeContext:async(q,scope,id)=>{consumer={scope,id};return {text:'[M1] Permitted canon',sources:[{id:'M1'}],recall:{status:'ready',scope,agentId:id}}},specialistInstructions:()=> 'Writer',departmentSkills:{},groqThink:async(messages)=>{request=messages;return {text:'Draft [M1]',model:'test'}}});
+ vm.runInContext(src.slice(src.indexOf('async function runAgent('),src.indexOf('async function bootstrapAgents(')),c);
+ const r=await c.runAgent({id:'writer',name:'Writer',department:'Writing'},'Draft an outline','PRIVATE OWNER CONTEXT',{storeMemory:false});
+ assert.equal(r.status,'completed');assert.deepEqual(consumer,{scope:'shared',id:'writer'});assert.ok(!JSON.stringify(request).includes('PRIVATE OWNER CONTEXT'));assert.match(request[0].content,/Preserve approved canon/);assert.match(request[0].content,/Permitted canon/);assert.equal(r.recall.agentId,'writer');
+ consumer=null;await c.runAgent({id:'writer',name:'Writer',department:'Writing'},'Conference without memory','',{storeMemory:false});assert.equal(consumer,null);assert.ok(!JSON.stringify(request).includes('Permitted canon'));
+});
+
+test('generated mission records require an explicit owner correction before recall',()=>{const rows=['agent-result','mission-summary','mission-step'].map((kind,i)=>m(String(i),'Bloodpool',{kind,evidenceState:'unverified'}));assert.equal(recall(rows,'Bloodpool').memories.length,0);rows[0].evidenceState='owner-stated';assert.deepEqual(recall(rows,'Bloodpool').memories.map(m=>m.id),['0']);});
