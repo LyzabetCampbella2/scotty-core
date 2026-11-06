@@ -3,7 +3,7 @@
  * This module is NOT routed or deployed. Requires a separately reviewed migration.
  * No personal content is hardcoded, logged, or stored in GitHub.
  */
-import {RIKER_ID,proposeRikerMemory,reviewRikerMemory,canRecallRikerMemory} from './riker-brain.mjs';
+import {RIKER_ID,proposeRikerMemory,canRecallRikerMemory} from './riker-brain.mjs';
 const CATEGORIES=new Set(['owner_preference','decision','project','mission','collaboration','check_in','reference','lesson']);
 const SCOPES=new Set(['private','project','department']);
 const rows=async(db,sql,...args)=>(await db.prepare(sql).bind(...args).all()).results||[];
@@ -16,6 +16,8 @@ export async function rikerMemoryReady(db){
   requireDb(db);
   await rows(db,'SELECT id,agent_id,category,scope,project_id,department,text,source,status,sensitivity,created_at,reviewed_at,expires_at FROM riker_memory LIMIT 0');
   await rows(db,'SELECT id,note_id,action,at FROM riker_memory_audit LIMIT 0');
+  const triggers=await rows(db,"SELECT name FROM sqlite_master WHERE type='trigger' AND name IN ('riker_memory_audit_on_insert','riker_memory_audit_on_review','riker_memory_audit_on_delete')");
+  if(triggers.length!==3)throw Error('RIKER_AUDIT_TRIGGERS_REQUIRED');
   return {ready:true};
  }catch{return {ready:false,reason:'RIKER_MEMORY_MIGRATION_REQUIRED'};}
 }
@@ -27,12 +29,8 @@ export async function proposeStoredRikerMemory(db,input,ctx){
  if(input.scope==='department'&&input.department!=='Operations & Coordination')throw Error('DEPARTMENT_ACCESS_REQUIRED');
  if(!Number.isInteger(input.validDays)||input.validDays<1||input.validDays>365)throw Error('VALID_DAYS_REQUIRED');
  const id=crypto.randomUUID(),expiry=new Date(Date.now()+input.validDays*86400000).toISOString();
- await db.batch([
-  db.prepare('INSERT INTO riker_memory(id,agent_id,category,scope,project_id,department,text,source,status,sensitivity,created_at,reviewed_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)')
-   .bind(id,RIKER_ID,p.category,p.scope,p.projectId||null,p.department||null,p.text,p.source,'pending','ordinary',p.createdAt,null,expiry),
-  db.prepare('INSERT INTO riker_memory_audit(id,note_id,action,at) VALUES(?,?,?,?)')
-   .bind(crypto.randomUUID(),id,'proposed',iso())
- ]);
+ await db.prepare('INSERT INTO riker_memory(id,agent_id,category,scope,project_id,department,text,source,status,sensitivity,created_at,reviewed_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)')
+  .bind(id,RIKER_ID,p.category,p.scope,p.projectId||null,p.department||null,p.text,p.source,'pending','ordinary',p.createdAt,null,expiry).run();
  return {id,status:'pending',scope:p.scope,expiresAt:expiry};
 }
 async function get(db,id){
@@ -48,13 +46,9 @@ export async function decideStoredRikerMemory(db,id,decision,ctx){
  if(note.scope==='department'&&note.department!=='Operations & Coordination')throw Error('DEPARTMENT_ACCESS_REQUIRED');
  if(Date.parse(note.expires_at)<=Date.now())throw Error('MEMORY_EXPIRED');
  const at=iso();
- const result=await db.batch([
-  db.prepare("UPDATE riker_memory SET status=?,reviewed_at=? WHERE id=? AND agent_id=? AND status='pending'")
-   .bind(decision,at,id,RIKER_ID),
-  db.prepare('INSERT INTO riker_memory_audit(id,note_id,action,at) SELECT ?,?,?,? WHERE changes()=1')
-   .bind(crypto.randomUUID(),id,decision,at)
- ]);
- if(Number(result?.[0]?.meta?.changes??0)!==1||Number(result?.[1]?.meta?.changes??0)!==1)throw Error('MEMORY_REVIEW_NOT_COMMITTED');
+ const result=await db.prepare("UPDATE riker_memory SET status=?,reviewed_at=? WHERE id=? AND agent_id=? AND status='pending'")
+  .bind(decision,at,id,RIKER_ID).run();
+ if(Number(result?.meta?.changes??0)!==1)throw Error('MEMORY_REVIEW_CONFLICT');
  const latest=await get(db,id);
  if(latest?.status!==decision||latest.reviewed_at!==at)throw Error('MEMORY_READBACK_FAILED');
  return {id,status:decision,reviewedAt:at};
@@ -73,12 +67,8 @@ export async function recallStoredRikerMemory(db,ctx){
 export async function forgetStoredRikerMemory(db,id,ctx){
  requireOwner(ctx);requireDb(db);
  const note=await get(db,id);if(!note)throw Error('MEMORY_NOT_FOUND');
- const result=await db.batch([
-  db.prepare('DELETE FROM riker_memory WHERE id=? AND agent_id=?').bind(id,RIKER_ID),
-  db.prepare('INSERT INTO riker_memory_audit(id,note_id,action,at) SELECT ?,?,?,? WHERE changes()=1')
-   .bind(crypto.randomUUID(),id,'deleted',iso())
- ]);
- if(Number(result?.[0]?.meta?.changes??0)!==1||Number(result?.[1]?.meta?.changes??0)!==1)throw Error('MEMORY_DELETE_NOT_COMMITTED');
+ const result=await db.prepare('DELETE FROM riker_memory WHERE id=? AND agent_id=?').bind(id,RIKER_ID).run();
+ if(Number(result?.meta?.changes??0)!==1)throw Error('MEMORY_DELETE_CONFLICT');
  if(await get(db,id))throw Error('MEMORY_DELETE_READBACK_FAILED');
  return {id,deleted:true,contentRetainedInAudit:false};
 }
