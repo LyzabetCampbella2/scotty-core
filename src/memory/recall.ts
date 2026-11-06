@@ -2,7 +2,7 @@ import {canUse,passages,detectConflicts,factKey} from './knowledge-model.ts';
 // A read-only projection: model outputs never become trusted recall by repetition.
 export function selectRecall(rows:any[],query:string,scope:string,space:any,agentId='scotty',limit=18,now=new Date()){
  if(!canUse(space,agentId))return {memories:[],warnings:[],status:'denied',truncated:false};
- const eligible=rows.filter(m=>m.scope===scope&&m.status==='active'&&m.kind!=='agent-result');
+ const eligible=rows.filter(m=>m.scope===scope&&m.status==='active'&&(!['agent-result','mission-summary','mission-step'].includes(m.kind)||m.evidenceState==='owner-stated'));
  const ranked=eligible.map(m=>({...m,hits:passages([m.text,m.factKey,m.factValue,m.sourceContent].filter(Boolean).join('\n'),query)})).filter(m=>m.hits.length).sort((a,b)=>(b.hits[0].score-a.hits[0].score)||String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')));
  const cap=Math.max(1,Math.min(30,Math.floor(Number(limit)||18))),selected:any[]=[],seen=new Set();let truncated=false;
  // Keep conflicting facts together. If the family cannot fit, disclose the gap.
