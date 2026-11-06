@@ -1,0 +1,10 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {DATA_PROFILE,dataResearchPlan,dataSourceAssessment,dataFinding,dataKnowledgeProposal,dataBio} from './data-brain.mjs';
+test('strict verification and art specialty',()=>{assert.equal(DATA_PROFILE.researchStandards,'strict');assert.ok(DATA_PROFILE.fields.includes('art'));});
+test('unauthorized project fails closed',()=>assert.throws(()=>dataResearchPlan({question:'Why?',projectId:'other',authorizedProjectIds:['allowed']})));
+test('research plans do not claim verification',()=>{const x=dataResearchPlan({question:'What?',projectId:'p',authorizedProjectIds:['p']});assert.equal(x.verified,false);assert.equal(x.status,'research-not-performed');});
+test('source metadata cannot self-verify',()=>{const x=dataSourceAssessment({title:'Synthetic',url:'https://example.org',primary:true,independentCorroboration:true,methodReviewed:true});assert.equal(x.verified,false);assert.equal(x.citable,false);});
+test('requested verified label does not certify claim',()=>{const x=dataFinding({claim:'synthetic',classification:'verified',projectId:'p',authorizedProjectIds:['p']});assert.equal(x.classification,'unverified');assert.equal(x.verified,false);});
+test('knowledge proposals require evidence and owner review',()=>{assert.throws(()=>dataKnowledgeProposal({projectId:'p',authorizedProjectIds:['p'],findingId:'f',reason:'r'}));const x=dataKnowledgeProposal({projectId:'p',authorizedProjectIds:['p'],findingId:'f',reason:'r',sourceRefs:['synthetic']});assert.equal(x.saved,false);assert.equal(x.status,'pending-owner-review');});
+test('unauthorized biography hides projects',()=>{const x=dataBio({projects:[{secret:'test'}]});assert.equal(x.privateDataHidden,true);assert.equal(x.projects,undefined);});
