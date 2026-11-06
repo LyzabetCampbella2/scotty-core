@@ -1,0 +1,39 @@
+name: RIKER isolated brain and memory — synthetic tests
+on:
+  pull_request:
+    paths:
+      - 'offline-brain/cloudflare-ipad/riker-brain.mjs'
+      - 'offline-brain/cloudflare-ipad/riker-brain.test.mjs'
+      - 'offline-brain/cloudflare-ipad/riker-memory-store.mjs'
+      - 'offline-brain/cloudflare-ipad/riker-memory-store.test.mjs'
+      - 'offline-brain/cloudflare-ipad/riker-memory-v1.sql'
+      - 'offline-brain/cloudflare-ipad/riker-memory-audit-triggers.sql'
+      - 'offline-brain/cloudflare-ipad/riker-memory-api.mjs'
+      - 'offline-brain/cloudflare-ipad/riker-memory-api.test.mjs'
+      - 'offline-brain/cloudflare-ipad/worker.mjs'
+      - '.github/workflows/riker-brain-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  riker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DATABASE_URL: ''
+      GROQ_API_KEY: ''
+      XAI_API_KEY: ''
+      OPENAI_API_KEY: ''
+      SCOTTY_LEGACY_API_URL: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check RIKER brain
+        run: |
+          node --check offline-brain/cloudflare-ipad/riker-brain.mjs
+          node --check offline-brain/cloudflare-ipad/riker-memory-store.mjs
+          node --check offline-brain/cloudflare-ipad/riker-memory-api.mjs
+      - name: Run isolated synthetic tests
+        run: node --test offline-brain/cloudflare-ipad/riker-brain.test.mjs offline-brain/cloudflare-ipad/riker-memory-store.test.mjs offline-brain/cloudflare-ipad/riker-memory-api.test.mjs
