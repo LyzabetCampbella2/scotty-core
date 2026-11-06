@@ -7,6 +7,8 @@ on:
       - 'offline-brain/cloudflare-ipad/riker-memory-store.mjs'
       - 'offline-brain/cloudflare-ipad/riker-memory-store.test.mjs'
       - 'offline-brain/cloudflare-ipad/riker-memory-v1.sql'
+      - 'offline-brain/cloudflare-ipad/riker-memory-audit-triggers.sql'
+      - 'offline-brain/cloudflare-ipad/riker-memory-api.mjs'
       - '.github/workflows/riker-brain-tests.yml'
   workflow_dispatch:
 permissions:
