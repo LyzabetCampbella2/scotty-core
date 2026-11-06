@@ -30,5 +30,6 @@ jobs:
         run: |
           node --check offline-brain/cloudflare-ipad/riker-brain.mjs
           node --check offline-brain/cloudflare-ipad/riker-memory-store.mjs
+          node --check offline-brain/cloudflare-ipad/riker-memory-api.mjs
       - name: Run isolated synthetic tests
         run: node --test offline-brain/cloudflare-ipad/riker-brain.test.mjs offline-brain/cloudflare-ipad/riker-memory-store.test.mjs
