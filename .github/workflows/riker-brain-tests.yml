@@ -9,6 +9,8 @@ on:
       - 'offline-brain/cloudflare-ipad/riker-memory-v1.sql'
       - 'offline-brain/cloudflare-ipad/riker-memory-audit-triggers.sql'
       - 'offline-brain/cloudflare-ipad/riker-memory-api.mjs'
+      - 'offline-brain/cloudflare-ipad/riker-memory-api.test.mjs'
+      - 'offline-brain/cloudflare-ipad/worker.mjs'
       - '.github/workflows/riker-brain-tests.yml'
   workflow_dispatch:
 permissions:
@@ -34,4 +36,4 @@ jobs:
           node --check offline-brain/cloudflare-ipad/riker-memory-store.mjs
           node --check offline-brain/cloudflare-ipad/riker-memory-api.mjs
       - name: Run isolated synthetic tests
-        run: node --test offline-brain/cloudflare-ipad/riker-brain.test.mjs offline-brain/cloudflare-ipad/riker-memory-store.test.mjs
+        run: node --test offline-brain/cloudflare-ipad/riker-brain.test.mjs offline-brain/cloudflare-ipad/riker-memory-store.test.mjs offline-brain/cloudflare-ipad/riker-memory-api.test.mjs
