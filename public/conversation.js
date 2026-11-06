@@ -97,7 +97,7 @@
    if(r.cancelled){status('TEAM BRAIN REQUEST NOT SENT');caption('SCOTTY','Team Brain request cancelled; no content was sent.');render();return;}
    db.pending(r.clarification?{...r.clarification,resolutions}:null,threadId);remember('assistant',r.reply||'No response returned.');
    if(r.focusNode){await loadResources();if(seq!==run)return;window.SCOTTYSpatial?.refresh();window.SCOTTYSpatial?.focusId(r.focusNode)}
-   window.SCOTTYKnowledge?.showSources(r.sources||[]);
+   window.SCOTTYKnowledge?.showSources(r.sources||[]);window.SCOTTYKnowledge?.showRecall?.(r.recall);
    status(r.provider==='cloudflare-team'?(r.missionVerified?'TEAM BRAIN • SAVED MISSION VERIFIED':'TEAM BRAIN • MISSION NOT VERIFIED'):(r.clarification?'CLARIFICATION NEEDED':'RESPONSE READY'));render();await speak(r.reply||'No response returned.');if(r.voiceFollowup&&seq===run&&!signal.aborted)await speak(r.voiceFollowup);
   }catch(e){if(seq!==run||signal.aborted)return;caption('CONVERSATION ERROR',e.message);status('CONVERSATION ERROR');window.SCOTTYCallSession?.connectionError('Scotty server request failed. The last request was not replayed.')}
   finally{if(seq===run){busy=false;request=null;render()}}
