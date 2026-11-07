@@ -104,3 +104,30 @@ test('no phase 1 brain claims actual private memory, live tools, factual certifi
   assert.equal(response.executed,false);
  }
 });
+
+
+test('same-task work contracts differ substantively by owner-recorded chief procedure',()=>{
+ const task='Prepare a reliable, accessible plan for launching a fictional client service.';
+ const [r,g,t]=['chief-riker','chief-geordi','chief-expansion-troi']
+   .map(id=>roleResponsePreview(id,task));
+ const signatures=[r,g,t].map(x=>JSON.stringify([
+   x.workContract.method,x.workContract.deliverable,x.workContract.acceptanceCheck
+ ]));
+ assert.equal(new Set(signatures).size,3);
+ assert.match(r.workContract.method,/before every new task or project/i);
+ assert.match(g.workContract.method,/reliability and security/i);
+ assert.match(t.workContract.method,/balanced emotional understanding/i);
+ assert.equal(r.workContract.approvalState,'NOT_AUTHORIZED_TO_EXECUTE');
+ assert.ok([r,g,t].every(x=>x.workContract.handoffTo==='scotty'));
+ assert.ok([r,g,t].every(x=>x.toolCalls===0&&x.memoryWrites===0&&!x.executed));
+});
+test('compiled brain registry cannot be modified through exported references',()=>{
+ const r=INDIVIDUAL_BRAINS.find(x=>x.id==='chief-riker');
+ assert.ok(Object.isFrozen(r));
+ assert.ok(Object.isFrozen(r.workingMethod));
+ assert.ok(Object.isFrozen(r.ownerDesign.recordedSelections));
+ assert.throws(()=>{r.workingMethod.push('Unapproved instruction');},TypeError);
+ assert.throws(()=>{r.grantedToolIds.push('production-deploy');},TypeError);
+ assert.throws(()=>{r.ownerDesign.recordedSelections.beforeNewTask=false;},TypeError);
+ assert.equal(agentBrain('chief-riker').ownerDesign.recordedSelections.beforeNewTask,true);
+});
