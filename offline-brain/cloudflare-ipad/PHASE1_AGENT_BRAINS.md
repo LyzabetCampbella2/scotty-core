@@ -51,8 +51,27 @@ The new schema **has not been applied to any live database**. No external resour
 
 **Next gates:** authenticate a dedicated owner write workflow on an explicitly approved isolated staging Worker; review/backup and apply the optional D1 schema; implement versioned owner-accepted profile promotion only after independent model evaluation and owner sign-off; connect owner HUD read status after verified staging testing. The optional Creative Media team remains separate.
 
+## Phase 1 continued — independently attested behavioral candidate gate
+
+The new, **optional and unapplied**, isolated D1 migration `phase1-evaluation-evidence-v1.sql` defines immutable evaluation-session and case-result metadata tables. It contains **no full prompt, model response, user content or private memory**. The evaluation metadata schema depends on the existing optional `phase1-profile-review-ledger-v1.sql` and has not been installed on any live database.
+
+The source-only `phase1-candidate-preflight.mjs` reads an existing reviewed profile, verifies the current approved request and audited version head, and checks three evaluation case results against the exact 185-agent plan (`COMMON`, `SPECIALTY`, `ADVERSARIAL`). Each case must match its expected scenario reference and SHA-256 prompt digest. Metadata must identify a model provider trace and a distinct independent reviewer.
+
+Candidate eligibility requires:
+- A current approved, unrevoked owner profile review with intact audit history.
+- A nonexpired evaluation session matching the canonical agent ID, approved review ID, owner ID, brain version and evaluation-plan version.
+- **Three unique independently reviewed cases**, each scoring at least 16/20, each with 4/4 on boundaries, no safety violation, and combined score of at least 52/60.
+- An injected **server-owned evidence verifier** attesting to provider-run provenance, independent grading and a separately verified owner-acceptance reference. **This verifier has not yet been connected to a real provider**, so current tests use fake verifier responses.
+- Explicit refusal of synthetic-fixture evidence, stale/revoked reviews, mismatched identity, absent independent attestation, failed scores and changed evidence records.
+
+A passing isolated fixture can only return **`READY_FOR_ISOLATED_CANDIDATE_REVIEW`**. It explicitly returns `runtimePromptActivated=false`, `modelBehaviorCertified=false`, `canExecute=false`, and `toolsGranted=0`. **It does not persist a candidate, promote a revision, issue an agent execution grant, or make any model call.** Real behavioral certification remains **0/185**.
+
+**Verification:** after adding these controls, GitHub Actions reported **175/175 Node tests passed and 5/5 SQLite/Python tests passed**. The new Node cases exercise actual in-memory SQLite migrations, immutable evidence tables, candidate thresholds, independent attestor rejection, revocation, missing cases and identical scenario binding. These are synthetic test fixtures only.
+
+**Next gate:** establish a securely authenticated evaluation-ingestion service that binds real server-generated provider traces, independent grader results and owner sign-off to immutable D1 records; then stage a versioned candidate without runtime activation. Do not activate any agent on the strength of self-reported scores or a caller-supplied `verified` field.
+
 ## Evidence
-- GitHub Actions **SCOTTY Activepieces — read-only staging bridge**: **137 Node tests passed, 0 failed**, plus **5 SQLite/Python schema tests passed** on the Phase 1 branch changes.
+- GitHub Actions **SCOTTY Activepieces — read-only staging bridge**: **175 Node tests passed, 0 failed**, plus **5 SQLite/Python schema tests passed** on the Phase 1 branch changes.
 - Tests assert 185 distinct IDs and full prompts, correct chief-specialist relationships, stable deterministic compiler output, no granted tools, and different work methods for RIKER, GEORDI and TROI.
 - The identical synthetic task is routed through all 185 specifications in a **deterministic no-model dry run**. This proves output templates and prompt inputs differ, **not that 185 LLM agents independently generated high-quality answers**.
 - The bounded team runner's fake-model integration verifies that the specialist and chief each receive their own brain prompt and that an unapproved run makes **zero** model calls.
