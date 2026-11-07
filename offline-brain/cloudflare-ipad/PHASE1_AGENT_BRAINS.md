@@ -35,6 +35,22 @@
 
 **Safety:** no change to the protected public/private memory boundaries, current agent count, project memberships, tools, paid providers, live Agent HQ, Activepieces enablement or Cloudflare deployment. Canonical roster stays at 185; optional Creative Media extension stays separate.
 
+## Phase 1 continued — persistent reviewed revision history (source-only)
+
+The Phase 1 owner-review backend now has an **optional, unapplied isolated D1 database schema** at `phase1-profile-review-ledger-v1.sql`, plus a fail-closed storage API in `phase1-profile-review-store.mjs`.
+
+- **Persist proposals, not agent permission changes.** Store only public/synthetic, allowlisted personality revisions from `agent-brain-revisions.mjs` after recomputing and comparing their canonical SHA-256 digest, original role and stable agent ID.
+- **Per-agent optimistic version locks.** Review heads track monotonically increasing versions. Competing drafts can be submitted, but a stale one cannot be approved after another was approved. Only one approved draft reference is current at a time; revocation clears that reference and increments the head version.
+- **Review state machine.** `pending → approved|rejected` and `approved → revoked`; illegal transitions, duplicate approvals, edits to immutable scope/identity fields and deletion/tampering of audit entries are blocked by SQLite triggers and API checks.
+- **Protected actor scope.** Standalone write functions require a server-verified owner session and an agent-specific allowlist; a client `ownerApproved` flag is not accepted. This is an *interface contract* pending real authenticated integration, not a deployed authentication feature.
+- **Idempotency and audit.** Exact same-key retries read the existing review, even after an approval or revocation, without creating another event; reusing a key for a different request or digest is rejected. All state changes require audit readback.
+- **Read-only owner endpoint.** `phase1-profile-review-api.mjs` is routed inside the undeployed isolated SCOTTY Worker. `GET /api/phase1/brain-review-readiness` provides authenticated, secret-free migration readiness even with the read switch off. `GET /api/phase1/brain-review?requestId=...` additionally requires `SCOTTY_PHASE1_REVIEW_READ_ENABLED=true`, a configured server owner ID, the applied isolated schema and the existing owner bearer token. It does **not** return proposed edit content, private memory, or active brain prompts. There is **no HTTP approval/write endpoint**.
+- **No automatic runtime activation.** Even a database-approved revision returns `ownerAcceptedEntireBrain=false`, `modelBehaviorCertified=false`, `runtimePromptActivated=false`, `canExecute=false`. All 185 base brain instructions and tool permissions remain as before.
+
+The new schema **has not been applied to any live database**. No external resource, social account, private memory, real model provider, production deployment or agent was activated.
+
+**Next gates:** authenticate a dedicated owner write workflow on an explicitly approved isolated staging Worker; review/backup and apply the optional D1 schema; implement versioned owner-accepted profile promotion only after independent model evaluation and owner sign-off; connect owner HUD read status after verified staging testing. The optional Creative Media team remains separate.
+
 ## Evidence
 - GitHub Actions **SCOTTY Activepieces — read-only staging bridge**: **137 Node tests passed, 0 failed**, plus **5 SQLite/Python schema tests passed** on the Phase 1 branch changes.
 - Tests assert 185 distinct IDs and full prompts, correct chief-specialist relationships, stable deterministic compiler output, no granted tools, and different work methods for RIKER, GEORDI and TROI.
