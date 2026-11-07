@@ -224,6 +224,33 @@
       ],
       "risk": "read-only",
       "enabled": false
+    },
+    {
+      "key": "scotty-memory-access-gate",
+      "name": "SCOTTY — Memory Access Gate (preview only)",
+      "type": "manual",
+      "status": "STAGING_DRAFT_TESTED",
+      "flowId": "yijvvHp7kbV6IFGNOTQDy",
+      "dependencies": [
+        "public directory",
+        "four memory scope rules"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-demo-owner-decisions",
+      "name": "SCOTTY — Demo Owner Decision Audit (manual)",
+      "type": "manual",
+      "status": "STAGING_DRAFT_TESTED",
+      "flowId": "TbZ7pjqGhHU0GN562OLJH",
+      "dependencies": [
+        "public roster",
+        "project list",
+        "demo decisions"
+      ],
+      "risk": "read-only",
+      "enabled": false
     }
   ],
   "defaultRules": {
@@ -237,24 +264,26 @@
     "copyPasswords": false,
     "writeProduction": false
   },
-  "notes": "This manifest records real staging drafts and tables installed through the Activepieces MCP connection, not autonomous agents. All flows are disabled/unpublished. The separated owner approval waitpoint remains untested, and real SCOTTY project permissions, private memory and AI execution remain blocked.",
+  "notes": "Activepieces staging now contains 10 installed draft flows and 7 tables with 224 synthetic/public metadata rows. The new memory access gate always denies actual memory reads/writes without protected SCOTTY backend consent, and the owner decision audit demonstrates approve/reject/pending but grants no real authorization. All 10 flows remain disabled and unpublished; Worker and production remain unmodified.",
   "verifiedInAccount": {
     "workspaceProjectId": "xTfZdRPX3i4JjdOyR5NYq",
     "stagingFolder": "SCOTTY — Staging",
-    "draftFlowsInFolder": 8,
+    "draftFlowsInFolder": 10,
     "existingUserConnectionTestFlow": 1,
     "publishedFlows": 0,
     "enabledFlows": 0,
-    "tablesCreated": 5,
+    "tablesCreated": 7,
     "tableRecordCounts": {
       "developmentAgents": 185,
       "projects": 5,
       "proposedCollaborators": 25,
       "publicDemoTasks": 1,
-      "demoMissionInbox": 1
+      "demoMissionInbox": 1,
+      "memoryScopeRules": 4,
+      "demoOwnerDecisions": 3
     },
-    "validation": "Activepieces MCP ap_validate_flow reported ok=true, issues=[]",
-    "scope": "Tested public read-only staging flows only; owner waitpoint full runtime not tested"
+    "validation": "Activepieces MCP verified 10 disabled, unpublished staging flows, 7 staging tables, ok=true and issues=[]",
+    "scope": "All preview-only flows tested with public or synthetic data; native owner waitpoint remains untested; no real memory or mission access"
   },
   "tables": [
     {
@@ -286,6 +315,18 @@
       "id": "yNkok1xnLTEKTASpPSIrh",
       "rows": 25,
       "scope": "suggestions only, not assignments"
+    },
+    {
+      "name": "SCOTTY — Memory Scope Rules (Staging Metadata)",
+      "id": "Qbct8WIFdaj7GmZOY7AZM",
+      "rows": 4,
+      "scope": "four denied-by-default memory scope rules; no actual memories"
+    },
+    {
+      "name": "SCOTTY — Owner Decision Ledger (Demo Only)",
+      "id": "SKmoa9UCdVdQMdodPMJk6",
+      "rows": 3,
+      "scope": "one synthetic approve, reject and pending; all non-authorizing"
     }
   ]
 }
