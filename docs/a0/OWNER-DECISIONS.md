@@ -1,49 +1,54 @@
-# SCOTTY Stage A0 — Owner Decisions Needed to Close the Operational Gate
+# SCOTTY Stage A / Phase 0 — Recorded Owner Decisions
 
-**Status: owner responses outstanding.** This file is a question list, **not** an approval, signature, spending authorization or change request.
+**Recorded:** 2026-11-07. **Basis:** Explicit user instructions in this conversation.  
+**Scope:** Only the decisions below; no general authorization for live external actions.
 
-## Decision 1 — Staging isolation and spending ceiling (critical path)
+## Decision 1 — Render inspection: APPROVED AND COMPLETED
 
-Railway's current `SCOTTY / production` and `SCOTTY / Eyes on test` inventories refer to the same Postgres service and volume. `SCOTTY Reliability Staging` has no listed services. We have **not** applied the A0 SQL migration or touched production data.
+The user approved **read-only** inspection of Render workspace **My Workspace**. The connected workspace was confirmed and metadata-only listing of services, deploys and Postgres instance was performed. No environment-variable values, production database records, backups, or logs containing user data were requested.
 
-**Question:** Should we stay strictly at **$0 new monthly spending**, continuing only ephemeral GitHub CI tests, or may we obtain a price quote for an independently isolated staging database and ask for explicit approval of the quoted amount **before** creating anything?
+Render metadata identified SCOTTY resources:
+- `scotty-core`, `scotty-forge-worker`, `scotty-scottish-voice-awb`: auto-deploy enabled, connected to `cloud-independent-voice`, last reported live deploy at commit `b200c4b315ca26f063deee8dca10eeab5cf39c00` (2026-11-06).
+- `scotty-workspace-staging`: auto-deploy enabled, connected to `feat/scotty-project-hud`, live deployment metadata from 2026-10-18.
+- `scotty-encrypted-backup`: cron-job service present with auto-deploy disabled, live deployment metadata from 2026-11-02. **No successful encrypted backup or real restoration has been verified.**
+- `scotty-memory`: Render PostgreSQL, free plan, region Oregon, status **suspended** at inspection time.
+- Eirden services also exist in the workspace but are outside SCOTTY Phase A0 scope; no interaction with their data or configuration occurred.
 
-Default without reply: **$0 newly authorized**, no service/database provisioning.
+A Render service's `live` deployment status does NOT prove the service is security-certified, its backup job successfully ran, or its real executor respects the A0 approval ledger.
 
-## Decision 2 — Canonical roster and display names
+## Decision 2 — Canonical agent identity freeze: OWNER-APPROVED, VERSIONED
 
-The candidate snapshot contains 185 permanent IDs (25 chiefs, 160 specialists), with no duplicates or missing chief assignments. A few display names appear to be inherited/misaligned (see `docs/a0/display-name-review.md`). The six proposed creative-media profiles remain outside the canonical roster.
+User expressly approved **all 185 permanent IDs and current display names unchanged**, with alias changes reviewed later. Source: Activepieces Public Agent Registry (Draft); read-only exact-field comparison found all 185 records identical to the previously captured candidate, with 25 chiefs, 160 specialists, 25 departments and no orphaned links.
 
-**Question:** May the exact canonical IDs and current display names be frozen unchanged as a reviewed version, with all future alias/rename proposals requiring your separate approval? Or would you prefer to review the flagged names before freezing?
+Approved frozen version:
+- `docs/a0/roster-frozen-2026-11-07.json`
+- Git blob SHA: `476f396a709de64e75169ed0ff504526cc0233ef`
+- Version lock: `docs/a0/roster-freeze-lock-2026-11-07.json`
+- Original candidate SHA: `84a6ed45838c11ed4e703d4cfc92d83c02326128`
 
-Default without reply: candidate snapshot retained, **not signed/frozen**; no alias changes.
+The owner approval was explicit in conversation, **not a cryptographic identity signature**. This freeze applies to a Git version only. No Activepieces record, running agent name, personnel permissions, connected apps, or deployment was changed. Any rename, alias or canonical roster edit needs a new approved version. Six proposed creative-media extensions remain separate from the 185.
 
-## Decision 3 — Render workspace read-only inventory
+## Decision 3 — New infrastructure spending: $0
 
-The connected Render account reported an accessible workspace called **My Workspace**. Render's connector requires the user to choose the workspace before querying services and PostgreSQL resources.
+The user expressly chose **$0 new infrastructure spending**. No new paid/free-trial persistent databases, hosting services, storage, deployment environment or additional resource will be provisioned in Phase A0. Continue using source-only and disposable CI tests only, without adding paid provider usage. Existing infrastructure may continue to have existing charges; this decision does not change subscriptions, quotas or already-running services.
 
-**Question:** Is **My Workspace** the Render workspace authorized for read-only inspection of SCOTTY infrastructure?
+Separate model token/credit budget, per-task USD ceilings and per-day USD ceilings **were not approved**; the staged safety policy remains at zero new external-provider spend unless separately approved and technically enforced.
 
-Default without reply: do **not** query workspace services or databases.
+## Decision 4 — Production data access/export: NOT AUTHORIZED
 
-## Decision 4 — Production backup and restore authorization
+The user explicitly directed **separate approval before accessing or exporting production data**. Accordingly:
+- No production SQL query, data export, backup download, decrypt/restore, migration, secret listing, or production file inspection was authorized.
+- Read-only service and deployment metadata does **not** convey access permission to any underlying data.
+- The synthetic encrypted CI recovery drill is useful proof of test mechanics only; it is not an actual SCOTTY restore.
 
-Synthetic CI backup/age decryption/isolation tests passed. They **do not** prove recovery of real SCOTTY data. A real encrypted export touches production database contents, possibly restricted client/owner information and separate cost-bearing resources.
+A real backup proposal must identify exact production source and read-only scope, encrypted destination, retention, key custody, cost and isolated recovery target, and must receive separate owner authorization before any real-data access.
 
-**Question:** When infrastructure isolation and a cost estimate are available, may we prepare a **separate exact-scope proposal** for a one-time production **read-only encrypted backup**, with your approval required again before export or any real restore?
+## Decisions still necessary, but **not** authorized by this response
 
-Default without reply: no production data access, export, backup job provisioning or real-data restore.
+- A genuinely isolated, existing zero-new-cost staging environment or separately approved infrastructure alternative.
+- Exact source-of-truth selection for missions and memory, plus owner-authenticated runtime permissions.
+- Full real emergency-stop across agent workers, queues and external providers.
+- Real encrypted backup-and-restore acceptance after separate production data authorization.
+- Final privilege/data/retention policy approval and explicit final Phase A0 sign-off.
 
-## Decision 5 — Owner control policy and limits
-
-The draft policy says: ask before every new mission, exact per-agent/per-project resource grants, no automatic posts/sends/moves, maximum 24h temporary grant, zero newly authorized spend, private data deny-by-default and no automatic memory promotion.
-
-**Question:** Would you like to adopt these as the final owner-control defaults, while we keep paid-provider calls OFF until you select separate exact per-task and per-day limits?
-
-Default without reply: policy draft only, $0 new usage and all external actions disabled.
-
-## Non-negotiable technical evidence still required
-
-Regardless of answers, Phase A0 must not be marked CERTIFIED until there are: approved owner identity and signed roster; isolated staging and tested grant storage; real executor-side policy enforcement and negative tests; actual cross-service stop-all rehearsal; independently verified real encrypted backup/restore with key custody; data/privacy/rights/retention approval; and budget alerts. Approval to review or quote is not approval to create a billable resource, access private information, export a database, deploy, merge, or enable agents.
-
-**Review flow:** collect the decisions in conversation or a trusted owner interface, record an immutable reference and exact scope separately, then reconcile `docs/a0/certification-evidence.json` only against genuine tool evidence and owner sign-offs. Never mark unfinished gates verified because a checkbox or JSON file was edited.
+**Overall:** Git roster freeze approved and Render metadata audit completed, $0 new infrastructure spending enforced as a project scope decision, while Stage A0 operational certification remains BLOCKED.
