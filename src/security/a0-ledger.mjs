@@ -12,7 +12,8 @@ export async function openA0Store() {
   }
   return storeInstance;
 }
-async function initializeA0(sql,expected) {
+/** Internal store construction used by CI ephemeral PostgreSQL test; never an HTTP entrypoint. */
+export async function initializeA0(sql,expected) {
   const found=await sql`select current_database() as name`;
   if(found[0]?.name!==expected) throw Error("Unexpected A0 database");
   const [schema]=await sql`select
