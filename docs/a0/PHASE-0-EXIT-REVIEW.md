@@ -68,3 +68,13 @@ Until final owner approval, no new paid model/provider usage, billable resources
 - Owner reviewer identity, decision, date, and immutable evidence link: _____________________
 
 **Verdict: NOT EXIT-CERTIFIED.** Code and documentation review can continue, but Stage B must not interpret Phase 0 as passed until every critical item has evidence and explicit owner approval.
+
+## Final engineering hardening and external acceptance status (2026-11-07)
+
+- Grant minting is now **closed by default**: the owner HTTP endpoint rejects a client-supplied `ownerApproved:true` value unless a separately installed server-side verifier proves the exact approval evidence and scope. The current SCOTTY server does not install that verifier.
+- A dedicated staging DB URL must not share the production `DATABASE_URL` hostname; this guard is tested but does not itself prove physical resource isolation. The Railway production/test volume overlap remains unresolved.
+- GitHub CI includes a disposable PostgreSQL transaction/concurrency test and a synthetic `age` encrypted backup, decryption, archive integrity comparison, and isolated restore. Verify the latest successful workflow result before signing this evidence.
+- The machine-readable gate is `docs/a0/certification-evidence.json`. Run `node scripts/a0-exit-status.mjs` for a read-only list of outstanding items. This gate intentionally remains BLOCKED until externally verified proof and owner review have been recorded; editing the file alone is not a real security attestation.
+- No actual production migration, service isolation, real encrypted recovery, cross-platform stop-all operation, privilege escalation, new app OAuth, external write, or paid resource provisioning occurred in this phase.
+
+**Engineering package status:** prepared for owner and infrastructure review. **Operational certification:** blocked until all specified tests and sign-offs are real and evidenced.
