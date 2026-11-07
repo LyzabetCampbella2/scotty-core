@@ -15,43 +15,16 @@ export async function openA0Store() {
 async function initializeA0(sql,expected) {
   const found=await sql`select current_database() as name`;
   if(found[0]?.name!==expected) throw Error("Unexpected A0 database");
-  await sql`create table if not exists scotty_a0_control(
-    id smallint primary key check(id=1), stop_all boolean not null default true,
-    enabled boolean not null default false, budget_approved boolean not null default false,
-    paid_actions_enabled boolean not null default false,
-    task_cap_cents bigint not null default 0 check(task_cap_cents>=0),
-    daily_cap_cents bigint not null default 0 check(daily_cap_cents>=0),
-    max_retries integer not null default 0 check(max_retries>=0),
-    max_concurrent integer not null default 1 check(max_concurrent>=0),
-    active_runs integer not null default 0 check(active_runs>=0),
-    updated_at timestamptz not null default now()
-  )`;
-  await sql`insert into scotty_a0_control(id) values(1) on conflict do nothing`;
-  await sql`create table if not exists scotty_a0_grant(
-    grant_id uuid primary key, owner_id text not null, agent_id text not null,
-    project_id text not null, task_id text not null, action text not null,
-    resource_id text not null, account_id text not null, channel_id text not null,
-    revision text not null, tool_id text not null, data_class text not null,
-    idempotency_key text not null, approval_evidence_id text not null,
-    issued_at timestamptz not null, expires_at timestamptz not null,
-    status text not null default 'approved' check(status in ('approved','revoked')),
-    revoked_at timestamptz, used_count integer not null default 0 check(used_count in (0,1)),
-    max_spend_cents bigint not null default 0 check(max_spend_cents=0),
-    check(expires_at>issued_at and expires_at<=issued_at+interval '24 hours')
-  )`;
-  await sql`create index if not exists scotty_a0_grant_scope_idx on scotty_a0_grant(project_id,task_id,issued_at desc)`;
-  await sql`create table if not exists scotty_a0_claim(
-    claim_id uuid primary key, grant_id uuid not null references scotty_a0_grant(grant_id),
-    request_key text not null unique, project_id text not null, task_id text not null,
-    cost_cents bigint not null default 0 check(cost_cents=0),
-    created_at timestamptz not null default now()
-  )`;
-  await sql`create table if not exists scotty_a0_audit(
-    event_id uuid primary key, at timestamptz not null default now(),
-    event_type text not null, actor_id text not null,
-    grant_id uuid, project_id text, task_id text, result text not null,
-    evidence_id text
-  )`;
+  const [schema]=await sql`select
+    to_regclass('public.scotty_a0_control') is not null as controls,
+    to_regclass('public.scotty_a0_grant') is not null as grants,
+    to_regclass('public.scotty_a0_claim') is not null as claims,
+    to_regclass('public.scotty_a0_audit') is not null as audit`;
+  if(!schema?.controls||!schema?.grants||!schema?.claims||!schema?.audit) {
+    throw Error("A0 schema missing: owner-approved staging migration required");
+  }
+  const [defaults]=await sql`select id,stop_all,enabled from scotty_a0_control where id=1`;
+  if(!defaults)throw Error("A0 default control row missing");
   const audited=async(tx,eventType,actorId,grantId,projectId,taskId,result,evidenceId)=>{
     await tx`insert into scotty_a0_audit(
       event_id,event_type,actor_id,grant_id,project_id,task_id,result,evidence_id
