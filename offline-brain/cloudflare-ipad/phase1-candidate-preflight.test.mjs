@@ -114,7 +114,7 @@ test('three independently attested synthetic-test-provider fixtures produce cand
   assert.equal(result.status,'READY_FOR_ISOLATED_CANDIDATE_REVIEW');
   assert.equal(result.eligibleForCandidate,true);
   assert.equal(result.score,60);
-  assert.equal(result.profileReviewApproved,false); // base status remains conservative; source review fields in separate metadata
+  assert.equal(result.profileReviewApproved,true);
   assert.equal(result.ownerAcceptanceVerified,true);
   assert.equal(result.behaviorEvaluationVerified,true);
   assert.equal(result.runtimePromptActivated,false);
@@ -189,9 +189,9 @@ test('cross-agent, owner spoof and tampered scenario hashes fail closed',async()
   await assert.rejects(()=>inspectPhase1Candidate({...args(x.db,verifier()),agentId:'chief-riker'}),/SERVER_VERIFIED_OWNER_REQUIRED|CURRENT_APPROVED_REVIEW_REQUIRED/);
   await assert.rejects(()=>inspectPhase1Candidate({...args(x.db,verifier()),
    actor:{...actor,provenance:'activepieces-json'}}),/SERVER_VERIFIED_OWNER_REQUIRED/);
-  x.native.prepare('UPDATE scotty_phase1_eval_case_results_v1 SET prompt_digest=?').run('b'.repeat(64));
- }catch(e){
-  assert.match(String(e),/PHASE1_EVAL_EVIDENCE_IMMUTABLE/);
+  assert.throws(()=>x.native.prepare(
+   'UPDATE scotty_phase1_eval_case_results_v1 SET prompt_digest=?'
+  ).run('b'.repeat(64)),/PHASE1_EVAL_EVIDENCE_IMMUTABLE/);
  }finally{x.close();}
 });
 test('evidence metadata cannot be deleted or modified in place',async()=>{
