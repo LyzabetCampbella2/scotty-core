@@ -23,6 +23,7 @@ import {browserScript} from "./browser-script.mjs";
 import {portfolioBrowserEvents} from "./agent-portfolio-browser.mjs";
 import {portfolioReadiness,listProjects,createProject,recordAssignment,agentBio} from "./agent-portfolio.mjs";
 import {isRikerRoute,rikerRoute} from "./riker-memory-api.mjs";
+import {isActivepiecesPath,handleActivepieces} from './activepieces-bridge.mjs';
 
 const MODEL="@cf/meta/llama-3.2-3b-instruct";
 const MAX_QUESTION=500;
@@ -377,7 +378,10 @@ export default {
    status:"STAGED_INDEPENDENT_LAB",release:RELEASE,knowledgeVersion:KNOWLEDGE_VERSION,knowledgePreviewVersion:"team-knowledge-preview-v1",privateDataAccessible:false,
    productionConnected:false,aiUsed:false});
   if(!url.pathname.startsWith("/api/"))return failure("NOT_FOUND","Unknown page.",404);
-  try{return await handleApi(request,env,url);}catch{
+  try{
+    if(isActivepiecesPath(url.pathname))return await handleActivepieces(request,env,url);
+    return await handleApi(request,env,url);
+  }catch{
    // Don't include raw errors, prompts, headers or auth secrets in responses or logs.
    return failure("INTERNAL_ERROR","Request could not be completed.",500);
   }
