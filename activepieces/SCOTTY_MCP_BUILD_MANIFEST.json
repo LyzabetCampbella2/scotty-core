@@ -526,7 +526,7 @@
       "deployed": false,
       "liveProjectRecordsRequire": "SCOTTY_CREATIVE_BIOS_ENABLED=true, isolated schema and verified agent_project_links"
     },
-    "ci": "116 Node tests and 5 Python SQLite schema tests passed using fake model and in-memory SQLite",
+    "ci": "117 Node tests and 5 Python SQLite schema tests passed using fake model and in-memory SQLite",
     "requiredGates": [
       "Owner-approved isolated D1 backup and migrations",
       "Approved isolated Worker deployment",
