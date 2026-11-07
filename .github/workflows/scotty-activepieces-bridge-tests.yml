@@ -22,4 +22,4 @@ jobs:
         run: |
           node --check offline-brain/cloudflare-ipad/worker.mjs
           node --check offline-brain/cloudflare-ipad/activepieces-bridge.mjs
-          node --test offline-brain/cloudflare-ipad/activepieces-bridge.test.mjs
+          node --test offline-brain/cloudflare-ipad/activepieces-bridge.test.mjs activepieces/public-agent-directory.test.mjs
