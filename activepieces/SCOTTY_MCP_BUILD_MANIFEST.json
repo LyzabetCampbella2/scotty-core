@@ -317,7 +317,7 @@
     "copyPasswords": false,
     "writeProduction": false
   },
-  "notes": "14 unpublished/disabled staging flows plus existing disabled connection test; 9 tables with 245 public/synthetic-only rows. Chief Collaboration preview generated 10 proposed Eirden handoffs with explicit dependency graph; unsent synthetic queue verified by a separate read-only workflow. All statuses remain proposed/not sent, no actual messaging or assignments. Separate owner-reviewed SCOTTY backend permissions, D1 migration, production deployment and real agent execution remain blocked.",
+  "notes": "14 unpublished/disabled staging flows plus existing disabled connection test; 9 tables with 245 public/synthetic-only rows. Chief Collaboration preview generated 10 proposed Eirden handoffs with explicit dependency graph; unsent synthetic queue verified by a separate read-only workflow. All statuses remain proposed/not sent, no actual messaging or assignments. Separate owner-reviewed SCOTTY backend permissions, D1 migration, production deployment and real agent execution remain blocked. Added default-off owner-only preview review HTTP API under existing isolated Worker bearer, with server-derived project membership and audit. Still not deployed and not accessible from Activepieces.",
   "verifiedInAccount": {
     "workspaceProjectId": "xTfZdRPX3i4JjdOyR5NYq",
     "stagingFolder": "SCOTTY — Staging",
@@ -395,5 +395,26 @@
       "rows": 10,
       "scope": "5 specialist review proposals, 4 cross-chief review handoffs, 1 SCOTTY synthesis; all unsent and non-executable"
     }
-  ]
+  ],
+  "backendPreviewReview": {
+    "status": "SOURCE_WIRED_TO_ISOLATED_WORKER_DEFAULT_OFF_NOT_DEPLOYED",
+    "ownerOnly": true,
+    "activationFlag": "SCOTTY_PREVIEW_REVIEWS_ENABLED",
+    "auth": "Existing isolated Worker OWNER_BEARER_TOKEN; never Activepieces bridge token",
+    "ownerIdentity": "SCOTTY_REVIEW_OWNER_ID, server-side config only",
+    "projectScope": "SCOTTY_REVIEW_PROJECT_ALLOWLIST and isolated D1 agent_projects / agent_project_links",
+    "prerequisites": [
+      "Explicit owner permission for staging D1 backup",
+      "Separate isolated D1 migrations with QA",
+      "Separately approved isolated Worker staging deployment",
+      "Dedicated owner-secret provisioning out of chat"
+    ],
+    "routes": [
+      "POST /api/owner-preview-reviews",
+      "GET /api/owner-preview-reviews?requestId=...",
+      "POST /api/owner-preview-reviews/decision"
+    ],
+    "authority": "Review metadata only; canExecute is always false; no mission grants",
+    "tested": "In-memory SQLite integration tests passing; no live D1 or Worker deployment"
+  }
 }
