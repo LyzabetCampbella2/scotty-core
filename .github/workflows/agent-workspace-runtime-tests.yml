@@ -1,0 +1,20 @@
+name: Agent workspace runtime synthetic QA
+on:
+  pull_request:
+    paths:
+      - 'offline-brain/cloudflare-ipad/agent-workspace-runtime*'
+      - '.github/workflows/agent-workspace-runtime-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthetic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check offline-brain/cloudflare-ipad/agent-workspace-runtime.mjs
+      - run: node --test offline-brain/cloudflare-ipad/agent-workspace-runtime.test.mjs
