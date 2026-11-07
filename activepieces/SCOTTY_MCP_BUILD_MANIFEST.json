@@ -330,7 +330,7 @@
     "copyPasswords": false,
     "writeProduction": false
   },
-  "notes": "14 unpublished/disabled staging flows plus existing disabled connection test; 9 tables with 245 public/synthetic-only rows. Chief Collaboration preview generated 10 proposed Eirden handoffs with explicit dependency graph; unsent synthetic queue verified by a separate read-only workflow. All statuses remain proposed/not sent, no actual messaging or assignments. Separate owner-reviewed SCOTTY backend permissions, D1 migration, production deployment and real agent execution remain blocked. Added default-off owner-only preview review HTTP API under existing isolated Worker bearer, with server-derived project membership and audit. Still not deployed and not accessible from Activepieces. Additional owner-only secret-free preflight created and tested; strict request-ID-matching idempotency replay prevents misattribution. No real Worker activation or database migration occurred. Created optional LUMEN/PULSE/FRAME/IRIS creative department as separate public development extension. Base 25+160 agent directory remains unchanged. New synthetic Activepieces campaign planning flow tested; no actual post, tool call, memory, assignment, or other execution.",
+  "notes": "14 unpublished/disabled staging flows plus existing disabled connection test; 9 tables with 245 public/synthetic-only rows. Chief Collaboration preview generated 10 proposed Eirden handoffs with explicit dependency graph; unsent synthetic queue verified by a separate read-only workflow. All statuses remain proposed/not sent, no actual messaging or assignments. Separate owner-reviewed SCOTTY backend permissions, D1 migration, production deployment and real agent execution remain blocked. Added default-off owner-only preview review HTTP API under existing isolated Worker bearer, with server-derived project membership and audit. Still not deployed and not accessible from Activepieces. Additional owner-only secret-free preflight created and tested; strict request-ID-matching idempotency replay prevents misattribution. No real Worker activation or database migration occurred. Created optional LUMEN/PULSE/FRAME/IRIS creative department as separate public development extension. Base 25+160 agent directory remains unchanged. New synthetic Activepieces campaign planning flow tested; no actual post, tool call, memory, assignment, or other execution. Creative agent runtime, per-agent D1 audit store, owner-reviewed synthetic memory persistence, project assignment grant, provider adapter, and interactive biography UI wired only in development source. Not deployed, no model or external accounts active.",
   "verifiedInAccount": {
     "workspaceProjectId": "xTfZdRPX3i4JjdOyR5NYq",
     "stagingFolder": "SCOTTY — Staging",
@@ -491,5 +491,50 @@
     "agentToolsConnected": false,
     "privateMemoryPersisted": false,
     "ownerApprovalRequired": true
+  },
+  "creativeMediaRuntime": {
+    "status": "SOURCE_ONLY_SIMULATED_TESTS_PASSED_NOT_DEPLOYED",
+    "ownerOnly": true,
+    "agents": [
+      "chief-lumen",
+      "agent-creative-pulse",
+      "agent-creative-frame",
+      "agent-creative-iris"
+    ],
+    "idBasedIndependentReasoning": true,
+    "individualizedPrompts": true,
+    "isolatedPersistentRunStore": "Optional D1 creative-agent-state-v1.sql, not applied",
+    "memoryGovernance": "Owner-approved PUBLIC/SYNTHETIC notes only; actual private memory not connected",
+    "assignmentGrant": "Separate owner/project grant, not preview approval; source only",
+    "executionGrant": "Separate server-held mission.execute grant required; no route implemented",
+    "modelProvider": "Cloudflare Workers AI adapter is source-only, disabled unless explicitly configured",
+    "maxModelCallsPerAgentTask": 1,
+    "automaticRetries": false,
+    "socialPostingEnabled": false,
+    "outboundMessagingEnabled": false,
+    "paidModelCallsMade": 0,
+    "actualProjectsLinked": 0,
+    "realAgentRuns": 0,
+    "interactiveBio": {
+      "page": "Existing isolated SCOTTY lab HUD development page",
+      "api": [
+        "GET /api/creative-agent-directory",
+        "GET /api/creative-agent-bio?agentId=...&projectId=..."
+      ],
+      "ownerBearerRequired": true,
+      "sourceWiredToWorker": true,
+      "deployed": false,
+      "liveProjectRecordsRequire": "SCOTTY_CREATIVE_BIOS_ENABLED=true, isolated schema and verified agent_project_links"
+    },
+    "ci": "116 Node tests and 5 Python SQLite schema tests passed using fake model and in-memory SQLite",
+    "requiredGates": [
+      "Owner-approved isolated D1 backup and migrations",
+      "Approved isolated Worker deployment",
+      "Server-side persisted execution-grant minting and audit",
+      "Approved model binding and cost limit",
+      "Secure individualized private memory and retention review",
+      "Real owner-reviewed project assignments",
+      "Live agent and platform-action acceptance tests"
+    ]
   }
 }
