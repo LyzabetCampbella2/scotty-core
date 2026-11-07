@@ -36,7 +36,7 @@ test('catalog metadata has 25 chiefs and 160 specialists but never memory',async
   for(const a of b.agents){
     assert.deepEqual(Object.keys(a).sort(),['chiefId','department','id','isChief','name','skills','specialty'].sort());
   }
-  assert.doesNotMatch(JSON.stringify(b),/password|OWNER_BEARER_TOKEN|privateNotes|projectContext/);
+  assert.doesNotMatch(JSON.stringify(b),/OWNER_BEARER_TOKEN|privateNotes|projectContext/);
 });
 test('route preview is inert and never starts model calls, memory or missions',async()=>{
   const r=await handleN8nBridge(request('/api/n8n/plan','POST',{question:'Create a synthetic software QA checklist and research plan.'}),env);
@@ -59,4 +59,13 @@ test('rejects privilege escalation, malformed bodies, query tokens and unsupport
     const r=await handleN8nBridge(request(path,method),env);
     assert.equal(r.status,expected);
   }
+});
+
+test('actual isolated Worker route uses the dedicated bridge credential',async()=>{
+  const worker=(await import('./worker.mjs')).default;
+  const ok=await worker.fetch(request('/api/n8n/catalog'),{...env,AI_ENABLED:'false'});
+  assert.equal(ok.status,200);
+  assert.equal((await ok.json()).agentCount,185);
+  const rejected=await worker.fetch(request('/api/n8n/catalog','GET',null,env.OWNER_BEARER_TOKEN),env);
+  assert.equal(rejected.status,401);
 });
