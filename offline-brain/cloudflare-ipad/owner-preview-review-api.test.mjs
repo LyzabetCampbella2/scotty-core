@@ -84,6 +84,12 @@ test('review route is distinct from publicly readable Activepieces bridge',async
   assert.equal((await worker.fetch(req('/api/owner-preview-reviews', 'GET',undefined,'wrong-but-long-abc000000000000000000'),env(s.db))).status,401);
   const alternateBridgeToken='synthetic-activepieces-token-abcdef12345678900000';
   assert.equal((await worker.fetch(req('/api/owner-preview-reviews','GET',undefined,alternateBridgeToken),{...env(s.db),ACTIVEPIECES_BRIDGE_TOKEN:alternateBridgeToken,SCOTTY_ACTIVEPIECES_ENABLED:'true'})).status,401);
+  const bridgeEnv={...env(s.db),ACTIVEPIECES_BRIDGE_TOKEN:alternateBridgeToken,SCOTTY_ACTIVEPIECES_ENABLED:'true'};
+  const bridgeHeader={'x-scotty-activepieces-token':alternateBridgeToken};
+  const catalog=new Request('https://isolated-scotty.invalid/api/activepieces/catalog',{headers:bridgeHeader});
+  assert.equal((await worker.fetch(catalog,bridgeEnv)).status,200);
+  const forgedOwner=new Request('https://isolated-scotty.invalid/api/owner-preview-reviews',{headers:bridgeHeader});
+  assert.equal((await worker.fetch(forgedOwner,bridgeEnv)).status,401);
   const attempted=await worker.fetch(post('/api/activepieces/plan',{question:'fictional QA',ownerApproved:true},alternateBridgeToken),{...env(s.db),ACTIVEPIECES_BRIDGE_TOKEN:alternateBridgeToken,SCOTTY_ACTIVEPIECES_ENABLED:'true'});
   assert.equal(attempted.status,401); // Activepieces expects a dedicated header, not the owner bearer header.
   assert.equal((await worker.fetch(post('/api/owner-preview-reviews',{...proposal,ownerApproved:true}),env(s.db))).status,400);
