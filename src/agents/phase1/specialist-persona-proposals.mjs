@@ -80,8 +80,14 @@ export function specialistPersonaProposal(row){
  };
  const presentation=PRESENTATION_VARIANTS[deterministicIndex(id,PRESENTATION_VARIANTS.length)];
  const playbook=specialistPlaybook({id,department,specialty:focus});
- const traits=[...dept.baseline,...roleLens.traits];
- if(traits.length!==5||new Set(traits).size!==5)throw Error("PERSONALITY_TRAIT_COLLISION");
+ const traits=[...new Set([...dept.baseline,...roleLens.traits])];
+ // Some legitimate role lenses share a temperament word with their department.
+ // Retain it once, then use an explicit conservative editorial fallback.
+ for(const fallback of ["scope-aware","evidence-accountable","review-minded","patiently thorough","collaborative"]){
+  if(traits.length>=5)break;
+  if(!traits.includes(fallback))traits.push(fallback);
+ }
+ if(traits.length!==5||new Set(traits).size!==5)throw Error("PERSONALITY_TRAIT_COLLISION:"+id);
  return Object.freeze({
   canonicalAgentId:id,
   displayName:row.Name,
