@@ -1,0 +1,12 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {KIRK_PROFILE,kirkMissionProposal,kirkTeamProposal,kirkProgressSnapshot,kirkMemoryProposal,kirkBio} from './kirk-brain.mjs';
+const scope={projectId:'synthetic-project',authorizedProjectIds:['synthetic-project']};
+test('bold leadership with guided major-stage approval',()=>{assert.equal(KIRK_PROFILE.leadershipApproach,'bold');assert.equal(KIRK_PROFILE.workingStyle,'guided');});
+test('unauthorized project rejected',()=>assert.throws(()=>kirkMissionProposal({projectId:'other',authorizedProjectIds:['synthetic-project'],goal:'test'})));
+test('new mission remains proposal only',()=>{const x=kirkMissionProposal({...scope,goal:'synthetic goal'});assert.equal(x.approved,false);assert.equal(x.started,false);});
+test('team recommendations do not delegate',()=>{const x=kirkTeamProposal({...scope,missionId:'m1',proposedAgents:['chief-data']});assert.equal(x.assigned,false);assert.equal(x.delegated,false);});
+test('progress cannot claim execution or verified source',()=>{const x=kirkProgressSnapshot({...scope,missionId:'m1',completed:1,total:4});assert.equal(x.percent,25);assert.equal(x.actualMissionExecution,false);assert.equal(x.source,'caller-supplied-unverified');});
+test('invalid progress is rejected',()=>assert.throws(()=>kirkProgressSnapshot({...scope,missionId:'m1',completed:5,total:4})));
+test('memory requires evidence and owner review',()=>{assert.throws(()=>kirkMemoryProposal({...scope,missionId:'m1',lesson:'synthetic'}));const x=kirkMemoryProposal({...scope,missionId:'m1',lesson:'synthetic',evidenceRefs:['ref']});assert.equal(x.saved,false);assert.equal(x.status,'pending-owner-review');});
+test('private biography hidden without owner verification',()=>{const x=kirkBio({projects:[{private:'synthetic'}]});assert.equal(x.privateDataHidden,true);assert.equal(x.projects,undefined);});
