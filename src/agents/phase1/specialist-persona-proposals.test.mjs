@@ -81,6 +81,21 @@ test("All 160 review packets offer concepts without adopting user preferences or
  assert.equal(review.summary.plannedTests,555);
  assert.equal(review.summary.liveAgents,0);
 });
+test("strategy and mission risk proposals do not impersonate cybersecurity or real deployments",()=>{
+ const byId=new Map(proposals.map(p=>[p.canonicalAgentId,p]));
+ const strategy=byId.get("agent-spock-07");
+ const mission=byId.get("agent-kirk-09");
+ const ops=byId.get("agent-riker-02");
+ const security=byId.get("agent-worf-04");
+ assert.equal(strategy.proposedArchetype,"decision and assumption strategist");
+ assert.match(strategy.signatureInquiry,/assumptions|alternatives/);
+ assert.equal(mission.proposedArchetype,"mission authorization coordinator");
+ assert.match(mission.proposedDeliverable,/mission gate/);
+ assert.equal(ops.proposedArchetype,"operational handoff steward");
+ assert.match(ops.primaryFailureRisk,/schedule/);
+ assert.equal(security.proposedArchetype,"trust-boundary examiner");
+ assert.equal([strategy,mission,ops,security].every(p=>p.executionEnabled===false),true);
+});
 test("Role-derived proposals remain deterministic and never perform actions",()=>{
  const once=JSON.stringify(createAllSpecialistPersonaProposals(roster));
  const again=JSON.stringify(createAllSpecialistPersonaProposals(roster));
