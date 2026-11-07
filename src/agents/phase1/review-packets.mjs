@@ -1,3 +1,5 @@
+import {knowledgeDossier} from "./knowledge-dossiers.mjs";
+import {evaluationCasesFor} from "./evaluation-matrix.mjs";
 /**
  * Stage B1 offline, identity-locked owner review packets.
  * No SQL, external AI, read of private memory, execution or account access.
@@ -23,6 +25,8 @@ export function makePhase1ReviewPackets(drafts){
   const historic=p.priorChiefReview||null;
   const proposedChief=p.proposedNewChiefConcept||null;
   const proposedSpecialist=p.proposedSpecialistPersona||null;
+  const knowledge=knowledgeDossier(p);
+  const evaluations=evaluationCasesFor(p);
   return {
    packetId:"b1-review-"+p.canonicalAgentId,
    canonicalAgentId:p.canonicalAgentId,
@@ -56,6 +60,7 @@ export function makePhase1ReviewPackets(drafts){
     modelEvaluationBudgetUsd:0,
     aliasOrIdentityChangeApproved:false
    },
+   knowledgeReadiness:knowledge,
    methodology:{
     coverage:p.distinctiveReasoning.methodCoverage,
     example:p.distinctiveReasoning.workedSyntheticExample,
@@ -74,9 +79,11 @@ export function makePhase1ReviewPackets(drafts){
     sourceDepartment:historic.legacyDepartment,canonicalDepartment:p.department,
     ownerDecisionRequired:true
    }:null,
-   behaviorCases:p.behaviorTestPlan.map(t=>({
-    testId:t.caseId,type:t.caseType,scenario:t.scenario,
-    status:"NOT_RUN",realModelOutputRef:null,reviewedBy:null,reviewResult:null
+   behaviorCases:evaluations.map(t=>({
+    testId:t.evaluationId,type:t.type,scenario:t.prompt,
+    status:"NOT_RUN",realModelOutputRef:null,reviewedBy:null,reviewResult:null,
+    rubric:t.rubric,expectedEvidence:{modelUsed:null,modelVersion:null,outputHash:null,observedAt:null},
+    externalToolUseAllowed:false
    })),
    evidenceChecklist:REQUIRED_EVIDENCE.map(k=>({key:k,passed:false,reviewer:null,evidenceRef:null})),
    authorization:{rolePermissionsApproved:false,liveAgentEnabled:false,externalTools:[],memoryWriteEnabled:false,productionAccessAllowed:false},
@@ -101,7 +108,7 @@ export function makePhase1ReviewPackets(drafts){
  return {
   schemaVersion:1,stage:"B",phase:1,reviewStatus:"PENDING_OWNER_INDIVIDUAL_REVIEW",
   a0OperationalCertified:false,packets,queue,
-  summary:{packets:185,departments:25,evidenceChecks:185*REQUIRED_EVIDENCE.length,plannedTests:555,modelTestsPassed:0,approvedPersonalities:0,liveAgents:0},
+  summary:{packets:185,departments:25,evidenceChecks:185*REQUIRED_EVIDENCE.length,knowledgeRequirements:185*3,researchQuestions:185*4,plannedTests:555,modelRubricCriteria:555*4,verifiedKnowledgeSources:0,modelTestsPassed:0,approvedPersonalities:0,liveAgents:0},
   safeOperation:"OFFLINE_REVIEW_ONLY"
  };
 }
