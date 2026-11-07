@@ -27,6 +27,171 @@
       "provenance": "production-source-fallback"
     },
     {
+      "id": "chief-worf",
+      "name": "WORF",
+      "department": "Security & Defense",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "threat modeling",
+        "access review",
+        "incident triage",
+        "privacy safeguards"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "chief-data",
+      "name": "DATA",
+      "department": "Research & Intelligence",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "research planning",
+        "source evaluation",
+        "fact checking",
+        "knowledge synthesis"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "chief-quark",
+      "name": "QUARK",
+      "department": "Commerce & Finance",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "budget modeling",
+        "pricing",
+        "forecasting",
+        "cost comparison"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "chief-kirk",
+      "name": "KIRK",
+      "department": "Command & Missions",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "task decomposition",
+        "dependency mapping",
+        "delegation",
+        "acceptance criteria"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "chief-uhura",
+      "name": "UHURA",
+      "department": "Communications & Languages",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "drafting",
+        "editing",
+        "translation",
+        "audience adaptation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "chief-geordi",
+      "name": "GEORDI",
+      "department": "Engineering & Systems",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "debugging",
+        "architecture",
+        "test design",
+        "deployment planning"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "chief-keiko",
+      "name": "KEIKO",
+      "department": "Science & Environment",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "hypothesis formation",
+        "study critique",
+        "experimental design",
+        "data interpretation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "chief-picard",
+      "name": "PICARD",
+      "department": "Policy & Diplomacy",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "policy interpretation",
+        "stakeholder mapping",
+        "negotiation",
+        "risk review"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "chief-bones",
+      "name": "BONES",
+      "department": "Health & Human Support",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "health literacy",
+        "appointment preparation",
+        "care coordination planning",
+        "accessible explanations"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "chief-zora",
+      "name": "ZORA",
+      "department": "Creative & Knowledge",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "story analysis",
+        "ideation",
+        "editorial review",
+        "knowledge organization"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "chief-riker",
+      "name": "RIKER",
+      "department": "Operations & Coordination",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "scheduling",
+        "workflow design",
+        "process improvement",
+        "progress tracking"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
       "id": "agent-spock-01",
       "name": "O'Brien",
       "department": "Strategy & Reasoning",
@@ -183,21 +348,6 @@
         "scenario planning",
         "prioritization",
         "assumption testing"
-      ],
-      "provenance": "production-source-fallback"
-    },
-    {
-      "id": "chief-worf",
-      "name": "WORF",
-      "department": "Security & Defense",
-      "isChief": true,
-      "chiefId": null,
-      "specialty": "Department leadership",
-      "skills": [
-        "threat modeling",
-        "access review",
-        "incident triage",
-        "privacy safeguards"
       ],
       "provenance": "production-source-fallback"
     },
@@ -362,21 +512,6 @@
       "provenance": "production-source-fallback"
     },
     {
-      "id": "chief-data",
-      "name": "DATA",
-      "department": "Research & Intelligence",
-      "isChief": true,
-      "chiefId": null,
-      "specialty": "Department leadership",
-      "skills": [
-        "research planning",
-        "source evaluation",
-        "fact checking",
-        "knowledge synthesis"
-      ],
-      "provenance": "production-source-fallback"
-    },
-    {
       "id": "agent-data-01",
       "name": "Sato",
       "department": "Research & Intelligence",
@@ -533,21 +668,6 @@
         "source evaluation",
         "fact checking",
         "knowledge synthesis"
-      ],
-      "provenance": "production-source-fallback"
-    },
-    {
-      "id": "chief-quark",
-      "name": "QUARK",
-      "department": "Commerce & Finance",
-      "isChief": true,
-      "chiefId": null,
-      "specialty": "Department leadership",
-      "skills": [
-        "budget modeling",
-        "pricing",
-        "forecasting",
-        "cost comparison"
       ],
       "provenance": "production-source-fallback"
     },
@@ -712,21 +832,6 @@
       "provenance": "production-source-fallback"
     },
     {
-      "id": "chief-kirk",
-      "name": "KIRK",
-      "department": "Command & Missions",
-      "isChief": true,
-      "chiefId": null,
-      "specialty": "Department leadership",
-      "skills": [
-        "task decomposition",
-        "dependency mapping",
-        "delegation",
-        "acceptance criteria"
-      ],
-      "provenance": "production-source-fallback"
-    },
-    {
       "id": "agent-kirk-01",
       "name": "Garak",
       "department": "Command & Missions",
@@ -883,21 +988,6 @@
         "dependency mapping",
         "delegation",
         "acceptance criteria"
-      ],
-      "provenance": "production-source-fallback"
-    },
-    {
-      "id": "chief-uhura",
-      "name": "UHURA",
-      "department": "Communications & Languages",
-      "isChief": true,
-      "chiefId": null,
-      "specialty": "Department leadership",
-      "skills": [
-        "drafting",
-        "editing",
-        "translation",
-        "audience adaptation"
       ],
       "provenance": "production-source-fallback"
     },
@@ -1062,21 +1152,6 @@
       "provenance": "production-source-fallback"
     },
     {
-      "id": "chief-geordi",
-      "name": "GEORDI",
-      "department": "Engineering & Systems",
-      "isChief": true,
-      "chiefId": null,
-      "specialty": "Department leadership",
-      "skills": [
-        "debugging",
-        "architecture",
-        "test design",
-        "deployment planning"
-      ],
-      "provenance": "production-source-fallback"
-    },
-    {
       "id": "agent-geordi-01",
       "name": "Sisko",
       "department": "Engineering & Systems",
@@ -1233,21 +1308,6 @@
         "architecture",
         "test design",
         "deployment planning"
-      ],
-      "provenance": "production-source-fallback"
-    },
-    {
-      "id": "chief-keiko",
-      "name": "KEIKO",
-      "department": "Science & Environment",
-      "isChief": true,
-      "chiefId": null,
-      "specialty": "Department leadership",
-      "skills": [
-        "hypothesis formation",
-        "study critique",
-        "experimental design",
-        "data interpretation"
       ],
       "provenance": "production-source-fallback"
     },
@@ -1412,21 +1472,6 @@
       "provenance": "production-source-fallback"
     },
     {
-      "id": "chief-picard",
-      "name": "PICARD",
-      "department": "Policy & Diplomacy",
-      "isChief": true,
-      "chiefId": null,
-      "specialty": "Department leadership",
-      "skills": [
-        "policy interpretation",
-        "stakeholder mapping",
-        "negotiation",
-        "risk review"
-      ],
-      "provenance": "production-source-fallback"
-    },
-    {
       "id": "agent-picard-01",
       "name": "Relay Auto",
       "department": "Policy & Diplomacy",
@@ -1567,21 +1612,6 @@
         "stakeholder mapping",
         "negotiation",
         "risk review"
-      ],
-      "provenance": "production-source-fallback"
-    },
-    {
-      "id": "chief-bones",
-      "name": "BONES",
-      "department": "Health & Human Support",
-      "isChief": true,
-      "chiefId": null,
-      "specialty": "Department leadership",
-      "skills": [
-        "health literacy",
-        "appointment preparation",
-        "care coordination planning",
-        "accessible explanations"
       ],
       "provenance": "production-source-fallback"
     },
@@ -1730,21 +1760,6 @@
       "provenance": "production-source-fallback"
     },
     {
-      "id": "chief-zora",
-      "name": "ZORA",
-      "department": "Creative & Knowledge",
-      "isChief": true,
-      "chiefId": null,
-      "specialty": "Department leadership",
-      "skills": [
-        "story analysis",
-        "ideation",
-        "editorial review",
-        "knowledge organization"
-      ],
-      "provenance": "production-source-fallback"
-    },
-    {
       "id": "agent-zora-01",
       "name": "Security Command",
       "department": "Creative & Knowledge",
@@ -1885,21 +1900,6 @@
         "ideation",
         "editorial review",
         "knowledge organization"
-      ],
-      "provenance": "production-source-fallback"
-    },
-    {
-      "id": "chief-riker",
-      "name": "RIKER",
-      "department": "Operations & Coordination",
-      "isChief": true,
-      "chiefId": null,
-      "specialty": "Department leadership",
-      "skills": [
-        "scheduling",
-        "workflow design",
-        "process improvement",
-        "progress tracking"
       ],
       "provenance": "production-source-fallback"
     },
