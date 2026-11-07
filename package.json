@@ -7,7 +7,7 @@
     "start": "bun run src/server.ts",
     "dev": "bun --watch src/server.ts",
     "test": "bun test src/agents src/workspace",
-    "test:a0": "node --test src/security/approval-gate.test.mjs"
+    "test:a0": "node --test src/security/*.test.mjs"
   },
   "engines": {
     "bun": ">=1.1.0"
