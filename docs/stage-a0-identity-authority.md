@@ -89,3 +89,11 @@ No production credentials in source code, prompts, exports or public issues. Sep
 - [ ] Owner signs identity register, privilege policy, backup result and budget ceiling.
 
 **Exit decision: BLOCKED.** No production activation, new connected app permission, automatic posting, memory migration or paid action is authorized by this document.
+
+## 8. Additional implementation evidence (2026-11-07)
+
+- Added isolated pure evaluator: `src/security/approval-gate.mjs`. Its interface is intentionally side-effect-free; it returns only a **provisional** decision and **requiresAtomicClaim=true** for permitted requests.
+- Added 34 independent test cases in `src/security/approval-gate.test.mjs`; all 34 passed locally with Node.js 22 using `node --test src/security/approval-gate.test.mjs`. GitHub CI has **not** been verified for these tests.
+- Added `docs/stage-a0-environment-inventory.md` with read-only observed systems and unresolved source-of-truth questions.
+- The evaluator does **not** yet authorize live operations. Before any runtime use, integrate authenticated owner identity, trusted server-side grant loading, atomic grant consumption/idempotency/cost reservations, append-only audit and stop-all state; prove cross-process/restart behavior and fail-closed tests.
+- Local test results do not satisfy the A0 exit gate, an end-to-end permission test, live provider evaluation, recovery restoration or owner sign-off.
