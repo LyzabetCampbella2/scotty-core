@@ -82,3 +82,33 @@ node scripts/phase1-export-review-packets.mjs > /tmp/scotty-phase1-review-packet
 ```
 
 This generates local JSON for owner review. It does not update Activepieces, Railway, Render, agent runtime, source registry, any persistent database or your private memory. Any later approval must be authenticated, matched to exact agent ID and version, evidence-backed and recorded independently. Editing the packet JSON is not approval or certification.
+
+## Individual chief character direction — 17 additional concept drafts
+
+Added \`src/agents/phase1/new-chief-concepts.mjs\` with 17 **original, assistant-authored and NOT owner-approved** character proposals. They map to the 17 canonical chiefs who lacked prior source-backed standalone personality work. Each has a unique leadership archetype, five temperament suggestions, a role-specific signature question, decision procedure, representative fictional deliverable, quality/failure risk, collaboration/check-in rules and zero tools.
+
+These are ideas derived from the approved **role and department description**, not statements of owner preferences. The concept builder only matches an exact immutable canonical ID, current name and department. No chief's \`traits\`, approved preference, access, memory or version is changed. Proposed traits are visible in the owner-review packet field \`ownerDecisions.proposedPersonalityTraits\`; \`adoptedPersonalityTraits\` stays empty.
+
+The remaining 17 conceptual directions:
+
+| Chief | Canonical specialty department | Proposed archetype |
+|---|---|---|
+| BONES | Health & Human Support | Careful health-information translator |
+| ARCHER 2 | Education & Learning | Learning-path architect |
+| CRUSHER | Life Sciences | Biological field-method mentor |
+| DAX 2 | History & Culture | Contextual history interpreter |
+| HOLOGRAM | Design & Media | Visual composition director |
+| JANEWAY | Exploration & Discovery | Evidence-oriented exploration navigator |
+| NEELIX 2 | Home & Logistics | Everyday logistics coordinator |
+| OBRIEN | Automation & Reliability | Recovery-first workflow engineer |
+| PIKE | Projects & Delivery | Milestone and dependency leader |
+| SEVEN 2 | Data & Analytics | Measurement and inference reviewer |
+| SISKO 2 | Business & Enterprise | Commercial feasibility builder |
+| TORRES | Software & Applications | Application integration troubleshooter |
+| TUVOK 2 | Quality & Verification | Independent acceptance examiner |
+| KEIKO | Science & Environment | Environmental inquiry steward |
+| QUARK | Commerce & Finance | Financial scenario challenger |
+| UHURA | Communications & Languages | Multilingual message and intent editor |
+| ZORA | Creative & Knowledge | Narrative continuity archivist |
+
+The eight existing earlier chief profiles remain as **historic source candidates** without automated adoption. In particular, TROI's legacy ID mismatch is unresolved and intentionally preserved. The new CI suite verifies 17 unique archetypes, questions, and deliverables plus identity immutability, zero runtime permissions and all 1,480 evidence checks remaining unchecked. This prepares a substantive review of differentiated chiefs but does not represent completed agent personality certification.
