@@ -46,6 +46,23 @@ After the first harmless GitHub handshake succeeds, add a second **HTTP** action
 
 The directory is compared against the development source by the repository's synthetic CI. There are no API tokens in the snapshot.
 
+## Step 2: Build a safe chief-and-specialist proposal from the directory
+
+This works **now** on your tablet using the public static directory. It does **not** execute any agent, mission, project write, memory update or model call.
+
+1. In the same manually triggered Activepieces flow, after the GET public agent directory step, tap + and add a **Code** step. Name it **SCOTTY — Suggest Team**.
+2. Open the code file in Safari:
+   https://github.com/LyzabetCampbella2/scotty-core/blob/feat/scotty-activepieces-ipad-bridge-20261106/activepieces/steps/propose-team.mjs
+   Copy the full contents into the Code step editor, replacing the default code.
+3. In the Code step **Inputs** tab, add an input named **directory** (exact spelling). For its value, select the **Body** output from the previous HTTP Get Agent Directory step in the data-picker. You can also select the full previous HTTP result, as the code accepts either shape. Never paste sensitive content into this input.
+4. Add another input named **task** (exact spelling), with this exact nonsensitive test value:
+   `frontend engineering and application testing`
+5. Tap **Test Step**. Expected: status **PENDING_OWNER_APPROVAL**, mode **ROUTING_PREVIEW_ONLY**, a proposedTeams list with up to two distinct chiefs and their specialist IDs, overseer **SCOTTY**, ownerApprovalRequired **true**, started **false**, aiCalls **0**, memoryWrites **0**, missionsCreated **0**, externalActions **0**, liveRosterVerified **false**.
+6. Do NOT add mission-execution, email-sending, GitHub-write, memory-write or AI agent steps. Leave the flow manual and off/unpublished for automatic runs. This demonstrates task matching **only**.
+7. For another public fictional example, change task to `biology ecology research`. If the task has no recognized specialties, status should become **NEEDS_CLARIFICATION** rather than inventing a qualified agent.
+
+The matching is deterministic keyword scoring of authored role/specialty labels, not AI reasoning. The directory contains some duplicate-name/placeholder development identities; resolving the final owner-reviewed roster and live SCOTTY permissions is a later stage.
+
 ## Security gate (required BEFORE the HTTP steps can actually work)
 
 - The owner must separately review and authorize an isolated Cloudflare staging Worker deployment based on the development branch. This draft has not deployed anything.
