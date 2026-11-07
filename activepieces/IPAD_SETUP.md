@@ -33,6 +33,19 @@ Before the future staging deployment, verify your Activepieces Cloud account can
 6. Leave BOTH flows disabled/unpublished for automatic running until a separate deployment, API identity and permission review has succeeded. Only manual tests are contemplated.
 7. Expected catalog response: 185 development agents, chiefs=25, specialists=160, liveRosterVerified=false. This is a source roster, not a verified production registry.
 
+## Step 1b: Public development agent directory (works now without Cloudflare)
+
+After the first harmless GitHub handshake succeeds, add a second **HTTP** action to the same manually triggered Activepieces flow:
+
+- Method: GET
+- URL: https://raw.githubusercontent.com/LyzabetCampbella2/scotty-core/feat/scotty-activepieces-ipad-bridge-20261106/activepieces/public-agent-directory.json
+- Headers, body, credentials: NONE
+- Run/test the step manually. Look in the HTTP action's body for schema_version=scotty-public-dev-directory-v1, counts.chiefs=25, counts.specialists=160 and agents array length=185.
+- The static JSON is a **snapshot of public proposed development profiles**, not a live SCOTTY memory connection or an executing agent network. Do not call any AI action automatically or treat static agent IDs as permissions.
+- This URL may change before merging; if GitHub returns 404, verify the branch and file in the draft PR.
+
+The directory is compared against the development source by the repository's synthetic CI. There are no API tokens in the snapshot.
+
 ## Security gate (required BEFORE the HTTP steps can actually work)
 
 - The owner must separately review and authorize an isolated Cloudflare staging Worker deployment based on the development branch. This draft has not deployed anything.
