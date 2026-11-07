@@ -47,3 +47,28 @@ test('actual isolated Worker routes bridge before normal owner auth',async()=>{
   assert.equal((await worker.fetch(req('/api/activepieces/catalog'),env)).status,200);
   assert.equal((await worker.fetch(req('/api/activepieces/catalog','GET',undefined,env.OWNER_BEARER_TOKEN),env)).status,401);
 });
+
+test('review readiness requires separate bridge secret and never grants owner authority',async()=>{
+  const url='/api/activepieces/review-readiness';
+  const disabled=await handleActivepieces(req(url),{...env,SCOTTY_ACTIVEPIECES_ENABLED:'false'});
+  assert.equal(disabled.status,503);
+  const wrong=await handleActivepieces(req(url,'GET',undefined,env.OWNER_BEARER_TOKEN),env);
+  assert.equal(wrong.status,401);
+  const ok=await handleActivepieces(req(url),env);
+  assert.equal(ok.status,200);
+  const info=await ok.json();
+  assert.equal(info.type,'REVIEW_SCHEMA_READINESS');
+  assert.equal(info.ready,false);
+  assert.equal(info.reason,'ISOLATED_D1_BINDING_UNAVAILABLE');
+  assert.equal(info.ownerSessionVerified,false);
+  assert.equal(info.projectMembershipVerified,false);
+  assert.equal(info.approvalsVerified,0);
+  assert.equal(info.canExecute,false);
+  assert.equal(info.changesMade,0);
+  assert.equal((await handleActivepieces(req(url,'POST',{approved:true}),env)).status,405);
+  assert.equal((await handleActivepieces(req(url+'?ownerApproved=true'),env)).status,400);
+  const worker=(await import('./worker.mjs')).default;
+  const response=await worker.fetch(req(url),env);
+  assert.equal(response.status,200);
+  assert.equal((await response.json()).canExecute,false);
+});
