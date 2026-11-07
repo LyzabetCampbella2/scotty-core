@@ -175,3 +175,86 @@ test('missing schema, owner config, invalid method and query are denied',async()
   assert.equal((await worker.fetch(req('/api/owner-preview-reviews?requestId='+proposal.requestId+'&admin=true'),env(s.db))).status,400);
  }finally{s.close();}
 });
+
+
+test('owner-only preflight diagnoses isolated setup without any data write or secret disclosure',async()=>{
+ const s=createDb();
+ try{
+  const before=s.native.prepare('SELECT COUNT(*) AS n FROM scotty_activepieces_review_audit_v1').get().n;
+  const path='/api/owner-preview-reviews/readiness';
+  const ok=await worker.fetch(req(path),env(s.db));
+  assert.equal(ok.status,200);
+  const state=await ok.json();
+  assert.equal(state.type,'SCOTTY_OWNER_PREVIEW_REVIEW_PREFLIGHT');
+  assert.equal(state.status,'ISOLATED_PREVIEW_REVIEW_CONFIG_READY');
+  assert.equal(state.readyForIsolatedPreviewReviews,true);
+  assert.equal(state.projectAllowlistValid,true);
+  assert.equal(state.projectsConfigured,1);
+  assert.equal(state.matchingProjectCount,1);
+  assert.equal(state.linkedAgentCount,2);
+  assert.equal(state.readyForProduction,false);
+  assert.equal(state.canExecute,false);
+  assert.equal(state.canDeploy,false);
+  assert.equal(state.canPublish,false);
+  assert.equal(state.memoryReads,0);
+  assert.equal(state.databaseWrites,0);
+  assert.equal(s.native.prepare('SELECT COUNT(*) AS n FROM scotty_activepieces_review_audit_v1').get().n,before);
+  const serialized=JSON.stringify(state);
+  assert.doesNotMatch(serialized,/OWNER_BEARER_TOKEN|SCOTTY_REVIEW_OWNER_ID|synthetic-owner-token|owner-demo-0001/);
+  assert.equal((await worker.fetch(req(path,'GET',undefined,null),env(s.db))).status,401);
+  assert.equal((await worker.fetch(post(path,{ownerApproved:true}),env(s.db))).status,405);
+  assert.equal((await worker.fetch(req(path+'?token=secret'),env(s.db))).status,400);
+ }finally{s.close();}
+});
+
+test('owner preflight remains accessible with feature OFF but refuses to imply launch approval',async()=>{
+ const s=createDb();
+ try{
+  const out=await worker.fetch(req('/api/owner-preview-reviews/readiness'),{...env(s.db),SCOTTY_PREVIEW_REVIEWS_ENABLED:'false'});
+  assert.equal(out.status,200);
+  const state=await out.json();
+  assert.equal(state.status,'BLOCKED');
+  assert.equal(state.featureSwitchOn,false);
+  assert.equal(state.readyForIsolatedPreviewReviews,false);
+  assert.equal(state.canExecute,false);
+  assert.ok(state.blockers.includes('OWNER_REVIEW_SWITCH_OFF'));
+  assert.equal((await worker.fetch(post('/api/owner-preview-reviews',proposal),{...env(s.db),SCOTTY_PREVIEW_REVIEWS_ENABLED:'false'})).status,503);
+ }finally{s.close();}
+});
+
+test('owner preflight reports missing identity and incomplete isolated D1 project links',async()=>{
+ const s=createDb();
+ try{
+  const path='/api/owner-preview-reviews/readiness';
+  const invalid=await worker.fetch(req(path),{...env(s.db),SCOTTY_REVIEW_OWNER_ID:undefined});
+  assert.equal(invalid.status,200);
+  assert.equal((await invalid.json()).readyForIsolatedPreviewReviews,false);
+  s.native.prepare('DELETE FROM agent_project_links WHERE agent_id=?').run(proposal.agentIds[0]);
+  const one=await worker.fetch(req(path),env(s.db));
+  assert.equal((await one.json()).linkedAgentCount,1);
+  s.native.prepare('DELETE FROM agent_project_links WHERE project_id=?').run(proposal.projectId);
+  const empty=await worker.fetch(req(path),env(s.db));
+  const state=await empty.json();
+  assert.equal(state.status,'BLOCKED');
+  assert.equal(state.publicDevelopmentMembershipReady,false);
+  assert.equal(state.readyForIsolatedPreviewReviews,false);
+  assert.ok(state.blockers.includes('PROJECT_AGENT_MEMBERSHIP_NOT_READY'));
+  s.native.prepare('INSERT INTO agent_project_links(agent_id,project_id,assigned_at) VALUES(?,?,?)').run('agent-pretend-unknown',proposal.projectId,'2026-11-07T00:00:00Z');
+  const forged=await worker.fetch(req(path),env(s.db));
+  assert.ok((await forged.json()).blockers.includes('PROJECT_MEMBERSHIP_QUERY_UNVERIFIED'));
+ }finally{s.close();}
+});
+
+test('preflight cannot be reached with the independent Activepieces bridge token',async()=>{
+ const s=createDb();
+ try{
+  const bridgeToken='synthetic-activepieces-token-abcdef12345678900000';
+  const environment={...env(s.db),SCOTTY_ACTIVEPIECES_ENABLED:'true',ACTIVEPIECES_BRIDGE_TOKEN:bridgeToken};
+  const bridgeOnly=new Request('https://isolated-scotty.invalid/api/owner-preview-reviews/readiness',{
+   headers:{'x-scotty-activepieces-token':bridgeToken}
+  });
+  assert.equal((await worker.fetch(bridgeOnly,environment)).status,401);
+  const bridgeBearer=req('/api/owner-preview-reviews/readiness','GET',undefined,bridgeToken);
+  assert.equal((await worker.fetch(bridgeBearer,environment)).status,401);
+ }finally{s.close();}
+});
