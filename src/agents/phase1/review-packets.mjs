@@ -22,6 +22,7 @@ export function makePhase1ReviewPackets(drafts){
   if(p.permissions?.executionEnabled!==false||p.permissions?.externalAppAccess!==false||p.ownerApproved!==false)throw Error("LIVE_OR_APPROVED_DRAFT_REJECTED");
   const historic=p.priorChiefReview||null;
   const proposedChief=p.proposedNewChiefConcept||null;
+  const proposedSpecialist=p.proposedSpecialistPersona||null;
   return {
    packetId:"b1-review-"+p.canonicalAgentId,
    canonicalAgentId:p.canonicalAgentId,
@@ -30,15 +31,21 @@ export function makePhase1ReviewPackets(drafts){
    department:p.department,
    chiefId:p.chiefId,
    specialty:p.specialty,
-   provenance:{rosterGitBlobSha:p.rosterBlobSha,method:p.distinctiveReasoning.provenance,legacyChief:historic?.sourceRef||null,proposedChief:proposedChief?{proposalVersion:proposedChief.proposalVersion,sourceKind:proposedChief.sourceKind}:null},
+   provenance:{rosterGitBlobSha:p.rosterBlobSha,method:p.distinctiveReasoning.provenance,legacyChief:historic?.sourceRef||null,proposedChief:proposedChief?{proposalVersion:proposedChief.proposalVersion,sourceKind:proposedChief.sourceKind}:null,proposedSpecialist:proposedSpecialist?{proposalVersion:proposedSpecialist.proposalVersion,sourceKind:proposedSpecialist.sourceKind}:null},
    ownerReviewState:"AWAITING_OWNER_REVIEW",
    ownerDecisions:{
-    proposedPersonalityTraits:historic?.sourceTraits||proposedChief?.traits||[],
+    proposedPersonalityTraits:historic?.sourceTraits||proposedChief?.traits||proposedSpecialist?.proposedTraits||[],
     proposedLeadershipArchetype:proposedChief?.archetype||null,
     proposedSignatureQuestion:proposedChief?.signatureQuestion||null,
     proposedChiefMethod:proposedChief?.roleReasoningMethod||null,
     proposedChiefDeliverable:proposedChief?.exampleDeliverable||null,
     proposedChiefFailureRisk:proposedChief?.chiefFailureRisk||null,
+    proposedSpecialistArchetype:proposedSpecialist?.proposedArchetype||null,
+    proposedSpecialistCommunication:proposedSpecialist?.proposedCommunication||null,
+    proposedSpecialistQuestion:proposedSpecialist?.signatureInquiry||null,
+    proposedSpecialistMethod:proposedSpecialist?.proposedReasoningMethod||null,
+    proposedSpecialistDeliverable:proposedSpecialist?.proposedDeliverable||null,
+    proposedSpecialistFailureRisk:proposedSpecialist?.primaryFailureRisk||null,
     adoptedPersonalityTraits:[],
     proposedRoleMethod:p.distinctiveReasoning.initialSequence,
     adoptedRoleMethod:false,
