@@ -78,3 +78,11 @@ Until final owner approval, no new paid model/provider usage, billable resources
 - No actual production migration, service isolation, real encrypted recovery, cross-platform stop-all operation, privilege escalation, new app OAuth, external write, or paid resource provisioning occurred in this phase.
 
 **Engineering package status:** prepared for owner and infrastructure review. **Operational certification:** blocked until all specified tests and sign-offs are real and evidenced.
+
+## Provider egress and owner decisions (latest continuation)
+
+- **New finding:** the modular `POST /api/eyes/analyze` endpoint formerly sent submitted images to `analyzeFrame`, which could use a local model or fall back to a configured OpenAI cloud model **without** the A0 owner grant being enforced. This could expose private camera images and incur provider costs.
+- **New branch-only mitigation:** `POST /api/eyes/analyze` now immediately returns HTTP 503 without processing the image or invoking a provider, and its status now reports `visionExecutionAuthorized=false`. An isolated Bun test is included in the Stage A0 CI workflow.
+- This **does not** automatically secure legacy Railway/Render code or any other deployed provider endpoint. Actual running code and network egress must be audited separately, and an authenticated, cost-scoped vision approval must be implemented before re-enabling the feature.
+- The exact remaining owner decisions are prepared in `docs/a0/OWNER-DECISIONS.md`: staging spending/quote authorization, roster freeze/aliases, Render workspace selection, separate real backup authorization and owner-control limits.
+- **Do not mark Phase 0 complete** because the new test passes: environment isolation, live executor enforcement, actual global stop-all, independent real encrypted restore and owner signatures are still missing.
