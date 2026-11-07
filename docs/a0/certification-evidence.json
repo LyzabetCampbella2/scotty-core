@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "project": "SCOTTY",
+  "stage": "A",
+  "phase": 0,
+  "generatedOn": "2026-11-07",
+  "source": "docs/a0/PHASE-0-EXIT-REVIEW.md",
+  "certificationStatus": "BLOCKED",
+  "note": "The canonical IDs and current display names are approved and locked in a versioned Git artifact, while the operational gate requires runtime proof and remaining owner attestations. No new infrastructure spending or production data access is authorized.",
+  "gates": [
+    {
+      "id": "canonical_id_structure",
+      "status": "verified",
+      "evidence": "docs/a0/roster-candidate-2026-11-07.json and GitHub A0 CI",
+      "requiresOwnerSignoff": false
+    },
+    {
+      "id": "owner_signed_roster_freeze",
+      "status": "owner_approved_versioned_pending_authenticated_signature",
+      "evidence": "docs/a0/roster-frozen-2026-11-07.json (Git blob 476f396a709de64e75169ed0ff504526cc0233ef), lock docs/a0/roster-freeze-lock-2026-11-07.json; explicit owner approval in conversation; no authenticated cryptographic signature",
+      "requiresOwnerSignoff": true
+    },
+    {
+      "id": "alias_disposition",
+      "status": "current_names_retained_changes_deferred",
+      "evidence": "docs/a0/OWNER-DECISIONS.md; user approved original names, with changes only in later separately approved versions",
+      "requiresOwnerSignoff": true
+    },
+    {
+      "id": "source_of_truth_mapping",
+      "status": "pending",
+      "evidence": null,
+      "requiresOwnerSignoff": true
+    },
+    {
+      "id": "isolated_staging_resource",
+      "status": "blocked",
+      "evidence": "Railway production and Eyes on test show same Postgres service/volume; reliability staging lists no services",
+      "requiresOwnerSignoff": true
+    },
+    {
+      "id": "real_executor_approval_enforcement",
+      "status": "pending",
+      "evidence": null,
+      "requiresOwnerSignoff": false
+    },
+    {
+      "id": "owner_identity_and_session_auth",
+      "status": "pending",
+      "evidence": null,
+      "requiresOwnerSignoff": false
+    },
+    {
+      "id": "global_emergency_stop_drill",
+      "status": "pending",
+      "evidence": null,
+      "requiresOwnerSignoff": true
+    },
+    {
+      "id": "real_encrypted_backup_restored_independently",
+      "status": "pending",
+      "evidence": null,
+      "requiresOwnerSignoff": true
+    },
+    {
+      "id": "spending_ceiling_and_alerts",
+      "status": "pending",
+      "evidence": null,
+      "requiresOwnerSignoff": true
+    },
+    {
+      "id": "data_policy_rights_retention",
+      "status": "pending",
+      "evidence": null,
+      "requiresOwnerSignoff": true
+    },
+    {
+      "id": "owner_signed_phase_0_acceptance",
+      "status": "pending",
+      "evidence": null,
+      "requiresOwnerSignoff": true
+    }
+  ],
+  "explicitOwnerDecision": {
+    "signer": null,
+    "recordedAt": "2026-11-07",
+    "approvedSnapshotCommit": "f2eccbc612a7fac8e99c4edc6015a0094b60624c",
+    "approvedAliases": "Retain current 185 display names; future alias edits require separate approval",
+    "approvedDataSources": null,
+    "approvedBudget": null,
+    "approvedPrivileges": null,
+    "verifiedRestoreReceipt": null,
+    "verifiedStopAllReceipt": null,
+    "externalApprovalReference": null
+  },
+  "ownerDecisionsRecorded": {
+    "recordedDate": "2026-11-07",
+    "method": "Explicit approval by user in current conversation; not cryptographically signed",
+    "renderReadOnlyWorkspace": {
+      "name": "My Workspace",
+      "authorized": true,
+      "inspected": true,
+      "scope": "service/deployment/Postgres metadata only"
+    },
+    "canonicalRoster": {
+      "approved": true,
+      "scope": "185 permanent agent IDs and current display names unchanged",
+      "approvedVersion": "docs/a0/roster-frozen-2026-11-07.json",
+      "approvedBlobSha": "476f396a709de64e75169ed0ff504526cc0233ef",
+      "proof": "docs/a0/roster-freeze-lock-2026-11-07.json",
+      "aliasChangesApproved": false,
+      "runtimeRegistryModified": false
+    },
+    "spending": {
+      "newInfrastructureUsdAllowed": 0,
+      "newProviderUsageUsdAllowed": 0,
+      "perTaskDollarCapApproved": false,
+      "perDayDollarCapApproved": false,
+      "newResourcesCreated": false
+    },
+    "productionData": {
+      "accessAuthorized": false,
+      "exportAuthorized": false,
+      "backupRestorationAuthorized": false,
+      "requiresNewExactScopeApproval": true
+    }
+  }
+}

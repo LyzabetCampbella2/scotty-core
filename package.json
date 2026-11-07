@@ -6,7 +6,8 @@
   "scripts": {
     "start": "bun run src/server.ts",
     "dev": "bun --watch src/server.ts",
-    "test": "bun test src/agents src/workspace"
+    "test": "bun test src/agents src/workspace",
+    "test:a0": "node --test src/security/approval-gate.test.mjs src/security/a0-http.test.mjs src/security/a0-migration.test.mjs src/security/a0-roster.test.mjs src/security/a0-isolation.test.mjs src/security/a0-certification.test.mjs src/security/a0-roster-freeze.test.mjs src/security/a0-executor-lock.test.mjs"
   },
   "engines": {
     "bun": ">=1.1.0"

@@ -1,0 +1,118 @@
+name: SCOTTY Stage A0 Safety Checks
+
+on:
+  pull_request:
+    paths:
+      - 'src/security/**'
+      - 'src/eyes/**'
+      - 'docs/a0/**'
+      - 'scripts/a0-verify-roster.mjs'
+      - '.github/workflows/a0-safety-tests.yml'
+      - 'package.json'
+  push:
+    branches:
+      - 'audit/stage-a0-foundation-20261107'
+    paths:
+      - 'src/security/**'
+      - 'src/eyes/**'
+      - 'docs/a0/**'
+      - 'scripts/a0-verify-roster.mjs'
+      - '.github/workflows/a0-safety-tests.yml'
+      - 'package.json'
+
+permissions:
+  contents: read
+
+jobs:
+  a0-safety:
+    name: A0 isolated security and auth tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Execute no-network, no-secrets A0 tests
+        run: |
+          node --test src/security/approval-gate.test.mjs src/security/a0-http.test.mjs src/security/a0-migration.test.mjs src/security/a0-roster.test.mjs src/security/a0-isolation.test.mjs src/security/a0-certification.test.mjs src/security/a0-roster-freeze.test.mjs src/security/a0-executor-lock.test.mjs
+          node scripts/a0-verify-roster.mjs docs/a0/roster-candidate-2026-11-07.json
+
+  a0-postgres-integration:
+    name: A0 ephemeral PostgreSQL transaction tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: a0_ci
+          POSTGRES_PASSWORD: ci-only-not-a-real-secret
+          POSTGRES_DB: scotty_a0_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U a0_ci -d scotty_a0_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install application SQL client only
+        run: npm install --ignore-scripts --no-audit --no-fund --package-lock=false
+      - name: Validate and exercise disposable PostgreSQL
+        env:
+          GITHUB_ACTIONS: 'true'
+          SCOTTY_A0_EPHEMERAL_DB_TEST: 'yes'
+          A0_CI_DATABASE_URL: postgres://a0_ci:ci-only-not-a-real-secret@127.0.0.1:5432/scotty_a0_ci
+        run: node --test src/security/a0-postgres.ci.test.mjs
+
+      - name: Install public age encryption utility (synthetic CI only)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y age
+      - name: Synthetic PostgreSQL backup and isolated restore rehearsal
+        shell: bash
+        run: |
+          set -euo pipefail
+          cid="$(docker ps -q --filter 'ancestor=postgres:18' | head -n1)"
+          test -n "$cid"
+          archive="$RUNNER_TEMP/scotty-a0-synthetic.dump"
+          ciphertext="$RUNNER_TEMP/scotty-a0-synthetic.dump.age"
+          recovered="$RUNNER_TEMP/scotty-a0-restored.dump"
+          identity="$RUNNER_TEMP/a0-ci-synthetic-identity.txt"
+          recipient="$RUNNER_TEMP/a0-ci-synthetic-recipient.txt"
+          trap 'rm -f "$archive" "$ciphertext" "$recovered" "$identity" "$recipient"' EXIT
+          # Ephemeral synthetic test key; never print its contents or commit it.
+          (umask 077; age-keygen -o "$identity" >/dev/null 2>&1)
+          age-keygen -y "$identity" > "$recipient"
+          docker exec -e PGPASSWORD=ci-only-not-a-real-secret "$cid" pg_dump -U a0_ci -Fc --no-owner --no-privileges -d scotty_a0_ci > "$archive"
+          test -s "$archive"
+          age -r "$(cat "$recipient")" -o "$ciphertext" "$archive"
+          test -s "$ciphertext"
+          age -d -i "$identity" -o "$recovered" "$ciphertext"
+          cmp -s "$archive" "$recovered"
+          # Restore ONLY the independently decrypted copy into a distinct database.
+          docker exec -e PGPASSWORD=ci-only-not-a-real-secret "$cid" createdb -U a0_ci scotty_a0_ci_restored
+          docker exec -i -e PGPASSWORD=ci-only-not-a-real-secret "$cid" pg_restore -U a0_ci --no-owner --no-privileges -d scotty_a0_ci_restored < "$recovered"
+          grants="$(docker exec -e PGPASSWORD=ci-only-not-a-real-secret "$cid" psql -U a0_ci -At -d scotty_a0_ci_restored -c 'select count(*) from scotty_a0_grant')"
+          claims="$(docker exec -e PGPASSWORD=ci-only-not-a-real-secret "$cid" psql -U a0_ci -At -d scotty_a0_ci_restored -c 'select count(*) from scotty_a0_claim')"
+          stop="$(docker exec -e PGPASSWORD=ci-only-not-a-real-secret "$cid" psql -U a0_ci -At -d scotty_a0_ci_restored -c 'select stop_all from scotty_a0_control where id=1')"
+          test "$grants" = 6
+          test "$claims" = 2
+          test "$stop" = t
+
+  a0-vision-boundary:
+    name: A0 no-unapproved camera provider calls
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Assert camera analysis stays blocked without owner grants
+        run: bun test src/eyes/index.test.ts

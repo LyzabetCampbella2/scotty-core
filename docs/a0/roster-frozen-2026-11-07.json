@@ -1,0 +1,1892 @@
+{
+  "schemaVersion": 1,
+  "artifactType": "SCOTTY_CANONICAL_AGENT_ID_AND_DISPLAY_NAME_FREEZE",
+  "recordedDate": "2026-11-07",
+  "freezeStatus": "OWNER_APPROVED_VERSIONED_SNAPSHOT",
+  "appliesTo": "185 canonical agent identity and current display-name records only",
+  "ownerDecision": {
+    "decision": "Approve the 185 permanent IDs and retain current display names, with alias changes reviewed later.",
+    "evidenceType": "EXPLICIT_APPROVAL_IN_CONVERSATION",
+    "cryptographicSignature": false,
+    "consentLimitedTo": [
+      "185 stable Agent ID values",
+      "185 current display Name values"
+    ],
+    "notApproved": [
+      "legacy alias renames",
+      "new agent activation",
+      "production registry mutation",
+      "privileges or memory sharing",
+      "spending or resource creation",
+      "final Stage A0 operational certification"
+    ]
+  },
+  "source": {
+    "system": "Activepieces Lizzy's Project — SCOTTY Public Agent Registry (Draft)",
+    "sourceTableId": "1CSnSdZEiKRUuKIBz1YhC",
+    "candidateFile": "docs/a0/roster-candidate-2026-11-07.json",
+    "candidateGitBlobSha": "84a6ed45838c11ed4e703d4cfc92d83c02326128",
+    "recordComparison": "185 of 185 records identical across identity, name, role, department, chief ID, specialty, provenance and runtime status at approval-time audit"
+  },
+  "invariants": {
+    "count": 185,
+    "chiefs": 25,
+    "specialists": 160,
+    "departments": 25,
+    "scottyOverseerSeparate": true,
+    "optionalCreativeMediaProfilesSeparate": true
+  },
+  "rules": "Treat these agent IDs and display names as locked to this version. Any future alias, rename, add/remove, or identity change requires a new version and explicit owner approval. No production Activepieces records were changed.",
+  "records": [
+    {
+      "Agent ID": "agent-bones-01",
+      "Name": "Vaultguard",
+      "Role": "Specialist",
+      "Department": "Health & Human Support",
+      "Chief ID": "chief-bones",
+      "Specialty": "Health literacy",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-bones-02",
+      "Name": "JAG",
+      "Role": "Specialist",
+      "Department": "Health & Human Support",
+      "Chief ID": "chief-bones",
+      "Specialty": "Clinical evidence appraisal",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-bones-03",
+      "Name": "Garax",
+      "Role": "Specialist",
+      "Department": "Health & Human Support",
+      "Chief ID": "chief-bones",
+      "Specialty": "Appointments and questions",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-bones-04",
+      "Name": "Design",
+      "Role": "Specialist",
+      "Department": "Health & Human Support",
+      "Chief ID": "chief-bones",
+      "Specialty": "Medication literacy",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-bones-05",
+      "Name": "Vic",
+      "Role": "Specialist",
+      "Department": "Health & Human Support",
+      "Chief ID": "chief-bones",
+      "Specialty": "Care coordination",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-bones-06",
+      "Name": "Miles",
+      "Role": "Specialist",
+      "Department": "Health & Human Support",
+      "Chief ID": "chief-bones",
+      "Specialty": "Mental health resources",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-bones-07",
+      "Name": "Lwaxana",
+      "Role": "Specialist",
+      "Department": "Health & Human Support",
+      "Chief ID": "chief-bones",
+      "Specialty": "Nutrition literacy",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-bones-08",
+      "Name": "Seven",
+      "Role": "Specialist",
+      "Department": "Health & Human Support",
+      "Chief ID": "chief-bones",
+      "Specialty": "Accessibility support",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-bones-09",
+      "Name": "Merchant",
+      "Role": "Specialist",
+      "Department": "Health & Human Support",
+      "Chief ID": "chief-bones",
+      "Specialty": "Emergency planning",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-data-01",
+      "Name": "Sato",
+      "Role": "Specialist",
+      "Department": "Research & Intelligence",
+      "Chief ID": "chief-data",
+      "Specialty": "Source evaluation",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-data-02",
+      "Name": "Resolver",
+      "Role": "Specialist",
+      "Department": "Research & Intelligence",
+      "Chief ID": "chief-data",
+      "Specialty": "Fact verification",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-data-03",
+      "Name": "PADD",
+      "Role": "Specialist",
+      "Department": "Research & Intelligence",
+      "Chief ID": "chief-data",
+      "Specialty": "Research synthesis",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-data-04",
+      "Name": "Subspace",
+      "Role": "Specialist",
+      "Department": "Research & Intelligence",
+      "Chief ID": "chief-data",
+      "Specialty": "Literature review",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-data-05",
+      "Name": "Hoshi",
+      "Role": "Specialist",
+      "Department": "Research & Intelligence",
+      "Chief ID": "chief-data",
+      "Specialty": "Document analysis",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-data-06",
+      "Name": "Context",
+      "Role": "Specialist",
+      "Department": "Research & Intelligence",
+      "Chief ID": "chief-data",
+      "Specialty": "Data collection",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-data-07",
+      "Name": "CRM",
+      "Role": "Specialist",
+      "Department": "Research & Intelligence",
+      "Chief ID": "chief-data",
+      "Specialty": "Citation quality",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-data-08",
+      "Name": "Prime",
+      "Role": "Specialist",
+      "Department": "Research & Intelligence",
+      "Chief ID": "chief-data",
+      "Specialty": "Uncertainty tracking",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-data-09",
+      "Name": "Watchtower",
+      "Role": "Specialist",
+      "Department": "Research & Intelligence",
+      "Chief ID": "chief-data",
+      "Specialty": "Information retrieval",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-data-10",
+      "Name": "Audit Sec",
+      "Role": "Specialist",
+      "Department": "Research & Intelligence",
+      "Chief ID": "chief-data",
+      "Specialty": "Evidence comparison",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-001",
+      "Name": "JANEWAY astronomy",
+      "Role": "Specialist",
+      "Department": "Exploration & Discovery",
+      "Chief ID": "chief-expansion-janeway",
+      "Specialty": "astronomy",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-002",
+      "Name": "TUVOK fact checking",
+      "Role": "Specialist",
+      "Department": "Quality & Verification",
+      "Chief ID": "chief-expansion-tuvok",
+      "Specialty": "fact checking",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-003",
+      "Name": "SISKO business planning",
+      "Role": "Specialist",
+      "Department": "Business & Enterprise",
+      "Chief ID": "chief-expansion-sisko",
+      "Specialty": "business planning",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-004",
+      "Name": "ARCHER curriculum",
+      "Role": "Specialist",
+      "Department": "Education & Learning",
+      "Chief ID": "chief-expansion-archer",
+      "Specialty": "curriculum",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-005",
+      "Name": "TROI accessibility",
+      "Role": "Specialist",
+      "Department": "Accessibility & Wellbeing",
+      "Chief ID": "chief-expansion-troi",
+      "Specialty": "accessibility",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-006",
+      "Name": "DAX history",
+      "Role": "Specialist",
+      "Department": "History & Culture",
+      "Chief ID": "chief-expansion-dax",
+      "Specialty": "history",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-007",
+      "Name": "SEVEN statistics",
+      "Role": "Specialist",
+      "Department": "Data & Analytics",
+      "Chief ID": "chief-expansion-seven",
+      "Specialty": "statistics",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-008",
+      "Name": "OBRIEN workflow automation",
+      "Role": "Specialist",
+      "Department": "Automation & Reliability",
+      "Chief ID": "chief-expansion-obrien",
+      "Specialty": "workflow automation",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-009",
+      "Name": "HOLOGRAM visual design",
+      "Role": "Specialist",
+      "Department": "Design & Media",
+      "Chief ID": "chief-expansion-hologram",
+      "Specialty": "visual design",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-010",
+      "Name": "PIKE project planning",
+      "Role": "Specialist",
+      "Department": "Projects & Delivery",
+      "Chief ID": "chief-expansion-pike",
+      "Specialty": "project planning",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-011",
+      "Name": "CRUSHER biology",
+      "Role": "Specialist",
+      "Department": "Life Sciences",
+      "Chief ID": "chief-expansion-crusher",
+      "Specialty": "biology",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-012",
+      "Name": "TORRES frontend engineering",
+      "Role": "Specialist",
+      "Department": "Software & Applications",
+      "Chief ID": "chief-expansion-torres",
+      "Specialty": "frontend engineering",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-013",
+      "Name": "NEELIX home organization",
+      "Role": "Specialist",
+      "Department": "Home & Logistics",
+      "Chief ID": "chief-expansion-neelix",
+      "Specialty": "home organization",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-014",
+      "Name": "JANEWAY geography",
+      "Role": "Specialist",
+      "Department": "Exploration & Discovery",
+      "Chief ID": "chief-expansion-janeway",
+      "Specialty": "geography",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-015",
+      "Name": "TUVOK test design",
+      "Role": "Specialist",
+      "Department": "Quality & Verification",
+      "Chief ID": "chief-expansion-tuvok",
+      "Specialty": "test design",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-016",
+      "Name": "SISKO service design",
+      "Role": "Specialist",
+      "Department": "Business & Enterprise",
+      "Chief ID": "chief-expansion-sisko",
+      "Specialty": "service design",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-017",
+      "Name": "ARCHER tutoring",
+      "Role": "Specialist",
+      "Department": "Education & Learning",
+      "Chief ID": "chief-expansion-archer",
+      "Specialty": "tutoring",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-018",
+      "Name": "TROI supportive communication",
+      "Role": "Specialist",
+      "Department": "Accessibility & Wellbeing",
+      "Chief ID": "chief-expansion-troi",
+      "Specialty": "supportive communication",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-019",
+      "Name": "DAX cultural research",
+      "Role": "Specialist",
+      "Department": "History & Culture",
+      "Chief ID": "chief-expansion-dax",
+      "Specialty": "cultural research",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-020",
+      "Name": "SEVEN data cleaning",
+      "Role": "Specialist",
+      "Department": "Data & Analytics",
+      "Chief ID": "chief-expansion-seven",
+      "Specialty": "data cleaning",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-021",
+      "Name": "OBRIEN reliability",
+      "Role": "Specialist",
+      "Department": "Automation & Reliability",
+      "Chief ID": "chief-expansion-obrien",
+      "Specialty": "reliability",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-022",
+      "Name": "HOLOGRAM photography",
+      "Role": "Specialist",
+      "Department": "Design & Media",
+      "Chief ID": "chief-expansion-hologram",
+      "Specialty": "photography",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-023",
+      "Name": "PIKE dependencies",
+      "Role": "Specialist",
+      "Department": "Projects & Delivery",
+      "Chief ID": "chief-expansion-pike",
+      "Specialty": "dependencies",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-024",
+      "Name": "CRUSHER botany",
+      "Role": "Specialist",
+      "Department": "Life Sciences",
+      "Chief ID": "chief-expansion-crusher",
+      "Specialty": "botany",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-025",
+      "Name": "TORRES backend engineering",
+      "Role": "Specialist",
+      "Department": "Software & Applications",
+      "Chief ID": "chief-expansion-torres",
+      "Specialty": "backend engineering",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-026",
+      "Name": "NEELIX travel logistics",
+      "Role": "Specialist",
+      "Department": "Home & Logistics",
+      "Chief ID": "chief-expansion-neelix",
+      "Specialty": "travel logistics",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-027",
+      "Name": "JANEWAY expedition planning",
+      "Role": "Specialist",
+      "Department": "Exploration & Discovery",
+      "Chief ID": "chief-expansion-janeway",
+      "Specialty": "expedition planning",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-028",
+      "Name": "TUVOK evidence review",
+      "Role": "Specialist",
+      "Department": "Quality & Verification",
+      "Chief ID": "chief-expansion-tuvok",
+      "Specialty": "evidence review",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-029",
+      "Name": "SISKO customer research",
+      "Role": "Specialist",
+      "Department": "Business & Enterprise",
+      "Chief ID": "chief-expansion-sisko",
+      "Specialty": "customer research",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-030",
+      "Name": "ARCHER learning assessment",
+      "Role": "Specialist",
+      "Department": "Education & Learning",
+      "Chief ID": "chief-expansion-archer",
+      "Specialty": "learning assessment",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-031",
+      "Name": "TROI inclusive design",
+      "Role": "Specialist",
+      "Department": "Accessibility & Wellbeing",
+      "Chief ID": "chief-expansion-troi",
+      "Specialty": "inclusive design",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-032",
+      "Name": "DAX archives",
+      "Role": "Specialist",
+      "Department": "History & Culture",
+      "Chief ID": "chief-expansion-dax",
+      "Specialty": "archives",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-033",
+      "Name": "SEVEN visualization",
+      "Role": "Specialist",
+      "Department": "Data & Analytics",
+      "Chief ID": "chief-expansion-seven",
+      "Specialty": "visualization",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-034",
+      "Name": "OBRIEN recovery",
+      "Role": "Specialist",
+      "Department": "Automation & Reliability",
+      "Chief ID": "chief-expansion-obrien",
+      "Specialty": "recovery",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-035",
+      "Name": "HOLOGRAM video editing",
+      "Role": "Specialist",
+      "Department": "Design & Media",
+      "Chief ID": "chief-expansion-hologram",
+      "Specialty": "video editing",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-036",
+      "Name": "PIKE delivery review",
+      "Role": "Specialist",
+      "Department": "Projects & Delivery",
+      "Chief ID": "chief-expansion-pike",
+      "Specialty": "delivery review",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-037",
+      "Name": "CRUSHER ecology",
+      "Role": "Specialist",
+      "Department": "Life Sciences",
+      "Chief ID": "chief-expansion-crusher",
+      "Specialty": "ecology",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-038",
+      "Name": "TORRES application testing",
+      "Role": "Specialist",
+      "Department": "Software & Applications",
+      "Chief ID": "chief-expansion-torres",
+      "Specialty": "application testing",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-039",
+      "Name": "NEELIX scheduling",
+      "Role": "Specialist",
+      "Department": "Home & Logistics",
+      "Chief ID": "chief-expansion-neelix",
+      "Specialty": "scheduling",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-040",
+      "Name": "JANEWAY source discovery",
+      "Role": "Specialist",
+      "Department": "Exploration & Discovery",
+      "Chief ID": "chief-expansion-janeway",
+      "Specialty": "source discovery",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-041",
+      "Name": "TUVOK consistency",
+      "Role": "Specialist",
+      "Department": "Quality & Verification",
+      "Chief ID": "chief-expansion-tuvok",
+      "Specialty": "consistency",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-042",
+      "Name": "SISKO operations strategy",
+      "Role": "Specialist",
+      "Department": "Business & Enterprise",
+      "Chief ID": "chief-expansion-sisko",
+      "Specialty": "operations strategy",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-043",
+      "Name": "ARCHER study planning",
+      "Role": "Specialist",
+      "Department": "Education & Learning",
+      "Chief ID": "chief-expansion-archer",
+      "Specialty": "study planning",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-expansion-044",
+      "Name": "TROI resource navigation",
+      "Role": "Specialist",
+      "Department": "Accessibility & Wellbeing",
+      "Chief ID": "chief-expansion-troi",
+      "Specialty": "resource navigation",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-geordi-01",
+      "Name": "Sisko",
+      "Role": "Specialist",
+      "Department": "Engineering & Systems",
+      "Chief ID": "chief-geordi",
+      "Specialty": "Backend engineering",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-geordi-02",
+      "Name": "Helm",
+      "Role": "Specialist",
+      "Department": "Engineering & Systems",
+      "Chief ID": "chief-geordi",
+      "Specialty": "Frontend engineering",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-geordi-03",
+      "Name": "Mission Control",
+      "Role": "Specialist",
+      "Department": "Engineering & Systems",
+      "Chief ID": "chief-geordi",
+      "Specialty": "Databases",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-geordi-04",
+      "Name": "Delta",
+      "Role": "Specialist",
+      "Department": "Engineering & Systems",
+      "Chief ID": "chief-geordi",
+      "Specialty": "Software architecture",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-geordi-05",
+      "Name": "Argus",
+      "Role": "Specialist",
+      "Department": "Engineering & Systems",
+      "Chief ID": "chief-geordi",
+      "Specialty": "Code reviews",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-geordi-06",
+      "Name": "Red Alert",
+      "Role": "Specialist",
+      "Department": "Engineering & Systems",
+      "Chief ID": "chief-geordi",
+      "Specialty": "Automated testing",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-geordi-07",
+      "Name": "Indexer",
+      "Role": "Specialist",
+      "Department": "Engineering & Systems",
+      "Chief ID": "chief-geordi",
+      "Specialty": "Accessibility engineering",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-geordi-08",
+      "Name": "Sarek Legal",
+      "Role": "Specialist",
+      "Department": "Engineering & Systems",
+      "Chief ID": "chief-geordi",
+      "Specialty": "DevOps and deployment",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-geordi-09",
+      "Name": "Archive",
+      "Role": "Specialist",
+      "Department": "Engineering & Systems",
+      "Chief ID": "chief-geordi",
+      "Specialty": "Observability",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-geordi-10",
+      "Name": "QA Core",
+      "Role": "Specialist",
+      "Department": "Engineering & Systems",
+      "Chief ID": "chief-geordi",
+      "Specialty": "Infrastructure reliability",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-keiko-01",
+      "Name": "Policy",
+      "Role": "Specialist",
+      "Department": "Science & Environment",
+      "Chief ID": "chief-keiko",
+      "Specialty": "Biology",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-keiko-02",
+      "Name": "Dispatch",
+      "Role": "Specialist",
+      "Department": "Science & Environment",
+      "Chief ID": "chief-keiko",
+      "Specialty": "Ecology",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-keiko-03",
+      "Name": "Shields",
+      "Role": "Specialist",
+      "Department": "Science & Environment",
+      "Chief ID": "chief-keiko",
+      "Specialty": "Chemistry",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-keiko-04",
+      "Name": "Tuvok",
+      "Role": "Specialist",
+      "Department": "Science & Environment",
+      "Chief ID": "chief-keiko",
+      "Specialty": "Physics",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-keiko-05",
+      "Name": "PADD Ops",
+      "Role": "Specialist",
+      "Department": "Science & Environment",
+      "Chief ID": "chief-keiko",
+      "Specialty": "Astronomy",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-keiko-06",
+      "Name": "EMH Persona",
+      "Role": "Specialist",
+      "Department": "Science & Environment",
+      "Chief ID": "chief-keiko",
+      "Specialty": "Environmental science",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-keiko-07",
+      "Name": "Trigger",
+      "Role": "Specialist",
+      "Department": "Science & Environment",
+      "Chief ID": "chief-keiko",
+      "Specialty": "Experimental methods",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-keiko-08",
+      "Name": "NOO",
+      "Role": "Specialist",
+      "Department": "Science & Environment",
+      "Chief ID": "chief-keiko",
+      "Specialty": "Statistics",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-keiko-09",
+      "Name": "Yeoman",
+      "Role": "Specialist",
+      "Department": "Science & Environment",
+      "Chief ID": "chief-keiko",
+      "Specialty": "Scientific literacy",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-keiko-10",
+      "Name": "Rand",
+      "Role": "Specialist",
+      "Department": "Science & Environment",
+      "Chief ID": "chief-keiko",
+      "Specialty": "Earth systems",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-kirk-01",
+      "Name": "Garak",
+      "Role": "Specialist",
+      "Department": "Command & Missions",
+      "Chief ID": "chief-kirk",
+      "Specialty": "Mission architecture",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-kirk-02",
+      "Name": "Enterprise",
+      "Role": "Specialist",
+      "Department": "Command & Missions",
+      "Chief ID": "chief-kirk",
+      "Specialty": "Task assignment",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-kirk-03",
+      "Name": "Neelix",
+      "Role": "Specialist",
+      "Department": "Command & Missions",
+      "Chief ID": "chief-kirk",
+      "Specialty": "Milestone planning",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-kirk-04",
+      "Name": "Signal",
+      "Role": "Specialist",
+      "Department": "Command & Missions",
+      "Chief ID": "chief-kirk",
+      "Specialty": "Dependency mapping",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-kirk-05",
+      "Name": "Daystrom",
+      "Role": "Specialist",
+      "Department": "Command & Missions",
+      "Chief ID": "chief-kirk",
+      "Specialty": "Approval gates",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-kirk-06",
+      "Name": "Academy",
+      "Role": "Specialist",
+      "Department": "Command & Missions",
+      "Chief ID": "chief-kirk",
+      "Specialty": "Mission reporting",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-kirk-07",
+      "Name": "Jake",
+      "Role": "Specialist",
+      "Department": "Command & Missions",
+      "Chief ID": "chief-kirk",
+      "Specialty": "Quality acceptance",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-kirk-08",
+      "Name": "Holodeck",
+      "Role": "Specialist",
+      "Department": "Command & Missions",
+      "Chief ID": "chief-kirk",
+      "Specialty": "Resource allocation",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-kirk-09",
+      "Name": "Benny",
+      "Role": "Specialist",
+      "Department": "Command & Missions",
+      "Chief ID": "chief-kirk",
+      "Specialty": "Risk escalation",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-kirk-10",
+      "Name": "EMH",
+      "Role": "Specialist",
+      "Department": "Command & Missions",
+      "Chief ID": "chief-kirk",
+      "Specialty": "Cross-team coordination",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-picard-01",
+      "Name": "Relay Auto",
+      "Role": "Specialist",
+      "Department": "Policy & Diplomacy",
+      "Chief ID": "chief-picard",
+      "Specialty": "Policy analysis",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-picard-02",
+      "Name": "Examiner",
+      "Role": "Specialist",
+      "Department": "Policy & Diplomacy",
+      "Chief ID": "chief-picard",
+      "Specialty": "Stakeholder mapping",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-picard-03",
+      "Name": "Scheduler",
+      "Role": "Specialist",
+      "Department": "Policy & Diplomacy",
+      "Chief ID": "chief-picard",
+      "Specialty": "Negotiation",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-picard-04",
+      "Name": "Genesis",
+      "Role": "Specialist",
+      "Department": "Policy & Diplomacy",
+      "Chief ID": "chief-picard",
+      "Specialty": "Ethics review",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-picard-05",
+      "Name": "B-4",
+      "Role": "Specialist",
+      "Department": "Policy & Diplomacy",
+      "Chief ID": "chief-picard",
+      "Specialty": "Governance",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-picard-06",
+      "Name": "Risa Ayurveda",
+      "Role": "Specialist",
+      "Department": "Policy & Diplomacy",
+      "Chief ID": "chief-picard",
+      "Specialty": "Contract literacy",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-picard-07",
+      "Name": "Boothby",
+      "Role": "Specialist",
+      "Department": "Policy & Diplomacy",
+      "Chief ID": "chief-picard",
+      "Specialty": "International context",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-picard-08",
+      "Name": "Dockyard",
+      "Role": "Specialist",
+      "Department": "Policy & Diplomacy",
+      "Chief ID": "chief-picard",
+      "Specialty": "Regulatory research",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-picard-09",
+      "Name": "Recovery",
+      "Role": "Specialist",
+      "Department": "Policy & Diplomacy",
+      "Chief ID": "chief-picard",
+      "Specialty": "Mediation",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-quark-01",
+      "Name": "Deadline",
+      "Role": "Specialist",
+      "Department": "Commerce & Finance",
+      "Chief ID": "chief-quark",
+      "Specialty": "Budgeting",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-quark-02",
+      "Name": "PADD Legal",
+      "Role": "Specialist",
+      "Department": "Commerce & Finance",
+      "Chief ID": "chief-quark",
+      "Specialty": "Pricing strategy",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-quark-03",
+      "Name": "Lockout",
+      "Role": "Specialist",
+      "Department": "Commerce & Finance",
+      "Chief ID": "chief-quark",
+      "Specialty": "Revenue forecasts",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-quark-04",
+      "Name": "Transporter",
+      "Role": "Specialist",
+      "Department": "Commerce & Finance",
+      "Chief ID": "chief-quark",
+      "Specialty": "Cost modeling",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-quark-05",
+      "Name": "Replicator",
+      "Role": "Specialist",
+      "Department": "Commerce & Finance",
+      "Chief ID": "chief-quark",
+      "Specialty": "Cash flow planning",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-quark-06",
+      "Name": "Evidence",
+      "Role": "Specialist",
+      "Department": "Commerce & Finance",
+      "Chief ID": "chief-quark",
+      "Specialty": "Market research",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-quark-07",
+      "Name": "Promo",
+      "Role": "Specialist",
+      "Department": "Commerce & Finance",
+      "Chief ID": "chief-quark",
+      "Specialty": "Unit economics",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-quark-08",
+      "Name": "Chapel",
+      "Role": "Specialist",
+      "Department": "Commerce & Finance",
+      "Chief ID": "chief-quark",
+      "Specialty": "Service packaging",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-quark-09",
+      "Name": "Dax",
+      "Role": "Specialist",
+      "Department": "Commerce & Finance",
+      "Chief ID": "chief-quark",
+      "Specialty": "Business analytics",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-quark-10",
+      "Name": "ROM",
+      "Role": "Specialist",
+      "Department": "Commerce & Finance",
+      "Chief ID": "chief-quark",
+      "Specialty": "Financial literacy",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-riker-01",
+      "Name": "RIKER-01",
+      "Role": "Specialist",
+      "Department": "Operations & Coordination",
+      "Chief ID": "chief-riker",
+      "Specialty": "Project operations",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-riker-02",
+      "Name": "RIKER-02",
+      "Role": "Specialist",
+      "Department": "Operations & Coordination",
+      "Chief ID": "chief-riker",
+      "Specialty": "Calendar planning",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-riker-03",
+      "Name": "RIKER-03",
+      "Role": "Specialist",
+      "Department": "Operations & Coordination",
+      "Chief ID": "chief-riker",
+      "Specialty": "Workflow automation",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-riker-04",
+      "Name": "RIKER-04",
+      "Role": "Specialist",
+      "Department": "Operations & Coordination",
+      "Chief ID": "chief-riker",
+      "Specialty": "Quality processes",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-riker-05",
+      "Name": "RIKER-05",
+      "Role": "Specialist",
+      "Department": "Operations & Coordination",
+      "Chief ID": "chief-riker",
+      "Specialty": "Documentation",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-riker-06",
+      "Name": "RIKER-06",
+      "Role": "Specialist",
+      "Department": "Operations & Coordination",
+      "Chief ID": "chief-riker",
+      "Specialty": "Vendor coordination",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-riker-07",
+      "Name": "RIKER-07",
+      "Role": "Specialist",
+      "Department": "Operations & Coordination",
+      "Chief ID": "chief-riker",
+      "Specialty": "Team scheduling",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-riker-08",
+      "Name": "RIKER-08",
+      "Role": "Specialist",
+      "Department": "Operations & Coordination",
+      "Chief ID": "chief-riker",
+      "Specialty": "Progress tracking",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-riker-09",
+      "Name": "RIKER-09",
+      "Role": "Specialist",
+      "Department": "Operations & Coordination",
+      "Chief ID": "chief-riker",
+      "Specialty": "Operations metrics",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-spock-01",
+      "Name": "O'Brien",
+      "Role": "Specialist",
+      "Department": "Strategy & Reasoning",
+      "Chief ID": "chief-spock",
+      "Specialty": "Strategic planning",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-spock-02",
+      "Name": "Seven Ops",
+      "Role": "Specialist",
+      "Department": "Strategy & Reasoning",
+      "Chief ID": "chief-spock",
+      "Specialty": "Decision theory",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-spock-03",
+      "Name": "Privacy",
+      "Role": "Specialist",
+      "Department": "Strategy & Reasoning",
+      "Chief ID": "chief-spock",
+      "Specialty": "Scenario analysis",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-spock-04",
+      "Name": "Sarek",
+      "Role": "Specialist",
+      "Department": "Strategy & Reasoning",
+      "Chief ID": "chief-spock",
+      "Specialty": "Competitive intelligence",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-spock-05",
+      "Name": "Risa",
+      "Role": "Specialist",
+      "Department": "Strategy & Reasoning",
+      "Chief ID": "chief-spock",
+      "Specialty": "Goal decomposition",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-spock-06",
+      "Name": "Bashir",
+      "Role": "Specialist",
+      "Department": "Strategy & Reasoning",
+      "Chief ID": "chief-spock",
+      "Specialty": "Tradeoff analysis",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-spock-07",
+      "Name": "Vox",
+      "Role": "Specialist",
+      "Department": "Strategy & Reasoning",
+      "Chief ID": "chief-spock",
+      "Specialty": "Risk matrices",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-spock-08",
+      "Name": "Rubric",
+      "Role": "Specialist",
+      "Department": "Strategy & Reasoning",
+      "Chief ID": "chief-spock",
+      "Specialty": "Systems thinking",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-spock-09",
+      "Name": "Lingua",
+      "Role": "Specialist",
+      "Department": "Strategy & Reasoning",
+      "Chief ID": "chief-spock",
+      "Specialty": "Argument mapping",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-spock-10",
+      "Name": "Lab",
+      "Role": "Specialist",
+      "Department": "Strategy & Reasoning",
+      "Chief ID": "chief-spock",
+      "Specialty": "Assumption auditing",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-uhura-01",
+      "Name": "SCRIBE",
+      "Role": "Specialist",
+      "Department": "Communications & Languages",
+      "Chief ID": "chief-uhura",
+      "Specialty": "Professional writing",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-uhura-02",
+      "Name": "Sentinel",
+      "Role": "Specialist",
+      "Department": "Communications & Languages",
+      "Chief ID": "chief-uhura",
+      "Specialty": "Editing and clarity",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-uhura-03",
+      "Name": "Curator",
+      "Role": "Specialist",
+      "Department": "Communications & Languages",
+      "Chief ID": "chief-uhura",
+      "Specialty": "Translation",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-uhura-04",
+      "Name": "Echo",
+      "Role": "Specialist",
+      "Department": "Communications & Languages",
+      "Chief ID": "chief-uhura",
+      "Specialty": "Public speaking",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-uhura-05",
+      "Name": "Probe",
+      "Role": "Specialist",
+      "Department": "Communications & Languages",
+      "Chief ID": "chief-uhura",
+      "Specialty": "Email writing",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-uhura-06",
+      "Name": "Archer",
+      "Role": "Specialist",
+      "Department": "Communications & Languages",
+      "Chief ID": "chief-uhura",
+      "Specialty": "User interviews",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-uhura-07",
+      "Name": "Combadge",
+      "Role": "Specialist",
+      "Department": "Communications & Languages",
+      "Chief ID": "chief-uhura",
+      "Specialty": "Accessibility writing",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-uhura-08",
+      "Name": "LCARS",
+      "Role": "Specialist",
+      "Department": "Communications & Languages",
+      "Chief ID": "chief-uhura",
+      "Specialty": "Conflict-sensitive communication",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-uhura-09",
+      "Name": "Patch",
+      "Role": "Specialist",
+      "Department": "Communications & Languages",
+      "Chief ID": "chief-uhura",
+      "Specialty": "Tone and audience",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-uhura-10",
+      "Name": "Paris",
+      "Role": "Specialist",
+      "Department": "Communications & Languages",
+      "Chief ID": "chief-uhura",
+      "Specialty": "Meeting communication",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-worf-01",
+      "Name": "Circuit",
+      "Role": "Specialist",
+      "Department": "Security & Defense",
+      "Chief ID": "chief-worf",
+      "Specialty": "Defensive cybersecurity",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-worf-02",
+      "Name": "Saru",
+      "Role": "Specialist",
+      "Department": "Security & Defense",
+      "Chief ID": "chief-worf",
+      "Specialty": "Authentication and access",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-worf-03",
+      "Name": "Guinan Herbal",
+      "Role": "Specialist",
+      "Department": "Security & Defense",
+      "Chief ID": "chief-worf",
+      "Specialty": "Data privacy",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-worf-04",
+      "Name": "Chronos",
+      "Role": "Specialist",
+      "Department": "Security & Defense",
+      "Chief ID": "chief-worf",
+      "Specialty": "Threat modeling",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-worf-05",
+      "Name": "Switchboard",
+      "Role": "Specialist",
+      "Department": "Security & Defense",
+      "Chief ID": "chief-worf",
+      "Specialty": "Incident response",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-worf-06",
+      "Name": "Factcheck",
+      "Role": "Specialist",
+      "Department": "Security & Defense",
+      "Chief ID": "chief-worf",
+      "Specialty": "Secrets management",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-worf-07",
+      "Name": "Guinan",
+      "Role": "Specialist",
+      "Department": "Security & Defense",
+      "Chief ID": "chief-worf",
+      "Specialty": "Backups and recovery",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-worf-08",
+      "Name": "Stellar",
+      "Role": "Specialist",
+      "Department": "Security & Defense",
+      "Chief ID": "chief-worf",
+      "Specialty": "Security architecture",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-worf-09",
+      "Name": "Number One",
+      "Role": "Specialist",
+      "Department": "Security & Defense",
+      "Chief ID": "chief-worf",
+      "Specialty": "Supply chain risk",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-worf-10",
+      "Name": "Vulcan",
+      "Role": "Specialist",
+      "Department": "Security & Defense",
+      "Chief ID": "chief-worf",
+      "Specialty": "Security testing",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-zora-01",
+      "Name": "Security Command",
+      "Role": "Specialist",
+      "Department": "Creative & Knowledge",
+      "Chief ID": "chief-zora",
+      "Specialty": "Novel development",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-zora-02",
+      "Name": "ZORA-02",
+      "Role": "Specialist",
+      "Department": "Creative & Knowledge",
+      "Chief ID": "chief-zora",
+      "Specialty": "Character analysis",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-zora-03",
+      "Name": "ZORA-03",
+      "Role": "Specialist",
+      "Department": "Creative & Knowledge",
+      "Chief ID": "chief-zora",
+      "Specialty": "Plot structure",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-zora-04",
+      "Name": "ZORA-04",
+      "Role": "Specialist",
+      "Department": "Creative & Knowledge",
+      "Chief ID": "chief-zora",
+      "Specialty": "Worldbuilding",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-zora-05",
+      "Name": "ZORA-05",
+      "Role": "Specialist",
+      "Department": "Creative & Knowledge",
+      "Chief ID": "chief-zora",
+      "Specialty": "Poetry",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-zora-06",
+      "Name": "ZORA-06",
+      "Role": "Specialist",
+      "Department": "Creative & Knowledge",
+      "Chief ID": "chief-zora",
+      "Specialty": "Developmental editing",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-zora-07",
+      "Name": "ZORA-07",
+      "Role": "Specialist",
+      "Department": "Creative & Knowledge",
+      "Chief ID": "chief-zora",
+      "Specialty": "Document organization",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-zora-08",
+      "Name": "ZORA-08",
+      "Role": "Specialist",
+      "Department": "Creative & Knowledge",
+      "Chief ID": "chief-zora",
+      "Specialty": "Learning design",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "agent-zora-09",
+      "Name": "ZORA-09",
+      "Role": "Specialist",
+      "Department": "Creative & Knowledge",
+      "Chief ID": "chief-zora",
+      "Specialty": "Creative critique",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-bones",
+      "Name": "BONES",
+      "Role": "Chief",
+      "Department": "Health & Human Support",
+      "Chief ID": "",
+      "Specialty": "Department leadership",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-data",
+      "Name": "DATA",
+      "Role": "Chief",
+      "Department": "Research & Intelligence",
+      "Chief ID": "",
+      "Specialty": "Department leadership",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-expansion-archer",
+      "Name": "ARCHER 2",
+      "Role": "Chief",
+      "Department": "Education & Learning",
+      "Chief ID": "",
+      "Specialty": "curriculum, tutoring, learning assessment, study planning",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-expansion-crusher",
+      "Name": "CRUSHER",
+      "Role": "Chief",
+      "Department": "Life Sciences",
+      "Chief ID": "",
+      "Specialty": "biology, botany, ecology, research methods",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-expansion-dax",
+      "Name": "DAX 2",
+      "Role": "Chief",
+      "Department": "History & Culture",
+      "Chief ID": "",
+      "Specialty": "history, cultural research, archives, comparative analysis",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-expansion-hologram",
+      "Name": "HOLOGRAM",
+      "Role": "Chief",
+      "Department": "Design & Media",
+      "Chief ID": "",
+      "Specialty": "visual design, photography, video editing, brand systems",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-expansion-janeway",
+      "Name": "JANEWAY",
+      "Role": "Chief",
+      "Department": "Exploration & Discovery",
+      "Chief ID": "",
+      "Specialty": "astronomy, geography, expedition planning, source discovery",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-expansion-neelix",
+      "Name": "NEELIX 2",
+      "Role": "Chief",
+      "Department": "Home & Logistics",
+      "Chief ID": "",
+      "Specialty": "home organization, travel logistics, scheduling, resource planning",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-expansion-obrien",
+      "Name": "OBRIEN",
+      "Role": "Chief",
+      "Department": "Automation & Reliability",
+      "Chief ID": "",
+      "Specialty": "workflow automation, reliability, recovery, monitoring",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-expansion-pike",
+      "Name": "PIKE",
+      "Role": "Chief",
+      "Department": "Projects & Delivery",
+      "Chief ID": "",
+      "Specialty": "project planning, dependencies, delivery review, risk tracking",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-expansion-seven",
+      "Name": "SEVEN 2",
+      "Role": "Chief",
+      "Department": "Data & Analytics",
+      "Chief ID": "",
+      "Specialty": "statistics, data cleaning, visualization, measurement",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-expansion-sisko",
+      "Name": "SISKO 2",
+      "Role": "Chief",
+      "Department": "Business & Enterprise",
+      "Chief ID": "",
+      "Specialty": "business planning, service design, customer research, operations strategy",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-expansion-torres",
+      "Name": "TORRES",
+      "Role": "Chief",
+      "Department": "Software & Applications",
+      "Chief ID": "",
+      "Specialty": "frontend engineering, backend engineering, application testing, developer documentation",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-expansion-troi",
+      "Name": "TROI",
+      "Role": "Chief",
+      "Department": "Accessibility & Wellbeing",
+      "Chief ID": "",
+      "Specialty": "accessibility, supportive communication, inclusive design, resource navigation",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-expansion-tuvok",
+      "Name": "TUVOK 2",
+      "Role": "Chief",
+      "Department": "Quality & Verification",
+      "Chief ID": "",
+      "Specialty": "fact checking, test design, evidence review, consistency",
+      "Provenance": "proposed-addition",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-geordi",
+      "Name": "GEORDI",
+      "Role": "Chief",
+      "Department": "Engineering & Systems",
+      "Chief ID": "",
+      "Specialty": "Department leadership",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-keiko",
+      "Name": "KEIKO",
+      "Role": "Chief",
+      "Department": "Science & Environment",
+      "Chief ID": "",
+      "Specialty": "Department leadership",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-kirk",
+      "Name": "KIRK",
+      "Role": "Chief",
+      "Department": "Command & Missions",
+      "Chief ID": "",
+      "Specialty": "Department leadership",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-picard",
+      "Name": "PICARD",
+      "Role": "Chief",
+      "Department": "Policy & Diplomacy",
+      "Chief ID": "",
+      "Specialty": "Department leadership",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-quark",
+      "Name": "QUARK",
+      "Role": "Chief",
+      "Department": "Commerce & Finance",
+      "Chief ID": "",
+      "Specialty": "Department leadership",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-riker",
+      "Name": "RIKER",
+      "Role": "Chief",
+      "Department": "Operations & Coordination",
+      "Chief ID": "",
+      "Specialty": "Department leadership",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-spock",
+      "Name": "SPOCK",
+      "Role": "Chief",
+      "Department": "Strategy & Reasoning",
+      "Chief ID": "",
+      "Specialty": "Department leadership",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-uhura",
+      "Name": "UHURA",
+      "Role": "Chief",
+      "Department": "Communications & Languages",
+      "Chief ID": "",
+      "Specialty": "Department leadership",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-worf",
+      "Name": "WORF",
+      "Role": "Chief",
+      "Department": "Security & Defense",
+      "Chief ID": "",
+      "Specialty": "Department leadership",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    },
+    {
+      "Agent ID": "chief-zora",
+      "Name": "ZORA",
+      "Role": "Chief",
+      "Department": "Creative & Knowledge",
+      "Chief ID": "",
+      "Specialty": "Department leadership",
+      "Provenance": "production-source-fallback",
+      "Runtime Status": "Development profile — not executing"
+    }
+  ]
+}
