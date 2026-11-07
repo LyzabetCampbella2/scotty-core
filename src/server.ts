@@ -1,3 +1,4 @@
+import { handleA0 } from "./security/a0-http.mjs";
 import { renderReviewPage } from "./agents/review-ui.ts";
 import { handleAgents } from "./agents/api.ts";
 import { handleEyesOn } from "./eyes/index.ts";
@@ -9,6 +10,7 @@ import { handleHealth } from "./health.ts";
 
 const PORT=Number(process.env.PORT||3000);
 Bun.serve({port:PORT,async fetch(req){const u=new URL(req.url);
+ if(u.pathname.startsWith("/api/a0/")) return handleA0(req,u);
  if(u.pathname==="/health") return handleHealth();
  if(u.pathname.startsWith("/api/eyes")) return handleEyesOn(req,u);
  if(u.pathname.startsWith("/api/voice")) return handleVoice(req,u);
