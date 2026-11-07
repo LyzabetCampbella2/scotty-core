@@ -167,6 +167,7 @@ test('approved review metadata is read only for configured owner and never expos
   const other=await otherOwner.json();
   assert.deepEqual(other.reviewHistory.entries,[]);
   assert.equal(other.reviewHistory.currentReviewId,null);
+  assert.equal(other.reviewHistory.headVersion,null);
   assert.equal(JSON.stringify(other).includes(proposal.requestId),false);
  }finally{x.close();}
 });
