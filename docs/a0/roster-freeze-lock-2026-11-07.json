@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "resource": "SCOTTY Canonical Agent Roster",
+  "recordedDate": "2026-11-07",
+  "status": "OWNER_APPROVED_FROZEN_GIT_VERSION",
+  "snapshotFile": "docs/a0/roster-frozen-2026-11-07.json",
+  "snapshotGitBlobSha": "476f396a709de64e75169ed0ff504526cc0233ef",
+  "candidateGitBlobSha": "84a6ed45838c11ed4e703d4cfc92d83c02326128",
+  "sourceTableId": "1CSnSdZEiKRUuKIBz1YhC",
+  "sourceSystem": "Activepieces Public Agent Registry (Draft)",
+  "approvedFields": [
+    "Agent ID",
+    "Name"
+  ],
+  "recordCount": 185,
+  "chiefCount": 25,
+  "specialistCount": 160,
+  "departmentCount": 25,
+  "ownerApproval": "Explicit user confirmation in current conversation on 2026-11-07; not a cryptographic signature",
+  "approvalScope": "Freeze the present 185 stable IDs and existing display names only. No alias changes, new app connection, live identity mutation or runtime activation approved.",
+  "exceptions": {
+    "identityChanges": "Require new version and explicit owner approval",
+    "aliases": "Review later",
+    "creativeMediaExtension": "Remain separate and unapproved",
+    "phase0Certification": "Still blocked"
+  },
+  "provenance": "Read-only same-day comparison to Activepieces showed 0 field differences across 185 records and no missing specialist-chief links."
+}
