@@ -68,8 +68,18 @@ export async function handleA0(req,url,options={}) {
   if(p==="/api/a0/grants"&&req.method==="GET")return json({ok:true,grants:await store.listGrants()});
   if(p==="/api/a0/grants"&&req.method==="POST"){
    const input=await objectBody(req);
+   // Client-provided ownerApproved is NOT proof of owner approval.
+   // There is intentionally no production verifier installed in server.ts.
+   if(typeof options.verifyOwnerEvidence!=="function")
+    return json({ok:false,error:"Owner evidence verification not implemented"},503);
    if(input.ownerApproved!==true)return json({ok:false,error:"Explicit owner review required"},400);
    const grant=normalizeGrant(input,ownerId,options.now??new Date());
+   const proof=await options.verifyOwnerEvidence({
+    ownerId,approvalEvidenceId:grant.approvalEvidenceId,
+    agentId:grant.agentId,projectId:grant.projectId,taskId:grant.taskId,
+    resourceId:grant.resourceId,action:grant.action,revision:grant.revision
+   });
+   if(proof!==true)return json({ok:false,error:"Owner evidence verification failed"},403);
    return json({ok:true,grant:await store.createGrant(grant)},201);
   }
   const revoke=p.match(/^\/api\/a0\/grants\/([0-9a-fA-F-]{36})\/revoke$/);
