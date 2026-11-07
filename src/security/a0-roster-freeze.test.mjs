@@ -5,7 +5,7 @@ import {createHash} from "node:crypto";
 
 function load(path) {
  const bytes=readFileSync(new URL(path,import.meta.url));
- return {raw:bytes,obj:JSON.parse(bytes.toString("utf8")),blob:createHash("sha1").update("blob "+bytes.length+"\\0").update(bytes).digest("hex")};
+ return {raw:bytes,obj:JSON.parse(bytes.toString("utf8")),blob:createHash("sha1").update("blob "+bytes.length+"\0").update(bytes).digest("hex")};
 }
 test("owner-approved 185-agent roster freeze is byte-pinned and matches original candidate",()=>{
  const lock=load("../../docs/a0/roster-freeze-lock-2026-11-07.json").obj;
