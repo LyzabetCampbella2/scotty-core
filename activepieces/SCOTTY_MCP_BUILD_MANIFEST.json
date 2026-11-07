@@ -317,7 +317,7 @@
     "copyPasswords": false,
     "writeProduction": false
   },
-  "notes": "14 unpublished/disabled staging flows plus existing disabled connection test; 9 tables with 245 public/synthetic-only rows. Chief Collaboration preview generated 10 proposed Eirden handoffs with explicit dependency graph; unsent synthetic queue verified by a separate read-only workflow. All statuses remain proposed/not sent, no actual messaging or assignments. Separate owner-reviewed SCOTTY backend permissions, D1 migration, production deployment and real agent execution remain blocked. Added default-off owner-only preview review HTTP API under existing isolated Worker bearer, with server-derived project membership and audit. Still not deployed and not accessible from Activepieces.",
+  "notes": "14 unpublished/disabled staging flows plus existing disabled connection test; 9 tables with 245 public/synthetic-only rows. Chief Collaboration preview generated 10 proposed Eirden handoffs with explicit dependency graph; unsent synthetic queue verified by a separate read-only workflow. All statuses remain proposed/not sent, no actual messaging or assignments. Separate owner-reviewed SCOTTY backend permissions, D1 migration, production deployment and real agent execution remain blocked. Added default-off owner-only preview review HTTP API under existing isolated Worker bearer, with server-derived project membership and audit. Still not deployed and not accessible from Activepieces. Additional owner-only secret-free preflight created and tested; strict request-ID-matching idempotency replay prevents misattribution. No real Worker activation or database migration occurred.",
   "verifiedInAccount": {
     "workspaceProjectId": "xTfZdRPX3i4JjdOyR5NYq",
     "stagingFolder": "SCOTTY — Staging",
@@ -415,6 +415,17 @@
       "POST /api/owner-preview-reviews/decision"
     ],
     "authority": "Review metadata only; canExecute is always false; no mission grants",
-    "tested": "In-memory SQLite integration tests passing; no live D1 or Worker deployment"
+    "tested": "In-memory SQLite integration tests passing; no live D1 or Worker deployment",
+    "readinessRoute": "GET /api/owner-preview-reviews/readiness (owner bearer required, available with feature switch off)",
+    "readinessSignals": [
+      "owner ID configured (boolean only)",
+      "project allowlist valid (boolean and count only)",
+      "isolated preview-review ledger schema checks",
+      "isolated public project portfolio schema checks",
+      "public-development project-to-agent relationship checks"
+    ],
+    "readinessNoAuthority": true,
+    "replayIdentityBoundToRequestIdAndKey": true,
+    "latestTestEvidence": "76 Node tests and 5 Python in-memory SQLite schema tests passed in GitHub Actions; no actual D1 accessed."
   }
 }
