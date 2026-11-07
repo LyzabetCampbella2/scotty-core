@@ -1,0 +1,37 @@
+name: SCOTTY n8n bridge synthetic checks
+on:
+  pull_request:
+    paths:
+      - 'offline-brain/cloudflare-ipad/n8n-bridge.mjs'
+      - 'offline-brain/cloudflare-ipad/n8n-bridge.test.mjs'
+      - 'offline-brain/cloudflare-ipad/worker.mjs'
+      - 'n8n/**'
+      - '.github/workflows/scotty-n8n-bridge-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthetic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and isolated bridge tests
+        run: |
+          node --check offline-brain/cloudflare-ipad/worker.mjs
+          node --check offline-brain/cloudflare-ipad/n8n-bridge.mjs
+          node --test offline-brain/cloudflare-ipad/n8n-bridge.test.mjs
+      - name: Validate offline workflow JSON
+        run: |
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            for(const path of ['n8n/workflows/scotty-plan-preview.json','n8n/workflows/scotty-roster-audit.json']){
+              const content=fs.readFileSync(path,'utf8');
+              const w=JSON.parse(content);
+              if(w.active!==false||!Array.isArray(w.nodes)||!w.nodes.some(n=>n.type==='n8n-nodes-base.manualTrigger'))throw Error('Must be inactive manual workflow');
+              if(w.nodes.some(n=>n.type==='n8n-nodes-base.webhook'||JSON.stringify(n).includes('api/n8n/execute')||JSON.stringify(n).includes('OWNER_BEARER_TOKEN')||JSON.stringify(n).includes('N8N_BRIDGE_TOKEN')))throw Error('Unsafe workflow');
+              if(!content.includes('REPLACE-WITH-YOUR-STAGING-WORKER'))throw Error('Live URL not allowed');
+            }
+          "

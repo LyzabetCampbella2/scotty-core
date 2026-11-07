@@ -1,0 +1,118 @@
+{
+  "name": "SCOTTY — Read-only chief and specialist routing preview",
+  "nodes": [
+    {
+      "id": "scotty-manual-plan",
+      "name": "Manual test only",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        260
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "scotty-synthetic-question",
+      "name": "Synthetic planning question",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        470,
+        260
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "scotty-question",
+              "name": "question",
+              "value": "Make a fictional software quality assurance plan, with implementation steps and a research checklist.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "scotty-plan-api",
+      "name": "SCOTTY staging routing API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        730,
+        260
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://REPLACE-WITH-YOUR-STAGING-WORKER.workers.dev/api/n8n/plan",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ question: $json.question }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      }
+    },
+    {
+      "id": "scotty-plan-result",
+      "name": "Review proposed team (no execution)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        260
+      ],
+      "parameters": {
+        "jsCode": "const r = $input.first().json;\nif (r.ok !== true || r.mode !== 'READ_ONLY' || r.missionsStarted !== 0) throw new Error('Not an inert SCOTTY planning response');\nreturn [{json:{status:r.status,chiefs:r.chiefs,proposedAgents:r.agents,inferenceCalls:r.inferenceCalls,memoryWrites:r.memoryWrites,missionsStarted:r.missionsStarted,ownerApprovalRequired:r.ownerApprovalRequiredForExecution}}];"
+      }
+    }
+  ],
+  "connections": {
+    "Manual test only": {
+      "main": [
+        [
+          {
+            "node": "Synthetic planning question",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Synthetic planning question": {
+      "main": [
+        [
+          {
+            "node": "SCOTTY staging routing API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SCOTTY staging routing API": {
+      "main": [
+        [
+          {
+            "node": "Review proposed team (no execution)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none"
+  },
+  "active": false,
+  "tags": [],
+  "pinData": {}
+}

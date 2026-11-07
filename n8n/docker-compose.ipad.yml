@@ -1,0 +1,15 @@
+# Tailscale Serve HTTPS overlay for iPad access.
+# Do not use without an approved private tailnet HTTPS URL.
+# Commands:
+#   $env:SCOTTY_N8N_TAILSCALE_URL="https://your-lenovo.your-tailnet.ts.net"
+#   docker compose -f n8n/docker-compose.yml -f n8n/docker-compose.ipad.yml up -d
+#
+# Local 127.0.0.1 binding is inherited from docker-compose.yml.
+# Tailscale Serve (NOT Funnel) handles private HTTPS access to that port.
+services:
+  n8n:
+    environment:
+      N8N_SECURE_COOKIE: "true"
+      N8N_EDITOR_BASE_URL: "${SCOTTY_N8N_TAILSCALE_URL:?Set your private Tailscale HTTPS address}"
+      N8N_WEBHOOK_URL: "${SCOTTY_N8N_TAILSCALE_URL:?Set your private Tailscale HTTPS address}/"
+      N8N_PROXY_HOPS: "1"

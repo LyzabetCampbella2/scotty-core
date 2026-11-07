@@ -1,0 +1,80 @@
+{
+  "name": "SCOTTY — Read-only agent roster audit",
+  "nodes": [
+    {
+      "id": "scotty-roster-manual",
+      "name": "Manual roster check",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        260
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "scotty-roster-api",
+      "name": "SCOTTY staging catalog API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        510,
+        260
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://REPLACE-WITH-YOUR-STAGING-WORKER.workers.dev/api/n8n/catalog",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 10000
+        }
+      }
+    },
+    {
+      "id": "scotty-roster-audit",
+      "name": "Check chief and specialist roster",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        790,
+        260
+      ],
+      "parameters": {
+        "jsCode": "const r=$input.first().json;\nif(r.ok!==true || r.mode!=='READ_ONLY' || !Array.isArray(r.agents)) throw new Error('Invalid SCOTTY catalog');\nif(r.agentCount!==185 || r.chiefCount!==25 || r.specialistCount!==160 || r.agents.length!==185) throw new Error('Staging roster count differs from draft roster');\nconst departments=[...new Set(r.agents.map(a=>a.department))].sort();\nreturn [{json:{mode:r.mode,liveRosterVerified:r.rosterVerifiedLive,agentCount:r.agentCount,chiefCount:r.chiefCount,specialistCount:r.specialistCount,departments,agents:r.agents.map(a=>({id:a.id,name:a.name,chiefId:a.chiefId,skills:a.skills}))}}];"
+      }
+    }
+  ],
+  "connections": {
+    "Manual roster check": {
+      "main": [
+        [
+          {
+            "node": "SCOTTY staging catalog API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SCOTTY staging catalog API": {
+      "main": [
+        [
+          {
+            "node": "Check chief and specialist roster",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none"
+  },
+  "active": false,
+  "tags": [],
+  "pinData": {}
+}
