@@ -66,7 +66,7 @@ Candidate eligibility requires:
 
 A passing isolated fixture can only return **`READY_FOR_ISOLATED_CANDIDATE_REVIEW`**. It explicitly returns `runtimePromptActivated=false`, `modelBehaviorCertified=false`, `canExecute=false`, and `toolsGranted=0`. **It does not persist a candidate, promote a revision, issue an agent execution grant, or make any model call.** Real behavioral certification remains **0/185**.
 
-**Verification:** after adding these controls, GitHub Actions reported **175/175 Node tests passed and 5/5 SQLite/Python tests passed**. The new Node cases exercise actual in-memory SQLite migrations, immutable evidence tables, candidate thresholds, independent attestor rejection, revocation, missing cases and identical scenario binding. These are synthetic test fixtures only.
+**Verification:** with the ingestion tests and runtime-authority check, GitHub Actions reported **184/184 Node tests passed and 5/5 SQLite/Python tests passed**. The new Node cases exercise actual in-memory SQLite migrations, immutable evidence tables, candidate thresholds, independent attestor rejection, revocation, missing cases and identical scenario binding. These are synthetic test fixtures only.
 
 **Next gate:** establish a securely authenticated evaluation-ingestion service that binds real server-generated provider traces, independent grader results and owner sign-off to immutable D1 records; then stage a versioned candidate without runtime activation. Do not activate any agent on the strength of self-reported scores or a caller-supplied `verified` field.
 
@@ -82,6 +82,8 @@ The proposed ingestion workflow verifies four distinct trust boundaries before w
 4. Require an exact owner acceptance reference bound to the same owner, review digest, session, provider receipt and grading record. Recheck the current reviewed profile *after* verification, blocking revocations occurring during review.
 
 A single database batch inserts one session and exactly three immutable per-case metadata rows. Exact retries verify the persisted records and return an idempotent replay result; changed receipts, hashes, scores or reviewers are rejected. No raw prompts, model outputs, private memory, login tokens or user media are saved in this evidence table.
+
+**Additional non-synthetic safety gate:** `testMode=false` cannot even construct the ingestion adapter without a separate server-injected `runtimeAuthority.authorize` capability, and each ingestion verifies an exact session/agent/review-specific `phase1.real-evidence-ingest` approval. That live authority **is not implemented or connected** to an actual deployment in this branch; the source only defines its interface.
 
 **Simulation boundary:** isolated tests inject fake provider, independent reviewer and owner acceptance authorities with `testMode=true`. Those rows are explicitly labeled `synthetic-fixture`, and the candidate preflight refuses to treat them as certifiable evidence even when all fictional grading scores are perfect. The production-grade provider connector, trusted grader and owner acceptance services do not exist in this branch and are not represented as already connected.
 
