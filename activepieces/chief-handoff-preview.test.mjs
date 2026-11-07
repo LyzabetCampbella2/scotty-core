@@ -47,5 +47,9 @@ test('wrong chief, invalid candidate state and duplicated department are rejecte
 });
 test('claimed live roster and missing public sources fail closed',async()=>{
  await assert.rejects(()=>code({...args,directory:{...directory,live_roster_verified:true}}));
- await assert.rejects(()=>code({...args,projectRows:[]}));
+ const noProject=await code({...args,projectRows:[]});
+ assert.equal(noProject.status,'PROJECT_NOT_IN_PUBLIC_PORTFOLIO');
+ assert.deepEqual(noProject.handoffs,[]);
+ assert.equal(noProject.messagesSent,0);
+ assert.equal(noProject.assignmentsCreated,0);
 });
