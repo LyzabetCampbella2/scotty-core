@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { handleA0 } from "./a0-http.mjs";
+import { handleA0 as rawHandleA0 } from "./a0-http.mjs";
+// Test-only verifier stub; the actual SCOTTY server installs no verifier and cannot mint grants.
+const handleA0=(req,url,options={})=>rawHandleA0(req,url,{verifyOwnerEvidence:async()=>true,...options});
 
 const base="https://scotty-staging.example/api/a0";
 const token="a".repeat(56);
@@ -100,6 +102,31 @@ test("A0 owner HTTP: fail-closed behavior, no real database or providers",async 
     const b=grantInput();b.projectId="*";
     const q=req("/grants",{method:"POST",body:b});
     assert.equal(await status(await handleA0(q,new URL(q.url),{store,now})),400);
+  });
+  await t.test("caller-supplied approval flag cannot mint a grant when verifier absent",async()=>{
+    const before=store.records.length;
+    const q=req("/grants",{method:"POST",body:grantInput()});
+    const r=await rawHandleA0(q,new URL(q.url),{store,now});
+    assert.equal(r.status,503);
+    assert.equal(store.records.length,before);
+  });
+  await t.test("a verifier rejection cannot mint a grant",async()=>{
+    const before=store.records.length;
+    const q=req("/grants",{method:"POST",body:grantInput()});
+    const r=await handleA0(q,new URL(q.url),{store,now,verifyOwnerEvidence:async()=>false});
+    assert.equal(r.status,403);
+    assert.equal(store.records.length,before);
+  });
+  await t.test("verifier checks exact owner and project scope arguments",async()=>{
+    const q=req("/grants",{method:"POST",body:grantInput()});
+    const seen=[];
+    const result=await handleA0(q,new URL(q.url),{store,now,
+      verifyOwnerEvidence:async(scope)=>{seen.push(scope);return false;}});
+    assert.equal(result.status,403);
+    assert.equal(seen.length,1);
+    assert.equal(seen[0].ownerId,"owner-1");
+    assert.equal(seen[0].projectId,"project-1");
+    assert.equal(seen[0].approvalEvidenceId,"owner-review-1");
   });
   await t.test("exact owner-reviewed staging grant stays a record",async()=>{
     const q=req("/grants",{method:"POST",body:grantInput()});
