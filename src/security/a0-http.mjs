@@ -61,6 +61,9 @@ export async function handleA0(req,url,options={}) {
  if(!["GET","POST"].includes(req.method))return json({ok:false,error:"Method not allowed"},405);
  if(req.method==="POST"&&req.headers.get("x-scotty-a0-csrf")!=="1")return json({ok:false,error:"Write confirmation header required"},403);
  if(req.method==="POST"&&req.headers.get("sec-fetch-site")==="cross-site")return json({ok:false,error:"Cross-site write denied"},403);
+ // Reject unverified grant creation BEFORE opening or reading staging storage.
+ if(req.method==="POST"&&url.pathname==="/api/a0/grants"&&typeof options.verifyOwnerEvidence!=="function")
+  return json({ok:false,error:"Owner evidence verification not implemented"},503);
  try {
   const store=options.store ?? await (options.storeFactory?options.storeFactory():(await import("./a0-ledger.mjs")).openA0Store());
   const p=url.pathname;
