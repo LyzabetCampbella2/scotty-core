@@ -76,7 +76,9 @@ export function buildRoleContracts(roster=connectedRoster()){
   if(!a?.id||ids.has(a.id)||!a?.department||typeof a.isChief!=='boolean')
     throw Error('INVALID_ROLE_CONTRACT_ROSTER');
   ids.add(a.id);
-  const key=a.department+'::'+norm(a.specialty);
+  // The canonical roster is already unique inside departments. Detect
+  // shared specialties across different chiefs rather than invent duplicates.
+  const key=norm(a.specialty);
   const n=seen.get(key)||0;
   seen.set(key,n+1);
   const stage=STAGES[n%STAGES.length];
@@ -110,7 +112,8 @@ export function buildRoleContracts(roster=connectedRoster()){
    roleScope:'DESIGN_TIME_ONLY',
    responsibility:'Prepare '+artifacts.label+' for owner-authorized '+specialty+' work',
    method:artifacts.method,artifact:artifacts.label,
-   evidenceRequired:artifacts.evidence,reviewQuestion:artifacts.question,
+   evidenceRequired:artifacts.evidence+' for '+specialty+' in '+a.department,
+   reviewQuestion:artifacts.question,
    limits:[artifacts.boundary,'No tools, model grants, private memory or verified assignments are created by this contract'],
    qualifiedExternalTools:[],activePermissions:[],
    certified:false,ownerReviewed:false
@@ -131,7 +134,7 @@ export function overlappingSpecialtyReport(){
  const buckets=new Map();
  for(const x of INDIVIDUAL_ROLE_CONTRACTS){
   if(x.stage==='department-chief')continue;
-  const key=x.department+'::'+norm(x.specialty);
+  const key=norm(x.specialty);
   const list=buckets.get(key)||[];
   list.push(x);buckets.set(key,list);
  }
