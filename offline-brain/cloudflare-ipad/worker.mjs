@@ -26,6 +26,7 @@ import {isRikerRoute,rikerRoute} from "./riker-memory-api.mjs";
 import {isActivepiecesPath,handleActivepieces} from './activepieces-bridge.mjs';
 import {isOwnerPreviewReviewPath,handleOwnerPreviewReview} from './owner-preview-review-api.mjs';
 import {isCreativeBioPath,handleCreativeBio} from './creative-agent-bio-api.mjs';
+import {creativeMediaBrowserEvents} from './creative-agent-ui.mjs';
 
 const MODEL="@cf/meta/llama-3.2-3b-instruct";
 const MAX_QUESTION=500;
@@ -375,7 +376,7 @@ export default {
   }
   if(request.method==="GET"&&url.pathname==="/ui.js"){
    // Add the bio controls within the existing in-memory owner-token closure.
-    const ui=browserScript.replace(" updateButtons();\n})();",portfolioBrowserEvents+"\n updateButtons();\n})();");
+    const ui=browserScript.replace(" updateButtons();\n})();",portfolioBrowserEvents+"\n"+creativeMediaBrowserEvents+"\n updateButtons();\n})();");
     return new Response(ui,{headers:{"content-type":"text/javascript; charset=utf-8",...headers}});
   }
   if(request.method==="GET"&&url.pathname==="/health")return response({
