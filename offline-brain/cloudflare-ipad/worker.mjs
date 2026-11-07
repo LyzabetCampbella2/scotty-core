@@ -26,6 +26,7 @@ import {isRikerRoute,rikerRoute} from "./riker-memory-api.mjs";
 import {isActivepiecesPath,handleActivepieces} from './activepieces-bridge.mjs';
 import {isOwnerPreviewReviewPath,handleOwnerPreviewReview} from './owner-preview-review-api.mjs';
 import {isCreativeBioPath,handleCreativeBio} from './creative-agent-bio-api.mjs';
+import {isPhase1BrainReviewPath,handlePhase1BrainReview} from './phase1-profile-review-api.mjs';
 import {creativeMediaBrowserEvents} from './creative-agent-ui.mjs';
 
 const MODEL="@cf/meta/llama-3.2-3b-instruct";
@@ -89,6 +90,7 @@ async function handleApi(request,env,url){
  const path=url.pathname;
  if(isOwnerPreviewReviewPath(path))return handleOwnerPreviewReview(request,env,url,auth==="YES");
  if(isCreativeBioPath(path))return handleCreativeBio(request,env,url,auth==="YES");
+ if(isPhase1BrainReviewPath(path))return handlePhase1BrainReview(request,env,url,auth==="YES");
  if(isRikerRoute(path))return rikerRoute(request,env,url,auth==="YES");
  if(path==="/api/readiness"&&request.method==="GET")return response(await readiness(env));
  if(["/api/projects","/api/agent-bio","/api/agent-assignment"].includes(path)){
