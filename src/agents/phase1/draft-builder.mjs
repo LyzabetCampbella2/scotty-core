@@ -2,6 +2,7 @@ import {departmentMethod} from "./department-methods.mjs";
 import {specialistPlaybook} from "./specialist-playbooks.mjs";
 import {ACCEPTANCE_TASKS,ACCEPTANCE_RUBRIC} from "./department-acceptance-cases.mjs";
 import {chiefSourceCandidate} from "./chief-source-candidates.mjs";
+import {newChiefConcept} from "./new-chief-concepts.mjs";
 /**
  * Stage B / Phase 1 offline draft brains.
  * Input: approved, version-locked A0 roster. Output: owner-review candidates.
@@ -40,6 +41,8 @@ export function createPhase1BrainDrafts(frozen, lock){
     const limits=[method[3],...(playbook?.boundaries||[]),"A planned work method is not a live capability or certified factual knowledge."];
     const candidateReferences=playbook?.candidateReferences||[];
     const priorChiefReview=role===CHIEF?chiefSourceCandidate({id,name,department:dept}):null;
+    const proposedNewChiefConcept=role===CHIEF&&!priorChiefReview?newChiefConcept({id,name,department:dept}):null;
+    if(role===CHIEF&&!priorChiefReview&&!proposedNewChiefConcept)throw Error("Chief missing concept or historic source");
     return {
       canonicalAgentId:id,
       displayName:name,
@@ -54,6 +57,7 @@ export function createPhase1BrainDrafts(frozen, lock){
       draftState:"SOURCE_IDENTITY_ONLY_NOT_OWNER_APPROVED",
       ownerPreferenceEvidence:null,
       priorChiefReview,
+      proposedNewChiefConcept,
       priorChiefSourceApplied:false,
       ownerApproved:false,
       avatar:null,
@@ -109,6 +113,8 @@ export function createPhase1BrainDrafts(frozen, lock){
       chiefSourceCandidates:drafts.filter(p=>p.priorChiefReview).length,
       chiefSourceIdentityConflicts:drafts.filter(p=>p.priorChiefReview?.identityStatus==="LEGACY_ID_MISMATCH_REQUIRES_OWNER_REVIEW").length,
       chiefSourcesAdopted:0,
+      newChiefConceptProposals:drafts.filter(p=>p.proposedNewChiefConcept).length,
+      newChiefConceptsApproved:0,
       realModelEvaluationsPassed:0,ownerApprovedBrainVersions:0,independentlyCallableLiveAgents:0
     },
     warning:"Role-specific authored methods and legacy chief sources are review candidates, not certified personalities, verified knowledge or live agents."
