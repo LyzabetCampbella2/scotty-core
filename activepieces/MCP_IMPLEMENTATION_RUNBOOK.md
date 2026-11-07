@@ -1,6 +1,6 @@
 # SCOTTY — Activepieces MCP implementation runbook
 
-Status: **staging drafts installed and tested through the connected Activepieces MCP tools**. The existing user's `SCOTTY — Connection Test` was inspected, repaired and tested. A separate `SCOTTY — Staging` folder contains **10 unpublished/disabled workflows** and **7 tables (185 public development profiles, 5 public project profiles, 25 proposed collaborators, 1 synthetic task, 1 demo mission, 4 memory scope rules, 3 demonstration owner decisions)**. The Activepieces MCP folder validator returned `ok=true`, `issues=[]`. This is NOT a production deployment, 185 verified autonomous agents, or owner-authorized real project work.
+Status: **staging drafts installed and tested through the connected Activepieces MCP tools**. The existing user's `SCOTTY — Connection Test` was inspected, repaired and tested. A separate `SCOTTY — Staging` folder contains **11 unpublished/disabled staging workflows** and **8 tables (185 development profiles, 5 public project profiles, 25 proposed collaborators, 1 synthetic task, 1 demo mission, 4 memory scope rules, 3 demonstration owner decisions, and 11 launch gates)**. The Activepieces MCP folder validator returned `ok=true`, `issues=[]`. This is NOT a production deployment, 185 verified autonomous agents, or owner-authorized real project work.
 
 ## Verified Activepieces draft flows
 
@@ -22,6 +22,14 @@ Status: **staging drafts installed and tested through the connected Activepieces
 The pure `offline-brain/cloudflare-ipad/activepieces-owner-gate.mjs` contract checks the project ID, mission ID, revision, request digest, approved agent IDs, idempotency key, owner/session source, expiration and explicit consent. It **never returns execution permission or writes data**. A future implementation must fetch owner/session, project membership and approval history from SCOTTY's protected server, not from Activepieces-supplied request fields. Atomic audit-backed mission-commit and scoped worker authorization are not implemented.
 
 The Activepieces workspace currently has **zero connected external application credentials**, and there is no deployed private SCOTTY staging Worker for this automation. Never paste secrets into flow code, table rows or messages.
+
+- [SCOTTY — Launch Readiness Dashboard](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/d6nHeqQQqp8E6A2HNkoDX) — PASSED: 4 verified development previews, 7 blocked release gates, `canExecute=false`, `canDeploy=false`
+
+## New optional owner review ledger — source only
+
+The isolated D1 schema `offline-brain/cloudflare-ipad/activepieces-review-ledger-v1.sql` and `activepieces-review-store.mjs` now provide an **unapplied**, source-only durable preview review draft, owner decision, revision check, idempotent replay protection, owner/session checks and append-only metadata audit. All tested with in-memory SQLite, never a live D1 instance. The review store is **not imported** into the Worker or reachable through an API. A review marked "approved" cannot run any agent or use private memory.
+
+The separate-secret Activepieces bridge includes a disabled-by-default read-only `GET /api/activepieces/review-readiness` endpoint that checks D1 schema presence only. It cannot grant authorization. To activate that bridge, its own staging secret and staging Worker deployment must first be explicitly approved, and the optional migration needs separate owner review and backup.
 
 All flows are manually triggered, DISABLED and DRAFT. No API secrets, paid AI actions, publishing, external writes, cloud workers or real mission execution were added.
 
