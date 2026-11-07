@@ -68,6 +68,10 @@ jobs:
           A0_CI_DATABASE_URL: postgres://a0_ci:ci-only-not-a-real-secret@127.0.0.1:5432/scotty_a0_ci
         run: node --test src/security/a0-postgres.ci.test.mjs
 
+      - name: Install public age encryption utility (synthetic CI only)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y age
       - name: Synthetic PostgreSQL backup and isolated restore rehearsal
         shell: bash
         run: |
@@ -75,11 +79,23 @@ jobs:
           cid="$(docker ps -q --filter 'ancestor=postgres:18' | head -n1)"
           test -n "$cid"
           archive="$RUNNER_TEMP/scotty-a0-synthetic.dump"
-          trap 'rm -f "$archive"' EXIT
+          ciphertext="$RUNNER_TEMP/scotty-a0-synthetic.dump.age"
+          recovered="$RUNNER_TEMP/scotty-a0-restored.dump"
+          identity="$RUNNER_TEMP/a0-ci-synthetic-identity.txt"
+          recipient="$RUNNER_TEMP/a0-ci-synthetic-recipient.txt"
+          trap 'rm -f "$archive" "$ciphertext" "$recovered" "$identity" "$recipient"' EXIT
+          # Ephemeral synthetic test key; never print its contents or commit it.
+          (umask 077; age-keygen -o "$identity" >/dev/null 2>&1)
+          age-keygen -y "$identity" > "$recipient"
           docker exec -e PGPASSWORD=ci-only-not-a-real-secret "$cid" pg_dump -U a0_ci -Fc --no-owner --no-privileges -d scotty_a0_ci > "$archive"
           test -s "$archive"
+          age -r "$(cat "$recipient")" -o "$ciphertext" "$archive"
+          test -s "$ciphertext"
+          age -d -i "$identity" -o "$recovered" "$ciphertext"
+          cmp -s "$archive" "$recovered"
+          # Restore ONLY the independently decrypted copy into a distinct database.
           docker exec -e PGPASSWORD=ci-only-not-a-real-secret "$cid" createdb -U a0_ci scotty_a0_ci_restored
-          docker exec -i -e PGPASSWORD=ci-only-not-a-real-secret "$cid" pg_restore -U a0_ci --no-owner --no-privileges -d scotty_a0_ci_restored < "$archive"
+          docker exec -i -e PGPASSWORD=ci-only-not-a-real-secret "$cid" pg_restore -U a0_ci --no-owner --no-privileges -d scotty_a0_ci_restored < "$recovered"
           grants="$(docker exec -e PGPASSWORD=ci-only-not-a-real-secret "$cid" psql -U a0_ci -At -d scotty_a0_ci_restored -c 'select count(*) from scotty_a0_grant')"
           claims="$(docker exec -e PGPASSWORD=ci-only-not-a-real-secret "$cid" psql -U a0_ci -At -d scotty_a0_ci_restored -c 'select count(*) from scotty_a0_claim')"
           stop="$(docker exec -e PGPASSWORD=ci-only-not-a-real-secret "$cid" psql -U a0_ci -At -d scotty_a0_ci_restored -c 'select stop_all from scotty_a0_control where id=1')"
