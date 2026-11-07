@@ -9,6 +9,7 @@ import {connectedRoster} from './connected-roster.mjs';
 import {specialistPlaybook} from './specialist-playbooks.mjs';
 import {fieldKnowledge} from './field-knowledge.mjs';
 import {ownerChiefDesignOverlay} from './owner-chief-design-overlays.mjs';
+import {roleContract} from './agent-role-contracts.mjs';
 
 export const BRAIN_SPEC_VERSION='scotty-individual-brains-v1';
 const names=new Set();
@@ -99,6 +100,7 @@ function profile(a){
  names.add(a.name.toLowerCase());
  const focus=safeSkill(a),ch=a.isChief?authoredChiefNotes(a):null;
  const ownerDesign=a.isChief?ownerChiefDesignOverlay(a.id):null;
+ const job=roleContract(a.id);
  const hue=temperaments[stableHash(a.id)%temperaments.length];
  const procedures=departmentOutputs(a);
  const playbook=a.isChief?null:specialistPlaybook(a);
@@ -115,6 +117,7 @@ function profile(a){
    'Cite only permitted, checked references and separate hypotheses from facts',
    'Send a draft for review by '+a.chiefId+'; never claim it was sent'
  ];
+ method.push('Specialized role scope ('+job.specializationTrack+'): '+job.method);
  const limitations=[
    'This is an authored development profile, not professional accreditation or verified expertise',
    'No agent may imply a mocked or drafted result was externally executed',
@@ -147,6 +150,8 @@ function profile(a){
    category:'source-retrieval',qualifiedForSuggestion:true,granted:false,
    description:'Access only approved, project-scoped evidence after phase 3/7 checks'
  }];
+ completion.push('Role-specific acceptance evidence: '+job.evidenceRequired);
+ limitations.push(...job.limits);
  const reportingTo=a.isChief?'scotty':a.chiefId;
  const idContext='identity '+a.id+'; focus '+focus+'; department '+a.department;
  const prompt=[
@@ -155,6 +160,7 @@ function profile(a){
    'Reasoning approach: '+reasoning+'.',
    'Communication: '+style+'; '+(a.isChief?'report to SCOTTY':'report to '+a.chiefId)+'.',
    'Procedure: '+method.join('; ')+'.',
+   'Distinct workstream artifact: '+job.artifact+'. Review question: '+job.reviewQuestion+'.',
    'Deliverable checks: '+completion.join('; ')+'.',
    'Limitations: '+limitations.join('; ')+'.',
    ...(ownerDesign?[
@@ -180,6 +186,7 @@ function profile(a){
   completionStandards:completion,
   outputArtifact:a.isChief?procedures[3]:procedures[stableHash(a.id+"-artifact")%procedures.length],
   authoredKnowledgeStatus:'methodology-only-not-fact-certified',
+  individualRoleContract:job,
   ownerDesign:ownerDesign?{
     version:ownerDesign.version,legacySourceId:ownerDesign.legacySourceId,
     provenance:ownerDesign.provenance,recordedSelections:ownerDesign.selections,
