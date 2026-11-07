@@ -5,6 +5,7 @@
  */
 import {connectedRoster} from './connected-roster.mjs';
 import {planAssignment} from './team-expansion.mjs';
+import {reviewLedgerReadiness} from './activepieces-review-readiness.mjs';
 
 const agents=connectedRoster();
 const HEADERS={'content-type':'application/json; charset=utf-8','cache-control':'no-store',
@@ -57,6 +58,15 @@ export async function handleActivepieces(req,env,url=new URL(req.url)){
         name:agents.find(x=>x.id===a.agentId)?.name||a.agentId,score:a.score})),
       aiCalls:0,memoryReads:0,memoryWrites:0,missionsStarted:0,
       changesToProjects:0,ownerApprovalNeededForExecution:true});
+  }
+  if(url.pathname==='/api/activepieces/review-readiness'){
+    if(req.method!=='GET')return error('METHOD_NOT_ALLOWED',405);
+    const state=await reviewLedgerReadiness(env?.BRAIN_DB);
+    return json({ok:true,mode:'READ_ONLY',type:'REVIEW_SCHEMA_READINESS',
+      ...state,workerBridgeActive:true,
+      ownerSessionVerified:false,projectMembershipVerified:false,
+      approvalsVerified:0,canExecute:false,
+      note:'Optional isolated D1 ledger SCHEMA status only. This is not an owner approval or a mission execution endpoint.'});
   }
   return error('NOT_FOUND',404);
 }
