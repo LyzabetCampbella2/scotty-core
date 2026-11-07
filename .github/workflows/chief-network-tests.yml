@@ -1,0 +1,20 @@
+name: SCOTTY isolated chief network and HUD synthetic E2E
+on:
+  pull_request:
+    paths:
+      - 'offline-brain/cloudflare-ipad/chief-network*'
+      - '.github/workflows/chief-network-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthetic-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check offline-brain/cloudflare-ipad/chief-network.mjs
+      - run: node --test offline-brain/cloudflare-ipad/remaining-chiefs.test.mjs offline-brain/cloudflare-ipad/chief-network.test.mjs
