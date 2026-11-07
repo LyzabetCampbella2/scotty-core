@@ -218,3 +218,43 @@ test('audit corruption, unauthorized access and protected field mutation are det
   }),/PROFILE_REVIEW_AUDIT_INCOMPLETE/);
  }finally{x.close();}
 });
+
+
+test('exact retry after approval or revocation returns existing metadata, never adds another audit event',async()=>{
+ const x=isolated();
+ try{
+  const req=await makeRequest();
+  await createPhase1ProfileReview(x.db,req);
+  await decidePhase1ProfileReview(x.db,decide(req,'approved'));
+  const approvedReplay=await createPhase1ProfileReview(x.db,req);
+  assert.equal(approvedReplay.replayed,true);
+  assert.equal(approvedReplay.reviewStatus,'approved');
+  assert.equal(approvedReplay.currentHeadVersion,1);
+  assert.equal(approvedReplay.runtimePromptActivated,false);
+  await decidePhase1ProfileReview(x.db,decide(req,'revoked',2));
+  const revokedReplay=await createPhase1ProfileReview(x.db,req);
+  assert.equal(revokedReplay.replayed,true);
+  assert.equal(revokedReplay.reviewStatus,'revoked');
+  assert.equal(revokedReplay.currentHeadVersion,2);
+  assert.equal(x.native.prepare('SELECT COUNT(*) AS n FROM scotty_phase1_agent_profile_audit_v1').get().n,3);
+  assert.equal(x.native.prepare('SELECT COUNT(*) AS n FROM scotty_phase1_agent_profile_reviews_v1').get().n,1);
+ }finally{x.close();}
+});
+test('approving an older request cannot silently become an agent active profile even if a later head exists',async()=>{
+ const x=isolated();
+ try{
+  const first=await makeRequest();
+  await createPhase1ProfileReview(x.db,first);
+  await decidePhase1ProfileReview(x.db,decide(first,'approved'));
+  const oldBody=agentBrain(first.proposal.agentId);
+  assert.notEqual(oldBody.persona.voice,first.proposal.patch.voice);
+  assert.equal(oldBody.developmentStatus,'SPEC_ONLY_NOT_EXECUTING');
+  assert.equal(oldBody.ownerDesign,null);
+  const read=await readPhase1ProfileReview(x.db,{actor,requestId:first.proposal.requestId});
+  assert.equal(read.profileReviewApproved,true);
+  assert.equal(read.ownerAcceptedEntireBrain,false);
+  assert.equal(read.modelBehaviorCertified,false);
+  assert.equal(read.canExecute,false);
+  assert.equal(read.runtimePromptActivated,false);
+ }finally{x.close();}
+});
