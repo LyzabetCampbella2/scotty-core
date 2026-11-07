@@ -65,7 +65,7 @@ export function createPhase1EvaluationIngestor({
    return r;
  };
  const verifyStored=async(row,expected)=>{
-  if(!row||Object.keys(expected).some(k=>row[k]!==expected[k]))
+  if(!row||Object.keys(expected).filter(k=>k!=='_cases').some(k=>row[k]!==expected[k]))
     die('EVIDENCE_IDEMPOTENCY_CONFLICT');
   const all=(await db.prepare('SELECT '+caseCols+
     ' FROM scotty_phase1_eval_case_results_v1 WHERE session_id=? LIMIT 4')
