@@ -1,0 +1,12 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {GEORDI_PROFILE,geordiEngineeringPlan,geordiChangeReview,geordiIncidentPlan,geordiMemoryProposal,geordiBio} from './geordi-brain.mjs';
+const approved={ownerApproved:true,projectId:'synthetic-project',authorizedProjectIds:['synthetic-project'],assignmentId:'synthetic-task'};
+test('Round 1 excludes standing diagnostics and reliability wins',()=>{assert.equal(GEORDI_PROFILE.autonomousDiagnostics,false);assert.equal(GEORDI_PROFILE.engineeringPriority,'reliability and security first');assert.ok(!GEORDI_PROFILE.round1.autonomy.includes('D'));});
+test('unapproved and cross-project tasks fail closed',()=>{assert.throws(()=>geordiEngineeringPlan({goal:'test'}));assert.throws(()=>geordiEngineeringPlan({...approved,authorizedProjectIds:['other'],goal:'test'}));});
+test('approved engineering plan does not execute code',()=>{const x=geordiEngineeringPlan({...approved,goal:'synthetic task'});assert.equal(x.codeExecuted,false);assert.equal(x.productionChanged,false);});
+test('change review cannot self-approve merges or deployments',()=>{const x=geordiChangeReview({...approved,branch:'feat/test'});assert.equal(x.mergeApproved,false);assert.equal(x.deployApproved,false);assert.equal(x.testsVerified,false);});
+test('non-isolated branch rejected',()=>assert.throws(()=>geordiChangeReview({...approved,branch:'main'})));
+test('critical incident does not perform diagnostics or containment',()=>{const x=geordiIncidentPlan({projectId:'synthetic-project',authorizedProjectIds:['synthetic-project'],summary:'synthetic failure',severity:'critical'});assert.equal(x.diagnosticsPerformed,false);assert.equal(x.containmentPerformed,false);assert.equal(x.alertSent,false);});
+test('memory proposals remain owner-pending',()=>{const x=geordiMemoryProposal({...approved,lesson:'synthetic lesson',evidenceRef:'synthetic-evidence'});assert.equal(x.saved,false);assert.equal(x.status,'pending-owner-review');});
+test('unauthorized biography never returns projects',()=>{const x=geordiBio({projects:[{private:'example'}]});assert.equal(x.privateDataHidden,true);assert.equal(x.projects,undefined);});
