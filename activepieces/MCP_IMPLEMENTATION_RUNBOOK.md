@@ -66,7 +66,24 @@ Each has authored differences in personality, responsibilities, working method, 
 - [LUMEN Creative Campaign Preview](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/VF0ficyTX8bggvwCwpzb9) — TESTED with a **synthetic** pet-friendly short-form UGC idea; selected PULSE, FRAME and IRIS, routed review to LUMEN and SCOTTY, requested owner approval, **zero** posts, model calls, assignments or memory writes
 - Activepieces table **SCOTTY — Creative Media Department (Draft)** contains all four source-backed profiles, explicitly not running and with no connected memory or tools.
 
-**Not implemented:** live individual execution, social-media account integration, camera operation, file editing, real analytics retrieval, durable memory or confirmed project assignments. These require separately approved owner authentication, tools, model/provider, permissions, data scope and budget.
+### Creative agent implementation — additional source work completed
+
+After the public campaign preview, these components were implemented and tested in the GitHub development branch (not installed as Activepieces live actions and not deployed to Cloudflare):
+
+- `offline-brain/cloudflare-ipad/creative-agent-engine.mjs` — independently callable chief or specialist with unique instructions. It refuses preview-only approvals and requires a separate server-origin `mission.execute` grant, exact agent/project/revision/intent, a 24-hour-or-less expiry and **one model call**. Atomic durable claim must happen before inference; no automatic retries.
+- `offline-brain/cloudflare-ipad/creative-agent-state-v1.sql` — **optional, unapplied** isolated D1 run/audit tables and a public/synthetic reviewed-evidence table. No production/client database or private memory migration was performed.
+- `offline-brain/cloudflare-ipad/creative-agent-d1-store.mjs` — durable run-claim, idempotency and audit readback; result checkpoint; non-retryable failed state; per-agent, per-project approved evidence retrieval and activity metadata.
+- `offline-brain/cloudflare-ipad/creative-project-assignment.mjs` — standalone `project.assign` owner-reviewed grant and transactional project membership logging, not a client `ownerApproved` shortcut. **Source-only, not routed in Worker.**
+- `offline-brain/cloudflare-ipad/creative-memory-approval.mjs` — separately reviewed `memory.approve` grant, exact content digest and recipient-scoped **public/synthetic** note persistence. Not automatic learning; **not an encrypted private memory service**.
+- `offline-brain/cloudflare-ipad/creative-workers-ai-provider.mjs` — optional bounded Cloudflare Workers AI adapter, requiring explicitly configured AI binding, model and consent flags. Not imported into the Worker; mock-model tests only. No paid model calls.
+- `offline-brain/cloudflare-ipad/creative-agent-bio-api.mjs` — **owner-only read-only** directory and selected-agent biography API, now routed behind the isolated Worker's existing owner bearer. With default-off `SCOTTY_CREATIVE_BIOS_ENABLED`, returns public profile only; live project activity requires both optional isolated D1 schemas, project allowlist, and a verified `agent_project_links` record. The API never returns private memory or model-result text.
+- `offline-brain/cloudflare-ipad/creative-agent-ui.mjs` — interactive biography chooser added to the existing isolated SCOTTY lab HTML and browser script, with temporary in-tab owner token use, project selector, personality, responsibilities and verified activity metadata. **The entire UI remains an undeployed development change.**
+
+**Verification:** GitHub Actions passed **116/116 Node tests and 5/5 in-memory SQLite/Python tests**, including four distinct model-call mocks, unauthorized/cross-project rejection, durable replay prevention, provider failure, owner-approved public note isolation and no extra paid/external actions.
+
+**Blockers before these are real running agents:** separately approved isolated D1 migration/backup and Worker staging deployment; SCOTTY must mint and atomically consume authenticated server-side `mission.execute` grants rather than accept request booleans; choose and explicitly authorize the Cloudflare model and per-run budget; review restricted data, retention and encryption before any private memory; complete authenticated project assignment and actual specialist → LUMEN → SCOTTY handoff acceptance. Do not publish the development Activepieces flows to attempt to bypass these requirements.
+
+**Not yet connected live:** real model inference, social-media accounts, camera operation, real media editing/analytics, *private* memory and production owner-approved assignments. The source-only pieces above are implemented but not deployed or activated.
 
 All flows are manually triggered, DISABLED and DRAFT. No API secrets, paid AI actions, publishing, external writes, cloud workers or real mission execution were added.
 
