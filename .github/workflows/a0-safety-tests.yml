@@ -35,7 +35,7 @@ jobs:
           node-version: '22'
       - name: Execute no-network, no-secrets A0 tests
         run: |
-          node --test src/security/approval-gate.test.mjs src/security/a0-http.test.mjs src/security/a0-migration.test.mjs src/security/a0-roster.test.mjs src/security/a0-isolation.test.mjs src/security/a0-certification.test.mjs
+          node --test src/security/approval-gate.test.mjs src/security/a0-http.test.mjs src/security/a0-migration.test.mjs src/security/a0-roster.test.mjs src/security/a0-isolation.test.mjs src/security/a0-certification.test.mjs src/security/a0-roster-freeze.test.mjs
           node scripts/a0-verify-roster.mjs docs/a0/roster-candidate-2026-11-07.json
 
   a0-postgres-integration:
