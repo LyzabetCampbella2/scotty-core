@@ -45,6 +45,7 @@ const safeDb=async(db)=>{
  if(s.ready!==true)denied('OWNER_REVIEW_D1_MIGRATION_REQUIRED');
 };
 const replay=(stored,next)=>
+ stored.request_id===next.request_id&&stored.idempotency_key===next.idempotency_key&&
  stored.owner_id===next.owner_id&&stored.project_id===next.project_id&&
  stored.mission_id===next.mission_id&&stored.revision===next.revision&&
  stored.intent_digest===next.intent_digest&&stored.agent_ids_json===next.agent_ids_json&&
