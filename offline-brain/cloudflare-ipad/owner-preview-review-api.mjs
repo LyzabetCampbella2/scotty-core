@@ -20,6 +20,7 @@ import {
 } from './activepieces-review-store.mjs';
 import {reviewLedgerReadiness} from './activepieces-review-readiness.mjs';
 import {portfolioReadiness} from './agent-portfolio.mjs';
+import {inspectOwnerReviewPreflight} from './owner-preview-review-preflight.mjs';
 import {connectedRoster} from './connected-roster.mjs';
 
 const rosterIds=new Set(connectedRoster().map(a=>a.id));
@@ -34,7 +35,7 @@ const headers={
 };
 const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers});
 const error=(code,status=400)=>json({ok:false,error:code,canExecute:false},status);
-const paths=new Set(['/api/owner-preview-reviews','/api/owner-preview-reviews/decision']);
+const paths=new Set(['/api/owner-preview-reviews','/api/owner-preview-reviews/decision','/api/owner-preview-reviews/readiness']);
 export const isOwnerPreviewReviewPath=path=>paths.has(path);
 
 function serverOwner(env){
@@ -100,10 +101,16 @@ function normalizeError(e){
 }
 export async function handleOwnerPreviewReview(req,env,url=new URL(req.url),authenticatedOwner=false){
  if(!isOwnerPreviewReviewPath(url.pathname))return error('NOT_FOUND',404);
- if(env?.SCOTTY_PREVIEW_REVIEWS_ENABLED!=='true')return error('OWNER_PREVIEW_REVIEWS_DISABLED',503);
  // This boolean is set ONLY by worker.mjs following its existing owner bearer
  // auth. Never route this module through the separate Activepieces bridge.
  if(authenticatedOwner!==true)return error('OWNER_AUTH_REQUIRED',401);
+ if(url.pathname==='/api/owner-preview-reviews/readiness'){
+   if(req.method!=='GET')return error('METHOD_NOT_ALLOWED',405);
+   if(url.search)return error('QUERY_NOT_ALLOWED',400);
+   try{return json({ok:true,...await inspectOwnerReviewPreflight(env)});}
+   catch{return error('OWNER_REVIEW_PREFLIGHT_UNAVAILABLE',503);}
+ }
+ if(env?.SCOTTY_PREVIEW_REVIEWS_ENABLED!=='true')return error('OWNER_PREVIEW_REVIEWS_DISABLED',503);
  if(url.search&&!(url.pathname==='/api/owner-preview-reviews'&&req.method==='GET'))
   return error('QUERY_NOT_ALLOWED',400);
  if(!['GET','POST'].includes(req.method))return error('METHOD_NOT_ALLOWED',405);
