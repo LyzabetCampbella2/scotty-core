@@ -1,9 +1,9 @@
 # SCOTTY + Activepieces Cloud — iPad setup
 
-**Status November 6, 2026: source draft only; NOT a live connection.** This branch has a disabled, read-only Cloudflare staging bridge. No Activepieces account/workspace has been accessed or created, no Cloudflare deployment happened, no production SCOTTY code was changed and no secrets were saved.
+**Status: Activepieces Cloud connected and staging drafts installed.** In the user's Activepieces workspace, the `SCOTTY — Staging` folder contains 8 disabled, unpublished workflows and 5 tables. Public roster, plan, project and owner-briefing previews have passed tests. The separately authenticated Cloudflare Worker bridge is STILL DISABLED AND UNDEPLOYED. No production SCOTTY code or private memory was accessed or deployed, no paid services were started and no backend agent execution was authorized. For current working flow links see `MCP_IMPLEMENTATION_RUNBOOK.md`.
 
 ## Why Activepieces
-- Activepieces Cloud Free: currently 100 credits per day, no card, Flows, Agents, Tables, API access; higher-cost AI actions use additional credits. Verify at https://www.activepieces.com/pricing before entering billing information.
+- Activepieces Cloud Free plan limits and billing can change. Check your account's current credits at https://www.activepieces.com/pricing before enabling paid AI or scheduled flows.
 - Runs in the cloud, accessible from iPad Safari; editor may need Request Desktop Website or a keyboard/trackpad.
 - This does NOT automatically deploy 185 working autonomous agents. The repository stores authored development profiles for 25 chiefs and 160 specialists, but they are not individually verified/executing Activepieces agents.
 - Keep SCOTTY's reasoning, character profiles, project ACLs, approvals and long-term memory in its controlled application; Activepieces is just the automation and integration layer.
