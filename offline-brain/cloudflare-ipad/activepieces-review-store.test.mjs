@@ -171,3 +171,28 @@ test('manual audit deletion or inconsistent review state does not produce verifi
    await assert.rejects(()=>decideOwnerPreviewReview(s.db,decision({expectedVersion:2,decision:'revoked'})),/REVIEW_AUDIT_INCOMPLETE/);
  }finally{s.close();}
 });
+
+
+test('version or audit timestamp tampering fails closed before owner readback',async()=>{
+ for(const [sql,args,reason] of [
+  ["UPDATE scotty_activepieces_review_requests_v1 SET version=8 WHERE request_id=?",['review-demo-0001'],/REVIEW_VERSION_AUDIT_MISMATCH/],
+  ["UPDATE scotty_activepieces_review_audit_v1 SET occurred_at=? WHERE request_id=?",['2026-11-07T05:00:00.000Z','review-demo-0001'],/REVIEW_AUDIT_TIMESTAMP_MISMATCH/],
+  ["UPDATE scotty_activepieces_review_requests_v1 SET created_at=? WHERE request_id=?",['2026-11-07T03:00:00.000Z','review-demo-0001'],/REVIEW_AUDIT_TIMESTAMP_MISMATCH/]
+ ]){
+  const s=isolatedDatabase();
+  try{
+   await createOwnerPreviewReview(s.db,request());
+   s.native.prepare(sql).run(...args);
+   await assert.rejects(()=>readOwnerPreviewReview(s.db,{actor,project,requestId:proposal.requestId}),reason);
+  }finally{s.close();}
+ }
+});
+test('malformed stored expiration does not permit a review decision',async()=>{
+ const s=isolatedDatabase();
+ try{
+  await createOwnerPreviewReview(s.db,request());
+  s.native.prepare("UPDATE scotty_activepieces_review_requests_v1 SET expires_at=? WHERE request_id=?").run('not-a-date',proposal.requestId);
+  await assert.rejects(()=>decideOwnerPreviewReview(s.db,decision()),/REVIEW_EXPIRED/);
+  assert.equal(s.native.prepare("SELECT status FROM scotty_activepieces_review_requests_v1 WHERE request_id=?").get(proposal.requestId).status,'pending');
+ }finally{s.close();}
+});
