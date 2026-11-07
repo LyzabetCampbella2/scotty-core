@@ -121,6 +121,7 @@ test('no owner session, private request, expired or mismatched idempotency canno
   await assert.rejects(()=>createOwnerPreviewReview(s.db,request({proposal:{...proposal,expiresAt:'2026-11-07T03:00:00.000Z'}})),/INVALID_REVIEW_EXPIRATION/);
   assert.equal(s.native.prepare('SELECT COUNT(*) n FROM scotty_activepieces_review_requests_v1').get().n,0);
   await createOwnerPreviewReview(s.db,request());
+  await assert.rejects(()=>createOwnerPreviewReview(s.db,request({proposal:{...proposal,requestId:'review-demo-0002'}})),/REVIEW_IDEMPOTENCY_KEY_CONFLICT/);
   await assert.rejects(()=>createOwnerPreviewReview(s.db,request({proposal:{...proposal,requestId:'review-demo-0002',intentDigest:'b'.repeat(64)}})),/REVIEW_IDEMPOTENCY_KEY_CONFLICT/);
   assert.equal(s.native.prepare('SELECT COUNT(*) n FROM scotty_activepieces_review_requests_v1').get().n,1);
  }finally{s.close();}
