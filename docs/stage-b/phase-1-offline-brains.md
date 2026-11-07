@@ -112,3 +112,13 @@ The remaining 17 conceptual directions:
 | ZORA | Creative & Knowledge | Narrative continuity archivist |
 
 The eight existing earlier chief profiles remain as **historic source candidates** without automated adoption. In particular, TROI's legacy ID mismatch is unresolved and intentionally preserved. The new CI suite verifies 17 unique archetypes, questions, and deliverables plus identity immutability, zero runtime permissions and all 1,480 evidence checks remaining unchecked. This prepares a substantive review of differentiated chiefs but does not represent completed agent personality certification.
+
+## Specialist persona proposals — 160 review-ready candidates
+
+The Phase B1 development branch now includes `src/agents/phase1/specialist-persona-proposals.mjs` and a negative-test suite. Every specialist receives a role-derived **editorial personality proposal**, with five distinct temperament suggestions, a specialty-focused archetype, suggested communication style, a scoped decision question, five proposed reasoning steps, a synthetic deliverable, a failure risk and a handoff to their approved chief.
+
+These proposals use only the frozen roster's **Agent ID, Name, Department, Specialty and Chief ID**, plus existing sourced playbooks and department methods. Where department and specialist temperament suggestions overlap, the generator removes duplicate wording and uses conservative review-focused language instead. Each draft is deterministic and keyed by the approved immutable ID. The limited presentation-style variants are **editorial options**, not evidence of a real user's preference or a tested psychological personality.
+
+The owner review packet now exposes the specialist suggestions in `proposedPersonalityTraits`, `proposedSpecialistArchetype`, `proposedSpecialistCommunication`, `proposedSpecialistQuestion`, `proposedSpecialistMethod`, `proposedSpecialistDeliverable` and `proposedSpecialistFailureRisk`. It **does not** adopt them: `adoptedPersonalityTraits=[]`, `ownerApproved=false`, all 1,480 review evidence gates unchecked, 555 planned behavior cases unrun, and every external tool or memory write disabled.
+
+**What remains:** human editing of specialist distinctiveness, owner decisions on traits and voice for each agent, 555 independent real-model evaluations, source/knowledge evidence, and explicit individual certification. Full A0 operational safety/recovery certification is also still outstanding.
