@@ -52,7 +52,8 @@ async function ownerReviewHistory(env,agentId){
   }));
   return {connected:true,state:'REVIEW_METADATA_ONLY',
    entries,currentReviewId:entries.find(x=>x.currentlyReviewedDraft)?.requestId||null,
-   headVersion:head?.head_version??0,historyMayBeTruncated:rows.length===10};
+   headVersion:rows.length?(head?.head_version??0):null,
+   historyMayBeTruncated:rows.length===10};
  }catch{
   return {connected:false,state:'REVIEW_LEDGER_UNAVAILABLE',
    entries:[],currentReviewId:null};
