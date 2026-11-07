@@ -228,7 +228,7 @@ export function roleResponsePreview(id,task){
    'Review the assigned department response using '+b.focus:
    'Produce a scoped '+b.focus+' contribution',
   initialStep:b.workingMethod[0],
-  method:b.workingMethod[1],
+  method:b.ownerDesign?b.workingMethod.at(-1):b.workingMethod[1],
   evidenceRule:b.limitations.find(x=>x.includes('fabricated citations'))||b.limitations[0],
   deliverable:b.outputArtifact,
   acceptanceCheck:b.completionStandards[1],
