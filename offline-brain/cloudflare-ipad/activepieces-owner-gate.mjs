@@ -25,7 +25,7 @@ export function assessFutureOwnerMissionGate({proposal,serverSession,serverGrant
      !ident.test(serverSession.ownerId||'') ||
      !Array.isArray(serverSession.allowedProjects))return deny('VERIFIED_OWNER_SESSION_REQUIRED');
   if(!ident.test(proposal.projectId||'')||!ident.test(proposal.missionId||'')||
-     !ident.test(proposal.revision||'')||!ident.test(proposal.idempotencyKey||'')||
+     !/^r[1-9][0-9]{0,6}$/.test(proposal.revision||'')||!ident.test(proposal.idempotencyKey||'')||
      !digest.test(proposal.intentDigest||'')||!unique(proposal.agentIds))
     return deny('INVALID_MISSION_IDENTITY');
   if(proposal.classification!=='public-or-synthetic'||proposal.containsPrivateData!==false||
