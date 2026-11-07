@@ -89,6 +89,21 @@ A single database batch inserts one session and exactly three immutable per-case
 
 **Remaining:** real server-owned connector capabilities with provenance verification and usage controls; authentication and explicit staging migration; independently scored real-model runs; revision conflict and owner acceptance workflow; per-agent certification. The evidence ingestion pipeline alone **does not activate or certify** any agent.
 
+## Phase 1 continued — owner HUD review workbench
+
+The isolated development Worker's owner-authenticated HUD now includes **Phase 1 · 185-agent Brain Workbench**, implemented in `phase1-agent-workbench-api.mjs` and `phase1-agent-workbench-ui.mjs`. It is **not deployed**, and these routes are not a public SCOTTY production service.
+
+- **Read-only roster endpoint:** `GET /api/phase1/agent-workbench` returns 185 canonical development identities, departmental membership and role, chief reporting, source-backed preference status, completion blockers, 555 prepared evaluation cases and honest certification totals (**0 evaluated, 0 owner-certified, 0 live agents**). The separate LUMEN Creative Media four-agent extension is explicitly excluded from the canonical 185 roster.
+- **Read-only agent detail:** `GET /api/phase1/agent-workbench?agentId=...` supplies that agent's individual voice, reasoning, methodology, completion checks, proposed tool categories (all ungranted), exact three prepared evaluation tasks with independent review requirements, and source provenance. TROI's historical noncanonical `chief-troi` ID is rejected rather than duplicated.
+- **Optional review history:** If `SCOTTY_PHASE1_REVIEW_READ_ENABLED=true` and the isolated D1 schema is installed, detail additionally returns up to ten owner-scoped draft review *metadata* records, never private questionnaire answers, proposed edits, memory text, model outputs or raw secrets. An approved review-row flag is labeled a **currently reviewed draft**, never owner certification or runtime promotion. Without a configured owner or database, it returns an explicit unavailable status, not an invented approval. Cross-owner review IDs and head metadata are suppressed.
+- **HUD interface:** the workbench lets the owner filter all 185 by name, agent ID, chief/specialist role or department, inspect a single agent, and read its three evaluation cases with evidence criteria. Output is inserted with `textContent`, not untrusted HTML. It works through the same temporary in-tab owner token and clears review content on lock.
+- **Security:** all API operations are GET-only behind existing Worker owner authentication. Extra query parameters, duplicate agent IDs and noncanonical IDs are rejected. No model invocation, private memory, task assignment, edit, review decision, database migration or activation can occur through the workbench. All browser assets remain development-only source.
+- **Tests:** the new suite checks protected access, the 185 roster/555 cases, zero certifications, distinct RIKER/GEORDI/TROI reasoning, review-data isolation, optional D1 outage behavior, no model or memory access, and parseable HUD client script.
+
+**Development verification:** the first expanded GitHub Actions run reported **190/190 Node tests and 5/5 in-memory Python/SQLite tests passing**. A follow-up regression additionally verifies cross-owner head-version suppression. See PR #75 CI for the final commit.
+
+**Remaining Phase 1 blocker:** an authenticated owner editing/approval UI, approved isolated D1 staging backup/migration, immutable real provider/grader/owner evidence ingestion, bounded real-model evaluations for all 555 cases, and signed acceptance for each of the 185 profiles. The new workbench does **not** deliver those missing live capabilities.
+
 ## Evidence
 - GitHub Actions **SCOTTY Activepieces — read-only staging bridge**: **175 Node tests passed, 0 failed**, plus **5 SQLite/Python schema tests passed** on the Phase 1 branch changes.
 - Tests assert 185 distinct IDs and full prompts, correct chief-specialist relationships, stable deterministic compiler output, no granted tools, and different work methods for RIKER, GEORDI and TROI.
