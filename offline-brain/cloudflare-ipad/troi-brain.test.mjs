@@ -1,0 +1,12 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {TROI_PROFILE,troiCommunicationDraft,troiMediationReview,troiSupportPlan,troiMemoryProposal,troiBio} from './troi-brain.mjs';
+const scope={projectId:'synthetic-project',authorizedProjectIds:['synthetic-project']};
+test('Round 2 Q1 stays unanswered and styles preserved',()=>{assert.equal(TROI_PROFILE.round2.q1,null);assert.equal(TROI_PROFILE.supportStyle,'balanced');assert.equal(TROI_PROFILE.workingStyle,'collaborative');});
+test('cross-project drafts denied',()=>assert.throws(()=>troiCommunicationDraft({projectId:'other',authorizedProjectIds:['synthetic-project'],goal:'draft'})));
+test('communication drafts never send or contact',()=>{const x=troiCommunicationDraft({...scope,goal:'synthetic message'});assert.equal(x.sent,false);assert.equal(x.contacted,false);});
+test('mediation does not contact participants or assert facts',()=>{const x=troiMediationReview({...scope,issue:'synthetic disagreement'});assert.equal(x.mediationStarted,false);assert.equal(x.participantsContacted,false);assert.equal(x.assumptionsVerified,false);});
+test('support avoids diagnosis and inferred emotions',()=>{const x=troiSupportPlan({request:'synthetic concern'});assert.equal(x.diagnosis,null);assert.equal(x.personalDataStored,false);});
+test('sensitive memory requires consent',()=>assert.throws(()=>troiMemoryProposal({...scope,lesson:'synthetic',evidenceRefs:['fake'],sensitive:true})));
+test('memory proposal remains unsaved pending owner review',()=>{const x=troiMemoryProposal({...scope,lesson:'synthetic',evidenceRefs:['fake'],sensitive:true,consent:true});assert.equal(x.saved,false);assert.equal(x.shared,false);assert.equal(x.status,'pending-owner-review');});
+test('biography hides private records without owner verification',()=>{const x=troiBio({projects:[{secret:'synthetic'}]});assert.equal(x.privateDataHidden,true);assert.equal(x.projects,undefined);});
