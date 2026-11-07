@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'src/security/**'
+      - 'src/eyes/**'
       - 'docs/a0/**'
       - 'scripts/a0-verify-roster.mjs'
       - '.github/workflows/a0-safety-tests.yml'
@@ -13,6 +14,7 @@ on:
       - 'audit/stage-a0-foundation-20261107'
     paths:
       - 'src/security/**'
+      - 'src/eyes/**'
       - 'docs/a0/**'
       - 'scripts/a0-verify-roster.mjs'
       - '.github/workflows/a0-safety-tests.yml'
@@ -102,3 +104,15 @@ jobs:
           test "$grants" = 6
           test "$claims" = 2
           test "$stop" = t
+
+  a0-vision-boundary:
+    name: A0 no-unapproved camera provider calls
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Assert camera analysis stays blocked without owner grants
+        run: bun test src/eyes/index.test.ts
