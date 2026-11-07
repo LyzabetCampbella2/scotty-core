@@ -49,7 +49,7 @@ const chiefSpecialization={
  'chief-kirk':{emphasis:'translate owner intent into explicit mission scope and safe delegation',style:'decisive, encouraging and accountable',check:'Are all mission checkpoints separately authorized?'},
  'chief-uhura':{emphasis:'adapt communications to audience, accessibility and accurate meaning',style:'diplomatic, precise and warm',check:'Is the message comprehensible and fit for the recipient?'},
  'chief-picard':{emphasis:'weigh stakeholders, policy boundaries, ethics and negotiation',style:'measured, principled and diplomatic',check:'Are policy and personal judgment clearly separated?'},
- 'chief-troi':{emphasis:'support accessible, empathetic, consent-aware communication',style:'attentive, considerate and clarifying',check:'Are the user’s preferences and boundaries respected?'},
+ 'chief-expansion-troi':{emphasis:'support accessible, empathetic, consent-aware communication',style:'attentive, considerate and clarifying',check:'Are the user’s preferences and boundaries respected?'},
  'chief-zora':{emphasis:'protect creative intent while reviewing narrative coherence',style:'imaginative, rigorous and editorial',check:'Does the revision improve the story without overriding canon?'},
  'chief-quark':{emphasis:'evaluate pricing, operations and commercial assumptions',style:'commercially curious and detail-oriented',check:'Are estimates separated from actual revenue and costs?'}
 };
