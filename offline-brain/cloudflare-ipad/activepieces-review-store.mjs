@@ -58,6 +58,72 @@ const publicResult=(row,extra={})=>({
  privateMemoryWrites:0,aiCalls:0,...extra
 });
 
+
+// A database write acknowledgement is not proof that the corresponding audit
+// exists. Verify the whole permitted state machine with separate SELECTs.
+const auditColumns='event_id,request_id,actor_id,actor_type,event_type,previous_status,new_status,revision,intent_digest,occurred_at';
+const validAuditTransitions={
+ pending:[['created',null,'pending']],
+ approved:[['created',null,'pending'],['approved','pending','approved']],
+ rejected:[['created',null,'pending'],['rejected','pending','rejected']],
+ revoked:[['created',null,'pending'],['approved','pending','approved'],['revoked','approved','revoked']]
+};
+async function verifiedAudit(db,row){
+ const expected=validAuditTransitions[row.status];
+ if(!expected)denied('INVALID_REVIEW_STATUS');
+ let records;
+ try{
+   const result=await db.prepare(
+     'SELECT '+auditColumns+' FROM scotty_activepieces_review_audit_v1 WHERE request_id=? ORDER BY occurred_at,event_id LIMIT 4'
+   ).bind(row.request_id).all();
+   records=result?.results;
+ }catch{denied('REVIEW_AUDIT_UNAVAILABLE');}
+ if(!Array.isArray(records)||records.length!==expected.length)
+   denied('REVIEW_AUDIT_INCOMPLETE');
+ // Compare transitions by their known deterministic unique event IDs,
+ // not by timestamp (which can be identical when tests use a fixed clock).
+ const byId=new Map(records.map(e=>[e.event_id,e]));
+ if(byId.size!==records.length)denied('REVIEW_AUDIT_DUPLICATE');
+ for(const [type,from,to] of expected){
+   const e=byId.get(row.request_id+':'+type);
+   if(!e||e.request_id!==row.request_id||e.actor_id!==row.owner_id||
+      e.actor_type!=='authenticated-owner'||e.event_type!==type||
+      e.previous_status!==from||e.new_status!==to||
+      e.revision!==row.revision||e.intent_digest!==row.intent_digest||
+      !Number.isFinite(Date.parse(e.occurred_at)))
+     denied('REVIEW_AUDIT_INCONSISTENT');
+ }
+ if(row.status==='pending' ? row.decided_at!==null : !Number.isFinite(Date.parse(row.decided_at||'')))
+   denied('REVIEW_DECISION_TIMESTAMP_INCONSISTENT');
+ return records.length;
+}
+function safeAgentIds(row){
+ let ids;
+ try{ids=JSON.parse(row.agent_ids_json);}catch{denied('INVALID_STORED_AGENT_IDS');}
+ if(!uniqueAgents(ids)||row.scope!=='mission.preview')denied('INVALID_STORED_REVIEW_SCOPE');
+ return ids;
+}
+const loadOwnerReview=(db,requestId)=>db.prepare(
+ 'SELECT request_id,owner_id,project_id,mission_id,revision,intent_digest,agent_ids_json,idempotency_key,scope,status,created_at,updated_at,expires_at,decided_at,version FROM scotty_activepieces_review_requests_v1 WHERE request_id=? LIMIT 1'
+).bind(requestId).first();
+
+/**
+ * Read only a single public/synthetic review and verified audit summary.
+ * Server-derived owner session AND project membership are mandatory.
+ * Never expose private memory, prompt contents or untrusted Activepieces roles.
+ */
+export async function readOwnerPreviewReview(db,{actor,project,requestId}={}){
+ if(!ident.test(requestId||''))denied('INVALID_REVIEW_ID');
+ await safeDb(db);
+ const row=await loadOwnerReview(db,requestId);
+ if(!row)denied('REVIEW_REQUEST_NOT_FOUND');
+ const ids=safeAgentIds(row);
+ const ownerId=trusted(actor,project,row.project_id,ids);
+ if(row.owner_id!==ownerId)denied('REVIEW_OWNER_MISMATCH');
+ const auditEventCount=await verifiedAudit(db,row);
+ return publicResult(row,{auditVerified:true,auditEventCount,readOnly:true});
+}
+
 export async function createOwnerPreviewReview(db,{actor,project,proposal,now=new Date()}={}){
  const at=instant(now);
  if(!proposal||!ident.test(proposal.requestId||'')||
@@ -83,7 +149,8 @@ export async function createOwnerPreviewReview(db,{actor,project,proposal,now=ne
  const existing=await find();
  if(existing){
    if(!replay(existing,row))denied('REVIEW_IDEMPOTENCY_KEY_CONFLICT');
-   return publicResult(existing,{replayed:true,created:false});
+   await verifiedAudit(db,existing);
+   return publicResult(existing,{replayed:true,created:false,auditVerified:true});
  }
  const insert=db.prepare(
    'INSERT INTO scotty_activepieces_review_requests_v1(request_id,owner_id,project_id,mission_id,revision,intent_digest,agent_ids_json,idempotency_key,scope,status,created_at,updated_at,expires_at,decided_at,version) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
@@ -98,7 +165,8 @@ export async function createOwnerPreviewReview(db,{actor,project,proposal,now=ne
  const saved=await find();
  if(!saved||!replay(saved,row)||saved.status!=='pending'||saved.version!==1)
    denied('REVIEW_CREATE_READBACK_FAILED');
- return publicResult(saved,{replayed:false,created:true});
+ await verifiedAudit(db,saved);
+ return publicResult(saved,{replayed:false,created:true,auditVerified:true});
 }
 
 export async function decideOwnerPreviewReview(db,{actor,project,requestId,
@@ -115,12 +183,12 @@ export async function decideOwnerPreviewReview(db,{actor,project,requestId,
  ).bind(requestId).first();
  const existing=await load();
  if(!existing)denied('REVIEW_REQUEST_NOT_FOUND');
- let ids;try{ids=JSON.parse(existing.agent_ids_json);}catch{denied('INVALID_STORED_AGENT_IDS');}
- if(!uniqueAgents(ids)||existing.scope!=='mission.preview')denied('INVALID_STORED_REVIEW_SCOPE');
+ const ids=safeAgentIds(existing);
  const ownerId=trusted(actor,project,existing.project_id,ids);
  if(existing.owner_id!==ownerId)denied('REVIEW_OWNER_MISMATCH');
  if(existing.revision!==revision||existing.intent_digest!==intentDigest||
     existing.version!==expectedVersion)denied('REVIEW_REVISION_CONFLICT');
+ await verifiedAudit(db,existing);
  if(Date.parse(existing.expires_at)<=now.getTime())denied('REVIEW_EXPIRED');
  if(decision==='revoked'?existing.status!=='approved':existing.status!=='pending')
    denied('ILLEGAL_REVIEW_TRANSITION');
@@ -139,6 +207,7 @@ export async function decideOwnerPreviewReview(db,{actor,project,requestId,
  const saved=await load();
  if(!saved||saved.status!==decision||saved.version!==expectedVersion+1||
     saved.decided_at!==at)denied('REVIEW_DECISION_READBACK_FAILED');
- return publicResult(saved,{recorded:true,ownerPreviewDecisionOnly:true,
+ await verifiedAudit(db,saved);
+ return publicResult(saved,{recorded:true,auditVerified:true,ownerPreviewDecisionOnly:true,
    note:'Owner reviewed a plan preview; this does not authorize AI, projects or agent execution.'});
 }
