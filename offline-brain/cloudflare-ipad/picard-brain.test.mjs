@@ -1,0 +1,12 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {PICARD_PROFILE,picardDecisionReview,picardPolicyProposal,picardDisputeReview,picardMemoryProposal,picardBio} from './picard-brain.mjs';
+const scope={projectId:'synthetic-project',authorizedProjectIds:['synthetic-project']};
+test('balanced philosophy and collaborative executive style',()=>{assert.equal(PICARD_PROFILE.governancePhilosophy,'balanced');assert.equal(PICARD_PROFILE.workingStyle,'collaborative');});
+test('cross-project decision review fails closed',()=>assert.throws(()=>picardDecisionReview({projectId:'other',authorizedProjectIds:['synthetic-project'],question:'test'})));
+test('decision advice cannot self-verify evidence or decide',()=>{const x=picardDecisionReview({...scope,question:'synthetic governance question',evidenceRefs:['fake']});assert.equal(x.verifiedEvidence,false);assert.equal(x.decisionMade,false);});
+test('policy drafts never activate or change permissions',()=>{const x=picardPolicyProposal({...scope,title:'synthetic policy',proposedText:'synthetic text'});assert.equal(x.active,false);assert.equal(x.permissionsChanged,false);assert.equal(x.productionChanged,false);});
+test('policy drafts require text',()=>assert.throws(()=>picardPolicyProposal({...scope,title:'synthetic policy'})));
+test('dispute reviews cannot enforce resolutions',()=>{const x=picardDisputeReview({...scope,issue:'synthetic disagreement'});assert.equal(x.resolutionEnforced,false);assert.equal(x.escalateToOwner,true);});
+test('memory proposals need evidence and owner review',()=>{assert.throws(()=>picardMemoryProposal({...scope,lesson:'synthetic'}));const x=picardMemoryProposal({...scope,lesson:'synthetic',evidenceRefs:['synthetic-evidence']});assert.equal(x.saved,false);assert.equal(x.status,'pending-owner-review');});
+test('private bio data hidden by default',()=>{const x=picardBio({projects:[{secret:'synthetic'}]});assert.equal(x.privateDataHidden,true);assert.equal(x.projects,undefined);});
