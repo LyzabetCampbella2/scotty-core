@@ -96,7 +96,7 @@ test('real in-memory SQLite persists an individually reviewed model call and sep
   assert.equal(out.modelCalls,1);
   assert.equal(out.memoryWrites,0);
   const row=l.native.prepare('SELECT status,agent_id,model_calls,review_chief_id FROM scotty_creative_runs_v1').get();
-  assert.deepEqual(row,{status:'AWAITING_CHIEF_REVIEW',agent_id:'agent-creative-pulse',
+  assert.deepEqual({...row},{status:'AWAITING_CHIEF_REVIEW',agent_id:'agent-creative-pulse',
     model_calls:1,review_chief_id:'chief-lumen'});
   assert.equal(l.native.prepare('SELECT COUNT(*) AS n FROM scotty_creative_run_audit_v1').get().n,2);
   const bios=await l.store.biographyActivity({projectId:'golden-hour-creative',agentId:'agent-creative-pulse'});
