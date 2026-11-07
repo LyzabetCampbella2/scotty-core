@@ -32,6 +32,6 @@ jobs:
         with:
           node-version: '22'
       - name: Validate frozen identity and all 185 source-only drafts
-        run: node --test src/agents/phase1/draft-builder.test.mjs
+        run: node --test src/agents/phase1/draft-builder.test.mjs src/agents/phase1/methods-and-provenance.test.mjs
       - name: Confirm deterministic offline export
         run: node scripts/phase1-export-drafts.mjs > /dev/null
