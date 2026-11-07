@@ -1,10 +1,28 @@
 import { randomUUID } from "node:crypto";
 import { evaluateApprovalGate } from "./approval-gate.mjs";
 let storeInstance;
+/**
+ * Separate accounts and database names on one PostgreSQL server are not an
+ * isolated staging infrastructure. Require a different network host than the
+ * active SCOTTY DATABASE_URL when that URL is present.
+ * A host check is a defense-in-depth guard, NOT proof of service isolation.
+ */
+export function isolateA0Database(staging,production) {
+ try {
+  const s=new URL(staging);
+  if(!["postgres:", "postgresql:"].includes(s.protocol)||!s.hostname||!s.pathname||s.pathname==="/")return false;
+  if(s.username===""||s.password==="")return false;
+  if(!production)return true; // Must still be approved by external resource inventory.
+  const p=new URL(production);
+  if(!["postgres:", "postgresql:"].includes(p.protocol))return false;
+  if(s.hostname.toLowerCase()===p.hostname.toLowerCase())return false;
+  return true;
+ } catch { return false; }
+}
 export async function openA0Store() {
   if(process.env.SCOTTY_A0_ENABLED!=="true" || process.env.SCOTTY_A0_ENV!=="staging") throw Error("A0 staging disabled");
   const url=process.env.SCOTTY_A0_STAGING_DATABASE_URL, expected=process.env.SCOTTY_A0_STAGING_DATABASE_NAME;
-  if(!url || !expected || !/^[a-zA-Z0-9_-]{1,63}$/.test(expected) || (process.env.DATABASE_URL && url===process.env.DATABASE_URL)) throw Error("Dedicated staging database required");
+  if(!url || !expected || !/^[a-zA-Z0-9_-]{1,63}$/.test(expected) || !isolateA0Database(url,process.env.DATABASE_URL)) throw Error("Dedicated staging database required");
   if(!storeInstance){
     const {default:postgres}=await import("postgres");
     const sql=postgres(url,{max:3,connect_timeout:10,idle_timeout:15,ssl:"require"});
