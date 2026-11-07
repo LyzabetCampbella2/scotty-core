@@ -1,15 +1,15 @@
 {
   "version": "scotty-activepieces-staging-manifest-v1",
-  "state": "SOURCE_ONLY_NOT_INSTALLED",
-  "intendedWorkspace": "user's Activepieces Cloud personal project",
+  "state": "STAGING_DRAFTS_INSTALLED",
+  "intendedWorkspace": "Lizzy's Project (connected Activepieces Cloud)",
   "mode": "STAGING",
   "deployApproved": false,
   "allowedPaidActions": false,
   "liveExternalSystems": false,
   "prerequisites": [
-    "Activepieces MCP tools visibly available to assistant with correct project context",
-    "Read existing flows and connections to avoid overwriting user work",
-    "Owner reviews project scope and any changes to provider/model or external account permissions"
+    "Staging drafts have been installed through the connected Activepieces MCP server and folder checked",
+    "Before publication: owner-approved activation, independent security review, and exact workflow capability review",
+    "Before real agent work: SCOTTY backend authorization, durable mission IDs and project-scoped audit evidence"
   ],
   "agentDirectory": {
     "source": "public-agent-directory.json",
@@ -23,62 +23,67 @@
       "key": "scotty-connection-test",
       "name": "SCOTTY — Connection Test",
       "type": "manual",
-      "status": "EXISTING_USER_CREATED_REQUIRES_INSPECTION",
+      "status": "EXISTING_DRAFT_TESTED",
       "dependencies": [
         "GET public connectivity check",
         "GET public agent directory"
       ],
       "risk": "read-only",
-      "enabled": false
+      "enabled": false,
+      "flowId": "koUP1ZyCY9qIcW5jdnH28"
     },
     {
       "key": "scotty-roster-view",
       "name": "SCOTTY — Agent Directory",
       "type": "manual",
-      "status": "READY_TO_BUILD",
+      "status": "STAGING_DRAFT_TESTED",
       "dependencies": [
         "GET public agent directory",
         "Code public-profile.mjs"
       ],
       "risk": "read-only",
-      "enabled": false
+      "enabled": false,
+      "flowId": "rEGNhvaAaVXbrlFeSPXg8"
     },
     {
       "key": "scotty-team-router",
       "name": "SCOTTY — Team Routing Preview",
       "type": "manual",
-      "status": "EXISTING_USER_CREATED_REQUIRES_INSPECTION",
+      "status": "EXISTING_STEP_TESTED",
       "dependencies": [
         "GET public agent directory",
         "Code propose-team.mjs"
       ],
       "risk": "read-only",
-      "enabled": false
+      "enabled": false,
+      "flowId": "koUP1ZyCY9qIcW5jdnH28"
     },
     {
       "key": "scotty-owner-review",
       "name": "SCOTTY — Owner Review Demo",
       "type": "manual",
-      "status": "READY_TO_BUILD",
+      "status": "STAGING_DRAFT_WAITPOINT_UNTESTED",
       "dependencies": [
         "Code prepare-review.mjs",
         "Approval (Legacy) Wait for Approval",
         "Code demo-decision.mjs"
       ],
       "risk": "demo approval only",
-      "enabled": false
+      "enabled": false,
+      "flowId": "l9lEZhiDUXKaGJASQ01ci"
     },
     {
       "key": "scotty-mission-preview",
       "name": "SCOTTY — Mission Plan Preview",
       "type": "manual",
-      "status": "READY_TO_BUILD",
+      "status": "STAGING_DRAFT_TESTED",
       "dependencies": [
         "Code propose-team.mjs",
         "Code mission-preview.mjs"
       ],
       "risk": "no execution",
-      "enabled": false
+      "enabled": false,
+      "flowId": "JP93n64ApIaekBP7W7632"
     },
     {
       "key": "scotty-reports-readonly",
@@ -159,6 +164,66 @@
       ],
       "risk": "recurring external actions",
       "enabled": false
+    },
+    {
+      "key": "scotty-roster-audit",
+      "name": "SCOTTY — Agent Roster Integrity Audit",
+      "type": "manual",
+      "flowId": "Om9IMUMEw5SiuSIU7FHpO",
+      "status": "STAGING_DRAFT_TESTED",
+      "dependencies": [
+        "Public metadata and read-only tables only"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-task-inbox-preview",
+      "name": "SCOTTY — Task Inbox to Team Proposal (manual)",
+      "type": "manual",
+      "flowId": "0XnbbDuYeQM4sTQ4ZEnzC",
+      "status": "STAGING_DRAFT_TESTED",
+      "dependencies": [
+        "Public metadata and read-only tables only"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-project-team-planner",
+      "name": "SCOTTY — Project Team Planner (public preview)",
+      "type": "manual",
+      "flowId": "Zh4Gt9XVgIkTsCZ3k3ief",
+      "status": "STAGING_DRAFT_TESTED",
+      "dependencies": [
+        "Public metadata and read-only tables only"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-owner-portfolio-briefing",
+      "name": "SCOTTY — Owner Portfolio Briefing (manual)",
+      "type": "manual",
+      "flowId": "EOzy39Y8WJDR6uKrglKPm",
+      "status": "STAGING_DRAFT_TESTED",
+      "dependencies": [
+        "Public metadata and read-only tables only"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-owner-packet-preview",
+      "name": "SCOTTY — Owner Review Packet Preview (manual)",
+      "type": "manual",
+      "flowId": "Kij25Ua46OFOvOBdElSyn",
+      "status": "STAGING_DRAFT_TESTED",
+      "dependencies": [
+        "Public metadata and read-only tables only"
+      ],
+      "risk": "read-only",
+      "enabled": false
     }
   ],
   "defaultRules": {
@@ -172,5 +237,55 @@
     "copyPasswords": false,
     "writeProduction": false
   },
-  "notes": "Manifest is a plan and source of proposed new flows only. Nothing in it creates Activepieces flows or changes account configuration."
+  "notes": "This manifest records real staging drafts and tables installed through the Activepieces MCP connection, not autonomous agents. All flows are disabled/unpublished. The separated owner approval waitpoint remains untested, and real SCOTTY project permissions, private memory and AI execution remain blocked.",
+  "verifiedInAccount": {
+    "workspaceProjectId": "xTfZdRPX3i4JjdOyR5NYq",
+    "stagingFolder": "SCOTTY — Staging",
+    "draftFlowsInFolder": 8,
+    "existingUserConnectionTestFlow": 1,
+    "publishedFlows": 0,
+    "enabledFlows": 0,
+    "tablesCreated": 5,
+    "tableRecordCounts": {
+      "developmentAgents": 185,
+      "projects": 5,
+      "proposedCollaborators": 25,
+      "publicDemoTasks": 1,
+      "demoMissionInbox": 1
+    },
+    "validation": "Activepieces MCP ap_validate_flow reported ok=true, issues=[]",
+    "scope": "Tested public read-only staging flows only; owner waitpoint full runtime not tested"
+  },
+  "tables": [
+    {
+      "name": "SCOTTY — Public Agent Registry (Draft)",
+      "id": "1CSnSdZEiKRUuKIBz1YhC",
+      "rows": 185,
+      "scope": "public development profiles"
+    },
+    {
+      "name": "SCOTTY — Demo Mission Inbox (No Execution)",
+      "id": "46AKxrdVBokMjNxxxlILP",
+      "rows": 1,
+      "scope": "synthetic only"
+    },
+    {
+      "name": "SCOTTY — Task Intake (Public Demo Only)",
+      "id": "NsC8t86ZrWTwszmwNQb81",
+      "rows": 1,
+      "scope": "synthetic only"
+    },
+    {
+      "name": "SCOTTY — Project Portfolio (Planning Only)",
+      "id": "Gyt8UUzihBPPUwH6QNTo1",
+      "rows": 5,
+      "scope": "public project metadata"
+    },
+    {
+      "name": "SCOTTY — Proposed Project Collaborators (Draft)",
+      "id": "yNkok1xnLTEKTASpPSIrh",
+      "rows": 25,
+      "scope": "suggestions only, not assignments"
+    }
+  ]
 }
