@@ -263,6 +263,20 @@
       ],
       "risk": "read-only",
       "enabled": false
+    },
+    {
+      "key": "scotty-agent-bio-collaborator-preview",
+      "name": "SCOTTY — Agent Bio & Collaborators (public preview)",
+      "type": "manual",
+      "status": "STAGING_DRAFT_TESTED",
+      "flowId": "laAR7amU62nSsH1JUd1u4",
+      "dependencies": [
+        "public development roster",
+        "public project portfolio",
+        "candidate collaborator proposals"
+      ],
+      "risk": "read-only",
+      "enabled": false
     }
   ],
   "defaultRules": {
@@ -276,11 +290,11 @@
     "copyPasswords": false,
     "writeProduction": false
   },
-  "notes": "11 unpublished, disabled Activepieces staging drafts plus the existing disabled public connection test; 8 tables with 235 public/synthetic records. Protected review D1 migration + source-only review store added in GitHub but NOT applied, imported into runtime or deployed. Readiness endpoint is behind separately disabled bridge token. No real mission, private memory or paid AI provider is connected.",
+  "notes": "12 unpublished, disabled Activepieces staging flows plus original disabled test; 8 public/synthetic metadata tables. Agent Bio & Collaborators preview now shows project proposals and candidate colleagues but no actual assignments, missions, questions, memories or source-backed confirmed collaboration. Review D1 source remains not migrated or deployed, with audit history readback tests.",
   "verifiedInAccount": {
     "workspaceProjectId": "xTfZdRPX3i4JjdOyR5NYq",
     "stagingFolder": "SCOTTY — Staging",
-    "draftFlowsInFolder": 11,
+    "draftFlowsInFolder": 12,
     "existingUserConnectionTestFlow": 1,
     "publishedFlows": 0,
     "enabledFlows": 0,
@@ -295,7 +309,7 @@
       "demoOwnerDecisions": 3,
       "launchReadinessGates": 11
     },
-    "validation": "Activepieces MCP: 11 staging flows configured, all disabled and unpublished; 8 tables; launch dashboard tested",
+    "validation": "Activepieces MCP: 12 staging flows configured; all disabled/unpublished; 8 tables; public agent biographies test passed",
     "scope": "Read-only public/synthetic staging previews; no owner grant, staging Worker deployment or native waitpoint acceptance"
   },
   "tables": [
