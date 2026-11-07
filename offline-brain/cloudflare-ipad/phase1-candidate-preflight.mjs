@@ -153,6 +153,7 @@ export async function inspectPhase1Candidate(db,{
  });
  return head('READY_FOR_ISOLATED_CANDIDATE_REVIEW',{
    eligibleForCandidate:true,agentId,requestId,sessionId,
+   profileReviewApproved:true,
    approvedReviewDigest:review.changeDigest,
    approvedHeadVersion:review.currentHeadVersion,
    ownerAcceptanceVerified:true,behaviorEvaluationVerified:true,
