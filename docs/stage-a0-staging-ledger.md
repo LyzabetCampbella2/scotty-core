@@ -38,7 +38,7 @@ Every route is under `/api/a0/` and requires `Authorization: Bearer <server-only
 |---|---|---|
 | GET | `status` | Shows staging control flags and aggregate counts; no credentials. |
 | GET | `grants` | Lists up to 100 owner-scoped staging grant records. |
-| POST | `grants` | Inserts an exact scope with evidence ID, owner approval intent, one use, expiry under 24 h and **zero** allowed spending. Records a staging grant; does not run a tool. |
+| POST | `grants` | Cannot issue a grant from the default server. Requires a trusted server-side `verifyOwnerEvidence` callback that is **not configured** in `src/server.ts`; a client-supplied `ownerApproved:true` flag alone is always insufficient. On a separately authenticated and verified test handler, inserts an exact scope with one use, expiry under 24 h and **zero** allowed spending. Does not run a tool. |
 | POST | `grants/:uuid/revoke` | Revokes one matching grant under PostgreSQL transaction. |
 | POST | `stop-all` | Sets staging stop-all to true and disabled. No arm/enable endpoint. |
 | POST | `claims` | Disabled separately; when enabled, creates a transactionally reserved staging claim **without performing external work**. |
@@ -66,3 +66,11 @@ This runs Node's isolated tests without credentials, provider connections, deplo
 ## A0 exit gate remains BLOCKED
 
 Only after owner review, source-of-truth freeze, staging database isolation, test results, backup/isolated restore, durable audit enforcement, independent stop-all and signed zero/positive spending ceilings may the system be considered ready for the next phase.
+
+## Additional security hardening (November 7, 2026)
+
+- Grant creation fails with HTTP 503 unless an independent trusted server-side owner-evidence verifier is injected. The current `server.ts` does **not** install this callback, so even with feature flags and a token it cannot mint grant records from unverified request text.
+- Staging PostgreSQL URLs are refused when they share the hostname of `DATABASE_URL`, even with a different username, port or logical database. This is a **defense-in-depth** network-host comparison, **not proof** that a dedicated physical storage resource exists.
+- The local `npm run test:a0` command intentionally excludes `a0-postgres.ci.test.mjs` because that file is restricted to an ephemeral GitHub Actions PostgreSQL instance.
+- The GitHub Actions recovery rehearsal now includes an ephemeral `age` encryption/decryption round trip of synthetic data before restoring it to a distinct disposable database. This does not test encrypted production backups.
+- A separate read-only `node scripts/a0-exit-status.mjs` command checks the unsigned evidence record at `docs/a0/certification-evidence.json`. It must continue to report BLOCKED until actual owner verification, infrastructure isolation, live permission enforcement and real backup/restore evidence are recorded.
