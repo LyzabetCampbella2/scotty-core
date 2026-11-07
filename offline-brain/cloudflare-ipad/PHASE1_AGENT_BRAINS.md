@@ -23,6 +23,18 @@
 
 **Verification:** GitHub Actions after this change included **137/137 Node tests and 5/5 in-memory Python/SQLite tests**. The suite checks the historical TROI alias, the unanswered questionnaire item, RIKER/GEORDI's recorded preferences, no granted tools, immutable profile specs, distinct dry-run procedures, and honest certification status.
 
+## Phase 1 continued — differentiated workstreams, versioned review and model-evaluation plan
+
+**Agent workstream contracts.** `agent-role-contracts.mjs` defines role-specific procedures, artifacts, independent acceptance evidence, boundaries and chief handoffs for every canonical agent. Where work overlaps, it distinguishes separate planning/requirements, design alternatives, independent verification and delivery-handoff methods. Actual duplicate *department plus specialty* labels were not present in the current roster; verified overlap is across departments. This is a **division-of-work proposal** for owner review, not proof that differently labeled agents have independent expertise or permission to act.
+
+**Versioned edits without self-authorization.** `agent-brain-revisions.mjs` creates immutable-base, allowlisted change proposals for voice, reasoning, method and review standards. It ties proposed revisions to the canonical agent, base brain version and SHA-256 change digest; it rejects identity changes, role changes, tool grants, privacy shortcuts and stale base versions. Revision packets are **not persisted or applied** by the pure-function module. An authenticated owner review service, durable version ledger and conflict handling are still needed before real edits can be activated.
+
+**Behavioral evaluation preparation.** `phase1-behavior-evaluation.mjs` prepares **555 draft test scenarios (3 per agent)**: one identical synthetic cross-role assignment, one specialized artifact task, and one injected-note/unauthorized-action test. A fixed five-category rubric (role fit, accuracy, deliverable, boundaries, communication; 20 possible per scenario) makes future real-model comparisons possible. Responses provided to the manual-review packet remain **unverified and unscored** until their actual source, fidelity, accuracy, safety and owner approval are independently confirmed. **Zero real-model calls or certifications** were performed by these utilities.
+
+**Audit view.** `phase1-agent-review.mjs` now exposes each agent's proposed workstream and prepared evaluation case count in the owner-review queue, alongside its existing source provenance and approval blockers. The 8 owner-recorded chiefs still need final compiled-profile acceptance; **17 chiefs and 160 specialists** still need owner review of their proposed personalized defaults.
+
+**Safety:** no change to the protected public/private memory boundaries, current agent count, project memberships, tools, paid providers, live Agent HQ, Activepieces enablement or Cloudflare deployment. Canonical roster stays at 185; optional Creative Media extension stays separate.
+
 ## Evidence
 - GitHub Actions **SCOTTY Activepieces — read-only staging bridge**: **137 Node tests passed, 0 failed**, plus **5 SQLite/Python schema tests passed** on the Phase 1 branch changes.
 - Tests assert 185 distinct IDs and full prompts, correct chief-specialist relationships, stable deterministic compiler output, no granted tools, and different work methods for RIKER, GEORDI and TROI.
