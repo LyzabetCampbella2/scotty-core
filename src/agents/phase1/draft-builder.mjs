@@ -3,6 +3,7 @@ import {specialistPlaybook} from "./specialist-playbooks.mjs";
 import {ACCEPTANCE_TASKS,ACCEPTANCE_RUBRIC} from "./department-acceptance-cases.mjs";
 import {chiefSourceCandidate} from "./chief-source-candidates.mjs";
 import {newChiefConcept} from "./new-chief-concepts.mjs";
+import {specialistPersonaProposal} from "./specialist-persona-proposals.mjs";
 /**
  * Stage B / Phase 1 offline draft brains.
  * Input: approved, version-locked A0 roster. Output: owner-review candidates.
@@ -40,6 +41,7 @@ export function createPhase1BrainDrafts(frozen, lock){
     const reviewMethod=role===SPECIALIST?playbook.procedure:[method[0],method[1],"Review chief and specialist findings with evidence before requesting SCOTTY synthesis","Escalate the reviewed recommendation to the owner; do not execute"];
     const limits=[method[3],...(playbook?.boundaries||[]),"A planned work method is not a live capability or certified factual knowledge."];
     const candidateReferences=playbook?.candidateReferences||[];
+    const specialistPersona=role===SPECIALIST?specialistPersonaProposal(row):null;
     const priorChiefReview=role===CHIEF?chiefSourceCandidate({id,name,department:dept}):null;
     const proposedNewChiefConcept=role===CHIEF&&!priorChiefReview?newChiefConcept({id,name,department:dept}):null;
     if(role===CHIEF&&!priorChiefReview&&!proposedNewChiefConcept)throw Error("Chief missing concept or historic source");
@@ -58,6 +60,7 @@ export function createPhase1BrainDrafts(frozen, lock){
       ownerPreferenceEvidence:null,
       priorChiefReview,
       proposedNewChiefConcept,
+      proposedSpecialistPersona:specialistPersona,
       priorChiefSourceApplied:false,
       ownerApproved:false,
       avatar:null,
@@ -115,6 +118,8 @@ export function createPhase1BrainDrafts(frozen, lock){
       chiefSourcesAdopted:0,
       newChiefConceptProposals:drafts.filter(p=>p.proposedNewChiefConcept).length,
       newChiefConceptsApproved:0,
+      specialistPersonaProposals:drafts.filter(p=>p.proposedSpecialistPersona).length,
+      specialistPersonaProposalsApproved:0,
       realModelEvaluationsPassed:0,ownerApprovedBrainVersions:0,independentlyCallableLiveAgents:0
     },
     warning:"Role-specific authored methods and legacy chief sources are review candidates, not certified personalities, verified knowledge or live agents."
