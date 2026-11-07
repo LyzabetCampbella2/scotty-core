@@ -259,3 +259,22 @@ test('immutable persisted evidence cannot be rewritten in place',async()=>{
   ).run(),/PHASE1_EVAL_EVIDENCE_IMMUTABLE/);
  }finally{x.close();}
 });
+
+
+test('non-synthetic ingestion additionally requires an independently injected runtime authority',async()=>{
+ const x=database();
+ try{
+  await approved(x.db);
+  const trust=fakeAuthorities();
+  assert.throws(()=>createPhase1EvaluationIngestor({
+   db:x.db,...trust,clock:()=>now,testMode:false
+  }),/REAL_EVIDENCE_INGEST_RUNTIME_AUTHORITY_REQUIRED/);
+  const denied=createPhase1EvaluationIngestor({
+   db:x.db,...trust,clock:()=>now,testMode:false,
+   runtimeAuthority:{async authorize(){return {verified:false};}}
+  });
+  await assert.rejects(()=>denied.ingest(refs),/REAL_EVIDENCE_INGEST_RUNTIME_NOT_APPROVED/);
+  assert.equal(trust.stats.provider,0);
+  assert.equal(x.native.prepare('SELECT COUNT(*) AS n FROM scotty_phase1_eval_sessions_v1').get().n,0);
+ }finally{x.close();}
+});
