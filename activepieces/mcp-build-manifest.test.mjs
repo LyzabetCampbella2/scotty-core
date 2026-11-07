@@ -11,6 +11,10 @@ test('staging MCP plan cannot silently activate expensive or private flows',()=>
  assert.equal(file.agentDirectory.chiefs,25);
  assert.equal(file.agentDirectory.specialists,160);
  assert.equal(file.agentDirectory.liveVerified,false);
+ assert.equal(file.creativeMediaExtension.proposedRoster.total,189);
+ assert.equal(file.creativeMediaExtension.mergedIntoCanonicalDirectory,false);
+ assert.equal(file.creativeMediaExtension.agentToolsConnected,false);
+ assert.equal(file.creativeMediaExtension.privateMemoryPersisted,false);
  assert.equal(new Set(file.flows.map(x=>x.key)).size,file.flows.length);
  assert.ok(file.flows.length>=10);
  assert.ok(file.flows.every(x=>x.enabled===false));
@@ -20,11 +24,11 @@ test('staging MCP plan cannot silently activate expensive or private flows',()=>
  }
 });
 test('verified staging drafts are recorded as disabled and reviewed',()=>{
- assert.equal(file.verifiedInAccount.draftFlowsInFolder,14);
+ assert.equal(file.verifiedInAccount.draftFlowsInFolder,15);
  assert.equal(file.verifiedInAccount.enabledFlows,0);
  assert.equal(file.verifiedInAccount.publishedFlows,0);
- assert.equal(file.verifiedInAccount.tablesCreated,9);
- assert.equal(file.tables.reduce((sum,t)=>sum+t.rows,0),245);
+ assert.equal(file.verifiedInAccount.tablesCreated,10);
+ assert.equal(file.tables.reduce((sum,t)=>sum+t.rows,0),249);
  assert.ok(file.flows.filter(x=>x.status==='STAGING_DRAFT_TESTED').length>=8);
  assert.ok(file.flows.every(x=>x.status!=='STAGING_DRAFT_TESTED'||x.flowId));
 });
