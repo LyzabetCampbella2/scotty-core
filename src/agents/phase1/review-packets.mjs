@@ -21,6 +21,7 @@ export function makePhase1ReviewPackets(drafts){
   if(!present(p.canonicalAgentId)||!present(p.displayName)||!present(p.department)||!Array.isArray(p.behaviorTestPlan)||p.behaviorTestPlan.length!==3)throw Error("INCOMPLETE_BRAIN_DRAFT");
   if(p.permissions?.executionEnabled!==false||p.permissions?.externalAppAccess!==false||p.ownerApproved!==false)throw Error("LIVE_OR_APPROVED_DRAFT_REJECTED");
   const historic=p.priorChiefReview||null;
+  const proposedChief=p.proposedNewChiefConcept||null;
   return {
    packetId:"b1-review-"+p.canonicalAgentId,
    canonicalAgentId:p.canonicalAgentId,
@@ -29,7 +30,7 @@ export function makePhase1ReviewPackets(drafts){
    department:p.department,
    chiefId:p.chiefId,
    specialty:p.specialty,
-   provenance:{rosterGitBlobSha:p.rosterBlobSha,method:p.distinctiveReasoning.provenance,legacyChief:historic?.sourceRef||null},
+   provenance:{rosterGitBlobSha:p.rosterBlobSha,method:p.distinctiveReasoning.provenance,legacyChief:historic?.sourceRef||null,proposedChief:proposedChief?{proposalVersion:proposedChief.proposalVersion,sourceKind:proposedChief.sourceKind}:null},
    ownerReviewState:"AWAITING_OWNER_REVIEW",
    ownerDecisions:{
     proposedPersonalityTraits:historic?.sourceTraits||proposedChief?.traits||[],
