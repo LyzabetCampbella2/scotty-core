@@ -1,6 +1,6 @@
 # SCOTTY — Activepieces MCP implementation runbook
 
-Status: **staging drafts installed and tested through the connected Activepieces MCP tools**. The existing user's `SCOTTY — Connection Test` was inspected, repaired and tested. A separate `SCOTTY — Staging` folder contains **12 unpublished/disabled staging workflows** and **8 tables (185 development profiles, 5 public project profiles, 25 proposed collaborators, 1 synthetic task, 1 demo mission, 4 memory scope rules, 3 demonstration owner decisions, and 11 launch gates)**. The Activepieces MCP folder validator returned `ok=true`, `issues=[]`. This is NOT a production deployment, 185 verified autonomous agents, or owner-authorized real project work.
+Status: **staging drafts installed and tested through the connected Activepieces MCP tools**. The existing user's `SCOTTY — Connection Test` was inspected, repaired and tested. A separate `SCOTTY — Staging` folder contains **14 unpublished/disabled staging workflows** and **9 tables (185 development profiles, 5 public projects, 25 proposed collaborators, 1 synthetic task, 1 demo mission, 4 memory scope rules, 3 demo decisions, 11 launch gates and 10 unsent synthetic handoffs)**. The Activepieces MCP folder validator returned `ok=true`, `issues=[]`. This is NOT a production deployment, 185 verified autonomous agents, or owner-authorized real project work.
 
 ## Verified Activepieces draft flows
 
@@ -32,6 +32,10 @@ The isolated D1 schema `offline-brain/cloudflare-ipad/activepieces-review-ledger
 The separate-secret Activepieces bridge includes a disabled-by-default read-only `GET /api/activepieces/review-readiness` endpoint that checks D1 schema presence only. It cannot grant authorization. To activate that bridge, its own staging secret and staging Worker deployment must first be explicitly approved, and the optional migration needs separate owner review and backup.
 
 - [SCOTTY — Agent Bio & Collaborators](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/laAR7amU62nSsH1JUd1u4) — PASSED: Delta under GEORDI, proposed Eirden project and four candidate collaborators; no real assignments or memories
+
+- [SCOTTY — Chief Collaboration Handoffs](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/zdtQxidWHhr73lIAjvu6n) — PASSED: five specialist-chief steps, four cross-chief proposals to GEORDI, one SCOTTY synthesis; 10 total, no messages sent
+- [SCOTTY — Handoff Queue Integrity](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/p98RsMYthsbREasTghwMr) — PASSED: validated 10 synthetic queue rows and 9 dependencies, verified none approved or sent
+- **Synthetic Handoff Queue:** 10 rows in Activepieces Tables, all `Proposed — not reviewed`, `Not sent — no messaging connection`, `Execution Allowed: No`. This is NOT a real communications inbox; no agent or human messages are delivered.
 
 All flows are manually triggered, DISABLED and DRAFT. No API secrets, paid AI actions, publishing, external writes, cloud workers or real mission execution were added.
 
