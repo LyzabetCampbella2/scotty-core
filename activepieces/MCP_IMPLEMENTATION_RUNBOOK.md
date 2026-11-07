@@ -1,6 +1,6 @@
 # SCOTTY — Activepieces MCP implementation runbook
 
-Status: **staging drafts installed and tested through the connected Activepieces MCP tools**. The existing user's `SCOTTY — Connection Test` was inspected, repaired and tested. A separate `SCOTTY — Staging` folder contains **11 unpublished/disabled staging workflows** and **8 tables (185 development profiles, 5 public project profiles, 25 proposed collaborators, 1 synthetic task, 1 demo mission, 4 memory scope rules, 3 demonstration owner decisions, and 11 launch gates)**. The Activepieces MCP folder validator returned `ok=true`, `issues=[]`. This is NOT a production deployment, 185 verified autonomous agents, or owner-authorized real project work.
+Status: **staging drafts installed and tested through the connected Activepieces MCP tools**. The existing user's `SCOTTY — Connection Test` was inspected, repaired and tested. A separate `SCOTTY — Staging` folder contains **12 unpublished/disabled staging workflows** and **8 tables (185 development profiles, 5 public project profiles, 25 proposed collaborators, 1 synthetic task, 1 demo mission, 4 memory scope rules, 3 demonstration owner decisions, and 11 launch gates)**. The Activepieces MCP folder validator returned `ok=true`, `issues=[]`. This is NOT a production deployment, 185 verified autonomous agents, or owner-authorized real project work.
 
 ## Verified Activepieces draft flows
 
@@ -30,6 +30,8 @@ The Activepieces workspace currently has **zero connected external application c
 The isolated D1 schema `offline-brain/cloudflare-ipad/activepieces-review-ledger-v1.sql` and `activepieces-review-store.mjs` now provide an **unapplied**, source-only durable preview review draft, owner decision, revision check, idempotent replay protection, owner/session checks and append-only metadata audit. All tested with in-memory SQLite, never a live D1 instance. The review store is **not imported** into the Worker or reachable through an API. A review marked "approved" cannot run any agent or use private memory.
 
 The separate-secret Activepieces bridge includes a disabled-by-default read-only `GET /api/activepieces/review-readiness` endpoint that checks D1 schema presence only. It cannot grant authorization. To activate that bridge, its own staging secret and staging Worker deployment must first be explicitly approved, and the optional migration needs separate owner review and backup.
+
+- [SCOTTY — Agent Bio & Collaborators](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/laAR7amU62nSsH1JUd1u4) — PASSED: Delta under GEORDI, proposed Eirden project and four candidate collaborators; no real assignments or memories
 
 All flows are manually triggered, DISABLED and DRAFT. No API secrets, paid AI actions, publishing, external writes, cloud workers or real mission execution were added.
 
