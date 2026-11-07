@@ -1,8 +1,23 @@
 # SCOTTY — Activepieces MCP implementation runbook
 
-Status: **draft plan only; NO Activepieces workspace actions performed by this repository change.** The user's browser has successfully tested a public SCOTTY directory (185 authored development profiles). In this ChatGPT session, Activepieces MCP tools are **not yet exposed to the assistant**, so no in-account operation can be verified.
+Status: **staging drafts installed and tested through the connected Activepieces MCP tools**. The existing user's `SCOTTY — Connection Test` was inspected, repaired and tested. A separate `SCOTTY — Staging` folder contains **8 unpublished/disabled workflows** and **5 tables (185 public development agents, 5 public project profiles, 25 proposed collaborators, 1 synthetic task, 1 demo mission)**. The Activepieces MCP folder validator returned `ok=true`, `issues=[]`. This is NOT a production deployment, 185 verified autonomous agents, or owner-authorized real project work.
 
-## Once actual Activepieces MCP tools appear
+## Verified Activepieces draft flows
+
+- [SCOTTY — Agent Directory](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/rEGNhvaAaVXbrlFeSPXg8) — tested successfully, public Helm profile
+- [SCOTTY — Mission Plan Preview](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/JP93n64ApIaekBP7W7632) — tested successfully; 5 inert specialist/chief/SCOTTY stages
+- [SCOTTY — Owner Approval Gate](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/l9lEZhiDUXKaGJASQ01ci) — configured and validated, **native waitpoint not end-to-end tested**
+- [SCOTTY — Agent Roster Integrity Audit](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/Om9IMUMEw5SiuSIU7FHpO) — passed: 25 chiefs, 160 specialists, 25 departments
+- [SCOTTY — Task Inbox to Team Proposal](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/0XnbbDuYeQM4sTQ4ZEnzC) — passed synthetic task → proposal → review
+- [SCOTTY — Project Team Planner (actual)](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/Zh4Gt9XVgIkTsCZ3k3ief) — passed Eirden Atelier five-department proposal
+- [SCOTTY — Owner Portfolio Briefing](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/EOzy39Y8WJDR6uKrglKPm) — passed five-project read-only overview
+- [SCOTTY — Owner Review Packet Preview](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/Kij25Ua46OFOvOBdElSyn) — passed, no authority granted
+
+All flows are manually triggered, DISABLED and DRAFT. No API secrets, paid AI actions, publishing, external writes, cloud workers or real mission execution were added.
+
+
+
+## Required controls before further integration
 
 The MCP endpoint is configured by the account owner. Use Activepieces' documented MCP Tools Reference:
 https://www.activepieces.com/docs/mcp/tools
@@ -34,4 +49,4 @@ All 160 specialists and 25 chiefs have development profiles. They do **not** bec
 ## Source GitHub branch
 https://github.com/LyzabetCampbella2/scotty-core/pull/75
 
-CI is synthetic; it does not prove an Activepieces MCP connection. Keep the PR draft until staging QA, reconciliation and user approval.
+GitHub CI is synthetic; separate Activepieces MCP flow executions confirmed the safe preview flows. The approval waitpoint remains untested and none of this proves production SCOTTY authorization or AI-agent execution. Keep the PR draft until owner approval, scoped staging security review, and end-to-end acceptance.
