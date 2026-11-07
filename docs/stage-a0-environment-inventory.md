@@ -38,3 +38,11 @@ This inventory records existence, not production authorization, complete source-
 5. No new automatic agent tasks, public posting, message sending, production merges or spending before separate authorization and negative-permission tests.
 
 **A0 is BLOCKED** pending these proofs. Reading an environment or drafting a policy is not equivalent to enabling a safe one.
+
+## Further read-only deployment audit (2026-11-07)
+
+- Railway `SCOTTY / production` and `SCOTTY / Eyes on test` expose the **same Postgres service identity and mounted volume**. The service is attached to `postgres-volume` in both environment inventories; **isolation must not be assumed**. Until confirmed by a DBA, prohibit migrations, restore drills and synthetic workload testing on either shared reference.
+- Railway `SCOTTY Reliability Staging` has a `staging` environment with zero listed services, volumes and buckets. An empty staging environment is not a ready isolated database.
+- Railway `SCOTTY / production` has a staged patch on `scotty-core-plqe`; do not accept/commit the patch as part of Phase A0.
+- GitHub CI operates against an **ephemeral disposable PostgreSQL container only**, with a synthetic backup and isolated restore check. This is valuable engineering evidence but not proof that any real encrypted backup can be independently decrypted and restored.
+- Required owner decision: exact non-shared staging PostgreSQL service and resource identity, exact authorized source system, recovery-key custodian, backup retention, and whether/how to resolve current Railway environment overlap.
