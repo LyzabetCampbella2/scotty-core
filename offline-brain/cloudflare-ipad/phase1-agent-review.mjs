@@ -4,6 +4,8 @@
  */
 import {INDIVIDUAL_BRAINS,roleResponsePreview} from './individual-agent-brains.mjs';
 import {OWNER_OVERLAY_COUNT} from './owner-chief-design-overlays.mjs';
+import {agentEvaluationPlan} from './phase1-behavior-evaluation.mjs';
+import {roleContract,overlappingSpecialtyReport} from './agent-role-contracts.mjs';
 
 export const PHASE1_AUDIT_VERSION='phase1-agent-review-v1';
 const syntheticTask='Plan a new fictional service with evidence, risks, accessibility, deadline and approval conditions.';
@@ -11,6 +13,8 @@ export function phase1AgentReview(agentId){
  const b=INDIVIDUAL_BRAINS.find(x=>x.id===agentId);
  if(!b)throw Error('UNKNOWN_AGENT_ID');
  const preview=roleResponsePreview(agentId,syntheticTask);
+ const specialty=roleContract(agentId);
+ const evaluation=agentEvaluationPlan(agentId);
  const structural={
   identity:Boolean(b.id&&b.name&&b.department),
   specialty:Boolean(b.focus&&b.specialties.length),
@@ -26,6 +30,13 @@ export function phase1AgentReview(agentId){
  return {
   agentId:b.id,name:b.name,role:b.role,department:b.department,
   canonicalChiefId:b.chiefId,
+  workstream:specialty.specializationTrack,
+  workstreamArtifact:specialty.artifact,
+  roleContractVersion:specialty.schemaVersion,
+  evaluationPlanVersion:evaluation.version,
+  evaluationScenariosPrepared:evaluation.behaviorCases.length,
+  activeProfileRevision:null,
+  editableFieldsAwaitVerifiedReview:true,
   structural,structuralPassed,
   ownerRecordStatus:b.ownerDesign?'SOURCE_BACKED_CHIEF_RECORD':'GENERATED_DEFAULT_NEEDS_OWNER_REVIEW',
   sourceRecord:b.ownerDesign?.provenance.selectionRecord||null,
@@ -42,8 +53,14 @@ export function phase1AgentReview(agentId){
 }
 export function phase1ReadinessReport(){
  const profiles=INDIVIDUAL_BRAINS.map(x=>phase1AgentReview(x.id));
+ const overlaps=overlappingSpecialtyReport();
  const counts={
   profiles:profiles.length,
+  roleContracts:profiles.filter(x=>Boolean(x.roleContractVersion)).length,
+  evaluationCasesPrepared:profiles.reduce((n,x)=>n+x.evaluationScenariosPrepared,0),
+  overlappingSpecialtyGroups:overlaps.overlappingGroups,
+  overlappingSpecialistAgents:overlaps.overlappingAgents,
+  generatedProfilesRequiringOwnerReview:profiles.filter(x=>x.ownerRecordStatus!=='SOURCE_BACKED_CHIEF_RECORD').length,
   chiefs:profiles.filter(x=>x.role==='chief').length,
   specialists:profiles.filter(x=>x.role==='specialist').length,
   structuralPasses:profiles.filter(x=>x.structuralPassed).length,
