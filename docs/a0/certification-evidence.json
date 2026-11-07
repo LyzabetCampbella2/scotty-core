@@ -6,7 +6,7 @@
   "generatedOn": "2026-11-07",
   "source": "docs/a0/PHASE-0-EXIT-REVIEW.md",
   "certificationStatus": "BLOCKED",
-  "note": "Statuses require verified external evidence and explicit recorded owner decision. CI passing does not certify live operation.",
+  "note": "The canonical IDs and current display names are approved and locked in a versioned Git artifact, while the operational gate requires runtime proof and remaining owner attestations. No new infrastructure spending or production data access is authorized.",
   "gates": [
     {
       "id": "canonical_id_structure",
@@ -16,14 +16,14 @@
     },
     {
       "id": "owner_signed_roster_freeze",
-      "status": "pending",
-      "evidence": null,
+      "status": "owner_approved_versioned_pending_authenticated_signature",
+      "evidence": "docs/a0/roster-frozen-2026-11-07.json (Git blob 476f396a709de64e75169ed0ff504526cc0233ef), lock docs/a0/roster-freeze-lock-2026-11-07.json; explicit owner approval in conversation; no authenticated cryptographic signature",
       "requiresOwnerSignoff": true
     },
     {
       "id": "alias_disposition",
-      "status": "pending",
-      "evidence": null,
+      "status": "current_names_retained_changes_deferred",
+      "evidence": "docs/a0/OWNER-DECISIONS.md; user approved original names, with changes only in later separately approved versions",
       "requiresOwnerSignoff": true
     },
     {
@@ -83,14 +83,46 @@
   ],
   "explicitOwnerDecision": {
     "signer": null,
-    "recordedAt": null,
-    "approvedSnapshotCommit": null,
-    "approvedAliases": null,
+    "recordedAt": "2026-11-07",
+    "approvedSnapshotCommit": "f2eccbc612a7fac8e99c4edc6015a0094b60624c",
+    "approvedAliases": "Retain current 185 display names; future alias edits require separate approval",
     "approvedDataSources": null,
     "approvedBudget": null,
     "approvedPrivileges": null,
     "verifiedRestoreReceipt": null,
     "verifiedStopAllReceipt": null,
     "externalApprovalReference": null
+  },
+  "ownerDecisionsRecorded": {
+    "recordedDate": "2026-11-07",
+    "method": "Explicit approval by user in current conversation; not cryptographically signed",
+    "renderReadOnlyWorkspace": {
+      "name": "My Workspace",
+      "authorized": true,
+      "inspected": true,
+      "scope": "service/deployment/Postgres metadata only"
+    },
+    "canonicalRoster": {
+      "approved": true,
+      "scope": "185 permanent agent IDs and current display names unchanged",
+      "approvedVersion": "docs/a0/roster-frozen-2026-11-07.json",
+      "approvedBlobSha": "476f396a709de64e75169ed0ff504526cc0233ef",
+      "proof": "docs/a0/roster-freeze-lock-2026-11-07.json",
+      "aliasChangesApproved": false,
+      "runtimeRegistryModified": false
+    },
+    "spending": {
+      "newInfrastructureUsdAllowed": 0,
+      "newProviderUsageUsdAllowed": 0,
+      "perTaskDollarCapApproved": false,
+      "perDayDollarCapApproved": false,
+      "newResourcesCreated": false
+    },
+    "productionData": {
+      "accessAuthorized": false,
+      "exportAuthorized": false,
+      "backupRestorationAuthorized": false,
+      "requiresNewExactScopeApproval": true
+    }
   }
 }
