@@ -22,4 +22,4 @@ jobs:
         run: |
           node --check offline-brain/cloudflare-ipad/worker.mjs
           node --check offline-brain/cloudflare-ipad/activepieces-bridge.mjs
-          node --test offline-brain/cloudflare-ipad/activepieces-bridge.test.mjs activepieces/public-agent-directory.test.mjs activepieces/propose-team.test.mjs activepieces/prepare-review.test.mjs activepieces/orchestration-preview.test.mjs
+          node --test offline-brain/cloudflare-ipad/activepieces-bridge.test.mjs activepieces/public-agent-directory.test.mjs activepieces/propose-team.test.mjs activepieces/prepare-review.test.mjs activepieces/orchestration-preview.test.mjs activepieces/mcp-build-manifest.test.mjs
