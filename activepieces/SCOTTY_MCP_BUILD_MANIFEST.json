@@ -1,0 +1,176 @@
+{
+  "version": "scotty-activepieces-staging-manifest-v1",
+  "state": "SOURCE_ONLY_NOT_INSTALLED",
+  "intendedWorkspace": "user's Activepieces Cloud personal project",
+  "mode": "STAGING",
+  "deployApproved": false,
+  "allowedPaidActions": false,
+  "liveExternalSystems": false,
+  "prerequisites": [
+    "Activepieces MCP tools visibly available to assistant with correct project context",
+    "Read existing flows and connections to avoid overwriting user work",
+    "Owner reviews project scope and any changes to provider/model or external account permissions"
+  ],
+  "agentDirectory": {
+    "source": "public-agent-directory.json",
+    "liveVerified": false,
+    "chiefs": 25,
+    "specialists": 160,
+    "oversight": "SCOTTY"
+  },
+  "flows": [
+    {
+      "key": "scotty-connection-test",
+      "name": "SCOTTY — Connection Test",
+      "type": "manual",
+      "status": "EXISTING_USER_CREATED_REQUIRES_INSPECTION",
+      "dependencies": [
+        "GET public connectivity check",
+        "GET public agent directory"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-roster-view",
+      "name": "SCOTTY — Agent Directory",
+      "type": "manual",
+      "status": "READY_TO_BUILD",
+      "dependencies": [
+        "GET public agent directory",
+        "Code public-profile.mjs"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-team-router",
+      "name": "SCOTTY — Team Routing Preview",
+      "type": "manual",
+      "status": "EXISTING_USER_CREATED_REQUIRES_INSPECTION",
+      "dependencies": [
+        "GET public agent directory",
+        "Code propose-team.mjs"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-owner-review",
+      "name": "SCOTTY — Owner Review Demo",
+      "type": "manual",
+      "status": "READY_TO_BUILD",
+      "dependencies": [
+        "Code prepare-review.mjs",
+        "Approval (Legacy) Wait for Approval",
+        "Code demo-decision.mjs"
+      ],
+      "risk": "demo approval only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-mission-preview",
+      "name": "SCOTTY — Mission Plan Preview",
+      "type": "manual",
+      "status": "READY_TO_BUILD",
+      "dependencies": [
+        "Code propose-team.mjs",
+        "Code mission-preview.mjs"
+      ],
+      "risk": "no execution",
+      "enabled": false
+    },
+    {
+      "key": "scotty-reports-readonly",
+      "name": "SCOTTY — Test Results Summary",
+      "type": "manual",
+      "status": "DESIGN_ONLY",
+      "dependencies": [
+        "Read completed synthetic run logs",
+        "Summarize validation and failures"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-staging-health",
+      "name": "SCOTTY — Staging Health Check",
+      "type": "manual",
+      "status": "DESIGN_ONLY",
+      "dependencies": [
+        "GET isolated Worker health URL after reviewed deployment"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-project-assignments",
+      "name": "SCOTTY — Approved Project Assignments",
+      "type": "owner-authenticated",
+      "status": "BLOCKED_BY_PERMISSIONED_BACKEND",
+      "dependencies": [
+        "Project membership",
+        "Owner session",
+        "Approved mission revision",
+        "Audit log",
+        "Idempotency"
+      ],
+      "risk": "project writes",
+      "enabled": false
+    },
+    {
+      "key": "scotty-agent-memory",
+      "name": "SCOTTY — Agent Memory Governance",
+      "type": "owner-authenticated",
+      "status": "BLOCKED_BY_PERMISSIONED_BACKEND",
+      "dependencies": [
+        "Per-agent and department memory scopes",
+        "Owner reviewed evidence",
+        "Read/write authorization",
+        "Backups"
+      ],
+      "risk": "private memory",
+      "enabled": false
+    },
+    {
+      "key": "scotty-agent-execution",
+      "name": "SCOTTY — Specialist Chief SCOTTY Execution",
+      "type": "owner-authenticated",
+      "status": "BLOCKED_BY_PERMISSIONED_BACKEND",
+      "dependencies": [
+        "Durable approved mission",
+        "LLM provider and spending approval",
+        "Chief review",
+        "Checkpoint readback",
+        "Human final review"
+      ],
+      "risk": "AI and external systems",
+      "enabled": false
+    },
+    {
+      "key": "scotty-scheduled-briefing",
+      "name": "SCOTTY — Daily Briefing",
+      "type": "schedule",
+      "status": "BLOCKED_BY_USER_SCHEDULE_AND_SCOPED_BACKEND",
+      "dependencies": [
+        "Owner approved cadence",
+        "Authorized project sources",
+        "Unambiguous outbound channel"
+      ],
+      "risk": "recurring external actions",
+      "enabled": false
+    }
+  ],
+  "defaultRules": {
+    "publish": false,
+    "enable": false,
+    "triggerRealAgentRun": false,
+    "autoApprove": false,
+    "autoSpend": false,
+    "autoMessage": false,
+    "autoPublishData": false,
+    "copyPasswords": false,
+    "writeProduction": false
+  },
+  "notes": "Manifest is a plan and source of proposed new flows only. Nothing in it creates Activepieces flows or changes account configuration."
+}
