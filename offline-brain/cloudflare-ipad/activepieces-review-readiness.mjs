@@ -16,7 +16,16 @@ const auditColumns=[
  'previous_status','new_status','revision','intent_digest','occurred_at'
 ];
 const requiredConstraints=[
- 'CHECK(status IN', 'CHECK(scope =', 'UNIQUE', 'PRIMARY KEY'
+ /\bCHECK\s*\(\s*status\s+IN\s*\(/i,
+ /\bCHECK\s*\(\s*scope\s*=\s*'mission\.preview'\s*\)/i,
+ /\bidempotency_key\s+TEXT\s+NOT\s+NULL\s+UNIQUE\b/i,
+ /\brequest_id\s+TEXT\s+PRIMARY\s+KEY\b/i
+];
+const requiredAuditConstraints=[
+ /\bFOREIGN\s+KEY\s*\(\s*request_id\s*\)/i,
+ /\bREFERENCES\s+scotty_activepieces_review_requests_v1\b/i,
+ /\bCHECK\s*\(\s*actor_type\s*=\s*'authenticated-owner'\s*\)/i,
+ /\bCHECK\s*\(\s*event_type\s+IN\s*\(/i
 ];
 export async function reviewLedgerReadiness(db){
  if(typeof db?.prepare!=='function'||typeof db.batch!=='function')
@@ -38,9 +47,8 @@ export async function reviewLedgerReadiness(db){
      if(!new RegExp('\\b'+col+'\\b','i').test(auditSql))
        return reason('OWNER_REVIEW_AUDIT_SCHEMA_INCOMPLETE');
    }
-   if(requiredConstraints.some(x=>!requestSql.includes(x))||
-      !auditSql.includes('FOREIGN KEY')||
-      !auditSql.includes('authenticated-owner'))
+   if(requiredConstraints.some(x=>!x.test(requestSql))||
+      requiredAuditConstraints.some(x=>!x.test(auditSql)))
       return reason('OWNER_REVIEW_CONSTRAINTS_UNVERIFIED');
    // SELECT LIMIT 0 validates actual physical columns. No row values read.
    await db.prepare('SELECT '+recordColumns.join(',')+
