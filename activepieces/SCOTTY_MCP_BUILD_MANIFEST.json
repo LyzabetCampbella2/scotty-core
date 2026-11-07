@@ -1,0 +1,540 @@
+{
+  "version": "scotty-activepieces-staging-manifest-v1",
+  "state": "STAGING_DRAFTS_INSTALLED",
+  "intendedWorkspace": "Lizzy's Project (connected Activepieces Cloud)",
+  "mode": "STAGING",
+  "deployApproved": false,
+  "allowedPaidActions": false,
+  "liveExternalSystems": false,
+  "prerequisites": [
+    "Staging drafts have been installed through the connected Activepieces MCP server and folder checked",
+    "Before publication: owner-approved activation, independent security review, and exact workflow capability review",
+    "Before real agent work: SCOTTY backend authorization, durable mission IDs and project-scoped audit evidence"
+  ],
+  "agentDirectory": {
+    "source": "public-agent-directory.json",
+    "liveVerified": false,
+    "chiefs": 25,
+    "specialists": 160,
+    "oversight": "SCOTTY"
+  },
+  "flows": [
+    {
+      "key": "scotty-connection-test",
+      "name": "SCOTTY — Connection Test",
+      "type": "manual",
+      "status": "EXISTING_DRAFT_TESTED",
+      "dependencies": [
+        "GET public connectivity check",
+        "GET public agent directory"
+      ],
+      "risk": "read-only",
+      "enabled": false,
+      "flowId": "koUP1ZyCY9qIcW5jdnH28"
+    },
+    {
+      "key": "scotty-roster-view",
+      "name": "SCOTTY — Agent Directory",
+      "type": "manual",
+      "status": "STAGING_DRAFT_TESTED",
+      "dependencies": [
+        "GET public agent directory",
+        "Code public-profile.mjs"
+      ],
+      "risk": "read-only",
+      "enabled": false,
+      "flowId": "rEGNhvaAaVXbrlFeSPXg8"
+    },
+    {
+      "key": "scotty-team-router",
+      "name": "SCOTTY — Team Routing Preview",
+      "type": "manual",
+      "status": "EXISTING_STEP_TESTED",
+      "dependencies": [
+        "GET public agent directory",
+        "Code propose-team.mjs"
+      ],
+      "risk": "read-only",
+      "enabled": false,
+      "flowId": "koUP1ZyCY9qIcW5jdnH28"
+    },
+    {
+      "key": "scotty-owner-review",
+      "name": "SCOTTY — Owner Review Demo",
+      "type": "manual",
+      "status": "STAGING_DRAFT_WAITPOINT_UNTESTED",
+      "dependencies": [
+        "Code prepare-review.mjs",
+        "Approval (Legacy) Wait for Approval",
+        "Code demo-decision.mjs"
+      ],
+      "risk": "demo approval only",
+      "enabled": false,
+      "flowId": "l9lEZhiDUXKaGJASQ01ci"
+    },
+    {
+      "key": "scotty-mission-preview",
+      "name": "SCOTTY — Mission Plan Preview",
+      "type": "manual",
+      "status": "STAGING_DRAFT_TESTED",
+      "dependencies": [
+        "Code propose-team.mjs",
+        "Code mission-preview.mjs"
+      ],
+      "risk": "no execution",
+      "enabled": false,
+      "flowId": "JP93n64ApIaekBP7W7632"
+    },
+    {
+      "key": "scotty-reports-readonly",
+      "name": "SCOTTY — Test Results Summary",
+      "type": "manual",
+      "status": "DESIGN_ONLY",
+      "dependencies": [
+        "Read completed synthetic run logs",
+        "Summarize validation and failures"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-staging-health",
+      "name": "SCOTTY — Staging Health Check",
+      "type": "manual",
+      "status": "DESIGN_ONLY",
+      "dependencies": [
+        "GET isolated Worker health URL after reviewed deployment"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-project-assignments",
+      "name": "SCOTTY — Approved Project Assignments",
+      "type": "owner-authenticated",
+      "status": "BLOCKED_BY_PERMISSIONED_BACKEND",
+      "dependencies": [
+        "Project membership",
+        "Owner session",
+        "Approved mission revision",
+        "Audit log",
+        "Idempotency"
+      ],
+      "risk": "project writes",
+      "enabled": false
+    },
+    {
+      "key": "scotty-agent-memory",
+      "name": "SCOTTY — Agent Memory Governance",
+      "type": "owner-authenticated",
+      "status": "BLOCKED_BY_PERMISSIONED_BACKEND",
+      "dependencies": [
+        "Per-agent and department memory scopes",
+        "Owner reviewed evidence",
+        "Read/write authorization",
+        "Backups"
+      ],
+      "risk": "private memory",
+      "enabled": false
+    },
+    {
+      "key": "scotty-agent-execution",
+      "name": "SCOTTY — Specialist Chief SCOTTY Execution",
+      "type": "owner-authenticated",
+      "status": "BLOCKED_BY_PERMISSIONED_BACKEND",
+      "dependencies": [
+        "Durable approved mission",
+        "LLM provider and spending approval",
+        "Chief review",
+        "Checkpoint readback",
+        "Human final review"
+      ],
+      "risk": "AI and external systems",
+      "enabled": false
+    },
+    {
+      "key": "scotty-scheduled-briefing",
+      "name": "SCOTTY — Daily Briefing",
+      "type": "schedule",
+      "status": "BLOCKED_BY_USER_SCHEDULE_AND_SCOPED_BACKEND",
+      "dependencies": [
+        "Owner approved cadence",
+        "Authorized project sources",
+        "Unambiguous outbound channel"
+      ],
+      "risk": "recurring external actions",
+      "enabled": false
+    },
+    {
+      "key": "scotty-roster-audit",
+      "name": "SCOTTY — Agent Roster Integrity Audit",
+      "type": "manual",
+      "flowId": "Om9IMUMEw5SiuSIU7FHpO",
+      "status": "STAGING_DRAFT_TESTED",
+      "dependencies": [
+        "Public metadata and read-only tables only"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-task-inbox-preview",
+      "name": "SCOTTY — Task Inbox to Team Proposal (manual)",
+      "type": "manual",
+      "flowId": "0XnbbDuYeQM4sTQ4ZEnzC",
+      "status": "STAGING_DRAFT_TESTED",
+      "dependencies": [
+        "Public metadata and read-only tables only"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-project-team-planner",
+      "name": "SCOTTY — Project Team Planner (public preview)",
+      "type": "manual",
+      "flowId": "Zh4Gt9XVgIkTsCZ3k3ief",
+      "status": "STAGING_DRAFT_TESTED",
+      "dependencies": [
+        "Public metadata and read-only tables only"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-owner-portfolio-briefing",
+      "name": "SCOTTY — Owner Portfolio Briefing (manual)",
+      "type": "manual",
+      "flowId": "EOzy39Y8WJDR6uKrglKPm",
+      "status": "STAGING_DRAFT_TESTED",
+      "dependencies": [
+        "Public metadata and read-only tables only"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-owner-packet-preview",
+      "name": "SCOTTY — Owner Review Packet Preview (manual)",
+      "type": "manual",
+      "flowId": "Kij25Ua46OFOvOBdElSyn",
+      "status": "STAGING_DRAFT_TESTED",
+      "dependencies": [
+        "Public metadata and read-only tables only"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-memory-access-gate",
+      "name": "SCOTTY — Memory Access Gate (preview only)",
+      "type": "manual",
+      "status": "STAGING_DRAFT_TESTED",
+      "flowId": "yijvvHp7kbV6IFGNOTQDy",
+      "dependencies": [
+        "public directory",
+        "four memory scope rules"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-demo-owner-decisions",
+      "name": "SCOTTY — Demo Owner Decision Audit (manual)",
+      "type": "manual",
+      "status": "STAGING_DRAFT_TESTED",
+      "flowId": "TbZ7pjqGhHU0GN562OLJH",
+      "dependencies": [
+        "public roster",
+        "project list",
+        "demo decisions"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-launch-readiness-dashboard",
+      "name": "SCOTTY — Launch Readiness Dashboard (manual)",
+      "type": "manual",
+      "status": "STAGING_DRAFT_TESTED",
+      "flowId": "d6nHeqQQqp8E6A2HNkoDX",
+      "dependencies": [
+        "11 explicit release gate records"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-agent-bio-collaborator-preview",
+      "name": "SCOTTY — Agent Bio & Collaborators (public preview)",
+      "type": "manual",
+      "status": "STAGING_DRAFT_TESTED",
+      "flowId": "laAR7amU62nSsH1JUd1u4",
+      "dependencies": [
+        "public development roster",
+        "public project portfolio",
+        "candidate collaborator proposals"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-chief-handoff-preview",
+      "name": "SCOTTY — Chief Collaboration Handoffs (public preview)",
+      "type": "manual",
+      "status": "STAGING_DRAFT_TESTED",
+      "flowId": "zdtQxidWHhr73lIAjvu6n",
+      "dependencies": [
+        "public project portfolio",
+        "roster",
+        "candidate collaborators"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-handoff-queue-integrity",
+      "name": "SCOTTY — Handoff Queue Integrity (manual)",
+      "type": "manual",
+      "status": "STAGING_DRAFT_TESTED",
+      "flowId": "p98RsMYthsbREasTghwMr",
+      "dependencies": [
+        "synthetic unsent handoff queue",
+        "public roster"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-lumen-creative-campaign-preview",
+      "name": "SCOTTY — LUMEN Creative Campaign Preview (manual)",
+      "type": "manual",
+      "status": "STAGING_DRAFT_TESTED",
+      "flowId": "VF0ficyTX8bggvwCwpzb9",
+      "dependencies": [
+        "public creative-media draft add-on",
+        "synthetic campaign brief"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    }
+  ],
+  "defaultRules": {
+    "publish": false,
+    "enable": false,
+    "triggerRealAgentRun": false,
+    "autoApprove": false,
+    "autoSpend": false,
+    "autoMessage": false,
+    "autoPublishData": false,
+    "copyPasswords": false,
+    "writeProduction": false
+  },
+  "notes": "14 unpublished/disabled staging flows plus existing disabled connection test; 9 tables with 245 public/synthetic-only rows. Chief Collaboration preview generated 10 proposed Eirden handoffs with explicit dependency graph; unsent synthetic queue verified by a separate read-only workflow. All statuses remain proposed/not sent, no actual messaging or assignments. Separate owner-reviewed SCOTTY backend permissions, D1 migration, production deployment and real agent execution remain blocked. Added default-off owner-only preview review HTTP API under existing isolated Worker bearer, with server-derived project membership and audit. Still not deployed and not accessible from Activepieces. Additional owner-only secret-free preflight created and tested; strict request-ID-matching idempotency replay prevents misattribution. No real Worker activation or database migration occurred. Created optional LUMEN/PULSE/FRAME/IRIS creative department as separate public development extension. Base 25+160 agent directory remains unchanged. New synthetic Activepieces campaign planning flow tested; no actual post, tool call, memory, assignment, or other execution. Creative agent runtime, per-agent D1 audit store, owner-reviewed synthetic memory persistence, project assignment grant, provider adapter, and interactive biography UI wired only in development source. Not deployed, no model or external accounts active.",
+  "verifiedInAccount": {
+    "workspaceProjectId": "xTfZdRPX3i4JjdOyR5NYq",
+    "stagingFolder": "SCOTTY — Staging",
+    "draftFlowsInFolder": 15,
+    "existingUserConnectionTestFlow": 1,
+    "publishedFlows": 0,
+    "enabledFlows": 0,
+    "tablesCreated": 10,
+    "tableRecordCounts": {
+      "developmentAgents": 185,
+      "projects": 5,
+      "proposedCollaborators": 25,
+      "publicDemoTasks": 1,
+      "demoMissionInbox": 1,
+      "memoryScopeRules": 4,
+      "demoOwnerDecisions": 3,
+      "launchReadinessGates": 11,
+      "syntheticChiefHandoffs": 10,
+      "creativeMediaDrafts": 4
+    },
+    "validation": "Activepieces staging: 15 disabled/unpublished draft flows and 10 public/synthetic tables; LUMEN campaign preview tested successfully",
+    "scope": "Public/synthetic planning previews and unsent handoff queue; no owner-granted project membership, external messages, paid AI, private memory or execution"
+  },
+  "tables": [
+    {
+      "name": "SCOTTY — Public Agent Registry (Draft)",
+      "id": "1CSnSdZEiKRUuKIBz1YhC",
+      "rows": 185,
+      "scope": "public development profiles"
+    },
+    {
+      "name": "SCOTTY — Demo Mission Inbox (No Execution)",
+      "id": "46AKxrdVBokMjNxxxlILP",
+      "rows": 1,
+      "scope": "synthetic only"
+    },
+    {
+      "name": "SCOTTY — Task Intake (Public Demo Only)",
+      "id": "NsC8t86ZrWTwszmwNQb81",
+      "rows": 1,
+      "scope": "synthetic only"
+    },
+    {
+      "name": "SCOTTY — Project Portfolio (Planning Only)",
+      "id": "Gyt8UUzihBPPUwH6QNTo1",
+      "rows": 5,
+      "scope": "public project metadata"
+    },
+    {
+      "name": "SCOTTY — Proposed Project Collaborators (Draft)",
+      "id": "yNkok1xnLTEKTASpPSIrh",
+      "rows": 25,
+      "scope": "suggestions only, not assignments"
+    },
+    {
+      "name": "SCOTTY — Memory Scope Rules (Staging Metadata)",
+      "id": "Qbct8WIFdaj7GmZOY7AZM",
+      "rows": 4,
+      "scope": "four denied-by-default memory scope rules; no actual memories"
+    },
+    {
+      "name": "SCOTTY — Owner Decision Ledger (Demo Only)",
+      "id": "SKmoa9UCdVdQMdodPMJk6",
+      "rows": 3,
+      "scope": "one synthetic approve, reject and pending; all non-authorizing"
+    },
+    {
+      "name": "SCOTTY — Launch Readiness Gates (Staging)",
+      "id": "7d4LHNXJtgGe1ASlb2NLZ",
+      "rows": 11,
+      "scope": "4 development preview checks and 7 blocked approval, authorization, memory and release dependencies"
+    },
+    {
+      "name": "SCOTTY — Cross-Chief Handoff Queue (Synthetic)",
+      "id": "p8Mi170WDBVdoQ9BYAc8r",
+      "rows": 10,
+      "scope": "5 specialist review proposals, 4 cross-chief review handoffs, 1 SCOTTY synthesis; all unsent and non-executable"
+    },
+    {
+      "name": "SCOTTY — Creative Media Department (Draft)",
+      "id": "ApSToWAua2Pw0UwTT2Mml",
+      "rows": 4,
+      "scope": "One development-only chief and three individualized specialists; no memory, account connections, paid actions or assignments"
+    }
+  ],
+  "backendPreviewReview": {
+    "status": "SOURCE_WIRED_TO_ISOLATED_WORKER_DEFAULT_OFF_NOT_DEPLOYED",
+    "ownerOnly": true,
+    "activationFlag": "SCOTTY_PREVIEW_REVIEWS_ENABLED",
+    "auth": "Existing isolated Worker OWNER_BEARER_TOKEN; never Activepieces bridge token",
+    "ownerIdentity": "SCOTTY_REVIEW_OWNER_ID, server-side config only",
+    "projectScope": "SCOTTY_REVIEW_PROJECT_ALLOWLIST and isolated D1 agent_projects / agent_project_links",
+    "prerequisites": [
+      "Explicit owner permission for staging D1 backup",
+      "Separate isolated D1 migrations with QA",
+      "Separately approved isolated Worker staging deployment",
+      "Dedicated owner-secret provisioning out of chat"
+    ],
+    "routes": [
+      "POST /api/owner-preview-reviews",
+      "GET /api/owner-preview-reviews?requestId=...",
+      "POST /api/owner-preview-reviews/decision"
+    ],
+    "authority": "Review metadata only; canExecute is always false; no mission grants",
+    "tested": "In-memory SQLite integration tests passing; no live D1 or Worker deployment",
+    "readinessRoute": "GET /api/owner-preview-reviews/readiness (owner bearer required, available with feature switch off)",
+    "readinessSignals": [
+      "owner ID configured (boolean only)",
+      "project allowlist valid (boolean and count only)",
+      "isolated preview-review ledger schema checks",
+      "isolated public project portfolio schema checks",
+      "public-development project-to-agent relationship checks"
+    ],
+    "readinessNoAuthority": true,
+    "replayIdentityBoundToRequestIdAndKey": true,
+    "latestTestEvidence": "76 Node tests and 5 Python in-memory SQLite schema tests passed in GitHub Actions; no actual D1 accessed."
+  },
+  "creativeMediaExtension": {
+    "mode": "OPT_IN_DEVELOPMENT_ONLY",
+    "existingRoster": {
+      "chiefs": 25,
+      "specialists": 160,
+      "total": 185
+    },
+    "proposedRoster": {
+      "chiefs": 26,
+      "specialists": 163,
+      "total": 189
+    },
+    "addedChief": {
+      "id": "chief-lumen",
+      "name": "LUMEN",
+      "department": "Creative Production & Campaign Studio"
+    },
+    "addedSpecialists": [
+      {
+        "id": "agent-creative-pulse",
+        "name": "PULSE",
+        "role": "Social Media Strategy"
+      },
+      {
+        "id": "agent-creative-frame",
+        "name": "FRAME",
+        "role": "Cinematography & Video"
+      },
+      {
+        "id": "agent-creative-iris",
+        "name": "IRIS",
+        "role": "Photography & Retouching"
+      }
+    ],
+    "scottyOverseer": "SCOTTY",
+    "projectSuggestion": "Golden Hour Creative — not assigned",
+    "source": "offline-brain/cloudflare-ipad/creative-media-department.mjs",
+    "publicDirectory": "activepieces/public-creative-media-directory.json",
+    "runStatus": "NOT_RUNNING",
+    "mergedIntoCanonicalDirectory": false,
+    "agentToolsConnected": false,
+    "privateMemoryPersisted": false,
+    "ownerApprovalRequired": true
+  },
+  "creativeMediaRuntime": {
+    "status": "SOURCE_ONLY_SIMULATED_TESTS_PASSED_NOT_DEPLOYED",
+    "ownerOnly": true,
+    "agents": [
+      "chief-lumen",
+      "agent-creative-pulse",
+      "agent-creative-frame",
+      "agent-creative-iris"
+    ],
+    "idBasedIndependentReasoning": true,
+    "individualizedPrompts": true,
+    "isolatedPersistentRunStore": "Optional D1 creative-agent-state-v1.sql, not applied",
+    "memoryGovernance": "Owner-approved PUBLIC/SYNTHETIC notes only; actual private memory not connected",
+    "assignmentGrant": "Separate owner/project grant, not preview approval; source only",
+    "executionGrant": "Separate server-held mission.execute grant required; no route implemented",
+    "modelProvider": "Cloudflare Workers AI adapter is source-only, disabled unless explicitly configured",
+    "maxModelCallsPerAgentTask": 1,
+    "automaticRetries": false,
+    "socialPostingEnabled": false,
+    "outboundMessagingEnabled": false,
+    "paidModelCallsMade": 0,
+    "actualProjectsLinked": 0,
+    "realAgentRuns": 0,
+    "interactiveBio": {
+      "page": "Existing isolated SCOTTY lab HUD development page",
+      "api": [
+        "GET /api/creative-agent-directory",
+        "GET /api/creative-agent-bio?agentId=...&projectId=..."
+      ],
+      "ownerBearerRequired": true,
+      "sourceWiredToWorker": true,
+      "deployed": false,
+      "liveProjectRecordsRequire": "SCOTTY_CREATIVE_BIOS_ENABLED=true, isolated schema and verified agent_project_links"
+    },
+    "ci": "117 Node tests and 5 Python SQLite schema tests passed using fake model and in-memory SQLite",
+    "requiredGates": [
+      "Owner-approved isolated D1 backup and migrations",
+      "Approved isolated Worker deployment",
+      "Server-side persisted execution-grant minting and audit",
+      "Approved model binding and cost limit",
+      "Secure individualized private memory and retention review",
+      "Real owner-reviewed project assignments",
+      "Live agent and platform-action acceptance tests"
+    ]
+  }
+}

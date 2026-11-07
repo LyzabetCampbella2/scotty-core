@@ -1,0 +1,2774 @@
+{
+  "schema_version": "scotty-public-dev-directory-v1",
+  "mode": "STATIC_READ_ONLY",
+  "source": "SCOTTY public development source reconstructed from connected-roster and team-expansion modules",
+  "live_roster_verified": false,
+  "owner_approval_required_for_execution": true,
+  "contains_private_memory": false,
+  "counts": {
+    "chiefs": 25,
+    "specialists": 160,
+    "total": 185
+  },
+  "agents": [
+    {
+      "id": "chief-spock",
+      "name": "SPOCK",
+      "department": "Strategy & Reasoning",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "decision analysis",
+        "scenario planning",
+        "prioritization",
+        "assumption testing"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "chief-worf",
+      "name": "WORF",
+      "department": "Security & Defense",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "threat modeling",
+        "access review",
+        "incident triage",
+        "privacy safeguards"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "chief-data",
+      "name": "DATA",
+      "department": "Research & Intelligence",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "research planning",
+        "source evaluation",
+        "fact checking",
+        "knowledge synthesis"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "chief-quark",
+      "name": "QUARK",
+      "department": "Commerce & Finance",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "budget modeling",
+        "pricing",
+        "forecasting",
+        "cost comparison"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "chief-kirk",
+      "name": "KIRK",
+      "department": "Command & Missions",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "task decomposition",
+        "dependency mapping",
+        "delegation",
+        "acceptance criteria"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "chief-uhura",
+      "name": "UHURA",
+      "department": "Communications & Languages",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "drafting",
+        "editing",
+        "translation",
+        "audience adaptation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "chief-geordi",
+      "name": "GEORDI",
+      "department": "Engineering & Systems",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "debugging",
+        "architecture",
+        "test design",
+        "deployment planning"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "chief-keiko",
+      "name": "KEIKO",
+      "department": "Science & Environment",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "hypothesis formation",
+        "study critique",
+        "experimental design",
+        "data interpretation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "chief-picard",
+      "name": "PICARD",
+      "department": "Policy & Diplomacy",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "policy interpretation",
+        "stakeholder mapping",
+        "negotiation",
+        "risk review"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "chief-bones",
+      "name": "BONES",
+      "department": "Health & Human Support",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "health literacy",
+        "appointment preparation",
+        "care coordination planning",
+        "accessible explanations"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "chief-zora",
+      "name": "ZORA",
+      "department": "Creative & Knowledge",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "story analysis",
+        "ideation",
+        "editorial review",
+        "knowledge organization"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "chief-riker",
+      "name": "RIKER",
+      "department": "Operations & Coordination",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "Department leadership",
+      "skills": [
+        "scheduling",
+        "workflow design",
+        "process improvement",
+        "progress tracking"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-spock-01",
+      "name": "O'Brien",
+      "department": "Strategy & Reasoning",
+      "isChief": false,
+      "chiefId": "chief-spock",
+      "specialty": "Strategic planning",
+      "skills": [
+        "Strategic planning",
+        "decision analysis",
+        "scenario planning",
+        "prioritization",
+        "assumption testing"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-spock-02",
+      "name": "Seven Ops",
+      "department": "Strategy & Reasoning",
+      "isChief": false,
+      "chiefId": "chief-spock",
+      "specialty": "Decision theory",
+      "skills": [
+        "Decision theory",
+        "decision analysis",
+        "scenario planning",
+        "prioritization",
+        "assumption testing"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-spock-03",
+      "name": "Privacy",
+      "department": "Strategy & Reasoning",
+      "isChief": false,
+      "chiefId": "chief-spock",
+      "specialty": "Scenario analysis",
+      "skills": [
+        "Scenario analysis",
+        "decision analysis",
+        "scenario planning",
+        "prioritization",
+        "assumption testing"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-spock-04",
+      "name": "Sarek",
+      "department": "Strategy & Reasoning",
+      "isChief": false,
+      "chiefId": "chief-spock",
+      "specialty": "Competitive intelligence",
+      "skills": [
+        "Competitive intelligence",
+        "decision analysis",
+        "scenario planning",
+        "prioritization",
+        "assumption testing"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-spock-05",
+      "name": "Risa",
+      "department": "Strategy & Reasoning",
+      "isChief": false,
+      "chiefId": "chief-spock",
+      "specialty": "Goal decomposition",
+      "skills": [
+        "Goal decomposition",
+        "decision analysis",
+        "scenario planning",
+        "prioritization",
+        "assumption testing"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-spock-06",
+      "name": "Bashir",
+      "department": "Strategy & Reasoning",
+      "isChief": false,
+      "chiefId": "chief-spock",
+      "specialty": "Tradeoff analysis",
+      "skills": [
+        "Tradeoff analysis",
+        "decision analysis",
+        "scenario planning",
+        "prioritization",
+        "assumption testing"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-spock-07",
+      "name": "Vox",
+      "department": "Strategy & Reasoning",
+      "isChief": false,
+      "chiefId": "chief-spock",
+      "specialty": "Risk matrices",
+      "skills": [
+        "Risk matrices",
+        "decision analysis",
+        "scenario planning",
+        "prioritization",
+        "assumption testing"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-spock-08",
+      "name": "Rubric",
+      "department": "Strategy & Reasoning",
+      "isChief": false,
+      "chiefId": "chief-spock",
+      "specialty": "Systems thinking",
+      "skills": [
+        "Systems thinking",
+        "decision analysis",
+        "scenario planning",
+        "prioritization",
+        "assumption testing"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-spock-09",
+      "name": "Lingua",
+      "department": "Strategy & Reasoning",
+      "isChief": false,
+      "chiefId": "chief-spock",
+      "specialty": "Argument mapping",
+      "skills": [
+        "Argument mapping",
+        "decision analysis",
+        "scenario planning",
+        "prioritization",
+        "assumption testing"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-spock-10",
+      "name": "Lab",
+      "department": "Strategy & Reasoning",
+      "isChief": false,
+      "chiefId": "chief-spock",
+      "specialty": "Assumption auditing",
+      "skills": [
+        "Assumption auditing",
+        "decision analysis",
+        "scenario planning",
+        "prioritization",
+        "assumption testing"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-worf-01",
+      "name": "Circuit",
+      "department": "Security & Defense",
+      "isChief": false,
+      "chiefId": "chief-worf",
+      "specialty": "Defensive cybersecurity",
+      "skills": [
+        "Defensive cybersecurity",
+        "threat modeling",
+        "access review",
+        "incident triage",
+        "privacy safeguards"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-worf-02",
+      "name": "Saru",
+      "department": "Security & Defense",
+      "isChief": false,
+      "chiefId": "chief-worf",
+      "specialty": "Authentication and access",
+      "skills": [
+        "Authentication and access",
+        "threat modeling",
+        "access review",
+        "incident triage",
+        "privacy safeguards"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-worf-03",
+      "name": "Guinan Herbal",
+      "department": "Security & Defense",
+      "isChief": false,
+      "chiefId": "chief-worf",
+      "specialty": "Data privacy",
+      "skills": [
+        "Data privacy",
+        "threat modeling",
+        "access review",
+        "incident triage",
+        "privacy safeguards"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-worf-04",
+      "name": "Chronos",
+      "department": "Security & Defense",
+      "isChief": false,
+      "chiefId": "chief-worf",
+      "specialty": "Threat modeling",
+      "skills": [
+        "Threat modeling",
+        "threat modeling",
+        "access review",
+        "incident triage",
+        "privacy safeguards"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-worf-05",
+      "name": "Switchboard",
+      "department": "Security & Defense",
+      "isChief": false,
+      "chiefId": "chief-worf",
+      "specialty": "Incident response",
+      "skills": [
+        "Incident response",
+        "threat modeling",
+        "access review",
+        "incident triage",
+        "privacy safeguards"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-worf-06",
+      "name": "Factcheck",
+      "department": "Security & Defense",
+      "isChief": false,
+      "chiefId": "chief-worf",
+      "specialty": "Secrets management",
+      "skills": [
+        "Secrets management",
+        "threat modeling",
+        "access review",
+        "incident triage",
+        "privacy safeguards"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-worf-07",
+      "name": "Guinan",
+      "department": "Security & Defense",
+      "isChief": false,
+      "chiefId": "chief-worf",
+      "specialty": "Backups and recovery",
+      "skills": [
+        "Backups and recovery",
+        "threat modeling",
+        "access review",
+        "incident triage",
+        "privacy safeguards"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-worf-08",
+      "name": "Stellar",
+      "department": "Security & Defense",
+      "isChief": false,
+      "chiefId": "chief-worf",
+      "specialty": "Security architecture",
+      "skills": [
+        "Security architecture",
+        "threat modeling",
+        "access review",
+        "incident triage",
+        "privacy safeguards"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-worf-09",
+      "name": "Number One",
+      "department": "Security & Defense",
+      "isChief": false,
+      "chiefId": "chief-worf",
+      "specialty": "Supply chain risk",
+      "skills": [
+        "Supply chain risk",
+        "threat modeling",
+        "access review",
+        "incident triage",
+        "privacy safeguards"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-worf-10",
+      "name": "Vulcan",
+      "department": "Security & Defense",
+      "isChief": false,
+      "chiefId": "chief-worf",
+      "specialty": "Security testing",
+      "skills": [
+        "Security testing",
+        "threat modeling",
+        "access review",
+        "incident triage",
+        "privacy safeguards"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-data-01",
+      "name": "Sato",
+      "department": "Research & Intelligence",
+      "isChief": false,
+      "chiefId": "chief-data",
+      "specialty": "Source evaluation",
+      "skills": [
+        "Source evaluation",
+        "research planning",
+        "source evaluation",
+        "fact checking",
+        "knowledge synthesis"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-data-02",
+      "name": "Resolver",
+      "department": "Research & Intelligence",
+      "isChief": false,
+      "chiefId": "chief-data",
+      "specialty": "Fact verification",
+      "skills": [
+        "Fact verification",
+        "research planning",
+        "source evaluation",
+        "fact checking",
+        "knowledge synthesis"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-data-03",
+      "name": "PADD",
+      "department": "Research & Intelligence",
+      "isChief": false,
+      "chiefId": "chief-data",
+      "specialty": "Research synthesis",
+      "skills": [
+        "Research synthesis",
+        "research planning",
+        "source evaluation",
+        "fact checking",
+        "knowledge synthesis"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-data-04",
+      "name": "Subspace",
+      "department": "Research & Intelligence",
+      "isChief": false,
+      "chiefId": "chief-data",
+      "specialty": "Literature review",
+      "skills": [
+        "Literature review",
+        "research planning",
+        "source evaluation",
+        "fact checking",
+        "knowledge synthesis"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-data-05",
+      "name": "Hoshi",
+      "department": "Research & Intelligence",
+      "isChief": false,
+      "chiefId": "chief-data",
+      "specialty": "Document analysis",
+      "skills": [
+        "Document analysis",
+        "research planning",
+        "source evaluation",
+        "fact checking",
+        "knowledge synthesis"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-data-06",
+      "name": "Context",
+      "department": "Research & Intelligence",
+      "isChief": false,
+      "chiefId": "chief-data",
+      "specialty": "Data collection",
+      "skills": [
+        "Data collection",
+        "research planning",
+        "source evaluation",
+        "fact checking",
+        "knowledge synthesis"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-data-07",
+      "name": "CRM",
+      "department": "Research & Intelligence",
+      "isChief": false,
+      "chiefId": "chief-data",
+      "specialty": "Citation quality",
+      "skills": [
+        "Citation quality",
+        "research planning",
+        "source evaluation",
+        "fact checking",
+        "knowledge synthesis"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-data-08",
+      "name": "Prime",
+      "department": "Research & Intelligence",
+      "isChief": false,
+      "chiefId": "chief-data",
+      "specialty": "Uncertainty tracking",
+      "skills": [
+        "Uncertainty tracking",
+        "research planning",
+        "source evaluation",
+        "fact checking",
+        "knowledge synthesis"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-data-09",
+      "name": "Watchtower",
+      "department": "Research & Intelligence",
+      "isChief": false,
+      "chiefId": "chief-data",
+      "specialty": "Information retrieval",
+      "skills": [
+        "Information retrieval",
+        "research planning",
+        "source evaluation",
+        "fact checking",
+        "knowledge synthesis"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-data-10",
+      "name": "Audit Sec",
+      "department": "Research & Intelligence",
+      "isChief": false,
+      "chiefId": "chief-data",
+      "specialty": "Evidence comparison",
+      "skills": [
+        "Evidence comparison",
+        "research planning",
+        "source evaluation",
+        "fact checking",
+        "knowledge synthesis"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-quark-01",
+      "name": "Deadline",
+      "department": "Commerce & Finance",
+      "isChief": false,
+      "chiefId": "chief-quark",
+      "specialty": "Budgeting",
+      "skills": [
+        "Budgeting",
+        "budget modeling",
+        "pricing",
+        "forecasting",
+        "cost comparison"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-quark-02",
+      "name": "PADD Legal",
+      "department": "Commerce & Finance",
+      "isChief": false,
+      "chiefId": "chief-quark",
+      "specialty": "Pricing strategy",
+      "skills": [
+        "Pricing strategy",
+        "budget modeling",
+        "pricing",
+        "forecasting",
+        "cost comparison"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-quark-03",
+      "name": "Lockout",
+      "department": "Commerce & Finance",
+      "isChief": false,
+      "chiefId": "chief-quark",
+      "specialty": "Revenue forecasts",
+      "skills": [
+        "Revenue forecasts",
+        "budget modeling",
+        "pricing",
+        "forecasting",
+        "cost comparison"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-quark-04",
+      "name": "Transporter",
+      "department": "Commerce & Finance",
+      "isChief": false,
+      "chiefId": "chief-quark",
+      "specialty": "Cost modeling",
+      "skills": [
+        "Cost modeling",
+        "budget modeling",
+        "pricing",
+        "forecasting",
+        "cost comparison"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-quark-05",
+      "name": "Replicator",
+      "department": "Commerce & Finance",
+      "isChief": false,
+      "chiefId": "chief-quark",
+      "specialty": "Cash flow planning",
+      "skills": [
+        "Cash flow planning",
+        "budget modeling",
+        "pricing",
+        "forecasting",
+        "cost comparison"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-quark-06",
+      "name": "Evidence",
+      "department": "Commerce & Finance",
+      "isChief": false,
+      "chiefId": "chief-quark",
+      "specialty": "Market research",
+      "skills": [
+        "Market research",
+        "budget modeling",
+        "pricing",
+        "forecasting",
+        "cost comparison"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-quark-07",
+      "name": "Promo",
+      "department": "Commerce & Finance",
+      "isChief": false,
+      "chiefId": "chief-quark",
+      "specialty": "Unit economics",
+      "skills": [
+        "Unit economics",
+        "budget modeling",
+        "pricing",
+        "forecasting",
+        "cost comparison"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-quark-08",
+      "name": "Chapel",
+      "department": "Commerce & Finance",
+      "isChief": false,
+      "chiefId": "chief-quark",
+      "specialty": "Service packaging",
+      "skills": [
+        "Service packaging",
+        "budget modeling",
+        "pricing",
+        "forecasting",
+        "cost comparison"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-quark-09",
+      "name": "Dax",
+      "department": "Commerce & Finance",
+      "isChief": false,
+      "chiefId": "chief-quark",
+      "specialty": "Business analytics",
+      "skills": [
+        "Business analytics",
+        "budget modeling",
+        "pricing",
+        "forecasting",
+        "cost comparison"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-quark-10",
+      "name": "ROM",
+      "department": "Commerce & Finance",
+      "isChief": false,
+      "chiefId": "chief-quark",
+      "specialty": "Financial literacy",
+      "skills": [
+        "Financial literacy",
+        "budget modeling",
+        "pricing",
+        "forecasting",
+        "cost comparison"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-kirk-01",
+      "name": "Garak",
+      "department": "Command & Missions",
+      "isChief": false,
+      "chiefId": "chief-kirk",
+      "specialty": "Mission architecture",
+      "skills": [
+        "Mission architecture",
+        "task decomposition",
+        "dependency mapping",
+        "delegation",
+        "acceptance criteria"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-kirk-02",
+      "name": "Enterprise",
+      "department": "Command & Missions",
+      "isChief": false,
+      "chiefId": "chief-kirk",
+      "specialty": "Task assignment",
+      "skills": [
+        "Task assignment",
+        "task decomposition",
+        "dependency mapping",
+        "delegation",
+        "acceptance criteria"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-kirk-03",
+      "name": "Neelix",
+      "department": "Command & Missions",
+      "isChief": false,
+      "chiefId": "chief-kirk",
+      "specialty": "Milestone planning",
+      "skills": [
+        "Milestone planning",
+        "task decomposition",
+        "dependency mapping",
+        "delegation",
+        "acceptance criteria"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-kirk-04",
+      "name": "Signal",
+      "department": "Command & Missions",
+      "isChief": false,
+      "chiefId": "chief-kirk",
+      "specialty": "Dependency mapping",
+      "skills": [
+        "Dependency mapping",
+        "task decomposition",
+        "dependency mapping",
+        "delegation",
+        "acceptance criteria"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-kirk-05",
+      "name": "Daystrom",
+      "department": "Command & Missions",
+      "isChief": false,
+      "chiefId": "chief-kirk",
+      "specialty": "Approval gates",
+      "skills": [
+        "Approval gates",
+        "task decomposition",
+        "dependency mapping",
+        "delegation",
+        "acceptance criteria"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-kirk-06",
+      "name": "Academy",
+      "department": "Command & Missions",
+      "isChief": false,
+      "chiefId": "chief-kirk",
+      "specialty": "Mission reporting",
+      "skills": [
+        "Mission reporting",
+        "task decomposition",
+        "dependency mapping",
+        "delegation",
+        "acceptance criteria"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-kirk-07",
+      "name": "Jake",
+      "department": "Command & Missions",
+      "isChief": false,
+      "chiefId": "chief-kirk",
+      "specialty": "Quality acceptance",
+      "skills": [
+        "Quality acceptance",
+        "task decomposition",
+        "dependency mapping",
+        "delegation",
+        "acceptance criteria"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-kirk-08",
+      "name": "Holodeck",
+      "department": "Command & Missions",
+      "isChief": false,
+      "chiefId": "chief-kirk",
+      "specialty": "Resource allocation",
+      "skills": [
+        "Resource allocation",
+        "task decomposition",
+        "dependency mapping",
+        "delegation",
+        "acceptance criteria"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-kirk-09",
+      "name": "Benny",
+      "department": "Command & Missions",
+      "isChief": false,
+      "chiefId": "chief-kirk",
+      "specialty": "Risk escalation",
+      "skills": [
+        "Risk escalation",
+        "task decomposition",
+        "dependency mapping",
+        "delegation",
+        "acceptance criteria"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-kirk-10",
+      "name": "EMH",
+      "department": "Command & Missions",
+      "isChief": false,
+      "chiefId": "chief-kirk",
+      "specialty": "Cross-team coordination",
+      "skills": [
+        "Cross-team coordination",
+        "task decomposition",
+        "dependency mapping",
+        "delegation",
+        "acceptance criteria"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-uhura-01",
+      "name": "SCRIBE",
+      "department": "Communications & Languages",
+      "isChief": false,
+      "chiefId": "chief-uhura",
+      "specialty": "Professional writing",
+      "skills": [
+        "Professional writing",
+        "drafting",
+        "editing",
+        "translation",
+        "audience adaptation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-uhura-02",
+      "name": "Sentinel",
+      "department": "Communications & Languages",
+      "isChief": false,
+      "chiefId": "chief-uhura",
+      "specialty": "Editing and clarity",
+      "skills": [
+        "Editing and clarity",
+        "drafting",
+        "editing",
+        "translation",
+        "audience adaptation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-uhura-03",
+      "name": "Curator",
+      "department": "Communications & Languages",
+      "isChief": false,
+      "chiefId": "chief-uhura",
+      "specialty": "Translation",
+      "skills": [
+        "Translation",
+        "drafting",
+        "editing",
+        "translation",
+        "audience adaptation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-uhura-04",
+      "name": "Echo",
+      "department": "Communications & Languages",
+      "isChief": false,
+      "chiefId": "chief-uhura",
+      "specialty": "Public speaking",
+      "skills": [
+        "Public speaking",
+        "drafting",
+        "editing",
+        "translation",
+        "audience adaptation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-uhura-05",
+      "name": "Probe",
+      "department": "Communications & Languages",
+      "isChief": false,
+      "chiefId": "chief-uhura",
+      "specialty": "Email writing",
+      "skills": [
+        "Email writing",
+        "drafting",
+        "editing",
+        "translation",
+        "audience adaptation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-uhura-06",
+      "name": "Archer",
+      "department": "Communications & Languages",
+      "isChief": false,
+      "chiefId": "chief-uhura",
+      "specialty": "User interviews",
+      "skills": [
+        "User interviews",
+        "drafting",
+        "editing",
+        "translation",
+        "audience adaptation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-uhura-07",
+      "name": "Combadge",
+      "department": "Communications & Languages",
+      "isChief": false,
+      "chiefId": "chief-uhura",
+      "specialty": "Accessibility writing",
+      "skills": [
+        "Accessibility writing",
+        "drafting",
+        "editing",
+        "translation",
+        "audience adaptation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-uhura-08",
+      "name": "LCARS",
+      "department": "Communications & Languages",
+      "isChief": false,
+      "chiefId": "chief-uhura",
+      "specialty": "Conflict-sensitive communication",
+      "skills": [
+        "Conflict-sensitive communication",
+        "drafting",
+        "editing",
+        "translation",
+        "audience adaptation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-uhura-09",
+      "name": "Patch",
+      "department": "Communications & Languages",
+      "isChief": false,
+      "chiefId": "chief-uhura",
+      "specialty": "Tone and audience",
+      "skills": [
+        "Tone and audience",
+        "drafting",
+        "editing",
+        "translation",
+        "audience adaptation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-uhura-10",
+      "name": "Paris",
+      "department": "Communications & Languages",
+      "isChief": false,
+      "chiefId": "chief-uhura",
+      "specialty": "Meeting communication",
+      "skills": [
+        "Meeting communication",
+        "drafting",
+        "editing",
+        "translation",
+        "audience adaptation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-geordi-01",
+      "name": "Sisko",
+      "department": "Engineering & Systems",
+      "isChief": false,
+      "chiefId": "chief-geordi",
+      "specialty": "Backend engineering",
+      "skills": [
+        "Backend engineering",
+        "debugging",
+        "architecture",
+        "test design",
+        "deployment planning"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-geordi-02",
+      "name": "Helm",
+      "department": "Engineering & Systems",
+      "isChief": false,
+      "chiefId": "chief-geordi",
+      "specialty": "Frontend engineering",
+      "skills": [
+        "Frontend engineering",
+        "debugging",
+        "architecture",
+        "test design",
+        "deployment planning"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-geordi-03",
+      "name": "Mission Control",
+      "department": "Engineering & Systems",
+      "isChief": false,
+      "chiefId": "chief-geordi",
+      "specialty": "Databases",
+      "skills": [
+        "Databases",
+        "debugging",
+        "architecture",
+        "test design",
+        "deployment planning"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-geordi-04",
+      "name": "Delta",
+      "department": "Engineering & Systems",
+      "isChief": false,
+      "chiefId": "chief-geordi",
+      "specialty": "Software architecture",
+      "skills": [
+        "Software architecture",
+        "debugging",
+        "architecture",
+        "test design",
+        "deployment planning"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-geordi-05",
+      "name": "Argus",
+      "department": "Engineering & Systems",
+      "isChief": false,
+      "chiefId": "chief-geordi",
+      "specialty": "Code reviews",
+      "skills": [
+        "Code reviews",
+        "debugging",
+        "architecture",
+        "test design",
+        "deployment planning"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-geordi-06",
+      "name": "Red Alert",
+      "department": "Engineering & Systems",
+      "isChief": false,
+      "chiefId": "chief-geordi",
+      "specialty": "Automated testing",
+      "skills": [
+        "Automated testing",
+        "debugging",
+        "architecture",
+        "test design",
+        "deployment planning"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-geordi-07",
+      "name": "Indexer",
+      "department": "Engineering & Systems",
+      "isChief": false,
+      "chiefId": "chief-geordi",
+      "specialty": "Accessibility engineering",
+      "skills": [
+        "Accessibility engineering",
+        "debugging",
+        "architecture",
+        "test design",
+        "deployment planning"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-geordi-08",
+      "name": "Sarek Legal",
+      "department": "Engineering & Systems",
+      "isChief": false,
+      "chiefId": "chief-geordi",
+      "specialty": "DevOps and deployment",
+      "skills": [
+        "DevOps and deployment",
+        "debugging",
+        "architecture",
+        "test design",
+        "deployment planning"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-geordi-09",
+      "name": "Archive",
+      "department": "Engineering & Systems",
+      "isChief": false,
+      "chiefId": "chief-geordi",
+      "specialty": "Observability",
+      "skills": [
+        "Observability",
+        "debugging",
+        "architecture",
+        "test design",
+        "deployment planning"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-geordi-10",
+      "name": "QA Core",
+      "department": "Engineering & Systems",
+      "isChief": false,
+      "chiefId": "chief-geordi",
+      "specialty": "Infrastructure reliability",
+      "skills": [
+        "Infrastructure reliability",
+        "debugging",
+        "architecture",
+        "test design",
+        "deployment planning"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-keiko-01",
+      "name": "Policy",
+      "department": "Science & Environment",
+      "isChief": false,
+      "chiefId": "chief-keiko",
+      "specialty": "Biology",
+      "skills": [
+        "Biology",
+        "hypothesis formation",
+        "study critique",
+        "experimental design",
+        "data interpretation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-keiko-02",
+      "name": "Dispatch",
+      "department": "Science & Environment",
+      "isChief": false,
+      "chiefId": "chief-keiko",
+      "specialty": "Ecology",
+      "skills": [
+        "Ecology",
+        "hypothesis formation",
+        "study critique",
+        "experimental design",
+        "data interpretation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-keiko-03",
+      "name": "Shields",
+      "department": "Science & Environment",
+      "isChief": false,
+      "chiefId": "chief-keiko",
+      "specialty": "Chemistry",
+      "skills": [
+        "Chemistry",
+        "hypothesis formation",
+        "study critique",
+        "experimental design",
+        "data interpretation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-keiko-04",
+      "name": "Tuvok",
+      "department": "Science & Environment",
+      "isChief": false,
+      "chiefId": "chief-keiko",
+      "specialty": "Physics",
+      "skills": [
+        "Physics",
+        "hypothesis formation",
+        "study critique",
+        "experimental design",
+        "data interpretation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-keiko-05",
+      "name": "PADD Ops",
+      "department": "Science & Environment",
+      "isChief": false,
+      "chiefId": "chief-keiko",
+      "specialty": "Astronomy",
+      "skills": [
+        "Astronomy",
+        "hypothesis formation",
+        "study critique",
+        "experimental design",
+        "data interpretation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-keiko-06",
+      "name": "EMH Persona",
+      "department": "Science & Environment",
+      "isChief": false,
+      "chiefId": "chief-keiko",
+      "specialty": "Environmental science",
+      "skills": [
+        "Environmental science",
+        "hypothesis formation",
+        "study critique",
+        "experimental design",
+        "data interpretation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-keiko-07",
+      "name": "Trigger",
+      "department": "Science & Environment",
+      "isChief": false,
+      "chiefId": "chief-keiko",
+      "specialty": "Experimental methods",
+      "skills": [
+        "Experimental methods",
+        "hypothesis formation",
+        "study critique",
+        "experimental design",
+        "data interpretation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-keiko-08",
+      "name": "NOO",
+      "department": "Science & Environment",
+      "isChief": false,
+      "chiefId": "chief-keiko",
+      "specialty": "Statistics",
+      "skills": [
+        "Statistics",
+        "hypothesis formation",
+        "study critique",
+        "experimental design",
+        "data interpretation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-keiko-09",
+      "name": "Yeoman",
+      "department": "Science & Environment",
+      "isChief": false,
+      "chiefId": "chief-keiko",
+      "specialty": "Scientific literacy",
+      "skills": [
+        "Scientific literacy",
+        "hypothesis formation",
+        "study critique",
+        "experimental design",
+        "data interpretation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-keiko-10",
+      "name": "Rand",
+      "department": "Science & Environment",
+      "isChief": false,
+      "chiefId": "chief-keiko",
+      "specialty": "Earth systems",
+      "skills": [
+        "Earth systems",
+        "hypothesis formation",
+        "study critique",
+        "experimental design",
+        "data interpretation"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-picard-01",
+      "name": "Relay Auto",
+      "department": "Policy & Diplomacy",
+      "isChief": false,
+      "chiefId": "chief-picard",
+      "specialty": "Policy analysis",
+      "skills": [
+        "Policy analysis",
+        "policy interpretation",
+        "stakeholder mapping",
+        "negotiation",
+        "risk review"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-picard-02",
+      "name": "Examiner",
+      "department": "Policy & Diplomacy",
+      "isChief": false,
+      "chiefId": "chief-picard",
+      "specialty": "Stakeholder mapping",
+      "skills": [
+        "Stakeholder mapping",
+        "policy interpretation",
+        "stakeholder mapping",
+        "negotiation",
+        "risk review"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-picard-03",
+      "name": "Scheduler",
+      "department": "Policy & Diplomacy",
+      "isChief": false,
+      "chiefId": "chief-picard",
+      "specialty": "Negotiation",
+      "skills": [
+        "Negotiation",
+        "policy interpretation",
+        "stakeholder mapping",
+        "negotiation",
+        "risk review"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-picard-04",
+      "name": "Genesis",
+      "department": "Policy & Diplomacy",
+      "isChief": false,
+      "chiefId": "chief-picard",
+      "specialty": "Ethics review",
+      "skills": [
+        "Ethics review",
+        "policy interpretation",
+        "stakeholder mapping",
+        "negotiation",
+        "risk review"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-picard-05",
+      "name": "B-4",
+      "department": "Policy & Diplomacy",
+      "isChief": false,
+      "chiefId": "chief-picard",
+      "specialty": "Governance",
+      "skills": [
+        "Governance",
+        "policy interpretation",
+        "stakeholder mapping",
+        "negotiation",
+        "risk review"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-picard-06",
+      "name": "Risa Ayurveda",
+      "department": "Policy & Diplomacy",
+      "isChief": false,
+      "chiefId": "chief-picard",
+      "specialty": "Contract literacy",
+      "skills": [
+        "Contract literacy",
+        "policy interpretation",
+        "stakeholder mapping",
+        "negotiation",
+        "risk review"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-picard-07",
+      "name": "Boothby",
+      "department": "Policy & Diplomacy",
+      "isChief": false,
+      "chiefId": "chief-picard",
+      "specialty": "International context",
+      "skills": [
+        "International context",
+        "policy interpretation",
+        "stakeholder mapping",
+        "negotiation",
+        "risk review"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-picard-08",
+      "name": "Dockyard",
+      "department": "Policy & Diplomacy",
+      "isChief": false,
+      "chiefId": "chief-picard",
+      "specialty": "Regulatory research",
+      "skills": [
+        "Regulatory research",
+        "policy interpretation",
+        "stakeholder mapping",
+        "negotiation",
+        "risk review"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-picard-09",
+      "name": "Recovery",
+      "department": "Policy & Diplomacy",
+      "isChief": false,
+      "chiefId": "chief-picard",
+      "specialty": "Mediation",
+      "skills": [
+        "Mediation",
+        "policy interpretation",
+        "stakeholder mapping",
+        "negotiation",
+        "risk review"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-bones-01",
+      "name": "Vaultguard",
+      "department": "Health & Human Support",
+      "isChief": false,
+      "chiefId": "chief-bones",
+      "specialty": "Health literacy",
+      "skills": [
+        "Health literacy",
+        "health literacy",
+        "appointment preparation",
+        "care coordination planning",
+        "accessible explanations"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-bones-02",
+      "name": "JAG",
+      "department": "Health & Human Support",
+      "isChief": false,
+      "chiefId": "chief-bones",
+      "specialty": "Clinical evidence appraisal",
+      "skills": [
+        "Clinical evidence appraisal",
+        "health literacy",
+        "appointment preparation",
+        "care coordination planning",
+        "accessible explanations"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-bones-03",
+      "name": "Garax",
+      "department": "Health & Human Support",
+      "isChief": false,
+      "chiefId": "chief-bones",
+      "specialty": "Appointments and questions",
+      "skills": [
+        "Appointments and questions",
+        "health literacy",
+        "appointment preparation",
+        "care coordination planning",
+        "accessible explanations"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-bones-04",
+      "name": "Design",
+      "department": "Health & Human Support",
+      "isChief": false,
+      "chiefId": "chief-bones",
+      "specialty": "Medication literacy",
+      "skills": [
+        "Medication literacy",
+        "health literacy",
+        "appointment preparation",
+        "care coordination planning",
+        "accessible explanations"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-bones-05",
+      "name": "Vic",
+      "department": "Health & Human Support",
+      "isChief": false,
+      "chiefId": "chief-bones",
+      "specialty": "Care coordination",
+      "skills": [
+        "Care coordination",
+        "health literacy",
+        "appointment preparation",
+        "care coordination planning",
+        "accessible explanations"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-bones-06",
+      "name": "Miles",
+      "department": "Health & Human Support",
+      "isChief": false,
+      "chiefId": "chief-bones",
+      "specialty": "Mental health resources",
+      "skills": [
+        "Mental health resources",
+        "health literacy",
+        "appointment preparation",
+        "care coordination planning",
+        "accessible explanations"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-bones-07",
+      "name": "Lwaxana",
+      "department": "Health & Human Support",
+      "isChief": false,
+      "chiefId": "chief-bones",
+      "specialty": "Nutrition literacy",
+      "skills": [
+        "Nutrition literacy",
+        "health literacy",
+        "appointment preparation",
+        "care coordination planning",
+        "accessible explanations"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-bones-08",
+      "name": "Seven",
+      "department": "Health & Human Support",
+      "isChief": false,
+      "chiefId": "chief-bones",
+      "specialty": "Accessibility support",
+      "skills": [
+        "Accessibility support",
+        "health literacy",
+        "appointment preparation",
+        "care coordination planning",
+        "accessible explanations"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-bones-09",
+      "name": "Merchant",
+      "department": "Health & Human Support",
+      "isChief": false,
+      "chiefId": "chief-bones",
+      "specialty": "Emergency planning",
+      "skills": [
+        "Emergency planning",
+        "health literacy",
+        "appointment preparation",
+        "care coordination planning",
+        "accessible explanations"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-zora-01",
+      "name": "Security Command",
+      "department": "Creative & Knowledge",
+      "isChief": false,
+      "chiefId": "chief-zora",
+      "specialty": "Novel development",
+      "skills": [
+        "Novel development",
+        "story analysis",
+        "ideation",
+        "editorial review",
+        "knowledge organization"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-zora-02",
+      "name": "ZORA-02",
+      "department": "Creative & Knowledge",
+      "isChief": false,
+      "chiefId": "chief-zora",
+      "specialty": "Character analysis",
+      "skills": [
+        "Character analysis",
+        "story analysis",
+        "ideation",
+        "editorial review",
+        "knowledge organization"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-zora-03",
+      "name": "ZORA-03",
+      "department": "Creative & Knowledge",
+      "isChief": false,
+      "chiefId": "chief-zora",
+      "specialty": "Plot structure",
+      "skills": [
+        "Plot structure",
+        "story analysis",
+        "ideation",
+        "editorial review",
+        "knowledge organization"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-zora-04",
+      "name": "ZORA-04",
+      "department": "Creative & Knowledge",
+      "isChief": false,
+      "chiefId": "chief-zora",
+      "specialty": "Worldbuilding",
+      "skills": [
+        "Worldbuilding",
+        "story analysis",
+        "ideation",
+        "editorial review",
+        "knowledge organization"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-zora-05",
+      "name": "ZORA-05",
+      "department": "Creative & Knowledge",
+      "isChief": false,
+      "chiefId": "chief-zora",
+      "specialty": "Poetry",
+      "skills": [
+        "Poetry",
+        "story analysis",
+        "ideation",
+        "editorial review",
+        "knowledge organization"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-zora-06",
+      "name": "ZORA-06",
+      "department": "Creative & Knowledge",
+      "isChief": false,
+      "chiefId": "chief-zora",
+      "specialty": "Developmental editing",
+      "skills": [
+        "Developmental editing",
+        "story analysis",
+        "ideation",
+        "editorial review",
+        "knowledge organization"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-zora-07",
+      "name": "ZORA-07",
+      "department": "Creative & Knowledge",
+      "isChief": false,
+      "chiefId": "chief-zora",
+      "specialty": "Document organization",
+      "skills": [
+        "Document organization",
+        "story analysis",
+        "ideation",
+        "editorial review",
+        "knowledge organization"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-zora-08",
+      "name": "ZORA-08",
+      "department": "Creative & Knowledge",
+      "isChief": false,
+      "chiefId": "chief-zora",
+      "specialty": "Learning design",
+      "skills": [
+        "Learning design",
+        "story analysis",
+        "ideation",
+        "editorial review",
+        "knowledge organization"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-zora-09",
+      "name": "ZORA-09",
+      "department": "Creative & Knowledge",
+      "isChief": false,
+      "chiefId": "chief-zora",
+      "specialty": "Creative critique",
+      "skills": [
+        "Creative critique",
+        "story analysis",
+        "ideation",
+        "editorial review",
+        "knowledge organization"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-riker-01",
+      "name": "RIKER-01",
+      "department": "Operations & Coordination",
+      "isChief": false,
+      "chiefId": "chief-riker",
+      "specialty": "Project operations",
+      "skills": [
+        "Project operations",
+        "scheduling",
+        "workflow design",
+        "process improvement",
+        "progress tracking"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-riker-02",
+      "name": "RIKER-02",
+      "department": "Operations & Coordination",
+      "isChief": false,
+      "chiefId": "chief-riker",
+      "specialty": "Calendar planning",
+      "skills": [
+        "Calendar planning",
+        "scheduling",
+        "workflow design",
+        "process improvement",
+        "progress tracking"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-riker-03",
+      "name": "RIKER-03",
+      "department": "Operations & Coordination",
+      "isChief": false,
+      "chiefId": "chief-riker",
+      "specialty": "Workflow automation",
+      "skills": [
+        "Workflow automation",
+        "scheduling",
+        "workflow design",
+        "process improvement",
+        "progress tracking"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-riker-04",
+      "name": "RIKER-04",
+      "department": "Operations & Coordination",
+      "isChief": false,
+      "chiefId": "chief-riker",
+      "specialty": "Quality processes",
+      "skills": [
+        "Quality processes",
+        "scheduling",
+        "workflow design",
+        "process improvement",
+        "progress tracking"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-riker-05",
+      "name": "RIKER-05",
+      "department": "Operations & Coordination",
+      "isChief": false,
+      "chiefId": "chief-riker",
+      "specialty": "Documentation",
+      "skills": [
+        "Documentation",
+        "scheduling",
+        "workflow design",
+        "process improvement",
+        "progress tracking"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-riker-06",
+      "name": "RIKER-06",
+      "department": "Operations & Coordination",
+      "isChief": false,
+      "chiefId": "chief-riker",
+      "specialty": "Vendor coordination",
+      "skills": [
+        "Vendor coordination",
+        "scheduling",
+        "workflow design",
+        "process improvement",
+        "progress tracking"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-riker-07",
+      "name": "RIKER-07",
+      "department": "Operations & Coordination",
+      "isChief": false,
+      "chiefId": "chief-riker",
+      "specialty": "Team scheduling",
+      "skills": [
+        "Team scheduling",
+        "scheduling",
+        "workflow design",
+        "process improvement",
+        "progress tracking"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-riker-08",
+      "name": "RIKER-08",
+      "department": "Operations & Coordination",
+      "isChief": false,
+      "chiefId": "chief-riker",
+      "specialty": "Progress tracking",
+      "skills": [
+        "Progress tracking",
+        "scheduling",
+        "workflow design",
+        "process improvement",
+        "progress tracking"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "agent-riker-09",
+      "name": "RIKER-09",
+      "department": "Operations & Coordination",
+      "isChief": false,
+      "chiefId": "chief-riker",
+      "specialty": "Operations metrics",
+      "skills": [
+        "Operations metrics",
+        "scheduling",
+        "workflow design",
+        "process improvement",
+        "progress tracking"
+      ],
+      "provenance": "production-source-fallback"
+    },
+    {
+      "id": "chief-expansion-janeway",
+      "name": "JANEWAY",
+      "department": "Exploration & Discovery",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "astronomy, geography, expedition planning, source discovery",
+      "skills": [
+        "astronomy",
+        "geography",
+        "expedition planning",
+        "source discovery"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "chief-expansion-tuvok",
+      "name": "TUVOK 2",
+      "department": "Quality & Verification",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "fact checking, test design, evidence review, consistency",
+      "skills": [
+        "fact checking",
+        "test design",
+        "evidence review",
+        "consistency"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "chief-expansion-sisko",
+      "name": "SISKO 2",
+      "department": "Business & Enterprise",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "business planning, service design, customer research, operations strategy",
+      "skills": [
+        "business planning",
+        "service design",
+        "customer research",
+        "operations strategy"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "chief-expansion-archer",
+      "name": "ARCHER 2",
+      "department": "Education & Learning",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "curriculum, tutoring, learning assessment, study planning",
+      "skills": [
+        "curriculum",
+        "tutoring",
+        "learning assessment",
+        "study planning"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "chief-expansion-troi",
+      "name": "TROI",
+      "department": "Accessibility & Wellbeing",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "accessibility, supportive communication, inclusive design, resource navigation",
+      "skills": [
+        "accessibility",
+        "supportive communication",
+        "inclusive design",
+        "resource navigation"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "chief-expansion-dax",
+      "name": "DAX 2",
+      "department": "History & Culture",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "history, cultural research, archives, comparative analysis",
+      "skills": [
+        "history",
+        "cultural research",
+        "archives",
+        "comparative analysis"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "chief-expansion-seven",
+      "name": "SEVEN 2",
+      "department": "Data & Analytics",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "statistics, data cleaning, visualization, measurement",
+      "skills": [
+        "statistics",
+        "data cleaning",
+        "visualization",
+        "measurement"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "chief-expansion-obrien",
+      "name": "OBRIEN",
+      "department": "Automation & Reliability",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "workflow automation, reliability, recovery, monitoring",
+      "skills": [
+        "workflow automation",
+        "reliability",
+        "recovery",
+        "monitoring"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "chief-expansion-hologram",
+      "name": "HOLOGRAM",
+      "department": "Design & Media",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "visual design, photography, video editing, brand systems",
+      "skills": [
+        "visual design",
+        "photography",
+        "video editing",
+        "brand systems"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "chief-expansion-pike",
+      "name": "PIKE",
+      "department": "Projects & Delivery",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "project planning, dependencies, delivery review, risk tracking",
+      "skills": [
+        "project planning",
+        "dependencies",
+        "delivery review",
+        "risk tracking"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "chief-expansion-crusher",
+      "name": "CRUSHER",
+      "department": "Life Sciences",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "biology, botany, ecology, research methods",
+      "skills": [
+        "biology",
+        "botany",
+        "ecology",
+        "research methods"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "chief-expansion-torres",
+      "name": "TORRES",
+      "department": "Software & Applications",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "frontend engineering, backend engineering, application testing, developer documentation",
+      "skills": [
+        "frontend engineering",
+        "backend engineering",
+        "application testing",
+        "developer documentation"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "chief-expansion-neelix",
+      "name": "NEELIX 2",
+      "department": "Home & Logistics",
+      "isChief": true,
+      "chiefId": null,
+      "specialty": "home organization, travel logistics, scheduling, resource planning",
+      "skills": [
+        "home organization",
+        "travel logistics",
+        "scheduling",
+        "resource planning"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-001",
+      "name": "JANEWAY astronomy",
+      "department": "Exploration & Discovery",
+      "isChief": false,
+      "chiefId": "chief-expansion-janeway",
+      "specialty": "astronomy",
+      "skills": [
+        "astronomy"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-002",
+      "name": "TUVOK fact checking",
+      "department": "Quality & Verification",
+      "isChief": false,
+      "chiefId": "chief-expansion-tuvok",
+      "specialty": "fact checking",
+      "skills": [
+        "fact checking"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-003",
+      "name": "SISKO business planning",
+      "department": "Business & Enterprise",
+      "isChief": false,
+      "chiefId": "chief-expansion-sisko",
+      "specialty": "business planning",
+      "skills": [
+        "business planning"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-004",
+      "name": "ARCHER curriculum",
+      "department": "Education & Learning",
+      "isChief": false,
+      "chiefId": "chief-expansion-archer",
+      "specialty": "curriculum",
+      "skills": [
+        "curriculum"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-005",
+      "name": "TROI accessibility",
+      "department": "Accessibility & Wellbeing",
+      "isChief": false,
+      "chiefId": "chief-expansion-troi",
+      "specialty": "accessibility",
+      "skills": [
+        "accessibility"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-006",
+      "name": "DAX history",
+      "department": "History & Culture",
+      "isChief": false,
+      "chiefId": "chief-expansion-dax",
+      "specialty": "history",
+      "skills": [
+        "history"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-007",
+      "name": "SEVEN statistics",
+      "department": "Data & Analytics",
+      "isChief": false,
+      "chiefId": "chief-expansion-seven",
+      "specialty": "statistics",
+      "skills": [
+        "statistics"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-008",
+      "name": "OBRIEN workflow automation",
+      "department": "Automation & Reliability",
+      "isChief": false,
+      "chiefId": "chief-expansion-obrien",
+      "specialty": "workflow automation",
+      "skills": [
+        "workflow automation"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-009",
+      "name": "HOLOGRAM visual design",
+      "department": "Design & Media",
+      "isChief": false,
+      "chiefId": "chief-expansion-hologram",
+      "specialty": "visual design",
+      "skills": [
+        "visual design"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-010",
+      "name": "PIKE project planning",
+      "department": "Projects & Delivery",
+      "isChief": false,
+      "chiefId": "chief-expansion-pike",
+      "specialty": "project planning",
+      "skills": [
+        "project planning"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-011",
+      "name": "CRUSHER biology",
+      "department": "Life Sciences",
+      "isChief": false,
+      "chiefId": "chief-expansion-crusher",
+      "specialty": "biology",
+      "skills": [
+        "biology"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-012",
+      "name": "TORRES frontend engineering",
+      "department": "Software & Applications",
+      "isChief": false,
+      "chiefId": "chief-expansion-torres",
+      "specialty": "frontend engineering",
+      "skills": [
+        "frontend engineering"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-013",
+      "name": "NEELIX home organization",
+      "department": "Home & Logistics",
+      "isChief": false,
+      "chiefId": "chief-expansion-neelix",
+      "specialty": "home organization",
+      "skills": [
+        "home organization"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-014",
+      "name": "JANEWAY geography",
+      "department": "Exploration & Discovery",
+      "isChief": false,
+      "chiefId": "chief-expansion-janeway",
+      "specialty": "geography",
+      "skills": [
+        "geography"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-015",
+      "name": "TUVOK test design",
+      "department": "Quality & Verification",
+      "isChief": false,
+      "chiefId": "chief-expansion-tuvok",
+      "specialty": "test design",
+      "skills": [
+        "test design"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-016",
+      "name": "SISKO service design",
+      "department": "Business & Enterprise",
+      "isChief": false,
+      "chiefId": "chief-expansion-sisko",
+      "specialty": "service design",
+      "skills": [
+        "service design"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-017",
+      "name": "ARCHER tutoring",
+      "department": "Education & Learning",
+      "isChief": false,
+      "chiefId": "chief-expansion-archer",
+      "specialty": "tutoring",
+      "skills": [
+        "tutoring"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-018",
+      "name": "TROI supportive communication",
+      "department": "Accessibility & Wellbeing",
+      "isChief": false,
+      "chiefId": "chief-expansion-troi",
+      "specialty": "supportive communication",
+      "skills": [
+        "supportive communication"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-019",
+      "name": "DAX cultural research",
+      "department": "History & Culture",
+      "isChief": false,
+      "chiefId": "chief-expansion-dax",
+      "specialty": "cultural research",
+      "skills": [
+        "cultural research"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-020",
+      "name": "SEVEN data cleaning",
+      "department": "Data & Analytics",
+      "isChief": false,
+      "chiefId": "chief-expansion-seven",
+      "specialty": "data cleaning",
+      "skills": [
+        "data cleaning"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-021",
+      "name": "OBRIEN reliability",
+      "department": "Automation & Reliability",
+      "isChief": false,
+      "chiefId": "chief-expansion-obrien",
+      "specialty": "reliability",
+      "skills": [
+        "reliability"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-022",
+      "name": "HOLOGRAM photography",
+      "department": "Design & Media",
+      "isChief": false,
+      "chiefId": "chief-expansion-hologram",
+      "specialty": "photography",
+      "skills": [
+        "photography"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-023",
+      "name": "PIKE dependencies",
+      "department": "Projects & Delivery",
+      "isChief": false,
+      "chiefId": "chief-expansion-pike",
+      "specialty": "dependencies",
+      "skills": [
+        "dependencies"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-024",
+      "name": "CRUSHER botany",
+      "department": "Life Sciences",
+      "isChief": false,
+      "chiefId": "chief-expansion-crusher",
+      "specialty": "botany",
+      "skills": [
+        "botany"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-025",
+      "name": "TORRES backend engineering",
+      "department": "Software & Applications",
+      "isChief": false,
+      "chiefId": "chief-expansion-torres",
+      "specialty": "backend engineering",
+      "skills": [
+        "backend engineering"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-026",
+      "name": "NEELIX travel logistics",
+      "department": "Home & Logistics",
+      "isChief": false,
+      "chiefId": "chief-expansion-neelix",
+      "specialty": "travel logistics",
+      "skills": [
+        "travel logistics"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-027",
+      "name": "JANEWAY expedition planning",
+      "department": "Exploration & Discovery",
+      "isChief": false,
+      "chiefId": "chief-expansion-janeway",
+      "specialty": "expedition planning",
+      "skills": [
+        "expedition planning"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-028",
+      "name": "TUVOK evidence review",
+      "department": "Quality & Verification",
+      "isChief": false,
+      "chiefId": "chief-expansion-tuvok",
+      "specialty": "evidence review",
+      "skills": [
+        "evidence review"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-029",
+      "name": "SISKO customer research",
+      "department": "Business & Enterprise",
+      "isChief": false,
+      "chiefId": "chief-expansion-sisko",
+      "specialty": "customer research",
+      "skills": [
+        "customer research"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-030",
+      "name": "ARCHER learning assessment",
+      "department": "Education & Learning",
+      "isChief": false,
+      "chiefId": "chief-expansion-archer",
+      "specialty": "learning assessment",
+      "skills": [
+        "learning assessment"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-031",
+      "name": "TROI inclusive design",
+      "department": "Accessibility & Wellbeing",
+      "isChief": false,
+      "chiefId": "chief-expansion-troi",
+      "specialty": "inclusive design",
+      "skills": [
+        "inclusive design"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-032",
+      "name": "DAX archives",
+      "department": "History & Culture",
+      "isChief": false,
+      "chiefId": "chief-expansion-dax",
+      "specialty": "archives",
+      "skills": [
+        "archives"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-033",
+      "name": "SEVEN visualization",
+      "department": "Data & Analytics",
+      "isChief": false,
+      "chiefId": "chief-expansion-seven",
+      "specialty": "visualization",
+      "skills": [
+        "visualization"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-034",
+      "name": "OBRIEN recovery",
+      "department": "Automation & Reliability",
+      "isChief": false,
+      "chiefId": "chief-expansion-obrien",
+      "specialty": "recovery",
+      "skills": [
+        "recovery"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-035",
+      "name": "HOLOGRAM video editing",
+      "department": "Design & Media",
+      "isChief": false,
+      "chiefId": "chief-expansion-hologram",
+      "specialty": "video editing",
+      "skills": [
+        "video editing"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-036",
+      "name": "PIKE delivery review",
+      "department": "Projects & Delivery",
+      "isChief": false,
+      "chiefId": "chief-expansion-pike",
+      "specialty": "delivery review",
+      "skills": [
+        "delivery review"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-037",
+      "name": "CRUSHER ecology",
+      "department": "Life Sciences",
+      "isChief": false,
+      "chiefId": "chief-expansion-crusher",
+      "specialty": "ecology",
+      "skills": [
+        "ecology"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-038",
+      "name": "TORRES application testing",
+      "department": "Software & Applications",
+      "isChief": false,
+      "chiefId": "chief-expansion-torres",
+      "specialty": "application testing",
+      "skills": [
+        "application testing"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-039",
+      "name": "NEELIX scheduling",
+      "department": "Home & Logistics",
+      "isChief": false,
+      "chiefId": "chief-expansion-neelix",
+      "specialty": "scheduling",
+      "skills": [
+        "scheduling"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-040",
+      "name": "JANEWAY source discovery",
+      "department": "Exploration & Discovery",
+      "isChief": false,
+      "chiefId": "chief-expansion-janeway",
+      "specialty": "source discovery",
+      "skills": [
+        "source discovery"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-041",
+      "name": "TUVOK consistency",
+      "department": "Quality & Verification",
+      "isChief": false,
+      "chiefId": "chief-expansion-tuvok",
+      "specialty": "consistency",
+      "skills": [
+        "consistency"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-042",
+      "name": "SISKO operations strategy",
+      "department": "Business & Enterprise",
+      "isChief": false,
+      "chiefId": "chief-expansion-sisko",
+      "specialty": "operations strategy",
+      "skills": [
+        "operations strategy"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-043",
+      "name": "ARCHER study planning",
+      "department": "Education & Learning",
+      "isChief": false,
+      "chiefId": "chief-expansion-archer",
+      "specialty": "study planning",
+      "skills": [
+        "study planning"
+      ],
+      "provenance": "proposed-addition"
+    },
+    {
+      "id": "agent-expansion-044",
+      "name": "TROI resource navigation",
+      "department": "Accessibility & Wellbeing",
+      "isChief": false,
+      "chiefId": "chief-expansion-troi",
+      "specialty": "resource navigation",
+      "skills": [
+        "resource navigation"
+      ],
+      "provenance": "proposed-addition"
+    }
+  ]
+}

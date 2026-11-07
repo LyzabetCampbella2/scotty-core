@@ -1,0 +1,106 @@
+name: SCOTTY Activepieces — read-only staging bridge
+on:
+  pull_request:
+    paths:
+      - 'offline-brain/cloudflare-ipad/activepieces-bridge.mjs'
+      - 'offline-brain/cloudflare-ipad/activepieces-bridge.test.mjs'
+      - 'offline-brain/cloudflare-ipad/activepieces-owner-gate.mjs'
+      - 'offline-brain/cloudflare-ipad/activepieces-owner-gate.test.mjs'
+      - 'offline-brain/cloudflare-ipad/activepieces-review-readiness.mjs'
+      - 'offline-brain/cloudflare-ipad/activepieces-review-readiness.test.mjs'
+      - 'offline-brain/cloudflare-ipad/activepieces-review-ledger-v1.sql'
+      - 'offline-brain/cloudflare-ipad/activepieces-review-schema.test.py'
+      - 'offline-brain/cloudflare-ipad/activepieces-review-store.mjs'
+      - 'offline-brain/cloudflare-ipad/activepieces-review-store.test.mjs'
+      - 'offline-brain/cloudflare-ipad/owner-preview-review-api.mjs'
+      - 'offline-brain/cloudflare-ipad/owner-preview-review-preflight.mjs'
+      - 'offline-brain/cloudflare-ipad/owner-preview-review-api.test.mjs'
+      - 'offline-brain/cloudflare-ipad/creative-media-department.mjs'
+      - 'offline-brain/cloudflare-ipad/creative-media-department.test.mjs'
+      - 'offline-brain/cloudflare-ipad/individual-agent-brains.mjs'
+      - 'offline-brain/cloudflare-ipad/owner-chief-design-overlays.mjs'
+      - 'offline-brain/cloudflare-ipad/owner-chief-design-overlays.test.mjs'
+      - 'offline-brain/cloudflare-ipad/phase1-agent-review.mjs'
+      - 'offline-brain/cloudflare-ipad/agent-role-contracts.mjs'
+      - 'offline-brain/cloudflare-ipad/agent-role-contracts.test.mjs'
+      - 'offline-brain/cloudflare-ipad/agent-brain-revisions.mjs'
+      - 'offline-brain/cloudflare-ipad/agent-brain-revisions.test.mjs'
+      - 'offline-brain/cloudflare-ipad/phase1-profile-review-ledger-v1.sql'
+      - 'offline-brain/cloudflare-ipad/phase1-profile-review-store.mjs'
+      - 'offline-brain/cloudflare-ipad/phase1-profile-review-store.test.mjs'
+      - 'offline-brain/cloudflare-ipad/phase1-profile-review-api.mjs'
+      - 'offline-brain/cloudflare-ipad/phase1-profile-review-api.test.mjs'
+      - 'offline-brain/cloudflare-ipad/phase1-agent-workbench-api.mjs'
+      - 'offline-brain/cloudflare-ipad/phase1-agent-workbench-ui.mjs'
+      - 'offline-brain/cloudflare-ipad/phase1-agent-workbench-api.test.mjs'
+      - 'offline-brain/cloudflare-ipad/phase1-evaluation-evidence-v1.sql'
+      - 'offline-brain/cloudflare-ipad/phase1-candidate-preflight.mjs'
+      - 'offline-brain/cloudflare-ipad/phase1-candidate-preflight.test.mjs'
+      - 'offline-brain/cloudflare-ipad/phase1-evidence-ingestion.mjs'
+      - 'offline-brain/cloudflare-ipad/phase1-evidence-ingestion.test.mjs'
+      - 'offline-brain/cloudflare-ipad/phase1-behavior-evaluation.mjs'
+      - 'offline-brain/cloudflare-ipad/phase1-behavior-evaluation.test.mjs'
+      - 'offline-brain/cloudflare-ipad/phase1-agent-review.test.mjs'
+      - 'offline-brain/cloudflare-ipad/individual-agent-brains.test.mjs'
+      - 'offline-brain/cloudflare-ipad/individual-agent-runtime.test.mjs'
+      - 'offline-brain/cloudflare-ipad/team-runtime.mjs'
+      - 'offline-brain/cloudflare-ipad/creative-agent-engine.mjs'
+      - 'offline-brain/cloudflare-ipad/creative-agent-engine.test.mjs'
+      - 'offline-brain/cloudflare-ipad/creative-agent-d1-store.mjs'
+      - 'offline-brain/cloudflare-ipad/creative-agent-d1-store.test.mjs'
+      - 'offline-brain/cloudflare-ipad/creative-agent-bio-api.mjs'
+      - 'offline-brain/cloudflare-ipad/creative-agent-bio-api.test.mjs'
+      - 'offline-brain/cloudflare-ipad/creative-workers-ai-provider.mjs'
+      - 'offline-brain/cloudflare-ipad/creative-workers-ai-provider.test.mjs'
+      - 'offline-brain/cloudflare-ipad/creative-project-assignment.mjs'
+      - 'offline-brain/cloudflare-ipad/creative-project-assignment.test.mjs'
+      - 'offline-brain/cloudflare-ipad/creative-memory-approval.mjs'
+      - 'offline-brain/cloudflare-ipad/creative-memory-approval.test.mjs'
+      - 'offline-brain/cloudflare-ipad/creative-agent-ui.mjs'
+      - 'offline-brain/cloudflare-ipad/page.mjs'
+      - 'offline-brain/cloudflare-ipad/creative-agent-state-v1.sql'
+      - 'offline-brain/cloudflare-ipad/worker.mjs'
+      - 'activepieces/**'
+      - '.github/workflows/scotty-activepieces-bridge-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthetic-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax + permission tests
+        run: |
+          node --check offline-brain/cloudflare-ipad/worker.mjs
+          node --check offline-brain/cloudflare-ipad/activepieces-bridge.mjs
+          node --check offline-brain/cloudflare-ipad/activepieces-review-readiness.mjs
+          node --check offline-brain/cloudflare-ipad/activepieces-review-store.mjs
+          node --check offline-brain/cloudflare-ipad/owner-preview-review-api.mjs
+          node --check offline-brain/cloudflare-ipad/creative-media-department.mjs
+          node --check offline-brain/cloudflare-ipad/individual-agent-brains.mjs
+          node --check offline-brain/cloudflare-ipad/owner-chief-design-overlays.mjs
+          node --check offline-brain/cloudflare-ipad/phase1-agent-review.mjs
+          node --check offline-brain/cloudflare-ipad/agent-role-contracts.mjs
+          node --check offline-brain/cloudflare-ipad/agent-brain-revisions.mjs
+          node --check offline-brain/cloudflare-ipad/phase1-profile-review-store.mjs
+          node --check offline-brain/cloudflare-ipad/phase1-profile-review-api.mjs
+          node --check offline-brain/cloudflare-ipad/phase1-agent-workbench-api.mjs
+          node --check offline-brain/cloudflare-ipad/phase1-agent-workbench-ui.mjs
+          node --check offline-brain/cloudflare-ipad/phase1-behavior-evaluation.mjs
+          node --check offline-brain/cloudflare-ipad/phase1-candidate-preflight.mjs
+          node --check offline-brain/cloudflare-ipad/phase1-evidence-ingestion.mjs
+          node --check offline-brain/cloudflare-ipad/creative-agent-engine.mjs
+          node --check offline-brain/cloudflare-ipad/creative-agent-d1-store.mjs
+          node --check offline-brain/cloudflare-ipad/creative-agent-bio-api.mjs
+          node --check offline-brain/cloudflare-ipad/creative-workers-ai-provider.mjs
+          node --check offline-brain/cloudflare-ipad/creative-project-assignment.mjs
+          node --check offline-brain/cloudflare-ipad/creative-memory-approval.mjs
+          node --check offline-brain/cloudflare-ipad/creative-agent-ui.mjs
+          node --check activepieces/steps/creative-campaign-preview.mjs
+          node --check offline-brain/cloudflare-ipad/owner-preview-review-preflight.mjs
+          node --test offline-brain/cloudflare-ipad/activepieces-bridge.test.mjs offline-brain/cloudflare-ipad/activepieces-owner-gate.test.mjs offline-brain/cloudflare-ipad/activepieces-review-readiness.test.mjs offline-brain/cloudflare-ipad/activepieces-review-store.test.mjs offline-brain/cloudflare-ipad/owner-preview-review-api.test.mjs offline-brain/cloudflare-ipad/creative-media-department.test.mjs offline-brain/cloudflare-ipad/individual-agent-brains.test.mjs offline-brain/cloudflare-ipad/owner-chief-design-overlays.test.mjs offline-brain/cloudflare-ipad/phase1-agent-review.test.mjs offline-brain/cloudflare-ipad/agent-role-contracts.test.mjs offline-brain/cloudflare-ipad/agent-brain-revisions.test.mjs offline-brain/cloudflare-ipad/phase1-profile-review-store.test.mjs offline-brain/cloudflare-ipad/phase1-profile-review-api.test.mjs offline-brain/cloudflare-ipad/phase1-agent-workbench-api.test.mjs offline-brain/cloudflare-ipad/phase1-behavior-evaluation.test.mjs offline-brain/cloudflare-ipad/phase1-candidate-preflight.test.mjs offline-brain/cloudflare-ipad/phase1-evidence-ingestion.test.mjs offline-brain/cloudflare-ipad/individual-agent-runtime.test.mjs offline-brain/cloudflare-ipad/creative-agent-engine.test.mjs offline-brain/cloudflare-ipad/creative-agent-d1-store.test.mjs offline-brain/cloudflare-ipad/creative-agent-bio-api.test.mjs offline-brain/cloudflare-ipad/creative-workers-ai-provider.test.mjs offline-brain/cloudflare-ipad/creative-project-assignment.test.mjs offline-brain/cloudflare-ipad/creative-memory-approval.test.mjs activepieces/public-agent-directory.test.mjs activepieces/propose-team.test.mjs activepieces/prepare-review.test.mjs activepieces/orchestration-preview.test.mjs activepieces/mcp-build-manifest.test.mjs activepieces/audit-directory.test.mjs activepieces/public-portfolio-briefing.test.mjs activepieces/extract-task-inbox.test.mjs activepieces/project-team-preview.test.mjs activepieces/memory-access-preview.test.mjs activepieces/demo-approval-ledger.test.mjs activepieces/release-readiness.test.mjs activepieces/public-agent-bio-projects.test.mjs activepieces/chief-handoff-preview.test.mjs activepieces/handoff-queue-audit.test.mjs activepieces/creative-campaign-preview.test.mjs
+          python3 offline-brain/cloudflare-ipad/activepieces-review-schema.test.py

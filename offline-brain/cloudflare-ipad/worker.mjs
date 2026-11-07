@@ -23,6 +23,13 @@ import {browserScript} from "./browser-script.mjs";
 import {portfolioBrowserEvents} from "./agent-portfolio-browser.mjs";
 import {portfolioReadiness,listProjects,createProject,recordAssignment,agentBio} from "./agent-portfolio.mjs";
 import {isRikerRoute,rikerRoute} from "./riker-memory-api.mjs";
+import {isActivepiecesPath,handleActivepieces} from './activepieces-bridge.mjs';
+import {isOwnerPreviewReviewPath,handleOwnerPreviewReview} from './owner-preview-review-api.mjs';
+import {isCreativeBioPath,handleCreativeBio} from './creative-agent-bio-api.mjs';
+import {isPhase1BrainReviewPath,handlePhase1BrainReview} from './phase1-profile-review-api.mjs';
+import {creativeMediaBrowserEvents} from './creative-agent-ui.mjs';
+import {isPhase1WorkbenchPath,handlePhase1Workbench} from './phase1-agent-workbench-api.mjs';
+import {phase1WorkbenchBrowserEvents} from './phase1-agent-workbench-ui.mjs';
 
 const MODEL="@cf/meta/llama-3.2-3b-instruct";
 const MAX_QUESTION=500;
@@ -83,6 +90,10 @@ async function handleApi(request,env,url){
  if(auth==="NOT_CONFIGURED")return failure("OWNER_SECRET_MISSING","Owner access is not configured. This lab cannot run publicly.",503);
  if(auth!=="YES")return failure("UNAUTHORIZED","Valid owner token required.",401);
  const path=url.pathname;
+ if(isOwnerPreviewReviewPath(path))return handleOwnerPreviewReview(request,env,url,auth==="YES");
+ if(isCreativeBioPath(path))return handleCreativeBio(request,env,url,auth==="YES");
+ if(isPhase1BrainReviewPath(path))return handlePhase1BrainReview(request,env,url,auth==="YES");
+ if(isPhase1WorkbenchPath(path))return handlePhase1Workbench(request,env,url,auth==="YES");
  if(isRikerRoute(path))return rikerRoute(request,env,url,auth==="YES");
  if(path==="/api/readiness"&&request.method==="GET")return response(await readiness(env));
  if(["/api/projects","/api/agent-bio","/api/agent-assignment"].includes(path)){
@@ -370,14 +381,17 @@ export default {
   }
   if(request.method==="GET"&&url.pathname==="/ui.js"){
    // Add the bio controls within the existing in-memory owner-token closure.
-    const ui=browserScript.replace(" updateButtons();\n})();",portfolioBrowserEvents+"\n updateButtons();\n})();");
+    const ui=browserScript.replace(" updateButtons();\n})();",portfolioBrowserEvents+"\n"+creativeMediaBrowserEvents+"\n"+phase1WorkbenchBrowserEvents+"\n updateButtons();\n})();");
     return new Response(ui,{headers:{"content-type":"text/javascript; charset=utf-8",...headers}});
   }
   if(request.method==="GET"&&url.pathname==="/health")return response({
    status:"STAGED_INDEPENDENT_LAB",release:RELEASE,knowledgeVersion:KNOWLEDGE_VERSION,knowledgePreviewVersion:"team-knowledge-preview-v1",privateDataAccessible:false,
    productionConnected:false,aiUsed:false});
   if(!url.pathname.startsWith("/api/"))return failure("NOT_FOUND","Unknown page.",404);
-  try{return await handleApi(request,env,url);}catch{
+  try{
+    if(isActivepiecesPath(url.pathname))return await handleActivepieces(request,env,url);
+    return await handleApi(request,env,url);
+  }catch{
    // Don't include raw errors, prompts, headers or auth secrets in responses or logs.
    return failure("INTERNAL_ERROR","Request could not be completed.",500);
   }
