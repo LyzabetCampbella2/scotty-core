@@ -31,7 +31,7 @@ jobs:
               const content=fs.readFileSync(path,'utf8');
               const w=JSON.parse(content);
               if(w.active!==false||!Array.isArray(w.nodes)||!w.nodes.some(n=>n.type==='n8n-nodes-base.manualTrigger'))throw Error('Must be inactive manual workflow');
-              if(w.nodes.some(n=>n.type==='n8n-nodes-base.webhook'||/api\\/n8n\\/execute|OWNER_BEARER_TOKEN|N8N_BRIDGE_TOKEN/.test(JSON.stringify(n))))throw Error('Unsafe workflow');
+              if(w.nodes.some(n=>n.type==='n8n-nodes-base.webhook'||JSON.stringify(n).includes('api/n8n/execute')||JSON.stringify(n).includes('OWNER_BEARER_TOKEN')||JSON.stringify(n).includes('N8N_BRIDGE_TOKEN')))throw Error('Unsafe workflow');
               if(!content.includes('REPLACE-WITH-YOUR-STAGING-WORKER'))throw Error('Live URL not allowed');
             }
           "
