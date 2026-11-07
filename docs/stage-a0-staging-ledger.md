@@ -26,6 +26,10 @@ Unset all of these in production. For an explicitly owner-approved, nonproductio
 
 **Not permitted by this PR:** connecting an agent or tool, arming the control row, accessing owner-private information, publishing, sending, spending, live agent execution, or a production migration.
 
+## Staging schema preparation (separate explicit approval required)
+
+Before configuring the API, independently verify the dedicated PostgreSQL database's identity, its access controls, and a usable schema/data backup. Then review and explicitly approve `migrations/a0_staging_001.sql` for **that staging database only**. Do not run it in production or point the dedicated staging URL at the ordinary SCOTTY `DATABASE_URL`. The service checks existing tables and fails closed if the migration has not been performed. This PR has **not** run the migration.
+
 ## API (staging owner only)
 
 Every route is under `/api/a0/` and requires `Authorization: Bearer <server-only token>`; no cookie support. POST also requires `X-Scotty-A0-Csrf: 1` and JSON, rejects conflicting Origin. API request/response bodies are bounded to 16 KiB (request only).
@@ -46,7 +50,7 @@ Every route is under `/api/a0/` and requires `Authorization: Bearer <server-only
 1. The provisional check is *not yet called at the actual tool executor boundary.* It must never be construed as permission for a model or automation to execute.
 2. The currently installed admin token is only an isolated administrative development credential. It is **not** a full production multi-user identity/session design. Strong server-side owner authentication, short-lived sessions, CSRF protections, and role proof remain required.
 3. The ledger's **stop-all covers only its own new reservations**. It does not stop existing Activepieces flows, queued work, already-running actions or external applications. An actual global kill switch needs those integrations and testing.
-4. Schema is created lazily in a dedicated staging database after operator configuration. Schema migration, rollback and PostgreSQL transaction-level integration tests are **not yet verified**.
+4. Application startup and API reads **do not create schema**. The dedicated staging migration is `migrations/a0_staging_001.sql` and must only be applied manually after explicit owner approval and a verified staging backup. Schema migration, rollback and PostgreSQL transaction-level integration tests are **not yet verified**.
 5. Only zero-cost single-use reservations are modeled in A0. Paid actions, concurrency reservations, refund/compensation, execution receipts, delayed external effects, timezone-aligned cost windows, budget release and idempotent external APIs need later phases.
 6. Owner-authenticated grant creation has no verified match to the signed immutable 185-ID roster yet. Before enabling actual execution, reconcile identities against authoritative signed registry and project membership.
 7. Current tests use in-process mocked stores (HTTP) and pure evaluation; do not treat them as genuine persistent DB isolation, restore/restart, cross-worker or live permission tests.
