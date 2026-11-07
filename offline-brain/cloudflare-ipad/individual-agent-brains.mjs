@@ -8,6 +8,7 @@
 import {connectedRoster} from './connected-roster.mjs';
 import {specialistPlaybook} from './specialist-playbooks.mjs';
 import {fieldKnowledge} from './field-knowledge.mjs';
+import {ownerChiefDesignOverlay} from './owner-chief-design-overlays.mjs';
 
 export const BRAIN_SPEC_VERSION='scotty-individual-brains-v1';
 const names=new Set();
@@ -97,6 +98,7 @@ function profile(a){
    !a.department||typeof a.isChief!=='boolean')throw Error('INVALID_AGENT_IDENTITY');
  names.add(a.name.toLowerCase());
  const focus=safeSkill(a),ch=a.isChief?authoredChiefNotes(a):null;
+ const ownerDesign=a.isChief?ownerChiefDesignOverlay(a.id):null;
  const hue=temperaments[stableHash(a.id)%temperaments.length];
  const procedures=departmentOutputs(a);
  const playbook=a.isChief?null:specialistPlaybook(a);
@@ -121,16 +123,22 @@ function profile(a){
    'No fabricated citations, current metrics, evidence, credentials or tool outputs',
    ...(!a.isChief&&playbook?.boundaries?[playbook.boundaries[0]]:[])
  ];
- const style=a.isChief?ch.style:hue[0];
- const reasoning=a.isChief?ch.emphasis:
+ const style=ownerDesign?ownerDesign.voice.slice(0,4).join('; '):a.isChief?ch.style:hue[0];
+ const reasoningCore=a.isChief?ch.emphasis:
    'Solve '+focus+' tasks using '+hue[1]+'; prefer '+procedures[0]+
    ' and '+procedures[2].toLowerCase()+'; require specialist review';
+ const reasoning=ownerDesign?reasoningCore+'; owner-recorded focus: '+ownerDesign.priorities.slice(0,5).join(', '):reasoningCore;
  const completion=a.isChief?
    ['Review the '+a.department+' evidence and identify disagreements',
     ch.check,'List unresolved risks and owner decision gates']:
    ['Deliver the concrete '+focus+' result, not a generic overview',
     hue[2],playbook?.evaluation?.verifySources?'Cite only permitted evidence':'Mark unknown sources',
     'Include an explicit handoff for '+a.chiefId];
+ if(ownerDesign){
+  method.push('Apply owner-recorded chief review rules: '+ownerDesign.rules.join('; '));
+  limitations.push(...ownerDesign.rules.map(x=>'Owner-recorded boundary: '+x));
+  completion.push('Check that the owner-recorded chief expectations and review constraints were respected');
+ }
  const tools=[{
    category:a.isChief?'department-review':'specialist-draft',
    qualifiedForSuggestion:true,granted:false,
@@ -149,6 +157,11 @@ function profile(a){
    'Procedure: '+method.join('; ')+'.',
    'Deliverable checks: '+completion.join('; ')+'.',
    'Limitations: '+limitations.join('; ')+'.',
+   ...(ownerDesign?[
+     'Previously recorded chief preferences: '+ownerDesign.workingStyle+'.',
+     'Collaboration suggestions (NOT live permissions): '+ownerDesign.collaborators.join(', ')+'.',
+     'These preferences are source-backed development design, not fresh owner approval or private settings.'
+   ]:[]),
    'Only provide plans until authenticated task/approval gates are implemented. Do not claim execution.'
  ].join('\n');
  return {
@@ -167,6 +180,12 @@ function profile(a){
   completionStandards:completion,
   outputArtifact:a.isChief?procedures[3]:procedures[stableHash(a.id+"-artifact")%procedures.length],
   authoredKnowledgeStatus:'methodology-only-not-fact-certified',
+  ownerDesign:ownerDesign?{
+    version:ownerDesign.version,legacySourceId:ownerDesign.legacySourceId,
+    provenance:ownerDesign.provenance,recordedSelections:ownerDesign.selections,
+    workingStyle:ownerDesign.workingStyle,collaboratorsSuggested:ownerDesign.collaborators,
+    compiledProfileApproved:false
+  }:null,
   questionnaireProvenance:'existing owner-specific answers must be separately merged and never inferred',
   developmentStatus:'SPEC_ONLY_NOT_EXECUTING',
   prompt
