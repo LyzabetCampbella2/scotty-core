@@ -1,6 +1,6 @@
 # SCOTTY + Activepieces Cloud — iPad setup
 
-**Status: Activepieces Cloud connected and staging drafts installed.** In the user's Activepieces workspace, the `SCOTTY — Staging` folder contains 14 disabled, unpublished workflows and 9 tables. Public roster, plan, project and owner-briefing previews have passed tests. The separately authenticated Cloudflare Worker bridge is STILL DISABLED AND UNDEPLOYED. No production SCOTTY code or private memory was accessed or deployed, no paid services were started and no backend agent execution was authorized. For current working flow links see `MCP_IMPLEMENTATION_RUNBOOK.md`.
+**Status: Activepieces Cloud connected and staging drafts installed.** In the user's Activepieces workspace, the `SCOTTY — Staging` folder contains 15 disabled, unpublished workflows and 10 tables. Public roster, plan, project and owner-briefing previews have passed tests. The separately authenticated Cloudflare Worker bridge is STILL DISABLED AND UNDEPLOYED. No production SCOTTY code or private memory was accessed or deployed, no paid services were started and no backend agent execution was authorized. For current working flow links see `MCP_IMPLEMENTATION_RUNBOOK.md`.
 
 ## Why Activepieces
 - Activepieces Cloud Free plan limits and billing can change. Check your account's current credits at https://www.activepieces.com/pricing before enabling paid AI or scheduled flows.
