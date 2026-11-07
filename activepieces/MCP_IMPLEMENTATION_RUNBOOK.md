@@ -33,6 +33,7 @@ The isolated D1 schema `offline-brain/cloudflare-ipad/activepieces-review-ledger
 
 The isolated Worker's `handleApi` now routes owner-only review requests behind the existing `OWNER_BEARER_TOKEN`, plus a separate default-off `SCOTTY_PREVIEW_REVIEWS_ENABLED=true` switch. This is NOT the `/api/activepieces` namespace and deliberately rejects the Activepieces bridge token as authentication.
 
+- `GET /api/owner-preview-reviews/readiness` is an **owner-authenticated, read-only preflight** that also works when `SCOTTY_PREVIEW_REVIEWS_ENABLED` is off. It checks presence/validity of the owner configuration and project allowlist, the optional review + portfolio schemas, and public development agent-to-project links from isolated D1. Its output contains only boolean readiness and counts, never owner IDs, secrets or private memory. It always reports `readyForProduction=false`, `canExecute=false`, `canDeploy=false`.
 - `POST /api/owner-preview-reviews` creates a *public/synthetic* owner review pending record. Never runs a mission.
 - `GET /api/owner-preview-reviews?requestId=...` reads owner-scoped status and verifies the audit trail.
 - `POST /api/owner-preview-reviews/decision` records owner-confirmed approve/reject/revoke of a **plan preview only**; no mission execution or memory privileges.
