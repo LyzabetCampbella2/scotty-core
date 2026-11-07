@@ -277,6 +277,33 @@
       ],
       "risk": "read-only",
       "enabled": false
+    },
+    {
+      "key": "scotty-chief-handoff-preview",
+      "name": "SCOTTY — Chief Collaboration Handoffs (public preview)",
+      "type": "manual",
+      "status": "STAGING_DRAFT_TESTED",
+      "flowId": "zdtQxidWHhr73lIAjvu6n",
+      "dependencies": [
+        "public project portfolio",
+        "roster",
+        "candidate collaborators"
+      ],
+      "risk": "read-only",
+      "enabled": false
+    },
+    {
+      "key": "scotty-handoff-queue-integrity",
+      "name": "SCOTTY — Handoff Queue Integrity (manual)",
+      "type": "manual",
+      "status": "STAGING_DRAFT_TESTED",
+      "flowId": "p98RsMYthsbREasTghwMr",
+      "dependencies": [
+        "synthetic unsent handoff queue",
+        "public roster"
+      ],
+      "risk": "read-only",
+      "enabled": false
     }
   ],
   "defaultRules": {
@@ -290,15 +317,15 @@
     "copyPasswords": false,
     "writeProduction": false
   },
-  "notes": "12 unpublished, disabled Activepieces staging flows plus original disabled test; 8 public/synthetic metadata tables. Agent Bio & Collaborators preview now shows project proposals and candidate colleagues but no actual assignments, missions, questions, memories or source-backed confirmed collaboration. Review D1 source remains not migrated or deployed, with audit history readback tests.",
+  "notes": "14 unpublished/disabled staging flows plus existing disabled connection test; 9 tables with 245 public/synthetic-only rows. Chief Collaboration preview generated 10 proposed Eirden handoffs with explicit dependency graph; unsent synthetic queue verified by a separate read-only workflow. All statuses remain proposed/not sent, no actual messaging or assignments. Separate owner-reviewed SCOTTY backend permissions, D1 migration, production deployment and real agent execution remain blocked.",
   "verifiedInAccount": {
     "workspaceProjectId": "xTfZdRPX3i4JjdOyR5NYq",
     "stagingFolder": "SCOTTY — Staging",
-    "draftFlowsInFolder": 12,
+    "draftFlowsInFolder": 14,
     "existingUserConnectionTestFlow": 1,
     "publishedFlows": 0,
     "enabledFlows": 0,
-    "tablesCreated": 8,
+    "tablesCreated": 9,
     "tableRecordCounts": {
       "developmentAgents": 185,
       "projects": 5,
@@ -307,10 +334,11 @@
       "demoMissionInbox": 1,
       "memoryScopeRules": 4,
       "demoOwnerDecisions": 3,
-      "launchReadinessGates": 11
+      "launchReadinessGates": 11,
+      "syntheticChiefHandoffs": 10
     },
-    "validation": "Activepieces MCP: 12 staging flows configured; all disabled/unpublished; 8 tables; public agent biographies test passed",
-    "scope": "Read-only public/synthetic staging previews; no owner grant, staging Worker deployment or native waitpoint acceptance"
+    "validation": "Activepieces MCP: 14 staging flows configured and disabled/unpublished; 9 public/synthetic tables; cross-chief preview and queued handoff integrity tests passed",
+    "scope": "Public/synthetic planning previews and unsent handoff queue; no owner-granted project membership, external messages, paid AI, private memory or execution"
   },
   "tables": [
     {
@@ -360,6 +388,12 @@
       "id": "7d4LHNXJtgGe1ASlb2NLZ",
       "rows": 11,
       "scope": "4 development preview checks and 7 blocked approval, authorization, memory and release dependencies"
+    },
+    {
+      "name": "SCOTTY — Cross-Chief Handoff Queue (Synthetic)",
+      "id": "p8Mi170WDBVdoQ9BYAc8r",
+      "rows": 10,
+      "scope": "5 specialist review proposals, 4 cross-chief review handoffs, 1 SCOTTY synthesis; all unsent and non-executable"
     }
   ]
 }
