@@ -11,8 +11,20 @@
 - Optional new creative department LUMEN/PULSE/FRAME/IRIS is **not silently added** to these canonical 185. It remains a separate four-agent extension (optional total 189).
 - No file in this phase grants tools, external account access, memory writes, spending, independent missions or deployment authority.
 
+## Phase 1 continued — owner-profile integration and differentiation
+
+- Imported eight existing source-backed, owner-designed chief profiles **RIKER, GEORDI, TROI, SPOCK, WORF, DATA, KIRK and PICARD**, using `owner-chief-design-overlays.mjs`. Each field is traceable to an existing source module and the checked-in questionnaire design record. This is a compiled design, not a fresh owner sign-off.
+- **TROI source ID reconciliation:** the historical `chief-troi` development file maps to the canonical `chief-expansion-troi` roster ID. The source round 2 question 1 remains **unanswered (null)**. No extra chief is created and no unselected questionnaire options are inferred.
+- RIKER's check-in-before-new-work policy and day-specific morning briefing remain intact. GEORDI's selected Round 1 personality `D F G H`, excluded general autonomous diagnostics and reliability-first review remain intact.
+- Owner overlays now influence the actual specialist/chief prompt assembled by `team-runtime.mjs`. Their recorded collaboration recommendations do not grant real communication rights, access or spending authority.
+- All compiled agent specs are **deep-frozen** to prevent imported modules from mutating prompts or granted-tool lists. A separate clone is returned for ordinary inspection.
+- A same-scenario dry-run now returns a concrete **work contract** with role-specific method, deliverable, acceptance criterion and chief handoff—not merely an answer differing by name. These are still templates; they are **not real independently judged LLM results**.
+- `phase1-agent-review.mjs` produces a fail-closed, per-agent nine-part structural review packet: **185 structural profiles**, **8 source-backed chief records**, **17 chiefs with generated defaults**, and **160 generated specialist records pending owner review**. **0 profiles have final owner acceptance or actual model-behavior certification**.
+
+**Verification:** GitHub Actions after this change included **137/137 Node tests and 5/5 in-memory Python/SQLite tests**. The suite checks the historical TROI alias, the unanswered questionnaire item, RIKER/GEORDI's recorded preferences, no granted tools, immutable profile specs, distinct dry-run procedures, and honest certification status.
+
 ## Evidence
-- GitHub Actions **SCOTTY Activepieces — read-only staging bridge**: **127 Node tests passed, 0 failed**, plus **5 SQLite/Python schema tests passed** on the Phase 1 branch changes.
+- GitHub Actions **SCOTTY Activepieces — read-only staging bridge**: **137 Node tests passed, 0 failed**, plus **5 SQLite/Python schema tests passed** on the Phase 1 branch changes.
 - Tests assert 185 distinct IDs and full prompts, correct chief-specialist relationships, stable deterministic compiler output, no granted tools, and different work methods for RIKER, GEORDI and TROI.
 - The identical synthetic task is routed through all 185 specifications in a **deterministic no-model dry run**. This proves output templates and prompt inputs differ, **not that 185 LLM agents independently generated high-quality answers**.
 - The bounded team runner's fake-model integration verifies that the specialist and chief each receive their own brain prompt and that an unapproved run makes **zero** model calls.
