@@ -1,6 +1,7 @@
 import {departmentMethod} from "./department-methods.mjs";
 import {specialistPlaybook} from "./specialist-playbooks.mjs";
 import {ACCEPTANCE_TASKS,ACCEPTANCE_RUBRIC} from "./department-acceptance-cases.mjs";
+import {chiefSourceCandidate} from "./chief-source-candidates.mjs";
 /**
  * Stage B / Phase 1 offline draft brains.
  * Input: approved, version-locked A0 roster. Output: owner-review candidates.
@@ -38,6 +39,7 @@ export function createPhase1BrainDrafts(frozen, lock){
     const reviewMethod=role===SPECIALIST?playbook.procedure:[method[0],method[1],"Review chief and specialist findings with evidence before requesting SCOTTY synthesis","Escalate the reviewed recommendation to the owner; do not execute"];
     const limits=[method[3],...(playbook?.boundaries||[]),"A planned work method is not a live capability or certified factual knowledge."];
     const candidateReferences=playbook?.candidateReferences||[];
+    const priorChiefReview=role===CHIEF?chiefSourceCandidate({id,name,department:dept}):null;
     return {
       canonicalAgentId:id,
       displayName:name,
@@ -51,6 +53,8 @@ export function createPhase1BrainDrafts(frozen, lock){
       personaVersion:"0.1.0-draft",
       draftState:"SOURCE_IDENTITY_ONLY_NOT_OWNER_APPROVED",
       ownerPreferenceEvidence:null,
+      priorChiefReview,
+      priorChiefSourceApplied:false,
       ownerApproved:false,
       avatar:null,
       voice:null,
@@ -99,7 +103,14 @@ export function createPhase1BrainDrafts(frozen, lock){
     source:"SCOTTY Master Build Workbook, Stage B / Phase 1",
     dependsOn:"Stage A0 owner-approved identity version; operational gate still BLOCKED",
     profiles: drafts,
-    summary:{profiles:185,chiefs:25,specialists:160,plannedBehaviorTests:555,realModelEvaluationsPassed:0,ownerApprovedBrainVersions:0,independentlyCallableLiveAgents:0},
-    warning:"Identity-based draft scaffolds only; not unique completed personalities or certified agent brains."
+    summary:{
+      profiles:185,chiefs:25,specialists:160,plannedBehaviorTests:555,
+      specialistMethodGuides:160,departmentMethods:25,
+      chiefSourceCandidates:drafts.filter(p=>p.priorChiefReview).length,
+      chiefSourceIdentityConflicts:drafts.filter(p=>p.priorChiefReview?.identityStatus==="LEGACY_ID_MISMATCH_REQUIRES_OWNER_REVIEW").length,
+      chiefSourcesAdopted:0,
+      realModelEvaluationsPassed:0,ownerApprovedBrainVersions:0,independentlyCallableLiveAgents:0
+    },
+    warning:"Role-specific authored methods and legacy chief sources are review candidates, not certified personalities, verified knowledge or live agents."
   };
 }
