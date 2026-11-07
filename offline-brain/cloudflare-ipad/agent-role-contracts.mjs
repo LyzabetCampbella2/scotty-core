@@ -96,7 +96,7 @@ export function buildRoleContracts(roster=connectedRoster()){
     question:'What evidence would change the department recommendation?',
     boundary:'Department leadership does not permit self-authorized delegation'
    }:{
-    label:stage.artifact+' for '+specialty,
+    label:stage.artifact+' for '+specialty+' ('+a.department+')',
     method:stage.method+'; domain procedure: '+totalMethod[0],
     evidence:stage.evidence,
     question:stage.question,
