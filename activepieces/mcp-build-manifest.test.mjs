@@ -20,11 +20,11 @@ test('staging MCP plan cannot silently activate expensive or private flows',()=>
  }
 });
 test('verified staging drafts are recorded as disabled and reviewed',()=>{
- assert.equal(file.verifiedInAccount.draftFlowsInFolder,10);
+ assert.equal(file.verifiedInAccount.draftFlowsInFolder,11);
  assert.equal(file.verifiedInAccount.enabledFlows,0);
  assert.equal(file.verifiedInAccount.publishedFlows,0);
- assert.equal(file.verifiedInAccount.tablesCreated,7);
- assert.equal(file.tables.reduce((sum,t)=>sum+t.rows,0),224);
+ assert.equal(file.verifiedInAccount.tablesCreated,8);
+ assert.equal(file.tables.reduce((sum,t)=>sum+t.rows,0),235);
  assert.ok(file.flows.filter(x=>x.status==='STAGING_DRAFT_TESTED').length>=8);
  assert.ok(file.flows.every(x=>x.status!=='STAGING_DRAFT_TESTED'||x.flowId));
 });
