@@ -1,6 +1,6 @@
 # SCOTTY — Activepieces MCP implementation runbook
 
-Status: **staging drafts installed and tested through the connected Activepieces MCP tools**. The existing user's `SCOTTY — Connection Test` was inspected, repaired and tested. A separate `SCOTTY — Staging` folder contains **14 unpublished/disabled staging workflows** and **9 tables (185 development profiles, 5 public projects, 25 proposed collaborators, 1 synthetic task, 1 demo mission, 4 memory scope rules, 3 demo decisions, 11 launch gates and 10 unsent synthetic handoffs)**. The Activepieces MCP folder validator returned `ok=true`, `issues=[]`. This is NOT a production deployment, 185 verified autonomous agents, or owner-authorized real project work.
+Status: **staging drafts installed and tested through the connected Activepieces MCP tools**. The existing user's `SCOTTY — Connection Test` was inspected, repaired and tested. A separate `SCOTTY — Staging` folder contains **15 unpublished/disabled staging workflows** and **10 tables (the existing 185 development profiles, 5 projects, 25 proposed collaborators, 1 synthetic task, 1 demo mission, 4 memory rules, 3 demo decisions, 11 launch gates, 10 unsent synthetic handoffs and 4 creative-media draft profiles)**. The Activepieces MCP folder validator returned `ok=true`, `issues=[]`. This is NOT a production deployment, 185 verified autonomous agents, or owner-authorized real project work.
 
 ## Verified Activepieces draft flows
 
@@ -50,6 +50,23 @@ The separate-secret Activepieces bridge includes a disabled-by-default read-only
 - [SCOTTY — Chief Collaboration Handoffs](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/zdtQxidWHhr73lIAjvu6n) — PASSED: five specialist-chief steps, four cross-chief proposals to GEORDI, one SCOTTY synthesis; 10 total, no messages sent
 - [SCOTTY — Handoff Queue Integrity](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/p98RsMYthsbREasTghwMr) — PASSED: validated 10 synthetic queue rows and 9 dependencies, verified none approved or sent
 - **Synthetic Handoff Queue:** 10 rows in Activepieces Tables, all `Proposed — not reviewed`, `Not sent — no messaging connection`, `Execution Allowed: No`. This is NOT a real communications inbox; no agent or human messages are delivered.
+
+## New draft department: LUMEN Creative Production
+
+The owner requested a separate chief overseeing individualized social media, cinematography, and photography specialists. Four separate development profiles now exist:
+
+- **LUMEN** (`chief-lumen`) — chief creative director for campaigns, cinema, photography and visual consistency
+- **PULSE** (`agent-creative-pulse`) — social strategy, content calendars, scripts, hooks, captions, outreach *drafts* and owner-provided metrics interpretation
+- **FRAME** (`agent-creative-frame`) — cinematography, camera movement, gimbals, lighting, shot planning and video editing
+- **IRIS** (`agent-creative-iris`) — pet, product, portrait and lifestyle photography, exposure, composition, lighting and ethical retouching
+
+Each has authored differences in personality, responsibilities, working method, outputs, completion checks, proposed memory namespace and tool permissions (currently none). The **optional** `creativeMediaDevelopmentRoster()` produces **26 chiefs + 163 specialists = 189 development profiles** without changing the canonical 25+160=185 active-source fallback roster.
+
+- [Public additive draft directory](https://github.com/LyzabetCampbella2/scotty-core/blob/feat/scotty-activepieces-ipad-bridge-20261106/activepieces/public-creative-media-directory.json)
+- [LUMEN Creative Campaign Preview](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/VF0ficyTX8bggvwCwpzb9) — TESTED with a **synthetic** pet-friendly short-form UGC idea; selected PULSE, FRAME and IRIS, routed review to LUMEN and SCOTTY, requested owner approval, **zero** posts, model calls, assignments or memory writes
+- Activepieces table **SCOTTY — Creative Media Department (Draft)** contains all four source-backed profiles, explicitly not running and with no connected memory or tools.
+
+**Not implemented:** live individual execution, social-media account integration, camera operation, file editing, real analytics retrieval, durable memory or confirmed project assignments. These require separately approved owner authentication, tools, model/provider, permissions, data scope and budget.
 
 All flows are manually triggered, DISABLED and DRAFT. No API secrets, paid AI actions, publishing, external writes, cloud workers or real mission execution were added.
 
