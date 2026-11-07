@@ -34,7 +34,7 @@ const caseCols='case_id,session_id,scenario_type,scenario_ref,prompt_digest,resp
 
 export function createPhase1EvaluationIngestor({
  db,sessionAuthority,providerAuthority,graderAuthority,acceptanceAuthority,
- clock=()=>new Date(),testMode=false
+ runtimeAuthority=null,clock=()=>new Date(),testMode=false
 }={}){
  if(typeof db?.prepare!=='function'||typeof db?.batch!=='function'||
     typeof sessionAuthority?.resolve!=='function'||
@@ -45,6 +45,8 @@ export function createPhase1EvaluationIngestor({
  // Test mode is allowed ONLY for completely isolated fake-provider fixtures.
  // The service must not accept testMode from client inputs.
  if(typeof testMode!=='boolean')die('INVALID_INGEST_CONFIGURATION');
+ if(!testMode&&typeof runtimeAuthority?.authorize!=='function')
+   die('REAL_EVIDENCE_INGEST_RUNTIME_AUTHORITY_REQUIRED');
  const verifyOwner=async(sessionHandle,agentId)=>{
    const actor=await sessionAuthority.resolve({sessionHandle,requiredRole:'owner'});
    if(actor?.authenticated!==true||actor?.verifiedByScotty!==true||
@@ -92,6 +94,18 @@ export function createPhase1EvaluationIngestor({
    if(!(now instanceof Date)||!Number.isFinite(now.getTime()))
      die('INVALID_SERVER_CLOCK');
    const actor=await verifyOwner(sessionHandle,agentId);
+   if(!testMode){
+     const permit=await runtimeAuthority.authorize({
+       ownerId:actor.ownerId,agentId,requestId,sessionId,
+       purpose:'phase1.real-evidence-ingest'
+     });
+     if(permit?.verified!==true||
+        permit.provenance!=='scotty-server-runtime-authority'||
+        permit.ownerId!==actor.ownerId||permit.agentId!==agentId||
+        permit.requestId!==requestId||permit.sessionId!==sessionId||
+        permit.purpose!=='phase1.real-evidence-ingest')
+       die('REAL_EVIDENCE_INGEST_RUNTIME_NOT_APPROVED');
+   }
    const readiness=await phase1EvaluationEvidenceReadiness(db);
    if(!readiness.ready)die(readiness.reason);
    const review=await validReview(actor,agentId,requestId);
