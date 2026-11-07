@@ -304,6 +304,19 @@
       ],
       "risk": "read-only",
       "enabled": false
+    },
+    {
+      "key": "scotty-lumen-creative-campaign-preview",
+      "name": "SCOTTY — LUMEN Creative Campaign Preview (manual)",
+      "type": "manual",
+      "status": "STAGING_DRAFT_TESTED",
+      "flowId": "VF0ficyTX8bggvwCwpzb9",
+      "dependencies": [
+        "public creative-media draft add-on",
+        "synthetic campaign brief"
+      ],
+      "risk": "read-only",
+      "enabled": false
     }
   ],
   "defaultRules": {
@@ -317,15 +330,15 @@
     "copyPasswords": false,
     "writeProduction": false
   },
-  "notes": "14 unpublished/disabled staging flows plus existing disabled connection test; 9 tables with 245 public/synthetic-only rows. Chief Collaboration preview generated 10 proposed Eirden handoffs with explicit dependency graph; unsent synthetic queue verified by a separate read-only workflow. All statuses remain proposed/not sent, no actual messaging or assignments. Separate owner-reviewed SCOTTY backend permissions, D1 migration, production deployment and real agent execution remain blocked. Added default-off owner-only preview review HTTP API under existing isolated Worker bearer, with server-derived project membership and audit. Still not deployed and not accessible from Activepieces. Additional owner-only secret-free preflight created and tested; strict request-ID-matching idempotency replay prevents misattribution. No real Worker activation or database migration occurred.",
+  "notes": "14 unpublished/disabled staging flows plus existing disabled connection test; 9 tables with 245 public/synthetic-only rows. Chief Collaboration preview generated 10 proposed Eirden handoffs with explicit dependency graph; unsent synthetic queue verified by a separate read-only workflow. All statuses remain proposed/not sent, no actual messaging or assignments. Separate owner-reviewed SCOTTY backend permissions, D1 migration, production deployment and real agent execution remain blocked. Added default-off owner-only preview review HTTP API under existing isolated Worker bearer, with server-derived project membership and audit. Still not deployed and not accessible from Activepieces. Additional owner-only secret-free preflight created and tested; strict request-ID-matching idempotency replay prevents misattribution. No real Worker activation or database migration occurred. Created optional LUMEN/PULSE/FRAME/IRIS creative department as separate public development extension. Base 25+160 agent directory remains unchanged. New synthetic Activepieces campaign planning flow tested; no actual post, tool call, memory, assignment, or other execution.",
   "verifiedInAccount": {
     "workspaceProjectId": "xTfZdRPX3i4JjdOyR5NYq",
     "stagingFolder": "SCOTTY — Staging",
-    "draftFlowsInFolder": 14,
+    "draftFlowsInFolder": 15,
     "existingUserConnectionTestFlow": 1,
     "publishedFlows": 0,
     "enabledFlows": 0,
-    "tablesCreated": 9,
+    "tablesCreated": 10,
     "tableRecordCounts": {
       "developmentAgents": 185,
       "projects": 5,
@@ -335,9 +348,10 @@
       "memoryScopeRules": 4,
       "demoOwnerDecisions": 3,
       "launchReadinessGates": 11,
-      "syntheticChiefHandoffs": 10
+      "syntheticChiefHandoffs": 10,
+      "creativeMediaDrafts": 4
     },
-    "validation": "Activepieces MCP: 14 staging flows configured and disabled/unpublished; 9 public/synthetic tables; cross-chief preview and queued handoff integrity tests passed",
+    "validation": "Activepieces staging: 15 disabled/unpublished draft flows and 10 public/synthetic tables; LUMEN campaign preview tested successfully",
     "scope": "Public/synthetic planning previews and unsent handoff queue; no owner-granted project membership, external messages, paid AI, private memory or execution"
   },
   "tables": [
@@ -394,6 +408,12 @@
       "id": "p8Mi170WDBVdoQ9BYAc8r",
       "rows": 10,
       "scope": "5 specialist review proposals, 4 cross-chief review handoffs, 1 SCOTTY synthesis; all unsent and non-executable"
+    },
+    {
+      "name": "SCOTTY — Creative Media Department (Draft)",
+      "id": "ApSToWAua2Pw0UwTT2Mml",
+      "rows": 4,
+      "scope": "One development-only chief and three individualized specialists; no memory, account connections, paid actions or assignments"
     }
   ],
   "backendPreviewReview": {
@@ -427,5 +447,49 @@
     "readinessNoAuthority": true,
     "replayIdentityBoundToRequestIdAndKey": true,
     "latestTestEvidence": "76 Node tests and 5 Python in-memory SQLite schema tests passed in GitHub Actions; no actual D1 accessed."
+  },
+  "creativeMediaExtension": {
+    "mode": "OPT_IN_DEVELOPMENT_ONLY",
+    "existingRoster": {
+      "chiefs": 25,
+      "specialists": 160,
+      "total": 185
+    },
+    "proposedRoster": {
+      "chiefs": 26,
+      "specialists": 163,
+      "total": 189
+    },
+    "addedChief": {
+      "id": "chief-lumen",
+      "name": "LUMEN",
+      "department": "Creative Production & Campaign Studio"
+    },
+    "addedSpecialists": [
+      {
+        "id": "agent-creative-pulse",
+        "name": "PULSE",
+        "role": "Social Media Strategy"
+      },
+      {
+        "id": "agent-creative-frame",
+        "name": "FRAME",
+        "role": "Cinematography & Video"
+      },
+      {
+        "id": "agent-creative-iris",
+        "name": "IRIS",
+        "role": "Photography & Retouching"
+      }
+    ],
+    "scottyOverseer": "SCOTTY",
+    "projectSuggestion": "Golden Hour Creative — not assigned",
+    "source": "offline-brain/cloudflare-ipad/creative-media-department.mjs",
+    "publicDirectory": "activepieces/public-creative-media-directory.json",
+    "runStatus": "NOT_RUNNING",
+    "mergedIntoCanonicalDirectory": false,
+    "agentToolsConnected": false,
+    "privateMemoryPersisted": false,
+    "ownerApprovalRequired": true
   }
 }
