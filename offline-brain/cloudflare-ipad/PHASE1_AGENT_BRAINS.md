@@ -70,6 +70,23 @@ A passing isolated fixture can only return **`READY_FOR_ISOLATED_CANDIDATE_REVIE
 
 **Next gate:** establish a securely authenticated evaluation-ingestion service that binds real server-generated provider traces, independent grader results and owner sign-off to immutable D1 records; then stage a versioned candidate without runtime activation. Do not activate any agent on the strength of self-reported scores or a caller-supplied `verified` field.
 
+## Phase 1 continued — protected behavioral evidence ingestion (source only)
+
+`phase1-evidence-ingestion.mjs` now provides a server-injected, source-only ingestion interface for the isolated `phase1-evaluation-evidence-v1.sql` tables. It does **not** create agents, run AI models, invoke live tools or expose any new HTTP endpoint. It is not imported into the production Worker and no D1 migration has been applied.
+
+The proposed ingestion workflow verifies four distinct trust boundaries before writing *metadata only*:
+
+1. Resolve an owner-authenticated session through an injected server authority, with the exact canonical agent ID in the owner's authorized scope, then verify the agent's current **approved and unrevoked** profile-review head.
+2. Verify model receipt/provenance through a separate protected provider authority. Bind each of the three scenario references and SHA-256 prompt digests to the expected agent's evaluation plan, and require model trace and response digests.
+3. Require a different independent reviewer authority to attest the exact matching response digests, per-case rubric values, and safety flags. The reviewer ID must not equal the owner ID.
+4. Require an exact owner acceptance reference bound to the same owner, review digest, session, provider receipt and grading record. Recheck the current reviewed profile *after* verification, blocking revocations occurring during review.
+
+A single database batch inserts one session and exactly three immutable per-case metadata rows. Exact retries verify the persisted records and return an idempotent replay result; changed receipts, hashes, scores or reviewers are rejected. No raw prompts, model outputs, private memory, login tokens or user media are saved in this evidence table.
+
+**Simulation boundary:** isolated tests inject fake provider, independent reviewer and owner acceptance authorities with `testMode=true`. Those rows are explicitly labeled `synthetic-fixture`, and the candidate preflight refuses to treat them as certifiable evidence even when all fictional grading scores are perfect. The production-grade provider connector, trusted grader and owner acceptance services do not exist in this branch and are not represented as already connected.
+
+**Remaining:** real server-owned connector capabilities with provenance verification and usage controls; authentication and explicit staging migration; independently scored real-model runs; revision conflict and owner acceptance workflow; per-agent certification. The evidence ingestion pipeline alone **does not activate or certify** any agent.
+
 ## Evidence
 - GitHub Actions **SCOTTY Activepieces — read-only staging bridge**: **175 Node tests passed, 0 failed**, plus **5 SQLite/Python schema tests passed** on the Phase 1 branch changes.
 - Tests assert 185 distinct IDs and full prompts, correct chief-specialist relationships, stable deterministic compiler output, no granted tools, and different work methods for RIKER, GEORDI and TROI.
