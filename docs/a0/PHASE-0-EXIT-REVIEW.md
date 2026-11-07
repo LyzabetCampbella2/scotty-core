@@ -18,7 +18,7 @@ No checkbox below implies owner sign-off unless explicitly recorded in an owner-
 
 | Record | Proposed source | Status |
 |---|---|---|
-| Canonical agent identity | Activepieces public draft registry snapshot, pending owner freeze | **Owner approval required** |
+| Canonical agent identity | Owner-approved Git version `docs/a0/roster-frozen-2026-11-07.json` anchored to the compared Activepieces draft | **IDs and names approved/versioned; live registry not changed** |
 | Owner identity/privileges | Separate authenticated server-side owner sessions, durable grants | **Not fully integrated** |
 | Live task/missions | SCOTTY verified project/assignment records, not synthetic Activepieces demos | **Not established** |
 | Private memory | Restricted, signed, provenance-bearing memory store only | **Not certified** |
@@ -39,10 +39,10 @@ The Vercel `scotty-cloud-hud` project was found, but the precise active protecti
 
 | Phase 0 requirement | Verified evidence | Gate |
 |---|---|---|
-| Freeze exact 185 canonical IDs / 25 chiefs / 160 specialists | Snapshot & structural CI tests | **Blocked — owner freeze signature** |
+| Freeze exact 185 canonical IDs / 25 chiefs / 160 specialists | Explicit owner approval; versioned frozen Git snapshot and hash lock | **Git freeze approved; formal authenticated attestation and live adoption still pending** |
 | Creative-media six roles separated | Separate from candidate 185 | Design documented, owner choice pending |
-| Legacy aliases, duplicates, conflicts | No duplicate IDs/names; flagged mismatches | **Blocked — alias decisions** |
-| Source-of-truth system mapping | GitHub/AP/Railway/Vercel inventory | **Blocked — environment separation & Render** |
+| Legacy aliases, duplicates, conflicts | No duplicate IDs; owner chose to retain all current names and review proposed aliases later | **Current names approved; future alias changes require new approval** |
+| Source-of-truth system mapping | GitHub/AP/Railway/Vercel plus owner-approved Render metadata inspection | **Blocked — environment separation and live systems-of-record mapping** |
 | Ask owner before every new mission | Written policy and staged records | **Blocked — enforce at real executors** |
 | Exact task/revision/account/channel grant, expiry & revocation | Pure gate + staged SQL ledger | **Blocked — authenticated runtime and integration** |
 | Task/daily budgets, retries, stop-all | Test-only defaults, $0 new spend | **Blocked — owner approval and global kill-switch drill** |
@@ -54,7 +54,7 @@ The Vercel `scotty-cloud-hud` project was found, but the precise active protecti
 
 ## Zero-cost safety decision pending owner signature
 
-Until final owner approval, no new paid model/provider usage, billable resources, production migrations, file moves, sends, social posts, production deploys, or unreviewed shared memory are authorized through Stage A0. **$0 newly-authorized spending** is a protective default, not the owner's permanent budget.
+Until final owner approval, no new paid model/provider usage, billable resources, production migrations, file moves, sends, social posts, production deploys, or unreviewed shared memory are authorized through Stage A0. **$0 new infrastructure spending** is now expressly the owner's decision. New paid-provider costs remain at a protective $0 default pending per-task/day approval and enforcement.
 
 ## Owner sign-off fields (leave blank until explicit recorded approval)
 
@@ -86,3 +86,12 @@ Until final owner approval, no new paid model/provider usage, billable resources
 - This **does not** automatically secure legacy Railway/Render code or any other deployed provider endpoint. Actual running code and network egress must be audited separately, and an authenticated, cost-scoped vision approval must be implemented before re-enabling the feature.
 - The exact remaining owner decisions are prepared in `docs/a0/OWNER-DECISIONS.md`: staging spending/quote authorization, roster freeze/aliases, Render workspace selection, separate real backup authorization and owner-control limits.
 - **Do not mark Phase 0 complete** because the new test passes: environment isolation, live executor enforcement, actual global stop-all, independent real encrypted restore and owner signatures are still missing.
+
+## Scoped owner decisions incorporated (2026-11-07)
+
+1. **Render:** user approved **My Workspace read-only**. Inspection of service/deploy/Postgres *metadata only* completed; no private data, logs, secrets or backup contents were read. SCOTTY services report live Render deploys on `cloud-independent-voice` at `b200c4b315ca26f063deee8dca10eeab5cf39c00`, not PR #76. Render `scotty-memory` PostgreSQL is on a free plan but **suspended**. Backup cron has a live deployment but no independently verified real backup/restore. See `docs/stage-a0-environment-inventory.md`.
+2. **Roster:** owner explicitly approved exactly 185 permanent IDs and their current display names, while deferring any alias/rename changes. Same-day Activepieces reconciliation found zero field discrepancies. Git frozen snapshot: `docs/a0/roster-frozen-2026-11-07.json`, blob `476f396a709de64e75169ed0ff504526cc0233ef`. Lock file and CI test enforce version stability; the approval was explicit in conversation but is *not* a cryptographically authenticated owner signature. No source/production Activepieces records changed.
+3. **Costs:** user selected **$0 new infrastructure spending**. No new persistent service, database or storage was provisioned; separate paid-model task/day ceilings were not selected. Default deny of new provider charges remains.
+4. **Production records:** user explicitly requires a separate approval before accessing or exporting production data. No SQL, data export, real encrypted restore, production file access or secret inspection was performed.
+
+**Remaining technical blockers are unchanged:** authenticated owner signatures/approval evidence and real executor enforcement; an actually isolated staging environment; cross-service stop-all drill; actual owner-authorized encrypted production restore; full signed privileges, budget and data policy; and operational acceptance. Phase 0 is **NOT CERTIFIED**, despite having a version-locked roster.
