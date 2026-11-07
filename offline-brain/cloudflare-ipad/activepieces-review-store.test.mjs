@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
 import {reviewLedgerReadiness} from './activepieces-review-readiness.mjs';
-import {createOwnerPreviewReview,decideOwnerPreviewReview} from './activepieces-review-store.mjs';
+import {createOwnerPreviewReview,decideOwnerPreviewReview,readOwnerPreviewReview} from './activepieces-review-store.mjs';
 
 const migration=fs.readFileSync(new URL('./activepieces-review-ledger-v1.sql',import.meta.url),'utf8');
 const now=new Date('2026-11-07T04:00:00.000Z');
@@ -123,5 +123,51 @@ test('no owner session, private request, expired or mismatched idempotency canno
   await createOwnerPreviewReview(s.db,request());
   await assert.rejects(()=>createOwnerPreviewReview(s.db,request({proposal:{...proposal,requestId:'review-demo-0002',intentDigest:'b'.repeat(64)}})),/REVIEW_IDEMPOTENCY_KEY_CONFLICT/);
   assert.equal(s.native.prepare('SELECT COUNT(*) n FROM scotty_activepieces_review_requests_v1').get().n,1);
+ }finally{s.close();}
+});
+
+
+test('trusted owner can verify the exact preview audit, never read secret content',async()=>{
+ const s=isolatedDatabase();
+ try{
+   await createOwnerPreviewReview(s.db,request());
+   let review=await readOwnerPreviewReview(s.db,{actor,project,requestId:proposal.requestId});
+   assert.equal(review.reviewStatus,'pending');
+   assert.equal(review.auditVerified,true);
+   assert.equal(review.auditEventCount,1);
+   assert.equal(review.canExecute,false);
+   assert.equal(JSON.stringify(review).includes('agent_ids_json'),false);
+   await decideOwnerPreviewReview(s.db,decision());
+   review=await readOwnerPreviewReview(s.db,{actor,project,requestId:proposal.requestId});
+   assert.equal(review.reviewStatus,'approved');
+   assert.equal(review.auditEventCount,2);
+   assert.equal(review.agentExecutionAuthorized,false);
+   await assert.rejects(()=>readOwnerPreviewReview(s.db,{actor:{...actor,ownerId:'different-owner-0001'},project,requestId:proposal.requestId}),/REVIEW_OWNER_MISMATCH/);
+   await assert.rejects(()=>readOwnerPreviewReview(s.db,{actor:null,project,requestId:proposal.requestId}),/VERIFIED_OWNER_SESSION_REQUIRED/);
+   await assert.rejects(()=>readOwnerPreviewReview(s.db,{actor,project:{...project,allowedAgentIds:['agent-geordi-02']},requestId:proposal.requestId}),/VERIFIED_PROJECT_MEMBERSHIP_REQUIRED/);
+ }finally{s.close();}
+});
+test('missing, forged or malformed audit entries are detected instead of claiming success',async()=>{
+ const s=isolatedDatabase();
+ try{
+   await createOwnerPreviewReview(s.db,request());
+   s.native.prepare("DELETE FROM scotty_activepieces_review_audit_v1 WHERE event_type='created'").run();
+   await assert.rejects(()=>readOwnerPreviewReview(s.db,{actor,project,requestId:proposal.requestId}),/REVIEW_AUDIT_INCOMPLETE/);
+   await assert.rejects(()=>createOwnerPreviewReview(s.db,request()),/REVIEW_AUDIT_INCOMPLETE/);
+ }finally{s.close();}
+ const s2=isolatedDatabase();
+ try{
+   await createOwnerPreviewReview(s2.db,request());
+   s2.native.prepare("UPDATE scotty_activepieces_review_audit_v1 SET actor_id=? WHERE request_id=?").run('forged-actor-0001',proposal.requestId);
+   await assert.rejects(()=>readOwnerPreviewReview(s2.db,{actor,project,requestId:proposal.requestId}),/REVIEW_AUDIT_INCONSISTENT/);
+ }finally{s2.close();}
+});
+test('manual audit deletion or inconsistent review state does not produce verified authorization',async()=>{
+ const s=isolatedDatabase();
+ try{
+   await createOwnerPreviewReview(s.db,request());
+   s.native.prepare("UPDATE scotty_activepieces_review_requests_v1 SET status='approved',decided_at=?,version=2 WHERE request_id=?").run(now.toISOString(),proposal.requestId);
+   await assert.rejects(()=>readOwnerPreviewReview(s.db,{actor,project,requestId:proposal.requestId}),/REVIEW_AUDIT_INCOMPLETE/);
+   await assert.rejects(()=>decideOwnerPreviewReview(s.db,decision({expectedVersion:2,decision:'revoked'})),/REVIEW_AUDIT_INCOMPLETE/);
  }finally{s.close();}
 });
