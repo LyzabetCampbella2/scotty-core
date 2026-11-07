@@ -20,7 +20,7 @@ test('staging MCP plan cannot silently activate expensive or private flows',()=>
  }
 });
 test('verified staging drafts are recorded as disabled and reviewed',()=>{
- assert.equal(file.verifiedInAccount.draftFlowsInFolder,11);
+ assert.equal(file.verifiedInAccount.draftFlowsInFolder,12);
  assert.equal(file.verifiedInAccount.enabledFlows,0);
  assert.equal(file.verifiedInAccount.publishedFlows,0);
  assert.equal(file.verifiedInAccount.tablesCreated,8);
