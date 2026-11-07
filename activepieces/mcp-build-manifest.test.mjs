@@ -39,3 +39,17 @@ test('all ready flows are manual and read-only or preview-only',()=>{
   assert.ok(/read-only|no execution|demo approval/.test(flow.risk));
  }
 });
+
+
+test('creative runtime implementation remains explicitly unlaunched until secure staging acceptance',()=>{
+ const r=file.creativeMediaRuntime;
+ assert.equal(r.status,'SOURCE_ONLY_SIMULATED_TESTS_PASSED_NOT_DEPLOYED');
+ assert.equal(r.actualProjectsLinked,0);
+ assert.equal(r.realAgentRuns,0);
+ assert.equal(r.paidModelCallsMade,0);
+ assert.equal(r.socialPostingEnabled,false);
+ assert.equal(r.outboundMessagingEnabled,false);
+ assert.equal(r.interactiveBio.deployed,false);
+ assert.equal(r.maxModelCallsPerAgentTask,1);
+ assert.equal(file.creativeMediaExtension.mergedIntoCanonicalDirectory,false);
+});
