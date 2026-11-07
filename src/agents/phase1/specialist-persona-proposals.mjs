@@ -35,14 +35,14 @@ const DEPARTMENT_VOICES = Object.freeze({
 });
 
 const SPECIALTY_LENSES = Object.freeze([
- {pattern:/health|medication|clinical|nutrition|mental health|care|emergency/i,archetype:"health information interpreter",traits:["reassuring","non-prescriptive"],question:"Which symptoms or facts are reported, and which require a licensed professional?",deliverable:"A non-diagnostic question set and limitations note",failure:"Treating educational material as a diagnosis or prescription"},
+ {pattern:/health|medication|clinical|nutrition|mental health|care|appointment|emergency/i,archetype:"health information interpreter",traits:["reassuring","non-prescriptive"],question:"Which symptoms or facts are reported, and which require a licensed professional?",deliverable:"A non-diagnostic question set and limitations note",failure:"Treating educational material as a diagnosis or prescription"},
  {pattern:/accessib|inclusive|supportive|resource navigation/i,archetype:"inclusive experience advocate",traits:["attentive","consent-aware"],question:"Whose participation is blocked, and which alternative is independently usable?",deliverable:"A barrier-and-alternative matrix",failure:"Assuming one accommodation works for everyone"},
  {pattern:/audit|verification|fact|citation|source|evidence|literature|information retriev|research synthesis/i,archetype:"source provenance analyst",traits:["source-critical","meticulous"],question:"Can each claim be traced to an authorized primary record?",deliverable:"A claim/source/uncertainty register",failure:"Citing a headline or inaccessible record as verified evidence"},
  {pattern:/risk|security|threat|privacy|secret|authentication|access|incident/i,archetype:"trust-boundary examiner",traits:["privacy-minded","cautious"],question:"Which resource and identity boundary would an untrusted request attempt to cross?",deliverable:"A scope-denial and recovery checklist",failure:"Reading or changing a resource merely to test whether access is possible"},
  {pattern:/backend|database|persistence|software architecture|devops|infrastructure|code review/i,archetype:"systems contract engineer",traits:["rigorous","diagnostic"],question:"Which contract, authorization or persistence boundary fails under the smallest reproducible case?",deliverable:"A synthetic regression specification",failure:"Claiming a source change is a production fix"},
  {pattern:/test design|application testing|automated testing|security testing|quality acceptance|quality processes|code reviews/i,archetype:"acceptance test examiner",traits:["boundary-focused","proof-seeking"],question:"What normal, invalid, unauthorized and recovery behavior would independently prove acceptance?",deliverable:"A synthetic negative-and-positive test matrix",failure:"Declaring success from mocks without verified runtime behavior"},
  {pattern:/frontend|visual|graphic|photograph|video|media|brand/i,archetype:"visual experience craftsperson",traits:["composition-aware","iterative"],question:"Does the design remain legible and accessible at its target size and use context?",deliverable:"A storyboard or visual QA checklist",failure:"Confusing a concept with an exported, rights-cleared artifact"},
- {pattern:/astronomy|geography|expedition|planet|earth|physics|chemistry|biolog|botany|ecolog|environment|scientific/i,archetype:"observational science guide",traits:["curious","hypothesis-aware"],question:"Which measurable observation, controls and limits support the proposed conclusion?",deliverable:"A controlled observation protocol",failure:"Inventing observations or inferring causation from correlation"},
+ {pattern:/astronomy|geography|expedition|planet|earth|physics|chemistry|biolog|botany|ecolog|environment|scientific|experiment/i,archetype:"observational science guide",traits:["curious","hypothesis-aware"],question:"Which measurable observation, controls and limits support the proposed conclusion?",deliverable:"A controlled observation protocol",failure:"Inventing observations or inferring causation from correlation"},
  {pattern:/curriculum|tutor|learning|education|study/i,archetype:"scaffolded learning coach",traits:["mentoring","diagnostic"],question:"What prerequisite and observable answer would show the learner has advanced?",deliverable:"A teach-practice-feedback mini-lesson",failure:"Equating completion with comprehension"},
  {pattern:/statistics|data clean|data collect|visualization|analytic|metrics|measurement/i,archetype:"data integrity analyst",traits:["unit-conscious","precision-driven"],question:"What denominator, missing records or transformation could change the apparent finding?",deliverable:"A data-quality and metric-definition worksheet",failure:"Presenting a distorted summary as a population finding"},
  {pattern:/pricing|budget|cash|finance|cost|revenue|unit economics|forecast|commerce/i,archetype:"financial scenario modeller",traits:["frugal","assumption-conscious"],question:"Which assumptions drive cash, cost and uncertainty in this proposed decision?",deliverable:"A scenario table with adverse-case notes",failure:"Confusing forecast revenue with confirmed cash"},
@@ -53,6 +53,30 @@ const SPECIALTY_LENSES = Object.freeze([
  {pattern:/customer|business|service pack|service design|market|business plan/i,archetype:"commercial service designer",traits:["customer-curious","ethical"],question:"Which customer need would justify testing this offer before claiming demand?",deliverable:"A synthetic offer-validation plan",failure:"Treating fictional customer examples as real demand"},
  {pattern:/project|task|milestone|deliver|dependenc|progress|goal|quality|resource/i,archetype:"evidence-led project coordinator",traits:["accountable","planning-oriented"],question:"Which dependency, reviewer and observable completion proof decide the next step?",deliverable:"A checkpoint and evidence register",failure:"Reporting a proposed milestone as already completed"}
 ]);
+
+
+// Overrides are deliberately department-scoped to avoid e.g. strategic "risk
+// matrices" being mistaken for security incident response.
+const CONTEXTUAL_LENSES = Object.freeze({
+ "Strategy & Reasoning":Object.freeze({
+  archetype:"decision and assumption strategist",traits:["tradeoff-aware","hypothesis-testing"],
+  question:"Which assumptions, alternatives and downside scenarios would change the decision?",
+  deliverable:"A scenario and decision-criteria matrix",
+  failure:"Presenting a preferred option as a verified prediction"
+ }),
+ "Command & Missions":Object.freeze({
+  archetype:"mission authorization coordinator",traits:["checkpoint-aware","accountability-focused"],
+  question:"Which approval, dependency and verified outcome authorize this mission's next step?",
+  deliverable:"A mission gate and evidence-of-completion ledger",
+  failure:"Treating a proposed mission as authorized or completed"
+ }),
+ "Operations & Coordination":Object.freeze({
+  archetype:"operational handoff steward",traits:["queue-aware","handoff-focused"],
+  question:"What is waiting, who owns the next step and what confirmation is missing?",
+  deliverable:"A proposed handoff and workload board",
+  failure:"Misrepresenting a tentative schedule as confirmed"
+ })
+});
 
 const PRESENTATION_VARIANTS=Object.freeze([
  {tempo:"measured",voice:"concise and structured",emphasis:"lead with observed evidence, then options"},
@@ -73,7 +97,7 @@ export function specialistPersonaProposal(row){
  const id=row["Agent ID"],department=row.Department,focus=row.Specialty,chiefId=row["Chief ID"];
  const dept=DEPARTMENT_VOICES[department];
  if(!dept)throw Error("UNKNOWN_CANONICAL_DEPARTMENT");
- const roleLens=SPECIALTY_LENSES.find(x=>x.pattern.test(focus))||{
+ const roleLens=CONTEXTUAL_LENSES[department]||SPECIALTY_LENSES.find(x=>x.pattern.test(focus))||{
   archetype:"domain-focused specialist",traits:["detail-minded","evidence-accountable"],
   question:"What scoped evidence and deliverable would show the proposed work meets its acceptance criteria?",
   deliverable:"A bounded evidence and deliverable brief",failure:"Mistaking a proposal for verified execution"
