@@ -191,6 +191,13 @@ function profile(a){
   prompt
  };
 }
+function freezeDeep(value){
+ if(value&&typeof value==='object'&&!Object.isFrozen(value)){
+  for(const nested of Object.values(value))freezeDeep(nested);
+  Object.freeze(value);
+ }
+ return value;
+}
 export function buildIndividualBrains(roster=connectedRoster()){
  if(!Array.isArray(roster)||roster.length!==185)throw Error('EXPECTED_185_ROSTER');
  names.clear();
@@ -201,7 +208,7 @@ export function buildIndividualBrains(roster=connectedRoster()){
    throw Error('EXPECTED_25_CHIEFS_160_SPECIALISTS');
  for(const a of roster)if(!a.isChief&&!chiefs.has(a.chiefId))
    throw Error('ORPHAN_SPECIALIST');
- const result=roster.map(profile);
+ const result=roster.map(profile).map(freezeDeep);
  return Object.freeze(result);
 }
 export const INDIVIDUAL_BRAINS=buildIndividualBrains();
@@ -216,11 +223,25 @@ export function roleResponsePreview(id,task){
  if(typeof task!=='string'||!task.trim()||task.length>2000)
    throw Error('INVALID_COMMON_TASK');
  const b=agentBrain(id);
+ const workContract={
+  objective:b.role==='chief'?
+   'Review the assigned department response using '+b.focus:
+   'Produce a scoped '+b.focus+' contribution',
+  initialStep:b.workingMethod[0],
+  method:b.workingMethod[1],
+  evidenceRule:b.limitations.find(x=>x.includes('fabricated citations'))||b.limitations[0],
+  deliverable:b.outputArtifact,
+  acceptanceCheck:b.completionStandards[1],
+  handoffTo:b.chiefId,
+  approvalState:'NOT_AUTHORIZED_TO_EXECUTE'
+ };
  return {agentId:id,role:b.role,task,mode:'DETERMINISTIC_DRY_RUN',
-  answer:b.role==='chief'?
-   b.name+' would review '+b.department+' implications for: '+task:
-   b.name+' would prepare a '+b.focus+' draft for: '+task,
+  answer:b.name+' — '+workContract.objective+
+    '. First: '+workContract.initialStep+
+    '. Method: '+workContract.method+
+    '. Produce '+workContract.deliverable+
+    '. Quality gate: '+workContract.acceptanceCheck,
   approach:b.workingMethod[0],deliverable:b.outputArtifact,
   keyCheck:b.completionStandards[1],reviewerId:b.chiefId,
-  toolCalls:0,memoryWrites:0,executed:false};
+  workContract,toolCalls:0,memoryWrites:0,executed:false};
 }
