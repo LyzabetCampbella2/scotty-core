@@ -32,7 +32,12 @@ export function makePhase1ReviewPackets(drafts){
    provenance:{rosterGitBlobSha:p.rosterBlobSha,method:p.distinctiveReasoning.provenance,legacyChief:historic?.sourceRef||null},
    ownerReviewState:"AWAITING_OWNER_REVIEW",
    ownerDecisions:{
-    proposedPersonalityTraits:historic?.sourceTraits||[],
+    proposedPersonalityTraits:historic?.sourceTraits||proposedChief?.traits||[],
+    proposedLeadershipArchetype:proposedChief?.archetype||null,
+    proposedSignatureQuestion:proposedChief?.signatureQuestion||null,
+    proposedChiefMethod:proposedChief?.roleReasoningMethod||null,
+    proposedChiefDeliverable:proposedChief?.exampleDeliverable||null,
+    proposedChiefFailureRisk:proposedChief?.chiefFailureRisk||null,
     adoptedPersonalityTraits:[],
     proposedRoleMethod:p.distinctiveReasoning.initialSequence,
     adoptedRoleMethod:false,
