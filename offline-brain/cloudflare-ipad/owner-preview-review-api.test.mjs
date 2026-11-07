@@ -15,7 +15,7 @@ const proposal={
  agentIds:['agent-geordi-02','agent-expansion-012'],
  scope:'mission.preview',classification:'public-or-synthetic',
  containsPrivateData:false,paidProviderRequested:false,
- expiresAt:'2099-01-01T12:00:00.000Z'
+ expiresAt:new Date(Date.now()+30*60*1000).toISOString()
 };
 function createDb(){
  const native=new DatabaseSync(':memory:');
