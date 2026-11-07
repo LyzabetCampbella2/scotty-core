@@ -46,3 +46,25 @@ The exporter only writes to standard output. Redirected files are local reviewer
 - [ ] Pass proper owner-scoped memory/permissions QA before any live deployment or agent call
 
 **No Stage B activation:** Stage A Phase 0 still requires independent zero-new-cost staging evidence or a revised owner resource decision, authenticated live owner grants at every actual executor, real-system stop-all and restore rehearsals, and separate owner authorization for accessing production data. Draft Stage B code is a safe parallel engineering task, not a substitute for A0's certification requirements.
+
+## Reconciled methodology and legacy chief sources (2026-11-07)
+
+The existing development history contains methodology authored in an earlier SCOTTY branch, not yet merged or owner-certified as agent skill. To prevent contradictory duplicate designs, the Phase B1 branch reuses and attributes those sources directly:
+
+| Review artifact | Earlier source | Coverage | Validation boundary |
+|---|---|---|---|
+| `src/agents/phase1/department-methods.mjs` | `feat/personalized-agent-workspaces-20261106`, Git blob `1df7063babd4db8a4e07af1d5259185299979f5f` | 25 different department planning methods | Fictional examples; no real-world facts or owner acceptance asserted |
+| `src/agents/phase1/specialist-playbooks.mjs` | Same earlier branch, blob `9d26a5f4d086ee3103d9ee29b98eb2d35f265f4c` | 160 drafted specialty guides with department fallback | Candidate reference URLs are **unverified**, with `checkedAt=null` |
+| `src/agents/phase1/department-acceptance-cases.mjs` | Same earlier branch, blob `96e3db6072f36bc3c74dbc627dd218ffc498f885` | 25 synthetic chief evaluation tasks | Tests are planned only; passing a parser test is not a real-model evaluation |
+| `src/agents/phase1/chief-source-candidates.mjs` | `feat/remaining-17-chiefs-scaffold-20261106`, individual source file hashes embedded | Eight previously authored chief references | Source preferences are **not automatically adopted** or owner-certified |
+
+The source references cover RIKER, SPOCK, WORF, DATA, GEORDI, KIRK, PICARD and TROI. Only an exact identity check is allowed. Existing canonical **TROI is `chief-expansion-troi`**, but the earlier profile was authored under **`chief-troi`**. The profile is therefore flagged `LEGACY_ID_MISMATCH_REQUIRES_OWNER_REVIEW`, not assigned to the canonical ID. Some matched chiefs also have changed department labels; those cases are labelled `MATCHED_ID_NAME_DEPARTMENT_DRIFT_REVIEW`. Source personality traits remain `priorChiefReview.sourceTraits` candidates, not adopted `traits`.
+
+The builder now includes authored department methods, per-specialist procedural criteria and worked synthetic examples, while leaving all external references and role-specific claims unverified. It preserves 185 frozen IDs, zero runtime access, zero approved brain versions, and 555 unrun evaluation cases.
+
+### Distinct from final certification
+
+- Authored method coverage does **not** mean 160 specialists have independently demonstrated skill.
+- A source-backed historic chief design does **not** mean the owner approved its current version or that a chief may act.
+- A synthetic scenario is **not** evidence of a real-world result, permit, quality test, public source check, or clinical/legal judgment.
+- Stage B1 needs source-backed knowledge verification, personality reviews, independent real-model results, privacy/role tests and the owner's individual approvals before release.
