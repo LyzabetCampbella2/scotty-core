@@ -68,3 +68,17 @@ The builder now includes authored department methods, per-specialist procedural 
 - A source-backed historic chief design does **not** mean the owner approved its current version or that a chief may act.
 - A synthetic scenario is **not** evidence of a real-world result, permit, quality test, public source check, or clinical/legal judgment.
 - Stage B1 needs source-backed knowledge verification, personality reviews, independent real-model results, privacy/role tests and the owner's individual approvals before release.
+
+## Individual owner-review packet export
+
+Added `src/agents/phase1/review-packets.mjs` and `scripts/phase1-export-review-packets.mjs`. They create 185 read-only individual review packets grouped by the approved 25 departments. Each packet retains stable identity, current department and chief, sourced methodology, quality criteria, candidate references (clearly unverified), legacy chief source suggestions, and identity/department conflicts.
+
+There are **eight distinct evidence gates per agent (1,480 checklist items total)**: owner-selected temperament, chosen tone and check-in rules, method/failure-mode review, source review, three independent model evaluations (shared, specialty, adversarial) and authenticated individual owner approval. **All 1,480 gates are unchecked.** The 555 planned behavior tests remain `NOT_RUN`, owner-approved brain versions stay at 0 and no live execution is enabled.
+
+Use the read-only command:
+
+```bash
+node scripts/phase1-export-review-packets.mjs > /tmp/scotty-phase1-review-packets.json
+```
+
+This generates local JSON for owner review. It does not update Activepieces, Railway, Render, agent runtime, source registry, any persistent database or your private memory. Any later approval must be authenticated, matched to exact agent ID and version, evidence-backed and recorded independently. Editing the packet JSON is not approval or certification.
