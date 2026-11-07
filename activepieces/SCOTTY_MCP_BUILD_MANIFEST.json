@@ -251,6 +251,18 @@
       ],
       "risk": "read-only",
       "enabled": false
+    },
+    {
+      "key": "scotty-launch-readiness-dashboard",
+      "name": "SCOTTY — Launch Readiness Dashboard (manual)",
+      "type": "manual",
+      "status": "STAGING_DRAFT_TESTED",
+      "flowId": "d6nHeqQQqp8E6A2HNkoDX",
+      "dependencies": [
+        "11 explicit release gate records"
+      ],
+      "risk": "read-only",
+      "enabled": false
     }
   ],
   "defaultRules": {
@@ -264,15 +276,15 @@
     "copyPasswords": false,
     "writeProduction": false
   },
-  "notes": "Activepieces staging now contains 10 installed draft flows and 7 tables with 224 synthetic/public metadata rows. The new memory access gate always denies actual memory reads/writes without protected SCOTTY backend consent, and the owner decision audit demonstrates approve/reject/pending but grants no real authorization. All 10 flows remain disabled and unpublished; Worker and production remain unmodified.",
+  "notes": "11 unpublished, disabled Activepieces staging drafts plus the existing disabled public connection test; 8 tables with 235 public/synthetic records. Protected review D1 migration + source-only review store added in GitHub but NOT applied, imported into runtime or deployed. Readiness endpoint is behind separately disabled bridge token. No real mission, private memory or paid AI provider is connected.",
   "verifiedInAccount": {
     "workspaceProjectId": "xTfZdRPX3i4JjdOyR5NYq",
     "stagingFolder": "SCOTTY — Staging",
-    "draftFlowsInFolder": 10,
+    "draftFlowsInFolder": 11,
     "existingUserConnectionTestFlow": 1,
     "publishedFlows": 0,
     "enabledFlows": 0,
-    "tablesCreated": 7,
+    "tablesCreated": 8,
     "tableRecordCounts": {
       "developmentAgents": 185,
       "projects": 5,
@@ -280,10 +292,11 @@
       "publicDemoTasks": 1,
       "demoMissionInbox": 1,
       "memoryScopeRules": 4,
-      "demoOwnerDecisions": 3
+      "demoOwnerDecisions": 3,
+      "launchReadinessGates": 11
     },
-    "validation": "Activepieces MCP verified 10 disabled, unpublished staging flows, 7 staging tables, ok=true and issues=[]",
-    "scope": "All preview-only flows tested with public or synthetic data; native owner waitpoint remains untested; no real memory or mission access"
+    "validation": "Activepieces MCP: 11 staging flows configured, all disabled and unpublished; 8 tables; launch dashboard tested",
+    "scope": "Read-only public/synthetic staging previews; no owner grant, staging Worker deployment or native waitpoint acceptance"
   },
   "tables": [
     {
@@ -327,6 +340,12 @@
       "id": "SKmoa9UCdVdQMdodPMJk6",
       "rows": 3,
       "scope": "one synthetic approve, reject and pending; all non-authorizing"
+    },
+    {
+      "name": "SCOTTY — Launch Readiness Gates (Staging)",
+      "id": "7d4LHNXJtgGe1ASlb2NLZ",
+      "rows": 11,
+      "scope": "4 development preview checks and 7 blocked approval, authorization, memory and release dependencies"
     }
   ]
 }
