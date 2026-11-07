@@ -71,6 +71,9 @@ const validAuditTransitions={
 async function verifiedAudit(db,row){
  const expected=validAuditTransitions[row.status];
  if(!expected)denied('INVALID_REVIEW_STATUS');
+ if(row.version!==expected.length)denied('REVIEW_VERSION_AUDIT_MISMATCH');
+ if(!Number.isFinite(Date.parse(row.created_at||''))||!Number.isFinite(Date.parse(row.updated_at||'')))
+   denied('INVALID_REVIEW_TIMESTAMPS');
  let records;
  try{
    const result=await db.prepare(
@@ -95,6 +98,12 @@ async function verifiedAudit(db,row){
  }
  if(row.status==='pending' ? row.decided_at!==null : !Number.isFinite(Date.parse(row.decided_at||'')))
    denied('REVIEW_DECISION_TIMESTAMP_INCONSISTENT');
+ const created=byId.get(row.request_id+':created');
+ const final=row.status==='pending'?created:byId.get(row.request_id+':'+(row.status==='revoked'?'revoked':row.status));
+ if(created.occurred_at!==row.created_at||final.occurred_at!==row.updated_at||
+    (row.status!=='pending'&&final.occurred_at!==row.decided_at)||
+    Date.parse(final.occurred_at)<Date.parse(created.occurred_at))
+   denied('REVIEW_AUDIT_TIMESTAMP_MISMATCH');
  return records.length;
 }
 function safeAgentIds(row){
@@ -189,7 +198,8 @@ export async function decideOwnerPreviewReview(db,{actor,project,requestId,
  if(existing.revision!==revision||existing.intent_digest!==intentDigest||
     existing.version!==expectedVersion)denied('REVIEW_REVISION_CONFLICT');
  await verifiedAudit(db,existing);
- if(Date.parse(existing.expires_at)<=now.getTime())denied('REVIEW_EXPIRED');
+ const expires=Date.parse(existing.expires_at||'');
+ if(!Number.isFinite(expires)||expires<=now.getTime())denied('REVIEW_EXPIRED');
  if(decision==='revoked'?existing.status!=='approved':existing.status!=='pending')
    denied('ILLEGAL_REVIEW_TRANSITION');
  const update=db.prepare(
