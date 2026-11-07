@@ -1,0 +1,19 @@
+{
+  "service": "SCOTTY",
+  "integration": "Activepieces Cloud",
+  "integration_stage": "STEP_1_PUBLIC_CONNECTIVITY_TEST",
+  "mode": "STATIC_READ_ONLY",
+  "source": "scotty-core development branch for draft PR #75",
+  "owner_approval_required_for_live_access": true,
+  "live_scotty_connected": false,
+  "cloudflare_staging_deployed": false,
+  "ai_calls": 0,
+  "memory_reads": 0,
+  "memory_writes": 0,
+  "missions_started": 0,
+  "development_agent_profiles": {
+    "chiefs": 25,
+    "specialists": 160
+  },
+  "instructions": "This file proves Activepieces can fetch public development content. It is not live agent control. Do not send personal information or secrets."
+}
