@@ -29,6 +29,19 @@ The Activepieces workspace currently has **zero connected external application c
 
 The isolated D1 schema `offline-brain/cloudflare-ipad/activepieces-review-ledger-v1.sql` and `activepieces-review-store.mjs` now provide an **unapplied**, source-only durable preview review draft, owner decision, revision check, idempotent replay protection, owner/session checks and append-only metadata audit. All tested with in-memory SQLite, never a live D1 instance. The review store is **not imported** into the Worker or reachable through an API. A review marked "approved" cannot run any agent or use private memory.
 
+## Owner-only preview review API — wired in development, DISABLED
+
+The isolated Worker's `handleApi` now routes owner-only review requests behind the existing `OWNER_BEARER_TOKEN`, plus a separate default-off `SCOTTY_PREVIEW_REVIEWS_ENABLED=true` switch. This is NOT the `/api/activepieces` namespace and deliberately rejects the Activepieces bridge token as authentication.
+
+- `POST /api/owner-preview-reviews` creates a *public/synthetic* owner review pending record. Never runs a mission.
+- `GET /api/owner-preview-reviews?requestId=...` reads owner-scoped status and verifies the audit trail.
+- `POST /api/owner-preview-reviews/decision` records owner-confirmed approve/reject/revoke of a **plan preview only**; no mission execution or memory privileges.
+- `SCOTTY_REVIEW_OWNER_ID` and `SCOTTY_REVIEW_PROJECT_ALLOWLIST` must be configured server-side for the isolated single-owner lab. Project existence and eligible agent links are queried from the isolated D1 `agent_projects` and `agent_project_links` tables, never accepted from the Activepieces JSON request.
+- The optional review migration plus portfolio migration must be present before requests succeed. Real users/project membership and verified roster remain a separate production design; do not mistake a development lab owner bearer for general-purpose, multi-user application authentication.
+- Unit/integration tests run against an **in-memory SQLite clone** of both migrations and verify owner auth, project scope, idempotency replay, audit readback, approve/revoke, and denial of untrusted claims.
+
+**No live account configuration was changed.** No Worker deployment, D1 migration, paid connection, secret setup, enablement or published flow was performed. Explicit owner approval and a reviewed isolated backup/deployment plan are still required.
+
 The separate-secret Activepieces bridge includes a disabled-by-default read-only `GET /api/activepieces/review-readiness` endpoint that checks D1 schema presence only. It cannot grant authorization. To activate that bridge, its own staging secret and staging Worker deployment must first be explicitly approved, and the optional migration needs separate owner review and backup.
 
 - [SCOTTY — Agent Bio & Collaborators](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/laAR7amU62nSsH1JUd1u4) — PASSED: Delta under GEORDI, proposed Eirden project and four candidate collaborators; no real assignments or memories
