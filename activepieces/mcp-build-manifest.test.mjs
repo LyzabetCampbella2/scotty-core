@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const file=JSON.parse(fs.readFileSync(new URL('./SCOTTY_MCP_BUILD_MANIFEST.json',import.meta.url),'utf8'));
 test('staging MCP plan cannot silently activate expensive or private flows',()=>{
- assert.equal(file.state,'SOURCE_ONLY_NOT_INSTALLED');
+ assert.equal(file.state,'STAGING_DRAFTS_INSTALLED');
  assert.equal(file.mode,'STAGING');
  assert.equal(file.deployApproved,false);
  assert.equal(file.allowedPaidActions,false);
@@ -19,6 +19,16 @@ test('staging MCP plan cannot silently activate expensive or private flows',()=>
   assert.equal(value,false,'Unexpected enabled default: '+key);
  }
 });
+test('verified staging drafts are recorded as disabled and reviewed',()=>{
+ assert.equal(file.verifiedInAccount.draftFlowsInFolder,8);
+ assert.equal(file.verifiedInAccount.enabledFlows,0);
+ assert.equal(file.verifiedInAccount.publishedFlows,0);
+ assert.equal(file.verifiedInAccount.tablesCreated,5);
+ assert.equal(file.tables.reduce((sum,t)=>sum+t.rows,0),217);
+ assert.ok(file.flows.filter(x=>x.status==='STAGING_DRAFT_TESTED').length>=6);
+ assert.ok(file.flows.every(x=>x.status!=='STAGING_DRAFT_TESTED'||x.flowId));
+});
+
 test('all ready flows are manual and read-only or preview-only',()=>{
  for(const flow of file.flows.filter(x=>x.status==='READY_TO_BUILD')){
   assert.equal(flow.type,'manual');
