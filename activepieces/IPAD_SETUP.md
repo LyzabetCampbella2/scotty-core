@@ -8,6 +8,19 @@
 - This does NOT automatically deploy 185 working autonomous agents. The repository stores authored development profiles for 25 chiefs and 160 specialists, but they are not individually verified/executing Activepieces agents.
 - Keep SCOTTY's reasoning, character profiles, project ACLs, approvals and long-term memory in its controlled application; Activepieces is just the automation and integration layer.
 
+## Step 0: First real Activepieces run — no passwords needed
+
+Before the future staging deployment, verify your Activepieces Cloud account can make a harmless read-only HTTP request to SCOTTY's **public development source**.
+
+1. On iPad Safari, open Activepieces Cloud and select **Flows** > **New Flow** (menu labels can vary).
+2. Name it **SCOTTY — Public connectivity test**.
+3. Set trigger to **Manual Trigger**. Add an **HTTP** action named **Send HTTP request**.
+4. Set Method **GET** and paste the following URL as the HTTP request URL:
+   https://raw.githubusercontent.com/LyzabetCampbella2/scotty-core/feat/scotty-activepieces-ipad-bridge-20261106/activepieces/connectivity-check.json
+5. Leave headers, body and authentication **empty**. There are no API keys in this test. Run/test the flow manually, not on a schedule.
+6. The response JSON should include **service: SCOTTY**, **mode: STATIC_READ_ONLY**, **integration_stage: STEP_1_PUBLIC_CONNECTIVITY_TEST**, and **live_scotty_connected: false**. Zero AI calls, memory reads/writes, and missions started.
+7. This is only a verified public GitHub GET. It is not a live connection into SCOTTY's protected agent backend or your Activepieces account, and it does not enable any agent execution. Keep this workflow manual.
+
 ## First actions on iPad — no computer required
 
 1. In Safari go to https://cloud.activepieces.com/sign-up and create a **Free** cloud account yourself.
