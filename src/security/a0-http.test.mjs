@@ -110,6 +110,15 @@ test("A0 owner HTTP: fail-closed behavior, no real database or providers",async 
     assert.equal(r.status,503);
     assert.equal(store.records.length,before);
   });
+  await t.test("unverified grant request cannot even open staging storage",async()=>{
+    const q=req("/grants",{method:"POST",body:grantInput()});
+    let reached=false;
+    const r=await rawHandleA0(q,new URL(q.url),{
+      now,storeFactory:async()=>{reached=true;throw Error("Store should not open");}
+    });
+    assert.equal(r.status,503);
+    assert.equal(reached,false);
+  });
   await t.test("a verifier rejection cannot mint a grant",async()=>{
     const before=store.records.length;
     const q=req("/grants",{method:"POST",body:grantInput()});
