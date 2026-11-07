@@ -25,6 +25,7 @@ import {portfolioReadiness,listProjects,createProject,recordAssignment,agentBio}
 import {isRikerRoute,rikerRoute} from "./riker-memory-api.mjs";
 import {isActivepiecesPath,handleActivepieces} from './activepieces-bridge.mjs';
 import {isOwnerPreviewReviewPath,handleOwnerPreviewReview} from './owner-preview-review-api.mjs';
+import {isCreativeBioPath,handleCreativeBio} from './creative-agent-bio-api.mjs';
 
 const MODEL="@cf/meta/llama-3.2-3b-instruct";
 const MAX_QUESTION=500;
@@ -86,6 +87,7 @@ async function handleApi(request,env,url){
  if(auth!=="YES")return failure("UNAUTHORIZED","Valid owner token required.",401);
  const path=url.pathname;
  if(isOwnerPreviewReviewPath(path))return handleOwnerPreviewReview(request,env,url,auth==="YES");
+ if(isCreativeBioPath(path))return handleCreativeBio(request,env,url,auth==="YES");
  if(isRikerRoute(path))return rikerRoute(request,env,url,auth==="YES");
  if(path==="/api/readiness"&&request.method==="GET")return response(await readiness(env));
  if(["/api/projects","/api/agent-bio","/api/agent-assignment"].includes(path)){
