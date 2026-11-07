@@ -147,8 +147,6 @@ export async function createPhase1ProfileReview(db,{
  ).bind(proposal.agentId,at);
  try{await db.batch([headInit]);}catch{deny('PROFILE_HEAD_CREATE_FAILED');}
  const current=await head(db,proposal.agentId);
- if(!current||current.head_version!==expectedHeadVersion)
-   deny('STALE_PROFILE_HEAD_VERSION');
  const row={
   request_id:proposal.requestId,agent_id:proposal.agentId,owner_id:ownerId,
   base_spec_version:proposal.basedOn,expected_head_version:expectedHeadVersion,
@@ -166,6 +164,8 @@ export async function createPhase1ProfileReview(db,{
   await checkAudit(db,existing);
   return publicStatus(existing,current,{replayed:true,created:false,auditVerified:true});
  }
+ if(!current||current.head_version!==expectedHeadVersion)
+   deny('STALE_PROFILE_HEAD_VERSION');
  const insert=db.prepare(
   'INSERT INTO scotty_phase1_agent_profile_reviews_v1('+cols+') VALUES('+cols.split(',').map(()=>'?').join(',')+')'
  ).bind(...Object.values(row));
