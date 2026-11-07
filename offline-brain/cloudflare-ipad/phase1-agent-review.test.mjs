@@ -5,6 +5,10 @@ import {phase1ReadinessReport,phase1AgentReview} from './phase1-agent-review.mjs
 test('Phase 1 report includes all canonical identities and honestly indicates review gaps',()=>{
  const report=phase1ReadinessReport();
  assert.equal(report.counts.profiles,185);
+ assert.equal(report.counts.roleContracts,185);
+ assert.equal(report.counts.evaluationCasesPrepared,555);
+ assert.equal(report.counts.generatedProfilesRequiringOwnerReview,177);
+ assert.ok(report.counts.overlappingSpecialtyGroups>0);
  assert.equal(report.counts.chiefs,25);
  assert.equal(report.counts.specialists,160);
  assert.equal(report.counts.structuralPasses,185);
@@ -21,6 +25,8 @@ test('Phase 1 report includes all canonical identities and honestly indicates re
  assert.equal(new Set(report.profiles.map(x=>x.agentId)).size,185);
  assert.ok(report.profiles.every(x=>x.structuralPasses!==false));
  assert.ok(report.profiles.every(x=>x.certificationStatus==='NOT_CERTIFIED'));
+ assert.ok(report.profiles.every(x=>x.evaluationScenariosPrepared===3&&x.activeProfileRevision===null&&x.editableFieldsAwaitVerifiedReview===true));
+ assert.ok(report.profiles.every(x=>x.workstreamArtifact.length>12));
 });
 test('owner-recorded RIKER, GEORDI and canonical TROI are identified without false owner acceptance',()=>{
  for(const id of ['chief-riker','chief-geordi','chief-expansion-troi']){
