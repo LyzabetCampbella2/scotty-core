@@ -1,6 +1,6 @@
 # SCOTTY — Activepieces MCP implementation runbook
 
-Status: **staging drafts installed and tested through the connected Activepieces MCP tools**. The existing user's `SCOTTY — Connection Test` was inspected, repaired and tested. A separate `SCOTTY — Staging` folder contains **8 unpublished/disabled workflows** and **5 tables (185 public development agents, 5 public project profiles, 25 proposed collaborators, 1 synthetic task, 1 demo mission)**. The Activepieces MCP folder validator returned `ok=true`, `issues=[]`. This is NOT a production deployment, 185 verified autonomous agents, or owner-authorized real project work.
+Status: **staging drafts installed and tested through the connected Activepieces MCP tools**. The existing user's `SCOTTY — Connection Test` was inspected, repaired and tested. A separate `SCOTTY — Staging` folder contains **10 unpublished/disabled workflows** and **7 tables (185 public development profiles, 5 public project profiles, 25 proposed collaborators, 1 synthetic task, 1 demo mission, 4 memory scope rules, 3 demonstration owner decisions)**. The Activepieces MCP folder validator returned `ok=true`, `issues=[]`. This is NOT a production deployment, 185 verified autonomous agents, or owner-authorized real project work.
 
 ## Verified Activepieces draft flows
 
@@ -12,6 +12,16 @@ Status: **staging drafts installed and tested through the connected Activepieces
 - [SCOTTY — Project Team Planner (actual)](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/Zh4Gt9XVgIkTsCZ3k3ief) — passed Eirden Atelier five-department proposal
 - [SCOTTY — Owner Portfolio Briefing](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/EOzy39Y8WJDR6uKrglKPm) — passed five-project read-only overview
 - [SCOTTY — Owner Review Packet Preview](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/Kij25Ua46OFOvOBdElSyn) — passed, no authority granted
+
+
+- [SCOTTY — Memory Access Gate](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/yijvvHp7kbV6IFGNOTQDy) — PASSED: agent/department/shared/project policy data, `memoryReadAllowed=false` even for matching development identities
+- [SCOTTY — Demo Owner Decision Audit](https://cloud.activepieces.com/projects/xTfZdRPX3i4JjdOyR5NYq/flows/TbZ7pjqGhHU0GN562OLJH) — PASSED: approve/reject/pending cases; `backendAuthorized=false`, `canExecute=false` for every case
+
+## Protected backend integration gate (source only, not routed or deployed)
+
+The pure `offline-brain/cloudflare-ipad/activepieces-owner-gate.mjs` contract checks the project ID, mission ID, revision, request digest, approved agent IDs, idempotency key, owner/session source, expiration and explicit consent. It **never returns execution permission or writes data**. A future implementation must fetch owner/session, project membership and approval history from SCOTTY's protected server, not from Activepieces-supplied request fields. Atomic audit-backed mission-commit and scoped worker authorization are not implemented.
+
+The Activepieces workspace currently has **zero connected external application credentials**, and there is no deployed private SCOTTY staging Worker for this automation. Never paste secrets into flow code, table rows or messages.
 
 All flows are manually triggered, DISABLED and DRAFT. No API secrets, paid AI actions, publishing, external writes, cloud workers or real mission execution were added.
 
