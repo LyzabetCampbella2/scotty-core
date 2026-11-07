@@ -49,8 +49,8 @@ export async function phase1EvaluationEvidenceReadiness(db){
 }
 
 /** A preflight candidate is NOT certification and can never be executed. */
-export async function inspectPhase1Candidate(db,{
- actor,agentId,requestId,sessionId,
+export async function inspectPhase1Candidate({
+ db,actor,agentId,requestId,sessionId,
  attestor,now=new Date()
 }={}){
  if(typeof db?.prepare!=='function'||typeof db?.batch!=='function')
