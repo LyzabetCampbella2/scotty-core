@@ -105,6 +105,12 @@ export class SyntheticMemoryLab {
     !(expiresAt===null||(text(expiresAt)&&Date.parse(expiresAt)>this.#at)))
    throw Error("INVALID_SYNTHETIC_CANDIDATE");
   const owner=this.#agents.get(ctx.id);
+  const existing=[...this.#records.values()].find(r=>
+   r.canonicalAgentId===ctx.id&&r.projectId===projectId&&r.content===content&&
+   ["candidate","accepted"].includes(r.status)&&
+   (r.expiresAt===null||Date.parse(r.expiresAt)>this.#at));
+  if(existing)return {memoryId:existing.memoryId,status:existing.status,
+   persistent:false,ownerAccepted:false,deduplicated:true};
   const memoryId="synthetic-memory-"+(this.#sequence+1);
   const record={
    memoryId,canonicalAgentId:ctx.id,department:owner.dept,projectId,
@@ -201,6 +207,48 @@ export class SyntheticMemoryLab {
   this.#event("synthetic-tombstone",{memoryId});
   return {memoryId,deletedFromSimulation:true,realDataDeletion:false,backupsReconciled:false};
  }
+ /** Test-only erasure across correction lineage, NOT a real backup deletion. */
+ deleteLineageForTest(owner,memoryId){
+  this.#owner(owner);
+  let root=this.#get(memoryId);
+  const visited=new Set();
+  while(root.supersedesId!==null){
+   if(visited.has(root.memoryId))throw Error("CORRUPT_SYNTHETIC_LINEAGE");
+   visited.add(root.memoryId);
+   root=this.#get(root.supersedesId);
+  }
+  const members=new Set([root.memoryId]);
+  let changed=true;
+  while(changed){
+   changed=false;
+   for(const r of this.#records.values()){
+    if(r.supersedesId!==null&&members.has(r.supersedesId)&&!members.has(r.memoryId)){
+     members.add(r.memoryId);changed=true;
+    }
+   }
+  }
+  for(const key of members){
+   const rec=this.#get(key);
+   rec.content=null;rec.status="deleted";rec.recipientIds=[];rec.consentRef=null;
+  }
+  this.#event("synthetic-lineage-tombstone",{memoryId,versions:members.size});
+  return {versionsTombstoned:members.size,realDataDeletion:false,
+   realBackupsReconciled:false};
+ }
+ /** Explicit simulated TTL purge, since hiding alone does not erase bytes. */
+ purgeExpiredForTest(owner){
+  this.#owner(owner);
+  let count=0;
+  for(const rec of this.#records.values()){
+   if(rec.expiresAt!==null&&Date.parse(rec.expiresAt)<=this.#at&&rec.content!==null){
+    rec.content=null;rec.status="deleted";rec.recipientIds=[];rec.consentRef=null;
+    count++;
+   }
+  }
+  this.#event("synthetic-expiry-purge",{recordsTombstoned:count});
+  return {recordsTombstoned:count,realRetentionJobExecuted:false,
+   realBackupDeletionConfirmed:false};
+ }
  advanceClockForTest(owner,clock){
   this.#owner(owner);
   const next=Date.parse(clock);
@@ -242,7 +290,7 @@ export class SyntheticMemoryLab {
       !validScope.has(rec.scope)||!validStates.has(rec.status)||
       rec.department!==lab.#agents.get(rec.canonicalAgentId).dept||
       rec.dataClass!=="SYNTHETIC_PUBLIC"||
-      !(rec.content===null&&rec.status==="deleted"||synthetic(rec.content))||
+      !(rec.status==="deleted"?rec.content===null:synthetic(rec.content))||
       !Array.isArray(rec.recipientIds)||rec.recipientIds.some(x=>!lab.#agents.has(x)))
     throw Error("INVALID_SYNTHETIC_RECORD");
    ids.add(rec.memoryId);
