@@ -32,6 +32,6 @@ jobs:
         with:
           node-version: '22'
       - name: Verify synthetic memory scope boundaries
-        run: node --test src/memory/phase2-policy.test.mjs
+        run: node --test src/memory/phase2-policy.test.mjs src/memory/phase2-synthetic-lab.test.mjs
       - name: Produce offline blueprint export only
         run: node scripts/phase2-export-memory-plan.mjs > /dev/null
