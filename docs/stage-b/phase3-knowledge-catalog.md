@@ -175,3 +175,29 @@ node scripts/phase3-export-all-chief-public-review.mjs specialists > /tmp/scotty
 The updated offline CI tests confirm exactly 160 frozen specialist identities, 480 unique review IDs, 25 intact chief links and **zero** implied inherited chief approval, verified specialist claims or allowed live citations.
 
 **The remaining source-research queue:** 480 specialist evidence needs plus 50 uninspected second/third chief evidence needs, totalling **530** dockets without manually inspected public candidate. All 555 original evidence decisions remain pending independent review. No real model retrieval tests or operational approvals have occurred.
+
+## First eight specialist public-source candidates — Health & Human Support, November 8, 2026
+
+The first **eight** of the 160 specialists now have *one individually relevant, assistant-inspected public reference candidate* each. This is a separate inspection batch, not inheritance from chief BONES. It preserves their approved roster names, specialties and exact K1 review dockets.
+
+| Specialist | Specialty | Inspected authoritative public reference | Proposed usage / limitations |
+|---|---|---|---|
+| Vaultguard (BONES 01) | Health literacy | [CDC: What Is Health Literacy?](https://www.cdc.gov/health-literacy/php/about/index.html) | Explain personal versus organizational comprehension/access responsibilities; no individual understanding guaranteed |
+| JAG (BONES 02) | Clinical evidence appraisal | [Cochrane: Risk of Bias in Randomized Trials, Chapter 8](https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-08) | Propose structured trial bias appraisal; not automatic verification of studies, nonrandomized designs or treatments |
+| Garax (BONES 03) | Appointments and questions | [AHRQ: Questions Are the Answer](https://www.ahrq.gov/questions/index.html) | Provide neutral appointment preparation prompts; no diagnoses or medical triage |
+| Design (BONES 04) | Medication literacy | [FDA: Learn About Your Medicines](https://www.fda.gov/patients/learn-about-your-medicines) | Refer to official patient labeling and pharmacist questions; never change dosing or personalize drug instructions |
+| Vic (BONES 05) | Care coordination | [AHRQ: Care Coordination](https://www.ahrq.gov/topics/care-coordination.html) | Clarify care-team communication/ownership; no access to records or real care orchestration |
+| Miles (BONES 06) | Mental health resources | [NIMH: Help for Mental Illnesses](https://www.nimh.nih.gov/health/find-help) | Point to public ways of locating help and trained support; no diagnosis, referral certification or sensitive-record collection |
+| Lwaxana (BONES 07) | Nutrition literacy | [HHS/USDA: Current Dietary Guidelines, 2025–2030](https://odphp.health.gov/our-work/nutrition-physical-activity/dietary-guidelines/current-dietary-guidelines) | General dietary education using the current edition; never infer individual dietary treatment needs |
+| Seven (BONES 08) | Accessibility support | [ADA.gov: Communicating Effectively with People with Disabilities](https://www.ada.gov/topics/effective-communication/) | Choose suitable communication aids by context and preference; no legal compliance certification |
+
+**Evidence status:** These eight are official publisher references inspected by the assistant and summarized in original wording with explicit role-specific limitations. They have not been independently checked by a separate reviewer, approved by the owner, legally cleared for reuse in live services, or tested through real-model retrieval. The references were not scraped or ingested into any agent, and no private records or health data were accessed. Health information is deliberately limited to public informational-method concepts.
+
+**Files:** `docs/stage-b/b3-first-eight-specialist-public-pilot-2026-11-08.json` stores eight unchanged source assignments and unapproved flags; `src/knowledge/phase3-eight-specialist-public-pilot.mjs` validates their exact canonical IDs, fixed public hosts/paths, claim metadata and each open K1 docket. `src/knowledge/phase3-eight-specialist-public-pilot.test.mjs` exercises URL substitution, identity replay, date tampering and forged approval/health-access fields.
+
+```bash
+node --test src/knowledge/phase3-eight-specialist-public-pilot.test.mjs
+node scripts/phase3-export-eight-specialist-public-pilot.mjs > /tmp/scotty-b3-eight-specialist-review.json
+```
+
+**Coverage after this pilot:** 25 chief source candidates + 8 specialist source candidates = **33 of 555** dockets with an inspected public reference. **522** source dockets still lack an inspected candidate, comprising 50 chief K2/K3 plus 472 specialist requirements. **152 of 160** specialists still have no individually inspected source. All **555** external-evidence decisions still await independent acceptance and owner authorization. **0** approved agent knowledge libraries, **0** real model retrieval evaluations, and **0** agents activated.
