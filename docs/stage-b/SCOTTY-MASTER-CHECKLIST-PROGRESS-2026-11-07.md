@@ -1,13 +1,13 @@
 # SCOTTY Master Checklist — Evidence-Based Progress Board
 
-**Date:** November 7, 2026 (Pacific)  
+**Updated:** November 8, 2026 (Pacific)  
 **Workbook:** SCOTTY Agent Master Build Checklist, November 7 edition  
 **Important:** Development artifacts and passed *synthetic* CI tests do NOT satisfy operational pass/fail gates.
 
 ## Where we are
 
 **Current primary build:** Stage B, Phase 1 — Individual agent brains (implementation and review instruments, pending actual model tests and owner approvals).  
-**Parallel offline design work started:** Stage B, Phase 2 — Individual/shared memory scopes and lifecycle policy (draft PR #78).  
+**Parallel development:** Stage B, Phase 2 now has disposable synthetic PostgreSQL persistence and a two-database restore test (draft PR #78). Stage B, Phase 3 has 185 role and 25 department knowledge review candidates with offline limited search (draft PR #79). **Neither phase is operationally certified.**  
 **Operational release gate:** Stage A, Phase 0 remains blocked pending actual isolation, per-executor runtime authorization, cross-service emergency stop, authorized encrypted recovery and final owner sign-off.
 
 | Stage | Phase | Workbook workstream | Evidence available | Exit gate |
@@ -15,7 +15,7 @@
 | A — Inventory & Protect | A0 | Identity, policies, apps, costs, recovery | PR #76, 185 IDs and names owner-approved and version-locked; simulated owner-grant/backup CI; provider inventory | **BLOCKED:** real staging/production separation, live executor permissions, actual stop-all and real recovery |
 | B — Individual Intelligence | 1 | 185 individual personalities and brains | PR #77, 25 chief and 160 specialist concept drafts, 185 review worksheets, 555 planned tests, revisions and source dossiers | **BLOCKED:** 185 owner-reviewed versions and 555 independent real-model test outputs |
 | B — Individual Intelligence | 2 | Individual/shared memory | PR #78, 185 scope blueprints, offline lab and **disposable PostgreSQL persistence tests**, including database-committed fictional records, SQL-scoped retrieval, sharing/revocation, correction, deletion, TTL and independent synthetic database restore | **NOT COMPLETE:** no durable memory, real auth, restart/search/delete/promotion/restore verification |
-| B — Individual Intelligence | 3 | Verified specialist knowledge | 185 knowledge-gap dossiers, 555 verification requirements and 740 research questions in Phase 1 draft | **NOT COMPLETE:** source libraries, searchable indexes, citations/freshness and retrieval tests |
+| B — Individual Intelligence | 3 | Verified specialist knowledge | PR #79, 185 role knowledge review packs, 25 department guides, 790 internal draft sections and scope-limited offline search; plus earlier 555 external verification needs and 740 questions | **NOT COMPLETE:** independent real-world source verification, owner-approved libraries, actual indexed retrieval, source-backed citations/freshness, per-project privacy and live QA |
 | C — Controlled Work | 4 | Independent callable engine | Earlier prototypes and default-deny development safety work | **NOT COMPLETE:** all IDs callable with owner-authenticated, budgeted, audited execution |
 | C — Controlled Work | 5 | Living jobs, assignments and biographies | Earlier draft relationships and project-workspace prototypes | **NOT COMPLETE:** verified real owner-approved assignments and biography history |
 | C — Controlled Work | 6 | Directed chief/specialist/SCOTTY handoffs | Synthetic proposals and draft collaboration formats | **NOT COMPLETE:** actual permissioned messages/handoff receipts and denial tests |
@@ -35,6 +35,13 @@
 - **Passed independent synthetic restore:** CI-only `pg_dump` from database `scotty_b2_ci` into a second temporary `scotty_b2_ci_restored`, comparing record counts/audit and verifying deleted record bodies remain erased.
 - **Not a durable production implementation:** the test databases are ephemeral; fake test-owner handles can be minted; no actual OAuth/session verification, row-level security policy for real records, live hosted memory, encrypted production restore or authenticated deletion is in place.
 - **Stage and exit gate unchanged:** Stage B Phase 2 is in active test development, not complete. Phases A0 and B1 are still operationally blocked.
+
+## Phase 3 internal catalog milestone — November 8, 2026
+
+- **Source-attributed draft assets:** 185 per-agent methodology packs and 25 chief/department review guides (790 internal sections); references point to authored Git method files, not independently verified subject-matter research.
+- **Offline query tested:** strict actor-role/department draft lookup, no cross-department catalog output, no private or project-file retrieval and no actual external knowledge source fetching.
+- **Source correctness remains unproven:** candidate reading lists cannot be used as factual citations, none of the 185 packs has a verified claim library, and published/source freshness checks are not complete. No agent has passed model-backed knowledge retrieval QA.
+- **Status:** Phase 3 architecture and review-content drafting have started, not Phase 3 certification. Earlier phases remain gate-blocked.
 
 ## Next safe development order
 
@@ -57,6 +64,8 @@
 - A0: https://github.com/LyzabetCampbella2/scotty-core/pull/76
 - B1: https://github.com/LyzabetCampbella2/scotty-core/pull/77
 - B2: https://github.com/LyzabetCampbella2/scotty-core/pull/78
-- B2 offline scope tests: https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42430047711
+- B3: https://github.com/LyzabetCampbella2/scotty-core/pull/79
+- B2 disposable SQL and independent synthetic restore tests: https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42497823547
+- B3 offline internal knowledge catalog tests: https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42498315266
 
 **Acceptance count:** None of A0 or Phases 1–8 has a verified final exit sign-off. This board measures implementation evidence, not project percentage or production readiness.
