@@ -44,7 +44,7 @@ jobs:
         with:
           node-version: '22'
       - name: Verify source-bound knowledge candidates and refusal of unverified access
-        run: node --test src/knowledge/phase3-draft-catalog.test.mjs src/knowledge/phase3-evidence-queue.test.mjs src/knowledge/phase3-citation-fixtures.test.mjs src/knowledge/phase3-public-source-pilot.test.mjs src/knowledge/phase3-public-source-expansion.test.mjs src/knowledge/phase3-coverage-plan.test.mjs src/knowledge/phase3-all-chief-public-review.test.mjs
+        run: node --test src/knowledge/phase3-draft-catalog.test.mjs src/knowledge/phase3-evidence-queue.test.mjs src/knowledge/phase3-citation-fixtures.test.mjs src/knowledge/phase3-public-source-pilot.test.mjs src/knowledge/phase3-public-source-expansion.test.mjs src/knowledge/phase3-coverage-plan.test.mjs src/knowledge/phase3-all-chief-public-review.test.mjs src/knowledge/phase3-specialist-research-backlog.test.mjs
       - name: Export review-only catalog with zero provider calls
         run: |
           node scripts/phase3-export-draft-catalog.mjs > /dev/null
@@ -55,3 +55,4 @@ jobs:
           node scripts/phase3-export-public-expansion.mjs > /dev/null
           node scripts/phase3-export-public-expansion.mjs coverage > /dev/null
           node scripts/phase3-export-all-chief-public-review.mjs > /dev/null
+          node scripts/phase3-export-all-chief-public-review.mjs specialists > /dev/null
