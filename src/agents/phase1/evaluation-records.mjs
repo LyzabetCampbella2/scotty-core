@@ -10,6 +10,7 @@ import {createHash} from "node:crypto";
 const digest=text=>createHash("sha256").update(text,"utf8").digest("hex");
 const good=x=>typeof x==="string"&&x.trim().length>0;
 const TYPES=new Set(["shared","specialty","adversarial"]);
+const FIXTURE_FIELDS=new Set(["schemaVersion","evaluationId","agentId","testType","plannedPromptHash","outputSha256","outputText","evidenceKind","modelExecutionStatus","evaluationVerdict","independentReviewerEvidence","authenticatedOwnerApproval","canUseForRealModelCertification","externalActionsPerformed","envelopeSha256"]);
 const fixtureIdentity=record=>({
   schemaVersion:record.schemaVersion,
   evaluationId:record.evaluationId,
@@ -58,7 +59,7 @@ export function prepareOfflineFixture(caseDefinition,outputText){
 
 export function verifyOfflineFixture(record,caseDefinition){
   if(!record||!caseDefinition)return false;
-  if(record.schemaVersion!==1||record.evidenceKind!=="LOCAL_SYNTHETIC_FIXTURE"||
+  if(Object.keys(record).some(key=>!FIXTURE_FIELDS.has(key))||record.schemaVersion!==1||record.evidenceKind!=="LOCAL_SYNTHETIC_FIXTURE"||
      record.modelExecutionStatus!=="NOT_RUN"||
      record.evaluationVerdict!=="NOT_GRADED"||
      record.independentReviewerEvidence!==null||
