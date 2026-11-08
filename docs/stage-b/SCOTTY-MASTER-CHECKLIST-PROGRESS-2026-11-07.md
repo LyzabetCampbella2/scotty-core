@@ -15,7 +15,7 @@
 | A — Inventory & Protect | A0 | Identity, policies, apps, costs, recovery | PR #76, 185 IDs and names owner-approved and version-locked; simulated owner-grant/backup CI; provider inventory | **BLOCKED:** real staging/production separation, live executor permissions, actual stop-all and real recovery |
 | B — Individual Intelligence | 1 | 185 individual personalities and brains | PR #77, 25 chief and 160 specialist concept drafts, 185 review worksheets, 555 planned tests, revisions and source dossiers | **BLOCKED:** 185 owner-reviewed versions and 555 independent real-model test outputs |
 | B — Individual Intelligence | 2 | Individual/shared memory | PR #78, 185 scope blueprints, offline lab and **disposable PostgreSQL persistence tests**, including database-committed fictional records, SQL-scoped retrieval, sharing/revocation, correction, deletion, TTL and independent synthetic database restore | **NOT COMPLETE:** no durable memory, real auth, restart/search/delete/promotion/restore verification |
-| B — Individual Intelligence | 3 | Verified specialist knowledge | PR #79, 185 role knowledge review packs, 25 department guides, 790 internal draft sections and scope-limited offline search; plus earlier 555 external verification needs and 740 questions | **NOT COMPLETE:** independent real-world source verification, owner-approved libraries, actual indexed retrieval, source-backed citations/freshness, per-project privacy and live QA |
+| B — Individual Intelligence | 3 | Verified specialist knowledge | PR #79, 185 role packs, 25 department guides and 790 internal draft sections; **555 separate source-evidence dockets**, **185 role-scoped offline retrieval cases**, and **555 fictional citation-integrity tests**, with no actual externally verified sources | **NOT COMPLETE:** independent real-world source verification, owner-approved libraries, actual indexed retrieval, source-backed citations/freshness, per-project privacy and live QA |
 | C — Controlled Work | 4 | Independent callable engine | Earlier prototypes and default-deny development safety work | **NOT COMPLETE:** all IDs callable with owner-authenticated, budgeted, audited execution |
 | C — Controlled Work | 5 | Living jobs, assignments and biographies | Earlier draft relationships and project-workspace prototypes | **NOT COMPLETE:** verified real owner-approved assignments and biography history |
 | C — Controlled Work | 6 | Directed chief/specialist/SCOTTY handoffs | Synthetic proposals and draft collaboration formats | **NOT COMPLETE:** actual permissioned messages/handoff receipts and denial tests |
@@ -43,6 +43,16 @@
 - **Source correctness remains unproven:** candidate reading lists cannot be used as factual citations, none of the 185 packs has a verified claim library, and published/source freshness checks are not complete. No agent has passed model-backed knowledge retrieval QA.
 - **Status:** Phase 3 architecture and review-content drafting have started, not Phase 3 certification. Earlier phases remain gate-blocked.
 
+
+## Phase 3 source-quality and retrieval QA milestone — November 8, 2026
+
+- **Added:** 555 source evidence-review dockets, explicitly pending independent checks for authoritative publication, claim support, source date, licensing/rights and owner approval. All dockets are still `PENDING_SOURCE_EVIDENCE`.
+- **Added:** 185 role/department-limited offline retrieval smoke cases with zero external citations and no real model calls or session authentication.
+- **Added:** 555 fictional quote/hash integrity tests, with deliberate refusals for altered or invented citations. These do **not** verify real-world truth, actual source identity or a professional citation.
+- **Added:** date-based source-metadata recency triage with **proposed** domain-specific review intervals; no real URL contents fetched, no accepted knowledge claims.
+- **Test evidence:** Phase 3 expanded code/negative tests passed <https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42507621889>.
+- **Unchanged:** 0 owner-approved verified knowledge libraries, 0 actual source content checks, 0 real-model evaluations, 0 activated agents; Stage A Phase 0 and Stage B Phases 1–3 still lack operational certification.
+
 ## Next safe development order
 
 1. **Continue Phase 1 owner-review preparation**: refine differences among all 185 personalities and reconcile prior chief source conflicts without changing approved canonical IDs.
@@ -66,6 +76,6 @@
 - B2: https://github.com/LyzabetCampbella2/scotty-core/pull/78
 - B3: https://github.com/LyzabetCampbella2/scotty-core/pull/79
 - B2 disposable SQL and independent synthetic restore tests: https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42497823547
-- B3 offline internal knowledge catalog tests: https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42498315266
+- B3 expanded evidence, retrieval and fictional citation checks: https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42507621889
 
 **Acceptance count:** None of A0 or Phases 1–8 has a verified final exit sign-off. This board measures implementation evidence, not project percentage or production readiness.
