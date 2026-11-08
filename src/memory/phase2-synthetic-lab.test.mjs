@@ -150,6 +150,69 @@ test("snapshot tampering or real-data injection is rejected; no actual backup cl
  assert.throws(()=>SyntheticMemoryLab.restoreForTest(frozen,{...backup,isActualBackup:true}),/INVALID_SYNTHETIC_RESTART_FIXTURE/);
  assert.equal(lab.getStatus().realMemoryAccess,false);
 });
+test("deduplication is limited to exact same owner and synthetic project, not across agents",()=>{
+ const lab=create(),owner=lab.testOwner();
+ const a=lab.testActor(first["Agent ID"]),b=lab.testActor(peer["Agent ID"]);
+ const one=record(lab,a,"SYNTHETIC: repeated draft");
+ const two=record(lab,a,"SYNTHETIC: repeated draft");
+ assert.equal(two.memoryId,one.memoryId);
+ assert.equal(two.deduplicated,true);
+ assert.equal(lab.getStatus().records,1);
+ const otherAgent=record(lab,b,"SYNTHETIC: repeated draft");
+ assert.notEqual(otherAgent.memoryId,one.memoryId);
+ lab.acceptForTest(owner,one.memoryId);
+ const again=record(lab,a,"SYNTHETIC: repeated draft");
+ assert.equal(again.memoryId,one.memoryId);
+ assert.equal(again.status,"accepted");
+ assert.equal(again.ownerAccepted,false); // Simulation cannot confer real approval.
+});
+test("lineage-level synthetic erasure removes both old and corrected fictional text",()=>{
+ const lab=create(),owner=lab.testOwner(),actor=lab.testActor(first["Agent ID"]);
+ const v1=record(lab,actor,"SYNTHETIC: secret draft A");
+ lab.acceptForTest(owner,v1.memoryId);
+ const v2=lab.correctForTest(owner,v1.memoryId,"SYNTHETIC: secret draft B","fictional correction");
+ lab.acceptForTest(owner,v2.memoryId);
+ const v3=lab.correctForTest(owner,v2.memoryId,"SYNTHETIC: secret draft C","fictional correction");
+ lab.acceptForTest(owner,v3.memoryId);
+ assert.equal(lab.find(actor,{query:"draft C"}).length,1);
+ const result=lab.deleteLineageForTest(owner,v2.memoryId);
+ assert.equal(result.versionsTombstoned,3);
+ assert.equal(result.realDataDeletion,false);
+ assert.equal(result.realBackupsReconciled,false);
+ assert.equal(lab.find(actor,{query:"secret draft"}).length,0);
+ const snapshot=lab.exportForRestartTest(owner);
+ assert.equal(snapshot.payload.includes("SYNTHETIC: secret draft"),false);
+ const replay=SyntheticMemoryLab.restoreForTest(frozen,snapshot);
+ assert.equal(replay.find(replay.testActor(first["Agent ID"]),{query:"secret"}).length,0);
+ assert.equal(replay.getStatus().records,3);
+});
+test("expired fictional text stays hidden and a simulated retention purge erases fixture copies",()=>{
+ const lab=create(),owner=lab.testOwner(),actor=lab.testActor(first["Agent ID"]);
+ const item=record(lab,actor,"SYNTHETIC: expires tonight",{expiresAt:"2026-11-07T16:00:00Z"});
+ lab.acceptForTest(owner,item.memoryId);
+ assert.equal(lab.find(actor,{query:"tonight"}).length,1);
+ lab.advanceClockForTest(owner,"2026-11-07T16:00:00Z");
+ assert.equal(lab.find(actor,{query:"tonight"}).length,0);
+ assert.equal(lab.exportForRestartTest(owner).payload.includes("SYNTHETIC: expires tonight"),true);
+ const purge=lab.purgeExpiredForTest(owner);
+ assert.equal(purge.recordsTombstoned,1);
+ assert.equal(purge.realRetentionJobExecuted,false);
+ assert.equal(purge.realBackupDeletionConfirmed,false);
+ assert.equal(lab.exportForRestartTest(owner).payload.includes("SYNTHETIC: expires tonight"),false);
+});
+test("restoration refuses a tombstone containing content even if snapshot hash is recomputed",()=>{
+ const lab=create(),owner=lab.testOwner(),actor=lab.testActor(first["Agent ID"]);
+ const item=record(lab,actor,"SYNTHETIC: erased example");
+ lab.acceptForTest(owner,item.memoryId);
+ lab.deleteForTest(owner,item.memoryId);
+ const backup=lab.exportForRestartTest(owner);
+ const forged=JSON.parse(backup.payload);
+ forged.records[0].content="SYNTHETIC: restored forbidden bytes";
+ const payload=JSON.stringify(forged);
+ assert.throws(()=>SyntheticMemoryLab.restoreForTest(frozen,{
+  ...backup,payload,digest:createHash("sha256").update(payload).digest("hex")
+ }),/INVALID_SYNTHETIC_RECORD/);
+});
 test("normal server cannot import or expose this synthetic lab as an agent memory API",()=>{
  const source=readFileSync(new URL("../server.ts",import.meta.url),"utf8");
  assert.equal(source.includes("phase2-synthetic-lab"),false);
