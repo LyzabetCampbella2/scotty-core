@@ -22,6 +22,7 @@ const REVIEW_FIELDS=new Set([
 const asDate=s=>typeof s==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&
  new Date(s+"T00:00:00Z").toISOString().slice(0,10)===s;
 const meaningful=s=>typeof s==="string"&&s.trim().length>=12&&s.length<=700;
+const sourceLabel=s=>typeof s==="string"&&s.trim().length>=5&&s.length<=250;
 const denyState=x=>x===false;
 export function validatePublicSourcePilot(manifest,queue,frozen){
  if(!manifest||manifest.kind!=="ASSISTANT_INSPECTED_PUBLIC_SOURCE_PILOT"||
@@ -60,7 +61,7 @@ export function validatePublicSourcePilot(manifest,queue,frozen){
      item.pilotId!=="b3-public-"+item.agentId.replace(/^chief-(?:expansion-)?/,"")+"-"+expected.requirement.toLowerCase()+"-20261108")
     throw Error("PILOT_SOURCE_IDENTITY_OR_REQUIREMENT_MISMATCH");
   if(!meaningful(item.publisher)||!meaningful(item.title)||
-     !meaningful(item.sourceSection)||!meaningful(item.documentVersion)||
+     !sourceLabel(item.sourceSection)||!meaningful(item.documentVersion)||
      !meaningful(item.paraphrase)||!meaningful(item.application)||
      !meaningful(item.criticalLimit)||!meaningful(item.nextReviewAction)||
      !asDate(item.observedOn)||item.observedOn!=="2026-11-08"||
