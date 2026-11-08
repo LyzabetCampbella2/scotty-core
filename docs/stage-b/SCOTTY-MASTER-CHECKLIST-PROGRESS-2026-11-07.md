@@ -14,13 +14,20 @@
 |---|---|---|---|---|
 | A — Inventory & Protect | A0 | Identity, policies, apps, costs, recovery | PR #76, 185 IDs and names owner-approved and version-locked; simulated owner-grant/backup CI; provider inventory | **BLOCKED:** real staging/production separation, live executor permissions, actual stop-all and real recovery |
 | B — Individual Intelligence | 1 | 185 individual personalities and brains | PR #77, 25 chief and 160 specialist concept drafts, 185 review worksheets, 555 planned tests, revisions and source dossiers | **BLOCKED:** 185 owner-reviewed versions and 555 independent real-model test outputs |
-| B — Individual Intelligence | 2 | Individual/shared memory | PR #78, 185 synthetic scope blueprints, five scopes, four data classes and fail-closed preview tests | **NOT COMPLETE:** no durable memory, real auth, restart/search/delete/promotion/restore verification |
+| B — Individual Intelligence | 2 | Individual/shared memory | PR #78, 185 scope blueprints plus ephemeral synthetic lab: acceptance, search, dedupe, scoped sharing, correction, lineage deletion, TTL cleanup and simulated restart tests | **NOT COMPLETE:** no durable memory, real auth, restart/search/delete/promotion/restore verification |
 | B — Individual Intelligence | 3 | Verified specialist knowledge | 185 knowledge-gap dossiers, 555 verification requirements and 740 research questions in Phase 1 draft | **NOT COMPLETE:** source libraries, searchable indexes, citations/freshness and retrieval tests |
 | C — Controlled Work | 4 | Independent callable engine | Earlier prototypes and default-deny development safety work | **NOT COMPLETE:** all IDs callable with owner-authenticated, budgeted, audited execution |
 | C — Controlled Work | 5 | Living jobs, assignments and biographies | Earlier draft relationships and project-workspace prototypes | **NOT COMPLETE:** verified real owner-approved assignments and biography history |
 | C — Controlled Work | 6 | Directed chief/specialist/SCOTTY handoffs | Synthetic proposals and draft collaboration formats | **NOT COMPLETE:** actual permissioned messages/handoff receipts and denial tests |
 | D — Real Connections | 7 | Apps, OAuth, scopes and tools | Read-only Activepieces inventory; no app OAuth connections at last audit | **NOT COMPLETE:** approved OAuth/least privilege and verified live receipt/revocation |
 | E — Supervise & Launch | 8 | HUD, certification and release | Earlier read-only preview and tests | **NOT COMPLETE:** 185 accepted profiles, independent QA, pilot and safe production release |
+
+## Phase 2 laboratory progress — latest continuation
+
+- **Implemented:** an offline in-memory simulation using only `SYNTHETIC:` fictional fixtures; 185 approved test identities, owner-review simulation, individual/department/project/explicit-recipient scopes, deduplication, candidate and accepted statuses, correction histories, lineage tombstones, TTL expiration and fictional restart serialization.
+- **Verified by CI:** focused synthetic scope, mutation-denial, deletion, project membership, snapshot tamper and restart simulation tests. These tests do not use or prove actual database persistence or live identity authentication.
+- **Still not implemented:** independently isolated real durable storage; trusted session/owner permissions; actual privacy-safe retrieval/search/dedupe; memory owner HUD; consented sharing, retention and deletion against real backup data; real recovery tests.
+- **Overall status unchanged:** Stage B Phase 2 is under development; A0 and B1 are still not certified, so Stage C cannot be enabled.
 
 ## Next safe development order
 
