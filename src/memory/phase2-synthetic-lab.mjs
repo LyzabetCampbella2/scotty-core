@@ -80,6 +80,8 @@ export class SyntheticMemoryLab {
      record.content===null||(record.expiresAt!==null&&Date.parse(record.expiresAt)<=this.#at))
    return false;
   const who=this.#agents.get(ctx.id);
+  // Project-tagged notes require current fixture membership even when shared.
+  if(record.projectId!==null&&!ctx.projects.has(record.projectId))return false;
   if(record.scope==="individual")return record.canonicalAgentId===ctx.id;
   if(record.scope==="department")return record.department===who.dept;
   if(record.scope==="project")return record.projectId!==null&&ctx.projects.has(record.projectId);
@@ -91,7 +93,11 @@ export class SyntheticMemoryLab {
   return copy({...metadata,content});
  }
  /** Candidate notes are invisible until an explicit synthetic owner test decision. */
- addCandidate(actor,{content,projectId=null,sourceId="synthetic-test",expiresAt=null}={}){
+ addCandidate(actor,input={}){
+  if(!input||typeof input!=="object"||Array.isArray(input)||
+     Object.keys(input).some(k=>!["content","projectId","sourceId","expiresAt"].includes(k)))
+   throw Error("UNSUPPORTED_SYNTHETIC_INPUT");
+  const {content,projectId=null,sourceId="synthetic-test",expiresAt=null}=input;
   const ctx=this.#actor(actor);
   if(ctx.type!=="agent"||!synthetic(content)||!id(sourceId)||
     !(projectId===null||id(projectId))||
@@ -120,8 +126,12 @@ export class SyntheticMemoryLab {
   return {memoryId,acceptedInSimulation:true,realOwnerApproval:false};
  }
  /** A test-only owner promotion, NEVER a real consent or executable grant. */
- shareForTest(owner,memoryId,{scope,recipientIds=[],consentRef}={}){
+ shareForTest(owner,memoryId,input={}){
   this.#owner(owner);
+  if(!input||typeof input!=="object"||Array.isArray(input)||
+     Object.keys(input).some(k=>!["scope","recipientIds","consentRef"].includes(k)))
+   throw Error("UNSUPPORTED_SYNTHETIC_SHARING");
+  const {scope,recipientIds=[],consentRef}=input;
   const record=this.#get(memoryId);
   if(record.status!=="accepted"||!validScope.has(scope)||
      !["department","project","explicit_shared"].includes(scope)||
@@ -139,7 +149,11 @@ export class SyntheticMemoryLab {
   this.#event("synthetic-owner-shared",{memoryId,scope});
   return {memoryId,scope,realConsentVerified:false};
  }
- find(actor,{query,projectId=null}={}){
+ find(actor,input={}){
+  if(!input||typeof input!=="object"||Array.isArray(input)||
+     Object.keys(input).some(k=>!["query","projectId"].includes(k)))
+   throw Error("UNSUPPORTED_SYNTHETIC_QUERY");
+  const {query,projectId=null}=input;
   const ctx=this.#actor(actor);
   if(ctx.type!=="agent"||!text(query)||query.length>120||
      !(projectId===null||id(projectId)))throw Error("INVALID_SYNTHETIC_SEARCH");
