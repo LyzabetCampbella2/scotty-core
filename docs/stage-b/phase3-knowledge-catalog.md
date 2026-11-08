@@ -123,3 +123,38 @@ node scripts/phase3-export-public-expansion.mjs coverage > /tmp/scotty-b3-uninsp
 ```
 
 **Important:** This is assistant-led page inspection and source candidate organization. It is neither an independent human review nor user approval. The `citationPromotionAllowed`, `ownerApproved`, and `citableByLiveAgents` flags remain false, and no personal or production source material was retrieved. Stage B Phase 3 remains a **development phase**, not a certified expertise service.
+
+## All 25 chief reference candidates assembled — November 8, 2026
+
+A third assistant-led public-source inspection round added **15 distinct** official reference candidates for the remaining chiefs. These are separate from, and leave unchanged, the two earlier five-chief manifests. New source manifests remain reference *candidates*, not owner-accepted model knowledge.
+
+| Chief | Inspected official reference | Proposed role-specific methodological use |
+|---|---|---|
+| ARCHER 2 | [U.S. IES What Works Clearinghouse: Organizing Instruction and Study](https://ies.ed.gov/ncee/wwc/PracticeGuide/1) | Spacing, retrieval, worked examples and explanatory questions, with evidence-strength distinctions |
+| CRUSHER | [NIH: Rigor and Reproducibility](https://www.grants.nih.gov/policy-and-compliance/policy-topics/reproducibility) | Experimental controls, transparent biological-method interpretations and reproducibility |
+| DAX 2 | [U.S. National Archives: Document Analysis](https://www.archives.gov/education/lessons/worksheets) | Establish primary-source context, examine source details, make cautious inferences |
+| HOLOGRAM | [W3C WAI: Images Tutorial](https://www.w3.org/WAI/tutorials/images/) | Differentiate informative, decorative and functional image alternatives |
+| NEELIX 2 | [CDC: Making an Emergency Plan](https://www.cdc.gov/disability-emergency-preparedness/people-with-disabilities/make-a-plan.html) | Household contingencies, supplies, contacts and tailored planning boundaries |
+| OBRIEN | [Google SRE: Monitoring Distributed Systems](https://sre.google/sre-book/monitoring-distributed-systems/) | User-visible symptoms, hidden causes and actionable monitoring signals |
+| PIKE | [PMI: What Is Project Management](https://www.pmi.org/about/what-is-project-management) | Scope, deliverables, risk and adaptive/predictive delivery methods |
+| SISKO 2 | [SBA: Manage Your Business](https://www.sba.gov/counseling/manage-your-business/) | Small-business operational review, financial management and continuity |
+| TUVOK 2 | [NIST SP 800-53A: Assessing Controls](https://www.nist.gov/publications/assessing-security-and-privacy-controls-information-systems-and-organizations) | Evidence-backed independent control assessment and risk reporting |
+| KEIKO | [EPA: Quality Management Tools for Projects](https://www.epa.gov/quality/epa-quality-management-tools-projects) | Environmental data-quality assessment and quality-assurance planning |
+| KIRK | [USFA/FEMA: NIMS Command and Coordination](https://www.usfa.fema.gov/a-z/nims/command-and-coordination.html) | Define incident responsibilities, resource coordination and escalation |
+| PICARD | [UN Codification Division: Charter Article 2](https://legal.un.org/repertory/art2.shtml/art2_7.shtml) | Diplomacy context, good-faith commitments and peaceful dispute principles |
+| RIKER | [U.S. Digital Services Playbook](https://playbook.usds.gov/) | Understand owner/user needs, coordinate full service journeys, iterate |
+| SPOCK | [NIST AI RMF: Manage](https://airc.nist.gov/airmf-resources/playbook/manage/) | Compare risk, benefit, uncertainty and go/no-go decision options |
+| UHURA | [U.S. Digital.gov: Plain Language Principles](https://digital.gov/guides/plain-language/principles) | Audience-matched communication and clear writing; translation accuracy still untested |
+
+**Results:** 25/25 chiefs now each have **one assistant-inspected public official reference candidate**; all **160 specialists** still need individually relevant public-source inspections. These 25 items are a **subset** of 555 evidence requirements, leaving **530 dockets without inspected public candidate**. All 555 independent review decisions remain pending.
+
+Implementation: `docs/stage-b/b3-final-fifteen-chief-public-sources-2026-11-08.json` records 15 additional official references, roles, source sections, paraphrases, limitations and no-approval flags. `src/knowledge/phase3-all-chief-public-review.mjs` validates exactly 25 unique frozen chiefs across all three preserved manifests, exact URL host/path, K1 dockets for the added 15, date consistency and forbidden grant fields. CI and `scripts/phase3-export-all-chief-public-review.mjs` generate **read-only** review status.
+
+All 25 candidate claims still need an **independent reviewer** to check current source pages, precise support, rights and limitations; then an exact trusted owner decision. None is licensed to power live agent retrieval, citation, private-memory promotion, legal/medical decision-making or autonomous execution. Public research never substitutes for the A0/B1/B2 acceptance gates.
+
+```bash
+node --test src/knowledge/phase3-all-chief-public-review.test.mjs
+node scripts/phase3-export-all-chief-public-review.mjs > /tmp/scotty-b3-all-chief-review.json
+```
+
+**This completes chief initial public-source coverage only, not Phase 3 knowledge certification.**
