@@ -60,7 +60,7 @@ export function validatePublicSourcePilot(manifest,queue,frozen){
      docket?.reviewState!=="PENDING_SOURCE_EVIDENCE"||
      item.pilotId!=="b3-public-"+item.agentId.replace(/^chief-(?:expansion-)?/,"")+"-"+expected.requirement.toLowerCase()+"-20261108")
     throw Error("PILOT_SOURCE_IDENTITY_OR_REQUIREMENT_MISMATCH");
-  if(!meaningful(item.publisher)||!meaningful(item.title)||
+  if(!sourceLabel(item.publisher)||!meaningful(item.title)||
      !sourceLabel(item.sourceSection)||!meaningful(item.documentVersion)||
      !meaningful(item.paraphrase)||!meaningful(item.application)||
      !meaningful(item.criticalLimit)||!meaningful(item.nextReviewAction)||
