@@ -1,0 +1,52 @@
+name: SCOTTY Stage B1 Offline Brain Drafts
+
+on:
+  pull_request:
+    paths:
+      - 'src/agents/phase1/**'
+      - 'scripts/phase1-export-drafts.mjs'
+      - 'scripts/phase1-export-readiness.mjs'
+      - 'scripts/phase1-export-revisions.mjs'
+      - 'scripts/phase1-export-review-workflows.mjs'
+      - 'scripts/phase1-export-review-packets.mjs'
+      - 'docs/a0/roster-frozen-2026-11-07.json'
+      - 'docs/a0/roster-freeze-lock-2026-11-07.json'
+      - '.github/workflows/stage-b1-offline.yml'
+  push:
+    branches:
+      - 'stage-b/phase-1-brain-scaffolds-20261107'
+    paths:
+      - 'src/agents/phase1/**'
+      - 'scripts/phase1-export-drafts.mjs'
+      - 'scripts/phase1-export-readiness.mjs'
+      - 'scripts/phase1-export-revisions.mjs'
+      - 'scripts/phase1-export-review-workflows.mjs'
+      - 'docs/a0/roster-frozen-2026-11-07.json'
+      - 'docs/a0/roster-freeze-lock-2026-11-07.json'
+      - '.github/workflows/stage-b1-offline.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  offline-drafts:
+    name: B1 185-agent identity and scaffold checks (no execution)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate frozen identity and all 185 source-only drafts
+        run: node --test src/agents/phase1/draft-builder.test.mjs src/agents/phase1/methods-and-provenance.test.mjs src/agents/phase1/review-packets.test.mjs src/agents/phase1/new-chief-concepts.test.mjs src/agents/phase1/specialist-persona-proposals.test.mjs src/agents/phase1/knowledge-dossiers.test.mjs src/agents/phase1/evaluation-matrix.test.mjs src/agents/phase1/revision-and-evidence.test.mjs src/agents/phase1/individual-review-queue.test.mjs src/agents/phase1/source-review.test.mjs src/agents/phase1/synthetic-comparisons.test.mjs src/agents/phase1/rollback-and-approval.test.mjs
+      - name: Confirm deterministic offline exports
+        run: |
+          node scripts/phase1-export-drafts.mjs > /dev/null
+          node scripts/phase1-export-review-packets.mjs > /dev/null
+          node scripts/phase1-export-readiness.mjs knowledge > /dev/null
+          node scripts/phase1-export-readiness.mjs evaluations > /dev/null
+          node scripts/phase1-export-revisions.mjs > /dev/null
+          node scripts/phase1-export-review-workflows.mjs queue > /dev/null
+          node scripts/phase1-export-review-workflows.mjs examples > /dev/null
+          node scripts/phase1-export-review-workflows.mjs rollback-requirements > /dev/null
