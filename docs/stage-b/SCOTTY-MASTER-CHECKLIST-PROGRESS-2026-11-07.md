@@ -15,7 +15,7 @@
 | A — Inventory & Protect | A0 | Identity, policies, apps, costs, recovery | PR #76, 185 IDs and names owner-approved and version-locked; simulated owner-grant/backup CI; provider inventory | **BLOCKED:** real staging/production separation, live executor permissions, actual stop-all and real recovery |
 | B — Individual Intelligence | 1 | 185 individual personalities and brains | PR #77, 25 chief and 160 specialist concept drafts, 185 review worksheets, 555 planned tests, revisions and source dossiers | **BLOCKED:** 185 owner-reviewed versions and 555 independent real-model test outputs |
 | B — Individual Intelligence | 2 | Individual/shared memory | PR #78, 185 scope blueprints, offline lab and **disposable PostgreSQL persistence tests**, including database-committed fictional records, SQL-scoped retrieval, sharing/revocation, correction, deletion, TTL and independent synthetic database restore | **NOT COMPLETE:** no durable memory, real auth, restart/search/delete/promotion/restore verification |
-| B — Individual Intelligence | 3 | Verified specialist knowledge | PR #79, 185 role packs, 25 department guides and 790 internal draft sections; **555 separate source-evidence dockets**, **185 role-scoped offline retrieval cases**, and **555 fictional citation-integrity tests**, with no actual externally verified sources | **NOT COMPLETE:** independent real-world source verification, owner-approved libraries, actual indexed retrieval, source-backed citations/freshness, per-project privacy and live QA |
+| B — Individual Intelligence | 3 | Verified specialist knowledge | PR #79, 185 role packs, 25 department guides, 790 internal sections, **555 source dockets**, 185 offline retrieval checks and 555 fictional citation tests; **5 official public pages inspected manually in an unapproved pilot**, with 0 independently approved knowledge claims | **NOT COMPLETE:** independent real-world source verification, owner-approved libraries, actual indexed retrieval, source-backed citations/freshness, per-project privacy and live QA |
 | C — Controlled Work | 4 | Independent callable engine | Earlier prototypes and default-deny development safety work | **NOT COMPLETE:** all IDs callable with owner-authenticated, budgeted, audited execution |
 | C — Controlled Work | 5 | Living jobs, assignments and biographies | Earlier draft relationships and project-workspace prototypes | **NOT COMPLETE:** verified real owner-approved assignments and biography history |
 | C — Controlled Work | 6 | Directed chief/specialist/SCOTTY handoffs | Synthetic proposals and draft collaboration formats | **NOT COMPLETE:** actual permissioned messages/handoff receipts and denial tests |
@@ -53,6 +53,15 @@
 - **Test evidence:** Phase 3 expanded code/negative tests passed <https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42507621889>.
 - **Unchanged:** 0 owner-approved verified knowledge libraries, 0 actual source content checks, 0 real-model evaluations, 0 activated agents; Stage A Phase 0 and Stage B Phases 1–3 still lack operational certification.
 
+
+## Phase 3 public source inspection pilot — November 8, 2026
+
+- Five public pages from **MedlinePlus, W3C, NIST, GitHub Docs and PostgreSQL Docs** were opened and summarized with section pointers and observed versions/dates.
+- The records map to exactly five existing frozen chief identities and five of the **555 still-open source review dockets**. The five are a **subset**, not an addition to the 555 pending requirements.
+- Added fail-closed checks for required identity, source URL, role and requirement; false approval/citation/independent-review claims remain denied.
+- **Manual assistant source inspection: 5 pages. Independently reviewed and owner-approved sources: 0. Actual professional citations licensed/approved for agent use: 0.** No content was imported to live knowledge.
+- The work remains an offline development pilot, not Phase 3 final certification, and does not remove A0, B1 or B2 dependencies.
+
 ## Next safe development order
 
 1. **Continue Phase 1 owner-review preparation**: refine differences among all 185 personalities and reconcile prior chief source conflicts without changing approved canonical IDs.
@@ -76,6 +85,6 @@
 - B2: https://github.com/LyzabetCampbella2/scotty-core/pull/78
 - B3: https://github.com/LyzabetCampbella2/scotty-core/pull/79
 - B2 disposable SQL and independent synthetic restore tests: https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42497823547
-- B3 expanded evidence, retrieval and fictional citation checks: https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42507621889
+- B3 five official-source pilot QA: https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42509401178
 
 **Acceptance count:** None of A0 or Phases 1–8 has a verified final exit sign-off. This board measures implementation evidence, not project percentage or production readiness.
