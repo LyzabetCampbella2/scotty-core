@@ -122,3 +122,23 @@ These proposals use only the frozen roster's **Agent ID, Name, Department, Speci
 The owner review packet now exposes the specialist suggestions in `proposedPersonalityTraits`, `proposedSpecialistArchetype`, `proposedSpecialistCommunication`, `proposedSpecialistQuestion`, `proposedSpecialistMethod`, `proposedSpecialistDeliverable` and `proposedSpecialistFailureRisk`. It **does not** adopt them: `adoptedPersonalityTraits=[]`, `ownerApproved=false`, all 1,480 review evidence gates unchecked, 555 planned behavior cases unrun, and every external tool or memory write disabled.
 
 **What remains:** human editing of specialist distinctiveness, owner decisions on traits and voice for each agent, 555 independent real-model evaluations, source/knowledge evidence, and explicit individual certification. Full A0 operational safety/recovery certification is also still outstanding.
+
+## Knowledge readiness and behavior-evaluation instruments
+
+**New offline readiness modules:**
+- `src/agents/phase1/knowledge-dossiers.mjs`: 185 specialist/chief knowledge dossiers, each with three source-verification requirements and four role-specific research questions (555 requirements, 740 questions). All sources are **candidates only**; zero source checks or certifications have been performed.
+- `src/agents/phase1/evaluation-matrix.mjs`: 555 planned model behavior evaluations, each with a four-part reviewer rubric (2,220 criteria). Every result is explicitly `NOT_RUN`, with missing model outputs, dates, evidence IDs, reviewer decisions and scores.
+- `scripts/phase1-export-readiness.mjs`: read-only exports of knowledge and evaluation instruments. The exporter verifies the owner-approved frozen roster version before printing results and cannot execute tools, obtain source contents, store memory or approve agents.
+
+### Safe offline commands
+
+```bash
+node scripts/phase1-export-readiness.mjs knowledge > /tmp/scotty-b1-knowledge.json
+node scripts/phase1-export-readiness.mjs evaluations > /tmp/scotty-b1-evaluations.json
+```
+
+These are **not actual model results**. A filled review form is not equivalent to authenticated owner approval or independent evaluation. Source verification, per-agent behavior evidence, person-specific owner decisions, A0 real-system gate certification and scope-restricted runtime testing remain required. No new provider spending or production data access is allowed under the current owner decisions.
+
+### Knowledge and assessment acceptance criteria
+
+Before certifying any individual agent, reviewers must identify current authoritative domain sources with exact date and provenance, examine likely failure modes, verify their permissions, run the same shared synthetic task across all agents and each specialist's individual task, record a real model output plus independent reviewer evidence for the adversarial case, and obtain separately authenticated owner sign-off. `structuralEvaluationReadiness()` checks **format only**, and even complete-looking results remain `certified:false` until independently verified.
