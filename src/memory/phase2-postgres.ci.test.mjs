@@ -140,6 +140,52 @@ test("B2 synthetic ephemeral PostgreSQL persistence and isolation",async t=>{
   assert.ok(history.length>=8);
   assert.ok(history.every(e=>e.event_type&&e.memory_id));
  });
+ await t.test("sharing revocation removes foreign readers without deleting the owner's synthetic note",async()=>{
+  const c=await create(actor,"SYNTHETIC: temporary collaboration note");
+  await store.acceptForTest(owner,c.memoryId);
+  await store.shareForTest(owner,c.memoryId,{
+   scope:"explicit_shared",recipients:[peer["Agent ID"]],
+   consentRef:"synthetic-consent-temporary"
+  });
+  assert.equal((await find(same,"temporary collaboration")).length,1);
+  const receipt=await store.revokeShareForTest(owner,c.memoryId);
+  assert.equal(receipt.revokedOnlyInFixture,true);
+  assert.equal(receipt.realGrantRevoked,false);
+  assert.equal((await find(same,"temporary collaboration")).length,0);
+  assert.equal((await find(actor,"temporary collaboration")).length,1);
+  await assert.rejects(store.revokeShareForTest(owner,c.memoryId),/NO_SYNTHETIC_SHARING_TO_REVOKE/);
+ });
+ await t.test("lineage deletion erases all versions after simulated corrections",async()=>{
+  const start=await create(actor,"SYNTHETIC: revision alpha");
+  await store.acceptForTest(owner,start.memoryId);
+  const next=await store.correctForTest(owner,start.memoryId,"SYNTHETIC: revision beta");
+  await store.acceptForTest(owner,next.memoryId);
+  const latest=await store.correctForTest(owner,next.memoryId,"SYNTHETIC: revision gamma");
+  await store.acceptForTest(owner,latest.memoryId);
+  assert.equal((await find(actor,"revision gamma")).length,1);
+  const receipt=await store.deleteLineageForTest(owner,next.memoryId);
+  assert.equal(receipt.syntheticVersionsErased,3);
+  assert.equal(receipt.realDataDeletion,false);
+  assert.equal(receipt.realBackupErasureVerified,false);
+  assert.equal((await find(actor,"revision gamma")).length,0);
+  const direct=await sql.unsafe(
+   "select memory_id,status,content,content_sha256 from scotty_b2_fixture_memory where memory_id=any($1::uuid[])",
+   [sql.array([start.memoryId,next.memoryId,latest.memoryId],2950)]
+  );
+  assert.equal(direct.length,3);
+  assert.ok(direct.every(x=>x.status==="deleted"&&x.content===null&&x.content_sha256===null));
+ });
+ await t.test("unexpected approval flags and data classes are rejected without database writes",async()=>{
+  const before=(await store.status()).memoryRecords;
+  await assert.rejects(store.createCandidate(actor,{content:"SYNTHETIC: blocked extra field",dataClass:"OWNER_PRIVATE"}),/UNTRUSTED_SYNTHETIC_INPUT/);
+  await assert.rejects(store.find(actor,{query:"trial",ownerApproved:true}),/UNTRUSTED_SYNTHETIC_SEARCH/);
+  const c=await create(actor,"SYNTHETIC: strict sharing");
+  await store.acceptForTest(owner,c.memoryId);
+  await assert.rejects(store.shareForTest(owner,c.memoryId,{
+   scope:"department",consentRef:"synthetic-consent-extra",ownerApproved:true
+  }),/UNTRUSTED_SYNTHETIC_SHARING/);
+  assert.equal((await store.status()).memoryRecords,before+1);
+ });
  await t.test("all records stay fictional with the fixed classification",async()=>{
   const [counts]=await sql.unsafe("select count(*)::int as total, count(*) filter(where data_class<>'SYNTHETIC_PUBLIC')::int as non_synthetic from scotty_b2_fixture_memory");
   assert.ok(counts.total>=6);
