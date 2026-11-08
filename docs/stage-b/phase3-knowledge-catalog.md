@@ -64,3 +64,30 @@ These commands verify the Git blob hash of the 185-ID frozen roster, print JSON,
 The full combined Phase B3 source-review, retrieval and citation-integrity suites passed in GitHub Actions: <https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42507621889>.
 
 **Still missing for the real Phase 3 exit gate:** human source/content inspection and licensing checks; confirmed claim-to-quotation semantic support; source version hashes; independently authenticated owner approvals; real permissioned, persisted searchable knowledge; real per-agent retrieval/citation QA; evidence-backed update/freshness routines; and all A0/B1/B2 operational dependencies.
+
+## First public-authority inspection pilot — November 8, 2026
+
+Five *public, official online references* have been opened and inspected by the assistant, with a short original-language paraphrase of one relevant point, the publication or document version when shown, the page section, the date observed and a specific application boundary. This is a **manual source-inspection pilot**, not a third-party endorsement, independent human fact check, accepted citation library, copyright/license authorization, or proof of any deployed agent's competence.
+
+The records are in `docs/stage-b/b3-public-source-pilot-2026-11-08.json`:
+
+| Chief / knowledge need | Official page | Inspected point | What is still required |
+|---|---|---|---|
+| BONES (K1) | [MedlinePlus: Evaluating Health Information](https://medlineplus.gov/evaluatinghealthinformation.html) | Examine publisher, references, editorial practice and date before applying health information | Independent clinical-scope/claim review; not personal medical advice |
+| TROI (K1) | [W3C: WCAG 2.2 Recommendation](https://www.w3.org/TR/2024/REC-WCAG22-20241212/) | Testable web accessibility criteria; not sufficient for every user's needs | Test exact SCOTTY interface criteria and verify conformance |
+| WORF (K1) | [NIST SP 800-207](https://csrc.nist.gov/pubs/sp/800/207/final) | No implied trust merely because of network location or asset ownership | Actual live resource-by-resource authorization proof |
+| GEORDI (K3) | [GitHub Actions workflow syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax) | Explicit `permissions` declarations narrow token scopes | Verify actual repository policy, job scopes and approval |
+| TORRES (K2) | [PostgreSQL Row Security Policies](https://www.postgresql.org/docs/current/ddl-rowsecurity.html) | RLS-enabled tables default-deny absent matching policies, subject to bypass caveats | Verify actual DB schema, grants, policies and denied operations |
+
+The new module `src/knowledge/phase3-public-source-pilot.mjs` cross-checks all five pilot entries against exact immutable chief identities and one of their 555 outstanding knowledge requirements. It rejects incorrect domains/path/HTTPS, unexpected fields, forged owner approvals, claimed source certification, duplicate identities or missing source dockets. It **never performs HTTP requests**; it validates a manifest summarizing earlier public-page inspection. It does not write the contents to agent knowledge or alter the 555 pending source-review dockets.
+
+**Read-only review report:**
+
+```bash
+node --test src/knowledge/phase3-public-source-pilot.test.mjs
+node scripts/phase3-export-public-pilot.mjs > /tmp/scotty-b3-public-review.json
+```
+
+**Evidence distinction:** Five public documents were manually inspected and their claim context summarized, but **0** sources were independently human-reviewed, **0** claims were approved for live citations, **0** libraries became agent-readable, and **0** real model-based retrieval tests were performed. License/redistribution review and source freshness still need verification. The page URLs and short paraphrases are included for future review, not as production training materials. No private or production records were used.
+
+The pilot is a step toward source-backed knowledge, not Phase 3 completion.
