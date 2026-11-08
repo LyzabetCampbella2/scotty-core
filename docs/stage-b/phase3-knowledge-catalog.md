@@ -40,3 +40,27 @@ The exporter verifies the SHA of the owner-approved 185-roster Git blob before p
 **Phase B3 is NOT certified.** Synthetic CI tests do not prove real factual expertise, source correctness, production privacy, or durable retrieval.
 
 **Owner constraints:** $0 newly authorized infrastructure spending. Separate owner approval is required before accessing/exporting production data. No real agent activation or merges/deploys from this draft.
+
+## Evidence-review queue, freshness triage and citation integrity — November 8, 2026
+
+**Phase 3 source review is now itemized for every agent.** The new `src/knowledge/phase3-evidence-queue.mjs` generates exactly **555 unverified source-evidence review items**, three for each of 185 canonical IDs. Each item retains an exact role and knowledge-requirement ID, proposed source candidates, separate source/rights/claim/independent reviewer/owner approval fields, and default-deny citation/index permissions. All **555 are still pending**, and no publication or claim has been externally read or verified.
+
+The `previewSourceMetadata()` function examines **untrusted metadata only**: the claimed publication and review dates, public HTTPS URL format, role/requirement alignment and review recency. It rejects client-supplied approval/evidence claims, non-HTTPS credentials and unsuitable local/private hostnames. It classifies potentially stale metadata against **proposed**, not owner-approved, domain-dependent intervals (30, 60, 90 or 365 days). Even a recent or correctly shaped source is returned with `realSourceVerified:false`, `citationAllowed:false`, and `knowledgeApproved:false`.
+
+The new `runPhase3OfflineRetrievalChecks()` exercises exactly **185 local draft searches**, one for each frozen agent. It checks the actor ID and restricts output to the agent's internal method section and its assigned department's chief guide. It is *not* a live indexed search service, cannot authenticate the calling actor, uses no real private/project data, does not run models and issues no professional citations.
+
+The `src/knowledge/phase3-citation-fixtures.mjs` module creates **555 fictional citation-integrity cases**. Each test shows that an exact quotation appears at the expected location in the synthetic source text and that its SHA-256 text digest matches. Unsupported quotes, altered contents, forged agent identities, inserted approval flags and cross-requirement replays are rejected. Crucially, a matching fictional quotation **does not prove the meaning of the claim**, the original publisher, license, source freshness, real model behavior or owner approval: every test returns `realCitationValid:false` and `factualClaimVerified:false`. Citation assertions remain blocked.
+
+### Read-only local exports
+
+```bash
+node scripts/phase3-export-evidence.mjs queue > /tmp/scotty-b3-source-review-queue.json
+node scripts/phase3-export-evidence.mjs retrieval > /tmp/scotty-b3-retrieval-smoke.json
+node scripts/phase3-export-evidence.mjs synthetic-citations > /tmp/scotty-b3-citation-qa.json
+```
+
+These commands verify the Git blob hash of the 185-ID frozen roster, print JSON, and do not fetch sources, create indexes, access credentials, spend on models or write production records. Do not import user information or protected customer materials into fictional fixtures: a `SYNTHETIC:` prefix is a convention, **not a privacy guarantee**.
+
+The full combined Phase B3 source-review, retrieval and citation-integrity suites passed in GitHub Actions: <https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42507621889>.
+
+**Still missing for the real Phase 3 exit gate:** human source/content inspection and licensing checks; confirmed claim-to-quotation semantic support; source version hashes; independently authenticated owner approvals; real permissioned, persisted searchable knowledge; real per-agent retrieval/citation QA; evidence-backed update/freshness routines; and all A0/B1/B2 operational dependencies.
