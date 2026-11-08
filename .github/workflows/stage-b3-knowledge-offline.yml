@@ -6,6 +6,7 @@ on:
       - 'src/knowledge/phase3-*'
       - 'src/agents/phase1/**'
       - 'scripts/phase3-export-draft-catalog.mjs'
+      - 'scripts/phase3-export-evidence.mjs'
       - 'docs/stage-b/phase3-knowledge-catalog.md'
       - '.github/workflows/stage-b3-knowledge-offline.yml'
   push:
@@ -14,6 +15,7 @@ on:
     paths:
       - 'src/knowledge/phase3-*'
       - 'scripts/phase3-export-draft-catalog.mjs'
+      - 'scripts/phase3-export-evidence.mjs'
       - '.github/workflows/stage-b3-knowledge-offline.yml'
 
 permissions:
@@ -30,6 +32,10 @@ jobs:
         with:
           node-version: '22'
       - name: Verify source-bound knowledge candidates and refusal of unverified access
-        run: node --test src/knowledge/phase3-draft-catalog.test.mjs src/knowledge/phase3-evidence-queue.test.mjs
+        run: node --test src/knowledge/phase3-draft-catalog.test.mjs src/knowledge/phase3-evidence-queue.test.mjs src/knowledge/phase3-citation-fixtures.test.mjs
       - name: Export review-only catalog with zero provider calls
-        run: node scripts/phase3-export-draft-catalog.mjs > /dev/null
+        run: |
+          node scripts/phase3-export-draft-catalog.mjs > /dev/null
+          node scripts/phase3-export-evidence.mjs queue > /dev/null
+          node scripts/phase3-export-evidence.mjs retrieval > /dev/null
+          node scripts/phase3-export-evidence.mjs synthetic-citations > /dev/null
