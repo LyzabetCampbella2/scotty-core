@@ -66,3 +66,21 @@ CI runs both suites without any configured database credentials or network endpo
 ### Operational Phase 2 completion remains blocked
 
 This still requires an independently isolated durable database, trusted owner/agent session authentication, server-side row-level and project permission enforcement, genuine retrieval across process restarts, deletion/retention throughout independently recovered backups, consented shared-memory promotion/revocation, audit receipts, owner HUD controls and independent real-data recovery—only after the owner's separate production-data access approval. No migration or production integration was attempted.
+
+## Disposable PostgreSQL persistence and independent synthetic restore
+
+An additional CI-only fixture is implemented in `src/memory/phase2-postgres-fixture.mjs` and `migrations/b2_ephemeral_ci_fixture_001.sql`. The connection is **refused unless** running under GitHub Actions with `SCOTTY_B2_EPHEMERAL_DB_TEST=yes`, the exact PostgreSQL loopback URL, the `b2_ci` role, and the exact disposable database `scotty_b2_ci`. Production and A0 staging connection reuse is rejected. The fixture uses the existing `postgres` library; no new permanent provider or persistent infrastructure was provisioned.
+
+This is the first **real SQL persistence test of fictional memory** in this phase. It has synthetic-only database constraints; transaction-based test-owner acceptance and corrections; SQL WHERE-level restrictions for individual, department, project and named-recipient searches; fixed source/TTL metadata; same-owner/project active-content dedupe; synthetic share revocation; correction-lineage deletion; and synthetic expiration cleanup.
+
+A newly constructed fixture-store instance can retrieve previously committed fictional records from the same ephemeral PostgreSQL database but **cannot reuse the old test-session objects**. SQL source and fake approval flags are excluded from ordinary query results. This is narrower than real session/restart persistence because the database lives only during CI and the owner/agent test identities are not independently authenticated.
+
+The dedicated CI integration suite also:
+- Rejects wrong agent/project scopes, unrecognized input fields and fictitious private-data classifications.
+- Tests correction histories, second acceptance, revocation and deletion across versions.
+- Dumps the synthetic SQL fixture and independently restores it into a **second disposable database** named `scotty_b2_ci_restored`; compares record counts and event receipts and verifies restored deletion tombstones carry no text.
+- Uses **no real credentials or production information**. The copy/recovery rehearsal is not encrypted and is *not* a real-production recovery test, nor a proof that the data is protected from a privileged database administrator.
+
+**Latest verified CI at functional commit:** <https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42497823547> — both offline policy tests and disposable PostgreSQL integration/independent restore passed.
+
+**Acceptance gap remains:** this test owner session is explicitly mintable by test code; production-grade auth, server-side per-record grants/row-level security, real durable hosting, data lifecycle, real backups, live memory search and original owner approvals are NOT implemented. The database is destroyed after the CI job.
