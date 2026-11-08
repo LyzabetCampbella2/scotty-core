@@ -96,7 +96,11 @@ export function createPhase3DraftCatalog(drafts){
  };
 }
 /** Local search is structural discovery, never an evidence-backed answer. */
-export function searchDraftCatalog(catalog,{actorId,query,limit=10}={}){
+export function searchDraftCatalog(catalog,request={}){
+ if(!request||typeof request!=="object"||Array.isArray(request)||
+    Object.keys(request).some(k=>!["actorId","query","limit"].includes(k)))
+  throw Error("UNTRUSTED_OFFLINE_SEARCH_FIELDS");
+ const {actorId,query,limit=10}=request;
  if(catalog?.mode!=="OFFLINE_REVIEW_CANDIDATES_ONLY"||
     catalog.rolePacks?.length!==185||catalog.departmentGuides?.length!==25)
   throw Error("B3_CATALOG_REQUIRED");
@@ -126,7 +130,11 @@ export function searchDraftCatalog(catalog,{actorId,query,limit=10}={}){
   realDataAccessed:false
  };
 }
-export function proposeSyntheticProjectKnowledge({actorId,projectId,content,sourceConsentRef},catalog){
+export function proposeSyntheticProjectKnowledge(request,catalog){
+ if(!request||typeof request!=="object"||Array.isArray(request)||
+    Object.keys(request).some(k=>!["actorId","projectId","content","sourceConsentRef"].includes(k)))
+  throw Error("UNTRUSTED_PROJECT_KNOWLEDGE_FIELDS");
+ const {actorId,projectId,content,sourceConsentRef}=request;
  if(catalog?.mode!=="OFFLINE_REVIEW_CANDIDATES_ONLY"||
     !catalog.rolePacks.some(x=>x.canonicalAgentId===actorId)||
     typeof projectId!=="string"||!/^synthetic-[a-z0-9-]{2,60}$/.test(projectId)||
