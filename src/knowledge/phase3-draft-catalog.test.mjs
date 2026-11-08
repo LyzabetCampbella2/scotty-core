@@ -72,6 +72,7 @@ test("Offline search is constrained to own role and same-department chief guide"
 });
 test("Forged IDs, unknown data, missing catalog and oversized queries fail closed",()=>{
  assert.throws(()=>searchDraftCatalog(catalog,{actorId:"fake-agent",query:"method"}),/UNKNOWN_CANONICAL_AGENT/);
+ assert.throws(()=>searchDraftCatalog(catalog,{actorId:specialist.canonicalAgentId,query:"method",ownerApproved:true}),/UNTRUSTED_OFFLINE_SEARCH_FIELDS/);
  assert.throws(()=>searchDraftCatalog(catalog,{actorId:specialist.canonicalAgentId,query:""}),/INVALID_OFFLINE_SEARCH/);
  assert.throws(()=>searchDraftCatalog(catalog,{actorId:specialist.canonicalAgentId,query:"test",limit:900}),/INVALID_OFFLINE_SEARCH/);
  assert.throws(()=>searchDraftCatalog({...catalog,rolePacks:catalog.rolePacks.slice(1)},{actorId:specialist.canonicalAgentId,query:"method"}),/B3_CATALOG_REQUIRED/);
@@ -93,4 +94,5 @@ test("Project/brand playbooks can only be proposed with fictional text and no li
  assert.throws(()=>proposeSyntheticProjectKnowledge({...valid,projectId:"production-real-client"},catalog),/SYNTHETIC_PROJECT_PLAN_REQUIRED/);
  assert.throws(()=>proposeSyntheticProjectKnowledge({...valid,content:"Real manuscript contents"},catalog),/SYNTHETIC_PROJECT_PLAN_REQUIRED/);
  assert.throws(()=>proposeSyntheticProjectKnowledge({...valid,actorId:"fake-agent"},catalog),/SYNTHETIC_PROJECT_PLAN_REQUIRED/);
+ assert.throws(()=>proposeSyntheticProjectKnowledge({...valid,permissions:["admin"]},catalog),/UNTRUSTED_PROJECT_KNOWLEDGE_FIELDS/);
 });
