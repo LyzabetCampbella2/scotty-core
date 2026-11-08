@@ -1,0 +1,35 @@
+name: SCOTTY Stage B3 Offline Knowledge Catalog
+
+on:
+  pull_request:
+    paths:
+      - 'src/knowledge/phase3-*'
+      - 'src/agents/phase1/**'
+      - 'scripts/phase3-export-draft-catalog.mjs'
+      - 'docs/stage-b/phase3-knowledge-catalog.md'
+      - '.github/workflows/stage-b3-knowledge-offline.yml'
+  push:
+    branches:
+      - 'stage-b/phase-3-knowledge-catalog-draft-20261108'
+    paths:
+      - 'src/knowledge/phase3-*'
+      - 'scripts/phase3-export-draft-catalog.mjs'
+      - '.github/workflows/stage-b3-knowledge-offline.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  knowledge-catalog:
+    name: B3 185 role packs and 25 department guides (no external sources)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify source-bound knowledge candidates and refusal of unverified access
+        run: node --test src/knowledge/phase3-draft-catalog.test.mjs
+      - name: Export review-only catalog with zero provider calls
+        run: node scripts/phase3-export-draft-catalog.mjs > /dev/null
