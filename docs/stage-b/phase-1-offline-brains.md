@@ -142,3 +142,21 @@ These are **not actual model results**. A filled review form is not equivalent t
 ### Knowledge and assessment acceptance criteria
 
 Before certifying any individual agent, reviewers must identify current authoritative domain sources with exact date and provenance, examine likely failure modes, verify their permissions, run the same shared synthetic task across all agents and each specialist's individual task, record a real model output plus independent reviewer evidence for the adversarial case, and obtain separately authenticated owner sign-off. `structuralEvaluationReadiness()` checks **format only**, and even complete-looking results remain `certified:false` until independently verified.
+
+## Offline evidence records and versioned personality reviews
+
+Added \`src/agents/phase1/revision-journal.mjs\`, \`src/agents/phase1/evaluation-records.mjs\`, and a read-only \`scripts/phase1-export-revisions.mjs\`.
+
+**Revision history:** each of the 185 owner-review packets can produce a baseline draft revision with frozen canonical agent ID and roster blob hash, then append proposed edits only to an explicit allowlist of draft personality and reasoning fields. Every revision references the previous revision's SHA-256 digest. Edits cannot mutate IDs, approved traits, owner authorization, production permissions, memory writes, deployment state or certification flags. Hashes support local change detection **but are not cryptographic evidence of owner identity**; a person with write access can create a replacement chain. Approval still requires an independently authenticated owner decision and separate evidence.
+
+**Synthetic evaluation fixtures:** the evaluation recorder can attach a bounded, manually provided, fictional response to one planned evaluation ID, binding the exact agent ID, prompt hash and output hash. It refuses unplanned, already-passed or tool-enabled cases and rejects forged pass/approval fields. All fixture receipts remain \`LOCAL_SYNTHETIC_FIXTURE\`, \`NOT_RUN\` and \`NOT_GRADED\`. A locally valid hash proves only that the text hasn't been accidentally modified since packaging; it does **not** prove an AI model was run, a score was earned, or any owner approved it.
+
+Use the safe read-only revision index command:
+
+\`\`\`bash
+node scripts/phase1-export-revisions.mjs > /tmp/scotty-b1-baseline-revisions.json
+\`\`\`
+
+The index includes 185 agent IDs and baseline revision digests, with zero approved versions and zero live execution. It does not store a profile change or update a server. To produce actual reviewable changes later, the owner-selected edits and independent approval evidence must be gathered in a trusted workflow and reconciled with the locked identity/version.
+
+**Stage B1 status:** personality proposals and review instruments exist, but **0 authenticated owner approvals**, **0 verified real-model evaluations**, **0 verified external knowledge source checks**, and **0 active agents**. The operational Stage A0 exit gate is still blocked under the $0 new infrastructure and no production-data-access rules.
