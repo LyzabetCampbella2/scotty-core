@@ -15,7 +15,7 @@
 | A — Inventory & Protect | A0 | Identity, policies, apps, costs, recovery | PR #76, 185 IDs and names owner-approved and version-locked; simulated owner-grant/backup CI; provider inventory | **BLOCKED:** real staging/production separation, live executor permissions, actual stop-all and real recovery |
 | B — Individual Intelligence | 1 | 185 individual personalities and brains | PR #77, 25 chief and 160 specialist concept drafts, 185 review worksheets, 555 planned tests, revisions and source dossiers | **BLOCKED:** 185 owner-reviewed versions and 555 independent real-model test outputs |
 | B — Individual Intelligence | 2 | Individual/shared memory | PR #78, 185 scope blueprints, offline lab and **disposable PostgreSQL persistence tests**, including database-committed fictional records, SQL-scoped retrieval, sharing/revocation, correction, deletion, TTL and independent synthetic database restore | **NOT COMPLETE:** no durable memory, real auth, restart/search/delete/promotion/restore verification |
-| B — Individual Intelligence | 3 | Verified specialist knowledge | PR #79, 185 role packs, 25 department guides, 790 internal sections, **555 source dockets**, 185 offline retrieval checks and 555 fictional citation tests; **25 public official-page candidates inspected for all 25 chiefs**; 160 specialist-specific research briefs covering 480 source requirements prepared, with 0 independently approved knowledge claims | **NOT COMPLETE:** independent real-world source verification, owner-approved libraries, actual indexed retrieval, source-backed citations/freshness, per-project privacy and live QA |
+| B — Individual Intelligence | 3 | Verified specialist knowledge | PR #79, 185 role packs, 25 department guides, 790 internal sections, **555 source dockets**, 185 offline retrieval checks and 555 fictional citation tests; **25 chiefs + 8 specialists** have individually inspected public-page candidates; 160 specialist briefs (480 source needs) exist; all 555 external-evidence decisions and owner approvals still pending | **NOT COMPLETE:** independent real-world source verification, owner-approved libraries, actual indexed retrieval, source-backed citations/freshness, per-project privacy and live QA |
 | C — Controlled Work | 4 | Independent callable engine | Earlier prototypes and default-deny development safety work | **NOT COMPLETE:** all IDs callable with owner-authenticated, budgeted, audited execution |
 | C — Controlled Work | 5 | Living jobs, assignments and biographies | Earlier draft relationships and project-workspace prototypes | **NOT COMPLETE:** verified real owner-approved assignments and biography history |
 | C — Controlled Work | 6 | Directed chief/specialist/SCOTTY handoffs | Synthetic proposals and draft collaboration formats | **NOT COMPLETE:** actual permissioned messages/handoff receipts and denial tests |
@@ -81,6 +81,14 @@
 - **Tests:** source/identity/URL validation, rejection of fake approvals, coverage reconciliation and 160 specialist-review plans passed in offline CI. There are still **0 real-model retrieval evaluations** and **0 active agents**.
 - **Phase 3 gate:** still blocked; requires externally verified source libraries, real authenticated private/project separation, citation reliability, source freshness, owner acceptance and Phase A0/B1/B2 dependencies.
 
+## Phase 3 first eight specialist public-source inspections — November 8, 2026
+
+- **Eight Health & Human Support specialists:** Each of BONES agents 01–08 now has a distinct assistant-inspected primary-publisher reference and a short role-specific paraphrase and limitation (CDC, Cochrane, AHRQ, FDA, NIMH, federal dietary guidelines, ADA.gov).
+- **33 of 555 source dockets now have public-page candidates**, comprising 25 chiefs and eight specialists. This is *inspection coverage*, not factual certification or ownership/rights approval.
+- **152 specialist roles** still lack their own inspected public candidate. **522 source requirements** (50 chief K2/K3 + 472 specialist needs) still lack one; all 555 formal evidence decisions remain pending independent reviewer/owner acceptance.
+- **No health record access, diagnosis, treatment or medicine instructions**; the checked pages support only public informational methods.
+- **CI:** Exact canonical IDs, K1 docket links, fixed official host/path, metadata date checks, forged permission denials and SHA-locked read-only exports. Phase 3 remains an unmerged draft with no agent activation.
+
 ## Next safe development order
 
 1. **Continue Phase 1 owner-review preparation**: refine differences among all 185 personalities and reconcile prior chief source conflicts without changing approved canonical IDs.
@@ -104,6 +112,6 @@
 - B2: https://github.com/LyzabetCampbella2/scotty-core/pull/78
 - B3: https://github.com/LyzabetCampbella2/scotty-core/pull/79
 - B2 disposable SQL and independent synthetic restore tests: https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42497823547
-- B3 all 25 chief candidates and 160 specialist backlog QA: https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42524351016
+- B3 eight individual specialist public-reference checks: https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42529312176
 
 **Acceptance count:** None of A0 or Phases 1–8 has a verified final exit sign-off. This board measures implementation evidence, not project percentage or production readiness.
