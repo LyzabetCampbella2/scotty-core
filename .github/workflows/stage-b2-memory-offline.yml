@@ -1,0 +1,91 @@
+name: SCOTTY Stage B2 Offline Memory Policy
+
+on:
+  pull_request:
+    paths:
+      - 'src/memory/phase2-*'
+      - 'scripts/phase2-export-memory-plan.mjs'
+      - 'migrations/b2_ephemeral_ci_fixture_001.sql'
+      - 'docs/stage-b/phase2-memory-architecture.md'
+      - 'docs/a0/roster-frozen-2026-11-07.json'
+      - 'docs/a0/roster-freeze-lock-2026-11-07.json'
+      - '.github/workflows/stage-b2-memory-offline.yml'
+  push:
+    branches:
+      - 'stage-b/phase-2-memory-policy-draft-20261107'
+    paths:
+      - 'src/memory/phase2-*'
+      - 'scripts/phase2-export-memory-plan.mjs'
+      - 'docs/a0/roster-frozen-2026-11-07.json'
+      - '.github/workflows/stage-b2-memory-offline.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  offline-memory:
+    runs-on: ubuntu-latest
+    name: B2 memory isolation plans (no DB or secrets)
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify synthetic memory scope boundaries
+        run: node --test src/memory/phase2-policy.test.mjs src/memory/phase2-synthetic-lab.test.mjs
+      - name: Produce offline blueprint export only
+        run: node scripts/phase2-export-memory-plan.mjs > /dev/null
+
+  ephemeral-postgres:
+    name: B2 disposable PostgreSQL persistence test (synthetic only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: b2_ci
+          POSTGRES_PASSWORD: disposable-ci-only-not-a-real-secret
+          POSTGRES_DB: scotty_b2_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U b2_ci -d scotty_b2_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install existing PostgreSQL client dependency
+        run: npm install --ignore-scripts --no-audit --no-fund --package-lock=false
+      - name: Create synthetic schema and verify SQL-backed memory isolation
+        env:
+          GITHUB_ACTIONS: 'true'
+          SCOTTY_B2_EPHEMERAL_DB_TEST: 'yes'
+          B2_CI_DATABASE_URL: postgres://b2_ci:disposable-ci-only-not-a-real-secret@127.0.0.1:5432/scotty_b2_ci
+        run: node --test src/memory/phase2-postgres.ci.test.mjs
+      - name: Independently restore synthetic fixture to a second disposable CI database
+        shell: bash
+        run: |
+          set -euo pipefail
+          cid="$(docker ps -q --filter 'ancestor=postgres:18' | head -n1)"
+          test -n "$cid"
+          archive="$RUNNER_TEMP/scotty-b2-synthetic-fixture.dump"
+          trap 'rm -f "$archive"' EXIT
+          docker exec -e PGPASSWORD=disposable-ci-only-not-a-real-secret "$cid" pg_dump -U b2_ci -Fc --no-owner --no-privileges -d scotty_b2_ci > "$archive"
+          test -s "$archive"
+          docker exec -e PGPASSWORD=disposable-ci-only-not-a-real-secret "$cid" createdb -U b2_ci scotty_b2_ci_restored
+          docker exec -i -e PGPASSWORD=disposable-ci-only-not-a-real-secret "$cid" pg_restore -U b2_ci --no-owner --no-privileges -d scotty_b2_ci_restored < "$archive"
+          original="$(docker exec -e PGPASSWORD=disposable-ci-only-not-a-real-secret "$cid" psql -U b2_ci -At -d scotty_b2_ci -c 'select count(*) from scotty_b2_fixture_memory')"
+          restored="$(docker exec -e PGPASSWORD=disposable-ci-only-not-a-real-secret "$cid" psql -U b2_ci -At -d scotty_b2_ci_restored -c 'select count(*) from scotty_b2_fixture_memory')"
+          erased="$(docker exec -e PGPASSWORD=disposable-ci-only-not-a-real-secret "$cid" psql -U b2_ci -At -d scotty_b2_ci_restored -c "select count(*) from scotty_b2_fixture_memory where status='deleted' and (content is not null or content_sha256 is not null)")"
+          events="$(docker exec -e PGPASSWORD=disposable-ci-only-not-a-real-secret "$cid" psql -U b2_ci -At -d scotty_b2_ci_restored -c 'select count(*) from scotty_b2_fixture_audit')"
+          test "$original" = "$restored"
+          test "$restored" -ge 8
+          test "$erased" = 0
+          test "$events" -ge 8
+
