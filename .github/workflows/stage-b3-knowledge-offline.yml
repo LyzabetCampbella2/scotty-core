@@ -10,6 +10,8 @@ on:
       - 'scripts/phase3-export-public-pilot.mjs'
       - 'scripts/phase3-export-public-expansion.mjs'
       - 'scripts/phase3-export-all-chief-public-review.mjs'
+      - 'scripts/phase3-export-eight-specialist-public-pilot.mjs'
+      - 'docs/stage-b/b3-first-eight-specialist-public-pilot-2026-11-08.json'
       - 'docs/stage-b/b3-final-fifteen-chief-public-sources-2026-11-08.json'
       - 'docs/stage-b/b3-public-source-expansion-2026-11-08.json'
       - 'docs/stage-b/b3-public-source-pilot-2026-11-08.json'
@@ -25,6 +27,8 @@ on:
       - 'scripts/phase3-export-public-pilot.mjs'
       - 'scripts/phase3-export-public-expansion.mjs'
       - 'scripts/phase3-export-all-chief-public-review.mjs'
+      - 'scripts/phase3-export-eight-specialist-public-pilot.mjs'
+      - 'docs/stage-b/b3-first-eight-specialist-public-pilot-2026-11-08.json'
       - 'docs/stage-b/b3-final-fifteen-chief-public-sources-2026-11-08.json'
       - 'docs/stage-b/b3-public-source-expansion-2026-11-08.json'
       - 'docs/stage-b/b3-public-source-pilot-2026-11-08.json'
@@ -44,7 +48,7 @@ jobs:
         with:
           node-version: '22'
       - name: Verify source-bound knowledge candidates and refusal of unverified access
-        run: node --test src/knowledge/phase3-draft-catalog.test.mjs src/knowledge/phase3-evidence-queue.test.mjs src/knowledge/phase3-citation-fixtures.test.mjs src/knowledge/phase3-public-source-pilot.test.mjs src/knowledge/phase3-public-source-expansion.test.mjs src/knowledge/phase3-coverage-plan.test.mjs src/knowledge/phase3-all-chief-public-review.test.mjs src/knowledge/phase3-specialist-research-backlog.test.mjs
+        run: node --test src/knowledge/phase3-draft-catalog.test.mjs src/knowledge/phase3-evidence-queue.test.mjs src/knowledge/phase3-citation-fixtures.test.mjs src/knowledge/phase3-public-source-pilot.test.mjs src/knowledge/phase3-public-source-expansion.test.mjs src/knowledge/phase3-coverage-plan.test.mjs src/knowledge/phase3-all-chief-public-review.test.mjs src/knowledge/phase3-specialist-research-backlog.test.mjs src/knowledge/phase3-eight-specialist-public-pilot.test.mjs
       - name: Export review-only catalog with zero provider calls
         run: |
           node scripts/phase3-export-draft-catalog.mjs > /dev/null
@@ -56,3 +60,4 @@ jobs:
           node scripts/phase3-export-public-expansion.mjs coverage > /dev/null
           node scripts/phase3-export-all-chief-public-review.mjs > /dev/null
           node scripts/phase3-export-all-chief-public-review.mjs specialists > /dev/null
+          node scripts/phase3-export-eight-specialist-public-pilot.mjs > /dev/null
