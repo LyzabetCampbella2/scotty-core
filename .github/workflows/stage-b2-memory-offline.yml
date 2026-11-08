@@ -5,6 +5,7 @@ on:
     paths:
       - 'src/memory/phase2-*'
       - 'scripts/phase2-export-memory-plan.mjs'
+      - 'migrations/b2_ephemeral_ci_fixture_001.sql'
       - 'docs/stage-b/phase2-memory-architecture.md'
       - 'docs/a0/roster-frozen-2026-11-07.json'
       - 'docs/a0/roster-freeze-lock-2026-11-07.json'
@@ -35,3 +36,35 @@ jobs:
         run: node --test src/memory/phase2-policy.test.mjs src/memory/phase2-synthetic-lab.test.mjs
       - name: Produce offline blueprint export only
         run: node scripts/phase2-export-memory-plan.mjs > /dev/null
+
+  ephemeral-postgres:
+    name: B2 disposable PostgreSQL persistence test (synthetic only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: b2_ci
+          POSTGRES_PASSWORD: disposable-ci-only-not-a-real-secret
+          POSTGRES_DB: scotty_b2_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U b2_ci -d scotty_b2_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install existing PostgreSQL client dependency
+        run: npm install --ignore-scripts --no-audit --no-fund --package-lock=false
+      - name: Create synthetic schema and verify SQL-backed memory isolation
+        env:
+          GITHUB_ACTIONS: 'true'
+          SCOTTY_B2_EPHEMERAL_DB_TEST: 'yes'
+          B2_CI_DATABASE_URL: postgres://b2_ci:disposable-ci-only-not-a-real-secret@127.0.0.1:5432/scotty_b2_ci
+        run: node --test src/memory/phase2-postgres.ci.test.mjs
