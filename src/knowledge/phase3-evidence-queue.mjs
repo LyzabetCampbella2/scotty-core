@@ -99,7 +99,7 @@ export function previewSourceMetadata(reviewItem,input,asOf){
   return deny("INVALID_PUBLIC_SOURCE_URL");
  let u;
  try{u=new URL(input.sourceUrl);}catch{return deny("INVALID_PUBLIC_SOURCE_URL")}
- const host=u.hostname.toLowerCase();
+ const host=u.hostname.toLowerCase().replace(/\.$/,"");
  if(u.protocol!=="https:"||u.username||u.password||u.port||
     !host||host==="localhost"||host.endsWith(".local")||
     host.endsWith(".internal")||host.endsWith(".localhost")||
