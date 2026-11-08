@@ -91,3 +91,35 @@ node scripts/phase3-export-public-pilot.mjs > /tmp/scotty-b3-public-review.json
 **Evidence distinction:** Five public documents were manually inspected and their claim context summarized, but **0** sources were independently human-reviewed, **0** claims were approved for live citations, **0** libraries became agent-readable, and **0** real model-based retrieval tests were performed. License/redistribution review and source freshness still need verification. The page URLs and short paraphrases are included for future review, not as production training materials. No private or production records were used.
 
 The pilot is a step toward source-backed knowledge, not Phase 3 completion.
+
+## Second public-source pilot — five additional chiefs, November 8, 2026
+
+Five further public primary-publisher pages were inspected and recorded. These extend the earlier five-chief pilot to **10 unique chief identities**. Each item links to one existing requirement in the original **555** unapproved knowledge-source review dockets, and none is a validated, licensed or owner-approved library entry.
+
+| Chief | Exact public reference | Inspected planning insight | Boundary |
+|---|---|---|---|
+| DATA | [NLM: PubMed User Guide](https://pubmed.ncbi.nlm.nih.gov/help/) | Search terms, filters, field tags and citation lookup methods; page last updated Sept. 30, 2026 | A search hit is not proof that a study conclusion is correct |
+| JANEWAY | [NASA Science: What's a transit?](https://science.nasa.gov/exoplanets/whats-a-transit/) | A transiting exoplanet can cause a dip in a star's observed light curve | A brightness dip alone does not establish every planetary property or exclude alternatives |
+| SEVEN | [NIST Technical Note 1297](https://www.nist.gov/pml/nist-technical-note-1297) | How to identify and express components of measurement uncertainty; 1994 edition | Not a blanket validation of dataset quality or statistical model assumptions |
+| QUARK | [U.S. SBA: Plan your business](https://www.sba.gov/counseling/plan-your-business/) | Traditional and lean business plans; research, assumptions and projections | A proposed plan does not guarantee demand, profitability or funding |
+| ZORA | [U.S. Copyright Office: What Does Copyright Protect?](https://copyright.gov/help/faq/faq-protect.html) | Protection of original creative expression, but not underlying ideas and methods | General U.S. guidance is not an individual legal opinion or a license to use others' works |
+
+The addition is stored as `docs/stage-b/b3-public-source-expansion-2026-11-08.json`, preserving the original five-entry manifest unchanged. The module `src/knowledge/phase3-public-source-expansion.mjs` cross-checks both manifests against **10 different frozen chief identities** and 10 distinct source dockets. It rejects a wrong official domain/URL path, incorrect chief or requirement, duplicate public reviews, forged owner approval, unverified license/claim promotion, unexpected fields and invented publication-date metadata. It checks **only authored metadata**: there is no HTTP request or external model call in GitHub CI.
+
+`src/knowledge/phase3-coverage-plan.mjs` now measures remaining work across all frozen agents:
+
+- **185** canonical agent roles and **555** source-verification requirements still pending independent acceptance
+- **10** manually inspected public-page candidates for **10 chiefs**
+- **15** chiefs without any manually inspected public-page candidate
+- **160** specialists without an inspected public-page candidate
+- **545** dockets not yet associated with any assistant-inspected official page
+- **0** independently reviewed/owner-approved live citations or validated knowledge packs
+
+### Zero-network exports
+
+```bash
+node scripts/phase3-export-public-expansion.mjs review > /tmp/scotty-b3-ten-chief-public-review.json
+node scripts/phase3-export-public-expansion.mjs coverage > /tmp/scotty-b3-uninspected-roles.json
+```
+
+**Important:** This is assistant-led page inspection and source candidate organization. It is neither an independent human review nor user approval. The `citationPromotionAllowed`, `ownerApproved`, and `citableByLiveAgents` flags remain false, and no personal or production source material was retrieved. Stage B Phase 3 remains a **development phase**, not a certified expertise service.
