@@ -80,6 +80,13 @@ test("Local revision history rejects approval/permission escalation and corrupte
  const forged2=structuredClone(next);
  forged2.runtimeEnabled=true;
  assert.equal(verifyDraftRevisionJournal(forged2),false);
+ const extra=structuredClone(next);
+ extra.ownerApproved=true;
+ assert.equal(verifyDraftRevisionJournal(extra),false);
+ const extraEvent=structuredClone(next);
+ extraEvent.events[1].authorization={liveAgentEnabled:true};
+ assert.equal(verifyDraftRevisionJournal(extraEvent),false);
+ assert.throws(()=>appendOfflineDraftRevision(base,{proposedSpecialistCommunication:{ownerApproved:true}},"nested-claim"),/INVALID_DRAFT_FIELD/);
 });
 test("All 555 offline evaluation fixture envelopes remain ungraded and unexecuted",()=>{
  assert.equal(evaluationMatrix.cases.length,555);
@@ -109,6 +116,7 @@ test("Fixture replays, scope swaps, model-pass claims and payload corruption can
  assert.equal(verifyOfflineFixture({...first,agentId:"other-agent"},cases[0]),false);
  assert.equal(verifyOfflineFixture({...first,modelExecutionStatus:"PASS"},cases[0]),false);
  assert.equal(verifyOfflineFixture({...first,evaluationVerdict:"PASS"},cases[0]),false);
+ assert.equal(verifyOfflineFixture({...first,ownerApproved:true},cases[0]),false);
  assert.equal(verifyOfflineFixture({...first,canUseForRealModelCertification:true},cases[0]),false);
  assert.equal(offlineFixtureReviewStatus({...first,authenticatedOwnerApproval:"fake"},cases[0]).certified,false);
  assert.throws(()=>prepareOfflineFixture({...cases[0],verdict:"PASS"},"sample"),/LOCKED_UNRUN_EVALUATION_REQUIRED/);
