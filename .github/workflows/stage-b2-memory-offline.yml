@@ -68,3 +68,24 @@ jobs:
           SCOTTY_B2_EPHEMERAL_DB_TEST: 'yes'
           B2_CI_DATABASE_URL: postgres://b2_ci:disposable-ci-only-not-a-real-secret@127.0.0.1:5432/scotty_b2_ci
         run: node --test src/memory/phase2-postgres.ci.test.mjs
+      - name: Independently restore synthetic fixture to a second disposable CI database
+        shell: bash
+        run: |
+          set -euo pipefail
+          cid="$(docker ps -q --filter 'ancestor=postgres:18' | head -n1)"
+          test -n "$cid"
+          archive="$RUNNER_TEMP/scotty-b2-synthetic-fixture.dump"
+          trap 'rm -f "$archive"' EXIT
+          docker exec -e PGPASSWORD=disposable-ci-only-not-a-real-secret "$cid" pg_dump -U b2_ci -Fc --no-owner --no-privileges -d scotty_b2_ci > "$archive"
+          test -s "$archive"
+          docker exec -e PGPASSWORD=disposable-ci-only-not-a-real-secret "$cid" createdb -U b2_ci scotty_b2_ci_restored
+          docker exec -i -e PGPASSWORD=disposable-ci-only-not-a-real-secret "$cid" pg_restore -U b2_ci --no-owner --no-privileges -d scotty_b2_ci_restored < "$archive"
+          original="$(docker exec -e PGPASSWORD=disposable-ci-only-not-a-real-secret "$cid" psql -U b2_ci -At -d scotty_b2_ci -c 'select count(*) from scotty_b2_fixture_memory')"
+          restored="$(docker exec -e PGPASSWORD=disposable-ci-only-not-a-real-secret "$cid" psql -U b2_ci -At -d scotty_b2_ci_restored -c 'select count(*) from scotty_b2_fixture_memory')"
+          erased="$(docker exec -e PGPASSWORD=disposable-ci-only-not-a-real-secret "$cid" psql -U b2_ci -At -d scotty_b2_ci_restored -c "select count(*) from scotty_b2_fixture_memory where status='deleted' and (content is not null or content_sha256 is not null)")"
+          events="$(docker exec -e PGPASSWORD=disposable-ci-only-not-a-real-secret "$cid" psql -U b2_ci -At -d scotty_b2_ci_restored -c 'select count(*) from scotty_b2_fixture_audit')"
+          test "$original" = "$restored"
+          test "$restored" -ge 8
+          test "$erased" = 0
+          test "$events" -ge 8
+
