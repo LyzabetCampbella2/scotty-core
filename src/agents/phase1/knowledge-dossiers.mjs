@@ -69,7 +69,7 @@ export function knowledgeDossier(profile){
   })),
   researchQuestions:[
     "What is the best-authorized source for "+profile.specialty+" in "+profile.department+" and when was it updated?",
-    "Which methods or constraints differ between this "+role+" and other roles in "+profile.department+"?",
+    "Which methods or constraints for "+profile.specialty+" differ between this "+role+" and other roles in "+profile.department+"?",
     "What claim about "+profile.specialty+" cannot be supported without new evidence or qualified review?",
     "What provenance, permission and acceptance proof would a chief need to trust a proposed "+profile.specialty+" deliverable?"
   ],
