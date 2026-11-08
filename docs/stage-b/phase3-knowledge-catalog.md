@@ -158,3 +158,20 @@ node scripts/phase3-export-all-chief-public-review.mjs > /tmp/scotty-b3-all-chie
 ```
 
 **This completes chief initial public-source coverage only, not Phase 3 knowledge certification.**
+
+## Next research queue — all 160 specialists, November 8, 2026
+
+Chief initial reference coverage is now **25/25**, but each specialist must receive its **own evidence sources**; a chief's inspected page does not confer knowledge certification on its specialists.
+
+The new `src/knowledge/phase3-specialist-research-backlog.mjs` creates **160 individual specialist briefs** directly from the frozen roster, with a separate research question for each of the specialist's three existing knowledge requirements: **480 requirement-level research tasks**. The topics preserve each actual specialty and department/chief relationship. Every task asks for a current appropriate primary authority, exact version/section/date, supporting and contradicting evidence, licensing/rights and independent review.
+
+The source families are only suggestions for where reviewers should look (for example, educational research guides, primary historical archives, official software specifications or original science). They are not fetched URLs or proofs. No specialist source has been opened through this new backlog, no credential or private data has been requested, and none of the 480 requirements has been approved.
+
+```bash
+node --test src/knowledge/phase3-specialist-research-backlog.test.mjs
+node scripts/phase3-export-all-chief-public-review.mjs specialists > /tmp/scotty-b3-specialist-research-backlog.json
+```
+
+The updated offline CI tests confirm exactly 160 frozen specialist identities, 480 unique review IDs, 25 intact chief links and **zero** implied inherited chief approval, verified specialist claims or allowed live citations.
+
+**The remaining source-research queue:** 480 specialist evidence needs plus 50 uninspected second/third chief evidence needs, totalling **530** dockets without manually inspected public candidate. All 555 original evidence decisions remain pending independent review. No real model retrieval tests or operational approvals have occurred.
