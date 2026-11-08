@@ -9,7 +9,10 @@ import {createHash} from "node:crypto";
 import {createPhase1BrainDrafts} from "../src/agents/phase1/draft-builder.mjs";
 import {createPhase3EvidenceQueue} from "../src/knowledge/phase3-evidence-queue.mjs";
 import {validatePublicSourceExpansion} from "../src/knowledge/phase3-public-source-expansion.mjs";
-if(process.argv.length!==2)throw Error("No apply, approve, fetch or deploy commands supported");
+import {buildPhase3SourceCoverage} from "../src/knowledge/phase3-coverage-plan.mjs";
+const mode=process.argv[2]??"review";
+if(!["review","coverage"].includes(mode)||process.argv.length>3)
+ throw Error("Usage: phase3-export-public-expansion.mjs [review|coverage]; no external actions supported");
 const read=path=>{
  const bytes=readFileSync(new URL(path,import.meta.url));
  return {json:JSON.parse(bytes.toString("utf8")),
@@ -23,4 +26,5 @@ const expansion=read("../docs/stage-b/b3-public-source-expansion-2026-11-08.json
 const drafts=createPhase1BrainDrafts(frozen.json,lock);
 const queue=createPhase3EvidenceQueue(drafts);
 const report=validatePublicSourceExpansion(expansion,originals,queue,frozen.json);
-process.stdout.write(JSON.stringify(report,null,2)+"\n");
+const output=mode==="coverage"?buildPhase3SourceCoverage(frozen.json,queue,originals,expansion):report;
+process.stdout.write(JSON.stringify(output,null,2)+"\n");
