@@ -11,6 +11,8 @@ import {createHash} from "node:crypto";
 const isText=x=>typeof x==="string"&&x.length>0&&x.length<=500;
 const serialized=x=>JSON.stringify(x);
 const sha=x=>createHash("sha256").update(serialized(x)).digest("hex");
+const JOURNAL_FIELDS=new Set(["schemaVersion","agentId","rosterBlobSha","type","events","ownerApprovalEvidence","independentlyAuthenticated","certified","runtimeEnabled"]);
+const EVENT_FIELDS=new Set(["schemaVersion","agentId","rosterBlobSha","revisionNumber","previousHash","proposal","editorContext","reviewState","hash"]);
 const SAFE_EDITABLE_FIELDS=new Set([
   "proposedPersonalityTraits","proposedLeadershipArchetype",
   "proposedSignatureQuestion","proposedChiefMethod",
@@ -26,6 +28,15 @@ function ensureSafeFields(fields){
   for(const [key,value] of Object.entries(fields)){
     if(!SAFE_EDITABLE_FIELDS.has(key))throw Error("FORBIDDEN_PERSONA_REVISION_FIELD:"+key);
     if(value===undefined||typeof value==="function")throw Error("INVALID_DRAFT_FIELD:"+key);
+    const encoded=JSON.stringify(value);
+    if(encoded===undefined||encoded.length>8000)throw Error("INVALID_DRAFT_FIELD:"+key);
+    if(value!==null&&typeof value==="object"){
+      if(Array.isArray(value)&&value.some(x=>typeof x!=="string"))throw Error("INVALID_DRAFT_FIELD:"+key);
+      if(!Array.isArray(value)&&Object.values(value).some(v=>!["string","number","boolean"].includes(typeof v)))
+        throw Error("INVALID_DRAFT_FIELD:"+key);
+      if(!Array.isArray(value)&&Object.keys(value).some(k=>/^(ownerApproved|certified|authorization|memoryWriteEnabled|liveAgentEnabled|runtimeEnabled)$/i.test(k)))
+        throw Error("INVALID_DRAFT_FIELD:"+key);
+    }
   }
 }
 function restricted(packet){
@@ -78,7 +89,7 @@ export function beginDraftRevisionJournal(packet){
   };
 }
 export function verifyDraftRevisionJournal(journal){
-  if(!journal||journal.type!=="OFFLINE_REVIEW_PROPOSAL_ONLY"||
+  if(!journal||Object.keys(journal).some(k=>!JOURNAL_FIELDS.has(k))||journal.type!=="OFFLINE_REVIEW_PROPOSAL_ONLY"||
      !isText(journal.agentId)||!isText(journal.rosterBlobSha)||
      !Array.isArray(journal.events)||journal.events.length===0||
      journal.ownerApprovalEvidence!==null||
@@ -87,7 +98,8 @@ export function verifyDraftRevisionJournal(journal){
   let previous=null;
   for(let index=0;index<journal.events.length;index++){
     const entry=journal.events[index];
-    if(entry.agentId!==journal.agentId||
+    if(!entry||Object.keys(entry).some(k=>!EVENT_FIELDS.has(k))||
+       entry.agentId!==journal.agentId||
        entry.rosterBlobSha!==journal.rosterBlobSha||
        entry.revisionNumber!==index||entry.previousHash!==previous||
        entry.reviewState!=="UNAPPROVED_DRAFT"||
