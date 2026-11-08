@@ -30,6 +30,6 @@ jobs:
         with:
           node-version: '22'
       - name: Verify source-bound knowledge candidates and refusal of unverified access
-        run: node --test src/knowledge/phase3-draft-catalog.test.mjs
+        run: node --test src/knowledge/phase3-draft-catalog.test.mjs src/knowledge/phase3-evidence-queue.test.mjs
       - name: Export review-only catalog with zero provider calls
         run: node scripts/phase3-export-draft-catalog.mjs > /dev/null
