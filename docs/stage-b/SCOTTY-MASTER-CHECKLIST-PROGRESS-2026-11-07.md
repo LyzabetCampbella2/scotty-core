@@ -14,7 +14,7 @@
 |---|---|---|---|---|
 | A — Inventory & Protect | A0 | Identity, policies, apps, costs, recovery | PR #76, 185 IDs and names owner-approved and version-locked; simulated owner-grant/backup CI; provider inventory | **BLOCKED:** real staging/production separation, live executor permissions, actual stop-all and real recovery |
 | B — Individual Intelligence | 1 | 185 individual personalities and brains | PR #77, 25 chief and 160 specialist concept drafts, 185 review worksheets, 555 planned tests, revisions and source dossiers | **BLOCKED:** 185 owner-reviewed versions and 555 independent real-model test outputs |
-| B — Individual Intelligence | 2 | Individual/shared memory | PR #78, 185 scope blueprints plus ephemeral synthetic lab: acceptance, search, dedupe, scoped sharing, correction, lineage deletion, TTL cleanup and simulated restart tests | **NOT COMPLETE:** no durable memory, real auth, restart/search/delete/promotion/restore verification |
+| B — Individual Intelligence | 2 | Individual/shared memory | PR #78, 185 scope blueprints, offline lab and **disposable PostgreSQL persistence tests**, including database-committed fictional records, SQL-scoped retrieval, sharing/revocation, correction, deletion, TTL and independent synthetic database restore | **NOT COMPLETE:** no durable memory, real auth, restart/search/delete/promotion/restore verification |
 | B — Individual Intelligence | 3 | Verified specialist knowledge | 185 knowledge-gap dossiers, 555 verification requirements and 740 research questions in Phase 1 draft | **NOT COMPLETE:** source libraries, searchable indexes, citations/freshness and retrieval tests |
 | C — Controlled Work | 4 | Independent callable engine | Earlier prototypes and default-deny development safety work | **NOT COMPLETE:** all IDs callable with owner-authenticated, budgeted, audited execution |
 | C — Controlled Work | 5 | Living jobs, assignments and biographies | Earlier draft relationships and project-workspace prototypes | **NOT COMPLETE:** verified real owner-approved assignments and biography history |
@@ -28,6 +28,13 @@
 - **Verified by CI:** focused synthetic scope, mutation-denial, deletion, project membership, snapshot tamper and restart simulation tests. These tests do not use or prove actual database persistence or live identity authentication.
 - **Still not implemented:** independently isolated real durable storage; trusted session/owner permissions; actual privacy-safe retrieval/search/dedupe; memory owner HUD; consented sharing, retention and deletion against real backup data; real recovery tests.
 - **Overall status unchanged:** Stage B Phase 2 is under development; A0 and B1 are still not certified, so Stage C cannot be enabled.
+
+## Phase 2 SQL persistence milestone — November 8, 2026
+
+- **Passed in disposable GitHub Actions PostgreSQL:** actual database insert/commit, SQL-filtered retrieval and source identity validation for fictional records, same-owner/project deduplication, simulated owner acceptance, revocation of synthetic sharing, correction/version history and erasure of all synthetic lineage versions.
+- **Passed independent synthetic restore:** CI-only `pg_dump` from database `scotty_b2_ci` into a second temporary `scotty_b2_ci_restored`, comparing record counts/audit and verifying deleted record bodies remain erased.
+- **Not a durable production implementation:** the test databases are ephemeral; fake test-owner handles can be minted; no actual OAuth/session verification, row-level security policy for real records, live hosted memory, encrypted production restore or authenticated deletion is in place.
+- **Stage and exit gate unchanged:** Stage B Phase 2 is in active test development, not complete. Phases A0 and B1 are still operationally blocked.
 
 ## Next safe development order
 
