@@ -7,6 +7,7 @@ on:
       - 'scripts/phase1-export-drafts.mjs'
       - 'scripts/phase1-export-readiness.mjs'
       - 'scripts/phase1-export-revisions.mjs'
+      - 'scripts/phase1-export-review-workflows.mjs'
       - 'scripts/phase1-export-review-packets.mjs'
       - 'docs/a0/roster-frozen-2026-11-07.json'
       - 'docs/a0/roster-freeze-lock-2026-11-07.json'
@@ -19,6 +20,7 @@ on:
       - 'scripts/phase1-export-drafts.mjs'
       - 'scripts/phase1-export-readiness.mjs'
       - 'scripts/phase1-export-revisions.mjs'
+      - 'scripts/phase1-export-review-workflows.mjs'
       - 'docs/a0/roster-frozen-2026-11-07.json'
       - 'docs/a0/roster-freeze-lock-2026-11-07.json'
       - '.github/workflows/stage-b1-offline.yml'
@@ -37,7 +39,7 @@ jobs:
         with:
           node-version: '22'
       - name: Validate frozen identity and all 185 source-only drafts
-        run: node --test src/agents/phase1/draft-builder.test.mjs src/agents/phase1/methods-and-provenance.test.mjs src/agents/phase1/review-packets.test.mjs src/agents/phase1/new-chief-concepts.test.mjs src/agents/phase1/specialist-persona-proposals.test.mjs src/agents/phase1/knowledge-dossiers.test.mjs src/agents/phase1/evaluation-matrix.test.mjs src/agents/phase1/revision-and-evidence.test.mjs
+        run: node --test src/agents/phase1/draft-builder.test.mjs src/agents/phase1/methods-and-provenance.test.mjs src/agents/phase1/review-packets.test.mjs src/agents/phase1/new-chief-concepts.test.mjs src/agents/phase1/specialist-persona-proposals.test.mjs src/agents/phase1/knowledge-dossiers.test.mjs src/agents/phase1/evaluation-matrix.test.mjs src/agents/phase1/revision-and-evidence.test.mjs src/agents/phase1/individual-review-queue.test.mjs src/agents/phase1/source-review.test.mjs src/agents/phase1/synthetic-comparisons.test.mjs src/agents/phase1/rollback-and-approval.test.mjs
       - name: Confirm deterministic offline exports
         run: |
           node scripts/phase1-export-drafts.mjs > /dev/null
@@ -45,3 +47,6 @@ jobs:
           node scripts/phase1-export-readiness.mjs knowledge > /dev/null
           node scripts/phase1-export-readiness.mjs evaluations > /dev/null
           node scripts/phase1-export-revisions.mjs > /dev/null
+          node scripts/phase1-export-review-workflows.mjs queue > /dev/null
+          node scripts/phase1-export-review-workflows.mjs examples > /dev/null
+          node scripts/phase1-export-review-workflows.mjs rollback-requirements > /dev/null
