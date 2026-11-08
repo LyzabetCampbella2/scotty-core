@@ -5,6 +5,7 @@ on:
     paths:
       - 'src/agents/phase1/**'
       - 'scripts/phase1-export-drafts.mjs'
+      - 'scripts/phase1-export-readiness.mjs'
       - 'scripts/phase1-export-review-packets.mjs'
       - 'docs/a0/roster-frozen-2026-11-07.json'
       - 'docs/a0/roster-freeze-lock-2026-11-07.json'
@@ -15,6 +16,7 @@ on:
     paths:
       - 'src/agents/phase1/**'
       - 'scripts/phase1-export-drafts.mjs'
+      - 'scripts/phase1-export-readiness.mjs'
       - 'docs/a0/roster-frozen-2026-11-07.json'
       - 'docs/a0/roster-freeze-lock-2026-11-07.json'
       - '.github/workflows/stage-b1-offline.yml'
@@ -33,8 +35,10 @@ jobs:
         with:
           node-version: '22'
       - name: Validate frozen identity and all 185 source-only drafts
-        run: node --test src/agents/phase1/draft-builder.test.mjs src/agents/phase1/methods-and-provenance.test.mjs src/agents/phase1/review-packets.test.mjs src/agents/phase1/new-chief-concepts.test.mjs src/agents/phase1/specialist-persona-proposals.test.mjs
+        run: node --test src/agents/phase1/draft-builder.test.mjs src/agents/phase1/methods-and-provenance.test.mjs src/agents/phase1/review-packets.test.mjs src/agents/phase1/new-chief-concepts.test.mjs src/agents/phase1/specialist-persona-proposals.test.mjs src/agents/phase1/knowledge-dossiers.test.mjs src/agents/phase1/evaluation-matrix.test.mjs
       - name: Confirm deterministic offline exports
         run: |
           node scripts/phase1-export-drafts.mjs > /dev/null
           node scripts/phase1-export-review-packets.mjs > /dev/null
+          node scripts/phase1-export-readiness.mjs knowledge > /dev/null
+          node scripts/phase1-export-readiness.mjs evaluations > /dev/null
