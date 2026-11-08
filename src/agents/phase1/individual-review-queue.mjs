@@ -115,7 +115,12 @@ export function proposeReviewTransition(worksheet,command){
 /** Describes required future external integration; never authenticates. */
 export function ownerReviewHandoff(worksheet){
  if(!worksheet||worksheet.reviewStage!=="READY_FOR_EXTERNAL_OWNER_REVIEW"||
-    worksheet.canActivate!==false)throw Error("NOT_READY_FOR_EXTERNAL_REVIEW");
+    worksheet.canActivate!==false||
+    worksheet.personalityApproved!==false||
+    worksheet.ownerApprovalEvidence!==null||
+    worksheet.externalOwnerIdentityVerified!==false||
+    worksheet.versionHash!==digest(Object.fromEntries(Object.entries(worksheet).filter(([k])=>k!=="versionHash"))))
+    throw Error("NOT_READY_FOR_EXTERNAL_REVIEW");
  return {
   agentId:worksheet.canonicalAgentId,
   draftVersionHash:worksheet.versionHash,
