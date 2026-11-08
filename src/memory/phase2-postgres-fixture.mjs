@@ -9,6 +9,8 @@ const validId=s=>typeof s==="string"&&/^[A-Za-z0-9_.:-]{1,128}$/.test(s);
 const synthetic=s=>typeof s==="string"&&s.startsWith("SYNTHETIC:")&&s.length<=1024;
 const time=s=>typeof s==="string"&&Number.isFinite(Date.parse(s));
 const uuid=s=>typeof s==="string"&&/^[a-f0-9-]{36}$/i.test(s);
+const allowed=(obj,keys)=>!!obj&&typeof obj==="object"&&!Array.isArray(obj)&&
+ Object.keys(obj).every(key=>keys.includes(key));
 
 export function assertEphemeralB2Ci(){
  const raw=process.env.B2_CI_DATABASE_URL;
@@ -81,8 +83,10 @@ export async function openEphemeralB2Fixture(sql,frozen){
    contexts.set(token,{kind:"owner"});
    return token;
   },
-  async createCandidate(token,{content,projectId=null,sourceId="synthetic-ci",expiresAt=null}={}){
+  async createCandidate(token,options={}){
    const a=actor(token);
+   if(!allowed(options,["content","projectId","sourceId","expiresAt"]))throw Error("UNTRUSTED_SYNTHETIC_INPUT");
+   const {content,projectId=null,sourceId="synthetic-ci",expiresAt=null}=options;
    if(!synthetic(content)||!validId(sourceId)||
       !(projectId===null||validId(projectId))||
       projectId!==null&&!a.projects.includes(projectId)||
@@ -114,8 +118,10 @@ export async function openEphemeralB2Fixture(sql,frozen){
     return {memoryId:id,acceptedInFixture:true,realOwnerApproval:false};
    });
   },
-  async shareForTest(token,id,{scope,recipients=[],consentRef}={}){
+  async shareForTest(token,id,options={}){
    owner(token);
+   if(!allowed(options,["scope","recipients","consentRef"]))throw Error("UNTRUSTED_SYNTHETIC_SHARING");
+   const {scope,recipients=[],consentRef}=options;
    if(!["department","project","explicit_shared"].includes(scope)||
       !validId(consentRef)||!consentRef.startsWith("synthetic-consent-")||
       !Array.isArray(recipients)||
@@ -135,8 +141,10 @@ export async function openEphemeralB2Fixture(sql,frozen){
     return {sharedOnlyInFixture:true,realConsentVerified:false};
    });
   },
-  async find(token,{query,projectId=null,at="2026-11-08T12:00:00Z"}={}){
+  async find(token,options={}){
    const a=actor(token);
+   if(!allowed(options,["query","projectId","at"]))throw Error("UNTRUSTED_SYNTHETIC_SEARCH");
+   const {query,projectId=null,at="2026-11-08T12:00:00Z"}=options;
    if(typeof query!=="string"||!query.trim()||query.length>120||
       !(projectId===null||validId(projectId))||!time(at))
     throw Error("INVALID_SYNTHETIC_SEARCH");
