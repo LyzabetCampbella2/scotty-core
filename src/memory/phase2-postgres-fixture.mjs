@@ -192,6 +192,44 @@ export async function openEphemeralB2Fixture(sql,frozen){
     return {syntheticTextDeleted:true,realDataDeletion:false,realBackupReconciliation:false};
    });
   },
+  /** Synthetic owner can revoke a prior simulated sharing decision. */
+  async revokeShareForTest(token,id){
+   owner(token);
+   return sql.begin(async tx=>{
+    const r=await row(tx,id);
+    if(r.status!=="accepted"||r.scope==="individual")
+     throw Error("NO_SYNTHETIC_SHARING_TO_REVOKE");
+    await tx.unsafe(
+     "update scotty_b2_fixture_memory set scope='individual',recipients='{}'::text[],consent_ref=null,updated_at=now() where memory_id=$1",
+     [id]);
+    await audit(tx,id,"synthetic-sharing-revoked","test-owner");
+    return {revokedOnlyInFixture:true,realGrantRevoked:false};
+   });
+  },
+  /** Erase every synthetic correction version; not real-data/backup erasure. */
+  async deleteLineageForTest(token,id){
+   owner(token);
+   return sql.begin(async tx=>{
+    await row(tx,id);
+    const [root]=await tx.unsafe(
+     "with recursive ancestors as (select memory_id,supersedes_id from scotty_b2_fixture_memory where memory_id=$1 "+
+     "union all select p.memory_id,p.supersedes_id from scotty_b2_fixture_memory p "+
+     "join ancestors a on a.supersedes_id=p.memory_id) "+
+     "select memory_id from ancestors where supersedes_id is null limit 1",[id]);
+    if(!root)throw Error("CORRUPT_SYNTHETIC_LINEAGE");
+    const erased=await tx.unsafe(
+     "with recursive lineage as (select memory_id from scotty_b2_fixture_memory where memory_id=$1 "+
+     "union all select x.memory_id from scotty_b2_fixture_memory x "+
+     "join lineage l on x.supersedes_id=l.memory_id) "+
+     "update scotty_b2_fixture_memory set status='deleted',content=null,content_sha256=null,"+
+     "recipients='{}'::text[],consent_ref=null,updated_at=now() "+
+     "where memory_id in (select memory_id from lineage) returning memory_id",
+     [root.memory_id]);
+    for(const r of erased)await audit(tx,r.memory_id,"synthetic-lineage-erased","test-owner");
+    return {syntheticVersionsErased:erased.length,realDataDeletion:false,
+      realBackupErasureVerified:false};
+   });
+  },
   async expireForTest(token,at){
    owner(token);
    if(!time(at))throw Error("INVALID_TEST_CLOCK");
