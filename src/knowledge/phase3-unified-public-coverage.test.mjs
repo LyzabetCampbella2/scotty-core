@@ -137,3 +137,54 @@ test("Unified eight-batch validation refuses forged approvals and replayed agent
  assert.throws(()=>reconcileB3PublicSourceCoverage(dropped),
   /B3_THIRD_TEN_UNAPPROVED_MANIFEST_REQUIRED/);
 });
+
+const fourthBatch=read("../../docs/stage-b/b3-fourth-ten-expansion-specialist-public-pilot-2026-11-09.json");
+const fourthBase={...extendedBase,expansionFourthTen:fourthBatch};
+
+test("Nine immutable source manifests reconcile exactly 84 inspected candidates, 59 specialists, and 471 missing dockets",()=>{
+ const expanded=reconcileB3PublicSourceCoverage(fourthBase);
+ assert.equal(expanded.summary.canonicalAgents,185);
+ assert.equal(expanded.summary.chiefsWithFirstCandidate,25);
+ assert.equal(expanded.summary.specialistsWithFirstCandidate,59);
+ assert.equal(expanded.summary.specialistsWithoutFirstCandidate,101);
+ assert.equal(expanded.summary.evidenceDocketsTotal,555);
+ assert.equal(expanded.summary.docketsWithCandidate,84);
+ assert.equal(expanded.summary.docketsWithoutCandidate,471);
+ assert.equal(expanded.summary.independentDocketReviewsPending,555);
+ assert.equal(expanded.summary.verifiedExternalClaims,0);
+ assert.equal(expanded.summary.ownerApprovedKnowledgeLibraries,0);
+ assert.equal(expanded.summary.permissionedLiveCitations,0);
+ assert.equal(expanded.summary.realModelEvaluations,0);
+ assert.equal(expanded.summary.activatedAgents,0);
+ assert.equal(expanded.sourceRecords.length,84);
+ assert.equal(expanded.pendingWithoutCandidate.length,471);
+ assert.equal(expanded.nextSpecialists.length,101);
+ assert.equal(expanded.departments.reduce((n,x)=>n+x.specialistsWithFirstPublicCandidate,0),59);
+ assert.equal(new Set(expanded.sourceRecords.map(x=>x.agentId)).size,84);
+ assert.equal(new Set(expanded.sourceRecords.map(x=>x.requirementId)).size,84);
+ assert.equal(expanded.nextSpecialists[0].agentId,"agent-expansion-041");
+ assert.ok(expanded.sourceRecords.some(x=>x.agentId==="agent-expansion-040"&&x.inspectionDate==="2026-11-09"));
+ for(const x of expanded.sourceRecords){
+  assert.equal(x.candidateOnly,true);
+  assert.equal(x.independentlyReviewed,false);
+  assert.equal(x.ownerApproved,false);
+  assert.equal(x.liveCitationPermission,false);
+ }
+});
+test("All-nine-manifest reconciliation denies forged review claims, duplicate source IDs, and incomplete dependency",()=>{
+ const forged=structuredClone(fourthBase);
+ forged.expansionFourthTen.items[0].ownerApproved=true;
+ assert.throws(()=>reconcileB3PublicSourceCoverage(forged),
+  /B3_FOURTH_TEN_FALSE_VERIFICATION_OR_OWNER_APPROVAL/);
+ const replay=structuredClone(fourthBase);
+ replay.expansionFourthTen.items[0].agentId="agent-expansion-031";
+ replay.expansionFourthTen.items[1].agentId="agent-expansion-031";
+ assert.throws(()=>reconcileB3PublicSourceCoverage(replay),
+  /B3_FOURTH_TEN_DUPLICATE_UNKNOWN_OR_REPLAY_ID|B3_FOURTH_TEN_FROZEN_ROLE_OR_DOCKET_MISMATCH/);
+ const omitted=structuredClone(fourthBase);omitted.expansionThirdTen=null;
+ assert.throws(()=>reconcileB3PublicSourceCoverage(omitted),
+  /B3_FOURTH_REQUIRES_THIRD_BATCH/);
+ const missing=structuredClone(fourthBase);missing.expansionFourthTen.items.pop();
+ assert.throws(()=>reconcileB3PublicSourceCoverage(missing),
+  /B3_FOURTH_TEN_UNAPPROVED_MANIFEST_REQUIRED/);
+});
