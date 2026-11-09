@@ -39,6 +39,7 @@ tables=(
  scotty_p5_synthetic_memory_items
  scotty_p5_synthetic_memory_identity_acl
  scotty_p5_synthetic_emergency_stop
+ scotty_p5_synthetic_memory_request_audit
 )
 orders=(
  grant_id
@@ -48,6 +49,7 @@ orders=(
  memory_id
  'login_name,project_id,agent_id'
  scope
+ event_id
 )
 for i in "${!tables[@]}"; do
  table="${tables[$i]}"
