@@ -26,5 +26,10 @@ jobs:
           node-version: '22'
       - name: Syntax check (no external services)
         run: node --check offline-brain/cloudflare-ipad/phase5-authorization/workspace-authorization-adapter.mjs
-      - name: Synthetic authorization tests (no deployment)
-        run: node --test offline-brain/cloudflare-ipad/phase5-authorization/workspace-authorization-adapter.test.mjs
+      - name: Synthetic authorization and transaction tests (mock database; no deployment)
+        run: |
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres-gate.mjs
+          node --test offline-brain/cloudflare-ipad/phase5-authorization/workspace-authorization-adapter.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres-gate.test.mjs
+      - name: Check SQL stays unapplied and restricted to disposable database
+        run: |
+          node -e "const fs=require('node:fs'); const s=fs.readFileSync('offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres-schema.sql','utf8'); if(!s.includes(\"current_database() <> 'scotty_phase5_synthetic_test'\")||!s.includes('REVOKE ALL ON TABLE')) process.exit(1)"
