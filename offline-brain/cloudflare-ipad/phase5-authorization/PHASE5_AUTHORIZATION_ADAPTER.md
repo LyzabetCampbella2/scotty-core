@@ -1,6 +1,6 @@
 # SCOTTY Phase 5 — isolated authorization adapter (draft)
 
-**Status:** Development-only. **Not connected to any route, agent, database, OAuth provider, memory store, or production environment.** No real authorization is issued. Do not merge, deploy, or enable without additional review and explicit owner approval.
+**Status:** Development-only. **Not connected to any live route, agent, SCOTTY database, OAuth provider, memory store, or production environment.** Synthetic code is tested against disposable PostgreSQL containers in CI. No real authorization is issued. Do not merge, deploy, or enable without additional review and explicit owner approval.
 
 ## Location and dependency
 
@@ -67,3 +67,16 @@ The new module does **not** create a database connection, read environment varia
 - No actual signed owner approval, identity-provider token, agent execution, media/account connection, memory store, or production database was accessed or integrated. The tests deliberately stub grant signature verification and owner session checks. A synthetic eligibility result is **never a real permission**.
 - **Important remaining gap:** the demonstration logs eligible-preview transactions but does not yet durably log every denied attempt. Persistent privacy-safe denial auditing, backend RLS, stronger least-privilege roles (possibly a security-definer service), cryptographic proof verification, and tests across actual distinct backend machines remain outstanding.
 - No production migration, deployment, merge, or live permission grant was performed. GitHub Actions may consume included usage credits; account billing was not independently verified.
+
+## Synthetic Ed25519 owner proof and subject-bound signed sessions (November 9, 2026)
+
+- `phase5-owner-proof.mjs` verifies a domain-separated, exact-field Ed25519 signature on a **synthetic owner grant**. Project, resource, action, status, expiry, version, issuer and key ID are all included in the signed payload. Public keys come from an independently supplied trusted test keyring, **not** from an editable database record. A missing, rotated, invalid or mismatched public key denies verification.
+- `phase5-signed-owner-session.mjs` verifies a separate short-lived **synthetic signed owner session**: fixed issuer, audience and token purpose; Ed25519 only; maximum 10-minute lifetime; canonical subject/session identifiers; independent revocation callback. It loads project membership **for that authenticated subject**, not by trusting roles/project IDs in the HTTP request or from a global workspace list. This avoids subject/project cross-request confusion in the earlier abstract PR #72 adapter.
+- The isolated PostgreSQL authorization gate accepts an optional `resolveTrustedOwnerContext` callback for this subject-bound path. Its earlier workspace factory path remains only to preserve previous isolated test fixtures and should **not** become a production authorization source without separate review.
+- [Node CI run 42679546475](https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42679546475): **113/113 synthetic unit tests passed**. Includes signed grant tampering and key rotation; signed session issuer, audience, expiry, revocation, untrusted project claims, identity isolation, concurrent subject mapping and malformed tokens.
+- [Disposable PostgreSQL run 42679546629](https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42679546629): **31/31 subtests passed** (34 Node TAP counts including three parent suites). Includes an end-to-end **signed synthetic owner session + signed synthetic grant + scoped project lookup + transaction preview**. A different signed owner, revoked session or tampered session cannot use a valid grant. The preview always reports `actualPermissionGranted:false`.
+- Temporary Ed25519 private keys exist only inside isolated CI test processes; **no real owner key, session, credential, production account or production data** is involved. Signed sessions do **not** use a durable session-revocation backend yet; that remains an injected contract, not production enforcement.
+
+### Activation blockers after this milestone
+
+Real owner login and identity-provider integration, secure public-key distribution and rotation, authoritative owner grant issuance, durable session revocation and audit, row-level per-agent memory authorization, multi-instance threat testing and independent security review remain unimplemented. SCOTTY's 185-agent roster and all existing disabled workflows must remain unchanged. PR #80 stays a draft stacked on draft PR #72; the Vercel build-rate status remains unresolved. Do not upgrade/pay, merge, deploy, connect apps or activate agents without separate owner permission.
