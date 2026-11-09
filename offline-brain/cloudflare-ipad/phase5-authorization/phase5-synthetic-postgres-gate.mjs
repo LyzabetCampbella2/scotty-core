@@ -40,7 +40,7 @@ export function createPhase5SyntheticPostgresGate({sql,verifyOwnerSession,
     try{
       return await sql.begin(async tx=>{
         const matches=await tx.unsafe(
-          'select grant_id as "id", subject, project_id as "projectId", resource_project_id as "resourceProjectId", resource_id as "resourceId", action, data_class as "dataClass", grant_version as "version", state as "status", revoked, expires_at as "expiresAt", proof_digest as "proofDigest" from scotty_p5_synthetic_grants where grant_id=$1 for share',
+          'select grant_id as "id", subject, project_id as "projectId", resource_project_id as "resourceProjectId", resource_id as "resourceId", action, data_class as "dataClass", grant_version as "version", state as "status", revoked, expires_at as "expiresAt", proof_digest as "proofDigest", proof_issuer as "proofIssuer", proof_key_id as "proofKeyId", proof_signature as "proofSignature" from scotty_p5_synthetic_grants where grant_id=$1 for share',
           [grantId]);
         if(!Array.isArray(matches)||matches.length!==1)return deny('GRANT_NOT_FOUND');
         const g=matches[0];
