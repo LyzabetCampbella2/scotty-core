@@ -1,0 +1,90 @@
+name: SCOTTY Stage B3 Offline Knowledge Catalog
+
+on:
+  pull_request:
+    paths:
+      - 'src/knowledge/phase3-*'
+      - 'src/agents/phase1/**'
+      - 'scripts/phase3-export-draft-catalog.mjs'
+      - 'scripts/phase3-export-evidence.mjs'
+      - 'scripts/phase3-export-public-pilot.mjs'
+      - 'scripts/phase3-export-public-expansion.mjs'
+      - 'scripts/phase3-export-all-chief-public-review.mjs'
+      - 'scripts/phase3-export-eight-specialist-public-pilot.mjs'
+      - 'scripts/phase3-export-next-eleven-specialist-pilot.mjs'
+      - 'scripts/phase3-export-ten-expansion-specialists.mjs'
+      - 'scripts/phase3-export-second-ten-expansion-specialists.mjs'
+      - 'scripts/phase3-export-unified-source-coverage.mjs'
+      - 'scripts/phase3-export-third-ten-expansion-specialists.mjs'
+      - 'docs/stage-b/b3-third-ten-expansion-specialist-public-pilot-2026-11-08.json'
+      - 'docs/stage-b/b3-fourth-ten-expansion-specialist-public-pilot-2026-11-09.json'
+      - 'docs/stage-b/b3-fifth-ten-specialist-public-pilot-2026-11-09.json'
+      - 'docs/stage-b/b3-second-ten-expansion-specialist-public-pilot-2026-11-08.json'
+      - 'docs/stage-b/b3-next-ten-expansion-specialist-public-pilot-2026-11-08.json'
+      - 'docs/stage-b/b3-next-eleven-specialist-public-pilot-2026-11-08.json'
+      - 'docs/stage-b/b3-first-eight-specialist-public-pilot-2026-11-08.json'
+      - 'docs/stage-b/b3-final-fifteen-chief-public-sources-2026-11-08.json'
+      - 'docs/stage-b/b3-public-source-expansion-2026-11-08.json'
+      - 'docs/stage-b/b3-public-source-pilot-2026-11-08.json'
+      - 'docs/stage-b/phase3-knowledge-catalog.md'
+      - '.github/workflows/stage-b3-knowledge-offline.yml'
+  push:
+    branches:
+      - 'stage-b/phase-3-knowledge-catalog-draft-20261108'
+    paths:
+      - 'src/knowledge/phase3-*'
+      - 'scripts/phase3-export-draft-catalog.mjs'
+      - 'scripts/phase3-export-evidence.mjs'
+      - 'scripts/phase3-export-public-pilot.mjs'
+      - 'scripts/phase3-export-public-expansion.mjs'
+      - 'scripts/phase3-export-all-chief-public-review.mjs'
+      - 'scripts/phase3-export-eight-specialist-public-pilot.mjs'
+      - 'scripts/phase3-export-next-eleven-specialist-pilot.mjs'
+      - 'scripts/phase3-export-ten-expansion-specialists.mjs'
+      - 'scripts/phase3-export-second-ten-expansion-specialists.mjs'
+      - 'scripts/phase3-export-unified-source-coverage.mjs'
+      - 'scripts/phase3-export-third-ten-expansion-specialists.mjs'
+      - 'docs/stage-b/b3-third-ten-expansion-specialist-public-pilot-2026-11-08.json'
+      - 'docs/stage-b/b3-fourth-ten-expansion-specialist-public-pilot-2026-11-09.json'
+      - 'docs/stage-b/b3-fifth-ten-specialist-public-pilot-2026-11-09.json'
+      - 'docs/stage-b/b3-second-ten-expansion-specialist-public-pilot-2026-11-08.json'
+      - 'docs/stage-b/b3-next-ten-expansion-specialist-public-pilot-2026-11-08.json'
+      - 'docs/stage-b/b3-next-eleven-specialist-public-pilot-2026-11-08.json'
+      - 'docs/stage-b/b3-first-eight-specialist-public-pilot-2026-11-08.json'
+      - 'docs/stage-b/b3-final-fifteen-chief-public-sources-2026-11-08.json'
+      - 'docs/stage-b/b3-public-source-expansion-2026-11-08.json'
+      - 'docs/stage-b/b3-public-source-pilot-2026-11-08.json'
+      - '.github/workflows/stage-b3-knowledge-offline.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  knowledge-catalog:
+    name: B3 185 role packs and 25 department guides (no external sources)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify source-bound knowledge candidates and refusal of unverified access
+        run: node --test src/knowledge/phase3-draft-catalog.test.mjs src/knowledge/phase3-evidence-queue.test.mjs src/knowledge/phase3-citation-fixtures.test.mjs src/knowledge/phase3-public-source-pilot.test.mjs src/knowledge/phase3-public-source-expansion.test.mjs src/knowledge/phase3-coverage-plan.test.mjs src/knowledge/phase3-all-chief-public-review.test.mjs src/knowledge/phase3-specialist-research-backlog.test.mjs src/knowledge/phase3-eight-specialist-public-pilot.test.mjs src/knowledge/phase3-next-eleven-specialist-public-pilot.test.mjs src/knowledge/phase3-ten-expansion-specialists.test.mjs src/knowledge/phase3-second-ten-expansion-specialists.test.mjs src/knowledge/phase3-unified-public-coverage.test.mjs src/knowledge/phase3-third-ten-expansion-specialists.test.mjs src/knowledge/phase3-fourth-ten-expansion-specialists.test.mjs src/knowledge/phase3-fifth-ten-specialists.test.mjs
+      - name: Export review-only catalog with zero provider calls
+        run: |
+          node scripts/phase3-export-draft-catalog.mjs > /dev/null
+          node scripts/phase3-export-evidence.mjs queue > /dev/null
+          node scripts/phase3-export-evidence.mjs retrieval > /dev/null
+          node scripts/phase3-export-evidence.mjs synthetic-citations > /dev/null
+          node scripts/phase3-export-public-pilot.mjs > /dev/null
+          node scripts/phase3-export-public-expansion.mjs > /dev/null
+          node scripts/phase3-export-public-expansion.mjs coverage > /dev/null
+          node scripts/phase3-export-all-chief-public-review.mjs > /dev/null
+          node scripts/phase3-export-all-chief-public-review.mjs specialists > /dev/null
+          node scripts/phase3-export-eight-specialist-public-pilot.mjs > /dev/null
+          node scripts/phase3-export-next-eleven-specialist-pilot.mjs > /dev/null
+          node scripts/phase3-export-ten-expansion-specialists.mjs > /dev/null
+          node scripts/phase3-export-second-ten-expansion-specialists.mjs > /dev/null
+          node scripts/phase3-export-unified-source-coverage.mjs > /dev/null
+          node scripts/phase3-export-third-ten-expansion-specialists.mjs > /dev/null
