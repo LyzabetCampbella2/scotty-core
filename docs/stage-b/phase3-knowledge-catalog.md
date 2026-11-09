@@ -232,3 +232,31 @@ node scripts/phase3-export-next-eleven-specialist-pilot.mjs > /tmp/scotty-b3-ele
 **Updated cumulative status:** **25 chiefs + 19 specialists = 44** source review dockets associated with an inspected public reference. **141 specialists** remain without any individually inspected public source. **511 dockets** lack a source candidate (50 second/third chief requirements + 461 uninspected specialist requirements). All **555 independent review decisions** remain unapproved, and **zero** live agent knowledge libraries or authorized citations have been created.
 
 **Phase B3 still fails its operational acceptance gate.**
+
+## First ten mixed-department expansion specialists — November 8, 2026
+
+The next ten agents in the **frozen specialist roster** (agent-expansion-001 through -010) now have one public publisher/source review candidate each, attached to their own K1 evidence requirement and intended specialty. Unlike previous BONES and DATA batches, these span ten different departments.
+
+| Frozen specialist | Proposed source and role-specific topic |
+|---|---|
+| JANEWAY astronomy | [NASA Science: What's a Transit?](https://science.nasa.gov/exoplanets/whats-a-transit/) — observed brightness curves, not proof of a discovery |
+| TUVOK fact checking | [FactCheck.org: Our Process](https://www.factcheck.org/our-process/) — claimed editorial primary-source checking process, not a guarantee of accuracy |
+| SISKO business planning | [SBA: Plan Your Business](https://www.sba.gov/counseling/plan-your-business/) — traditional/lean planning and assumptions, not a profitability forecast |
+| ARCHER curriculum | [IES: Organizing Instruction and Study](https://ies.ed.gov/ncee/wwc/PracticeGuide/1) — spaced learning, quizzes and worked examples with grade-specific evidence ratings |
+| TROI accessibility | [W3C WAI: Introduction to Web Accessibility](https://www.w3.org/WAI/fundamentals/accessibility-intro/) — people-focused accessibility principles, not completed compliance testing |
+| DAX history | [U.S. National Archives: Document Analysis](https://www.archives.gov/education/lessons/worksheets) — provenance/contextual interpretation, not artifact authentication |
+| SEVEN statistics | [NIST e-Handbook: Exploratory Data Analysis](https://itl.nist.gov/div898/handbook/eda/eda.htm) — graphical and quantitative assumption checks, not independent sampling validity |
+| OBRIEN workflow automation | [GitHub Docs: Workflows](https://docs.github.com/en/actions/concepts/workflows-and-actions/workflows) — YAML triggers/jobs/steps, not proof that SCOTTY has a live automated workflow |
+| HOLOGRAM visual design | [W3C WAI: Visual Design](https://www.w3.org/WAI/curricula/designer-modules/visual-design/) — color contrast and non-color cues, not an accessibility audit of any site |
+| PIKE project planning | [Project Management Institute: What Is Project Management?](https://www.pmi.org/about/what-is-project-management) — scope, risk and fit-for-purpose delivery approach, not authority to act |
+
+**Exact saved evidence:** `docs/stage-b/b3-next-ten-expansion-specialist-public-pilot-2026-11-08.json` contains all ten frozen IDs, names, departments/chiefs, specialty, URL, page section, original paraphrase, limitations, observed date and false approval fields. Source text was not copied into agent knowledge. Some pages (for example, official online software documentation) may change; their currentness remains a reviewer task.
+
+**Code + QA:** `src/knowledge/phase3-ten-expansion-specialists.mjs` validates these items against the earlier 19 specialist reviews, existing 25 chief reviews, all 185 frozen identities and their exact 555 open dockets. It rejects duplicate/foreign IDs, incorrect specialties, wrong official host/path, credential-bearing or internal URLs, future publication dates and self-asserted independent verification/owner approval/citation permission. The negative tests and read-only SHA-locked exporter run in offline CI:
+
+```bash
+node --test src/knowledge/phase3-ten-expansion-specialists.test.mjs
+node scripts/phase3-export-ten-expansion-specialists.mjs > /tmp/scotty-b3-ten-expansion-review.json
+```
+
+**Updated totals:** **25 chiefs + 29 specialists = 54** individually linked initial public-source candidates; **131 of 160 specialists** still have no inspected candidate. **501 of 555** source-review dockets still lack any public inspection (50 chief K2/K3 + 451 specialist requirements), and **all 555 independent evidence reviews and owner approvals remain pending**. The new batch adds no real-model tests, private-data retrieval, production database, license grants or live agent citations. Stage B Phase 3 remains unapproved and operationally incomplete.
