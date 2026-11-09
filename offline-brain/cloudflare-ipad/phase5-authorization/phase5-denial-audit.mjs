@@ -40,9 +40,10 @@ export function createPhase5DenialAuditBoundary({gate,sql,enabled=false}={}){
    try{
      persisted=await sql.begin(async tx=>{
        const rows=await tx.unsafe(
-         "insert into scotty_p5_synthetic_denial_audit(outcome,reason_code,action_category) values('DENY',$1,$2) returning event_id",
+         "insert into scotty_p5_synthetic_denial_audit(outcome,reason_code,action_category) values('DENY',$1,$2)",
          [reason,category]);
-       if(!Array.isArray(rows)||rows.length!==1)throw Error('AUDIT_WRITE_UNCONFIRMED');
+       // INSERT without RETURNING requires INSERT privilege only; no audit read access.
+       if(!rows||rows.count!==1)throw Error('AUDIT_WRITE_UNCONFIRMED');
        return true;
      })===true;
    }catch{/* Retain DENY; never leak DB error or claim audit succeeded. */}
