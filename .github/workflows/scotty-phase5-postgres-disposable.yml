@@ -128,6 +128,10 @@ jobs:
           node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-emergency-stop.integration.test.mjs
           node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-denial-audit.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-owner-proof.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-memory-rls.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-emergency-stop.integration.test.mjs
 
+      - name: Validate signed synthetic agent-to-DB-role mapping against RLS fixtures
+        run: |
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-agent-memory-identity.integration.test.mjs
+          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-agent-memory-identity.integration.test.mjs
       - name: Rehearse synthetic PostgreSQL backup and restore into second disposable DB
         run: |
           bash -n offline-brain/cloudflare-ipad/phase5-authorization/phase5-disposable-backup-restore.sh
