@@ -188,3 +188,41 @@ test("All-nine-manifest reconciliation denies forged review claims, duplicate so
  assert.throws(()=>reconcileB3PublicSourceCoverage(missing),
   /B3_FOURTH_TEN_UNAPPROVED_MANIFEST_REQUIRED/);
 });
+
+const fifthBatch=read("../../docs/stage-b/b3-fifth-ten-specialist-public-pilot-2026-11-09.json");
+const fifthBase={...fourthBase,expansionFifthTen:fifthBatch};
+test("Ten source manifests reconcile to 94 unapproved public candidates, 69 specialists and 461 missing dockets",()=>{
+ const actual=reconcileB3PublicSourceCoverage(fifthBase);
+ assert.equal(actual.summary.canonicalAgents,185);
+ assert.equal(actual.summary.chiefsWithFirstCandidate,25);
+ assert.equal(actual.summary.specialistsWithFirstCandidate,69);
+ assert.equal(actual.summary.specialistsWithoutFirstCandidate,91);
+ assert.equal(actual.summary.evidenceDocketsTotal,555);
+ assert.equal(actual.summary.docketsWithCandidate,94);
+ assert.equal(actual.summary.docketsWithoutCandidate,461);
+ assert.equal(actual.summary.independentDocketReviewsPending,555);
+ assert.equal(actual.summary.verifiedExternalClaims,0);
+ assert.equal(actual.summary.ownerApprovedKnowledgeLibraries,0);
+ assert.equal(actual.summary.permissionedLiveCitations,0);
+ assert.equal(actual.summary.realModelEvaluations,0);
+ assert.equal(actual.summary.activatedAgents,0);
+ assert.equal(actual.sourceRecords.length,94);
+ assert.equal(actual.pendingWithoutCandidate.length,461);
+ assert.equal(actual.nextSpecialists.length,91);
+ assert.equal(actual.departments.reduce((n,x)=>n+x.specialistsWithFirstPublicCandidate,0),69);
+ assert.equal(new Set(actual.sourceRecords.map(x=>x.agentId)).size,94);
+ assert.equal(new Set(actual.sourceRecords.map(x=>x.requirementId)).size,94);
+ assert.equal(actual.nextSpecialists[0].agentId,"agent-geordi-07");
+ assert.equal(actual.sourceRecords.find(x=>x.agentId==="agent-geordi-06")?.inspectionDate,"2026-11-09");
+});
+test("Ten-manifest rollup rejects missing prior batch, forged review and duplicates",()=>{
+ const missing=structuredClone(fifthBase);missing.expansionFourthTen=null;
+ assert.throws(()=>reconcileB3PublicSourceCoverage(missing),/B3_FIFTH_REQUIRES_PREVIOUS_BATCHES/);
+ const forged=structuredClone(fifthBase);forged.expansionFifthTen.items[0].ownerApproved=true;
+ assert.throws(()=>reconcileB3PublicSourceCoverage(forged),/B3_GENERIC_BATCH_FALSE_REVIEW_APPROVAL/);
+ const replay=structuredClone(fifthBase);
+ replay.expansionFifthTen.items[0].agentId="agent-expansion-011";
+ assert.throws(()=>reconcileB3PublicSourceCoverage(replay),/B3_GENERIC_BATCH_DUPLICATE_UNKNOWN_OR_REPLAY_ID/);
+ const bad=structuredClone(fifthBase);bad.expansionFifthTen.items.pop();
+ assert.throws(()=>reconcileB3PublicSourceCoverage(bad),/B3_GENERIC_BATCH_MANIFEST_MUST_REMAIN_UNAPPROVED/);
+});
