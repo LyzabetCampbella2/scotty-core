@@ -348,3 +348,33 @@ The module `src/knowledge/phase3-fourth-ten-expansion-specialists.mjs` checks te
 `src/knowledge/phase3-unified-public-coverage.mjs` now supports the **ninth source manifest** while retaining prior seven-/eight-manifest validation. Exactly **84 distinct agents** (25 chiefs and 59 specialists) have first-source review candidates. **101 specialists** have none, **471/555** evidence requirements lack even a candidate, and all **555 review decisions remain unapproved**. There are zero independently source-verified facts, zero owner-approved role libraries, zero real model evaluations and no activated agents.
 
 The entire batch is an assistant-authored **review queue**, not professional knowledge certification or user consent.
+
+## Fifth specialist public-source batch and reusable validation — November 9, 2026
+
+Ten more specialty-aligned source candidates have been inspected and recorded. Four finish expansion specialist IDs 041–044; six begin GEORDI engineering specialist IDs 01–06. Their exact frozen identities, department and K1 requirements are enforced at review time. These are **candidate source summaries**, not approved specialist knowledge.
+
+| Specialist | Official publisher reference | Methodological scope and caveat |
+|---|---|---|
+| TUVOK consistency | [NIST CSRC: Repeatability](https://csrc.nist.gov/glossary/term/repeatability) | Consistent repeat assessments; no real SCOTTY repeatability certification |
+| SISKO operations strategy | [U.S. SBA: Manage Your Business](https://www.sba.gov/counseling/manage-your-business/) | Plan/operations review and adjustment; no revenue or business viability guarantee |
+| ARCHER study planning | [U.S. IES: Organizing Instruction and Study](https://ies.ed.gov/ncee/WWC/PracticeGuide/1) | Spacing and worked examples; no personalized score prediction |
+| TROI resource navigation | [U.S. ACL: Aging and Disability Resource Centers](https://acl.gov/programs/aging-and-disability-networks/aging-and-disability-resource-centers) | General services navigation; no individual eligibility decision or health data access |
+| GEORDI Sisko — backend engineering | [OWASP: Broken Object Level Authorization](https://api-security.owasp.org/editions/2023/en/0xa1-broken-object-level-authorization/) | Server-side object grants; not evidence of a secure deployed backend |
+| GEORDI Helm — frontend engineering | [MDN: HTML Accessibility](https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Accessibility/HTML) | Semantic markup and keyboard interaction; no complete accessibility certification |
+| GEORDI Mission Control — databases | [PostgreSQL: pg_dump](https://www.postgresql.org/docs/current/app-pgdump.html) | Consistent dump of one database; not a real encrypted backup/recovery test |
+| GEORDI Delta — software architecture | [AWS Well-Architected Framework](https://docs.aws.amazon.com/wellarchitected/latest/framework/) | Architectural tradeoffs; not an actual cloud deployment/audit |
+| GEORDI Argus — code reviews | [Google Engineering Practices](https://google.github.io/eng-practices/review/) | Code-quality inspection considerations; no independent production code acceptance |
+| GEORDI Red Alert — automated testing | [Playwright: Test Assertions](https://playwright.dev/docs/test-assertions) | Retry-based UI assertions; not a full-stack security guarantee |
+
+### Reusable source batch contract
+
+The new `src/knowledge/phase3-public-batch-validator.mjs` is **reusable** for future research batches. It checks (1) separately code-locked official HTTPS host/path registry rather than trusting submitted source URLs, (2) exact frozen canonical ID, chief, department, display name, specialty and open K1 docket, (3) nonduplicated IDs relative to all previous batches, (4) observed/publication-date chronology, and (5) no forged reviewer approvals, owner consent, access grants or citation promotion. It takes a trusted development-configured route map, never a runtime URL submitted by a live agent. It does not fetch or approve any source.
+
+The first consumer, `src/knowledge/phase3-fifth-ten-specialists.mjs`, validates the new ten source records stored in `docs/stage-b/b3-fifth-ten-specialist-public-pilot-2026-11-09.json`. Tests cover false approval, duplicate IDs, foreign routes, forged requirements and unexpected fields. The ten-manifest unified coverage report is available from:
+
+```bash
+node --test src/knowledge/phase3-fifth-ten-specialists.test.mjs src/knowledge/phase3-unified-public-coverage.test.mjs
+node scripts/phase3-export-unified-source-coverage.mjs > /tmp/scotty-b3-94-public-review-candidates.json
+```
+
+**Current inspection coverage:** 25 chiefs + **69/160 specialists**, or **94/185 agents**, have one inspected public-source candidate each. **91 specialists** still need their first, and **461 of 555 knowledge requirements** have no public-source candidate at all. **All 555 independent source reviews and owner approvals are still pending.** No actual model evaluations, source-enabled live citations, private-file imports, production deployments or agent activations have occurred. The route validator's correctness does not certify any source's factual reliability or license terms.
