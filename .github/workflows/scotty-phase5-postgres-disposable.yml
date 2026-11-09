@@ -58,13 +58,14 @@ jobs:
       - name: Apply isolated disposable schema ONLY inside ephemeral CI PostgreSQL
         run: |
           docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres-schema.sql
-      - name: Grant disposable runtime SELECT on grants, INSERT on nonce/audit; no grant modification
+      - name: Grant SELECT and constrained inert-column row lock; no authorization-field updates
         run: |
           docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test <<'SQL'
           CREATE ROLE scotty_p5_runtime LOGIN PASSWORD 'synthetic_ci_runtime_only';
           GRANT CONNECT ON DATABASE scotty_phase5_synthetic_test TO scotty_p5_runtime;
           GRANT USAGE ON SCHEMA public TO scotty_p5_runtime;
           GRANT SELECT ON TABLE scotty_p5_synthetic_grants TO scotty_p5_runtime;
+          GRANT UPDATE (lock_pad) ON TABLE scotty_p5_synthetic_grants TO scotty_p5_runtime;
           GRANT INSERT, SELECT ON TABLE scotty_p5_synthetic_nonce_claims TO scotty_p5_runtime;
           GRANT INSERT, SELECT ON TABLE scotty_p5_synthetic_audit TO scotty_p5_runtime;
           GRANT USAGE ON SEQUENCE scotty_p5_synthetic_audit_event_id_seq TO scotty_p5_runtime;
