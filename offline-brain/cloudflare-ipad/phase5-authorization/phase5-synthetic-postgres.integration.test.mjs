@@ -76,11 +76,17 @@ test('disposable PostgreSQL: real transaction and runtime privilege suite',async
       assert.equal(out.filter(x=>x.reason==='NONCE_REPLAY_OR_STORE_FAILURE').length,7);
       assert.equal(await nonceCount(nonce),1);assert.equal(await auditCount(),2);
     });
-    await t.test('runtime cannot modify the authoritative grant table',async()=>{
+    await t.test('runtime cannot modify approval, revocation, resource, or action fields',async()=>{
       await assert.rejects(runtime`update scotty_p5_synthetic_grants set revoked=true where grant_id=${GRANT}`,
         e=>e?.code==='42501');
-      const g=await admin`select revoked from scotty_p5_synthetic_grants where grant_id=${GRANT}`;
+      await assert.rejects(runtime`update scotty_p5_synthetic_grants set action='knowledge:propose' where grant_id=${GRANT}`,
+        e=>e?.code==='42501');
+      await assert.rejects(runtime`update scotty_p5_synthetic_grants set lock_pad=true where grant_id=${GRANT}`,
+        e=>e?.code==='23514');
+      const g=await admin`select revoked,action,lock_pad from scotty_p5_synthetic_grants where grant_id=${GRANT}`;
       assert.equal(g[0].revoked,false);
+      assert.equal(g[0].action,'workspace:read');
+      assert.equal(g[0].lock_pad,false);
     });
     await t.test('cross-project resource is rejected before nonce reservation',async()=>{
       const nonce='SYN-NONCE-SQL-CROSSPROJ1';
