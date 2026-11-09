@@ -201,3 +201,34 @@ node scripts/phase3-export-eight-specialist-public-pilot.mjs > /tmp/scotty-b3-ei
 ```
 
 **Coverage after this pilot:** 25 chief source candidates + 8 specialist source candidates = **33 of 555** dockets with an inspected public reference. **522** source dockets still lack an inspected candidate, comprising 50 chief K2/K3 plus 472 specialist requirements. **152 of 160** specialists still have no individually inspected source. All **555** external-evidence decisions still await independent acceptance and owner authorization. **0** approved agent knowledge libraries, **0** real model retrieval evaluations, and **0** agents activated.
+
+## BONES complete and DATA first-source batch — 11 more specialists (November 8, 2026)
+
+The next **11** distinct specialists now have one assistant-inspected official, professional or research-institution public-reference candidate tied to their individual frozen **K1** requirement. This is a source-discovery and methodology pilot, **not an independently accepted knowledge library**.
+
+| Specialist | Specialty | Public source inspected | Proposed method and important limitation |
+|---|---|---|---|
+| Merchant (BONES 09) | Emergency planning | [CDC: Stay Connected](https://www.cdc.gov/prepare-your-health/plan-ahead/stay-connected.html) | Prepare communication/reunification checklists; cannot replace local emergency orders or store private contacts |
+| Sato (DATA 01) | Source evaluation | [Cornell Library: Evaluating Sources](https://guides.library.cornell.edu/GrandChallengesProgram/EvaluatingResources) | Check authority, date, purpose, accuracy and bias; scoring cannot prove a claim true |
+| Resolver (DATA 02) | Fact verification | [FactCheck.org: Our Process](https://www.factcheck.org/our-process/) | Trace claims to original evidence and editor checks; a newsroom's method is not proof every output is correct |
+| PADD (DATA 03) | Research synthesis | [Cochrane Handbook](https://www.cochrane.org/handbook) | Plan reproducible searching, appraisal and interpretation; primarily healthcare interventions |
+| Subspace (DATA 04) | Literature review | [NLM PubMed User Guide](https://pubmed.ncbi.nlm.nih.gov/help/) | Record reproducible search concepts, field tags and review filters; PubMed is not a universal source corpus |
+| Hoshi (DATA 05) | Document analysis | [National Archives: Analyze a Written Document](https://www.archives.gov/education/lessons/worksheets/analyze-a-written-document-intermediate) | Examine provenance, writer, receiver, context and corroboration; no authentication of a private file |
+| Context (DATA 06) | Data collection | [CDC: BRFSS Survey Data & Documentation](https://www.cdc.gov/brfss/data_documentation/) | Review standardized survey design, metadata, response and comparability limitations; no authority to collect personal data |
+| CRM (DATA 07) | Citation quality | [Crossref: Metadata Retrieval](https://www.crossref.org/documentation/retrieve-metadata) | Compare DOI and bibliographic metadata; DOI matching does not validate a paper's claims or license abstracts |
+| Prime (DATA 08) | Uncertainty tracking | [NIST: Measurement Uncertainty](https://www.nist.gov/glossary-term/39291) | Describe quantities and precision; measurement uncertainty is not all forms of factual uncertainty |
+| Watchtower (DATA 09) | Information retrieval | [NIST TREC: How To TREC](https://trec.nist.gov/howto.html) | Define corpora, queries, relevance judgments and comparative retrieval tasks; no proof of SCOTTY search quality |
+| Audit Sec (DATA 10) | Evidence comparison | [USGS: Scientific Peer Review](https://www.usgs.gov/survey-manual/5023-fundamental-science-practices-peer-review) | Compare hypotheses, designs, bias, uncertainty and conclusions; USGS procedure does not certify outside work |
+
+**Evidence status:** The new source list is assistant-researched from public publisher pages. The third-party fact-checking publisher's transparency description is presented as an example of its reported process, **not** a government verification guarantee. Dates are recorded only when supported by the original publisher page. None of the 11 claims was independently human-reviewed or granted a live citation license by the project owner; no real-model source retrieval, personal health data, manuscripts or connected-account records were used.
+
+**Implemented:** `docs/stage-b/b3-next-eleven-specialist-public-pilot-2026-11-08.json` preserves the candidate references, concise original paraphrases and refusal flags. `src/knowledge/phase3-next-eleven-specialist-public-pilot.mjs` cross-checks the 11 exact frozen IDs, names, specialties, department/chief relationships, K1 dockets, official HTTPS host/path, publication metadata and false approval/citation claims. Tests reject substituted domains, credentials, duplicate agents, claims of license or owner acceptance, wrong source requirements and future publication dates. Read-only SHA-locked export:
+
+```bash
+node --test src/knowledge/phase3-next-eleven-specialist-public-pilot.test.mjs
+node scripts/phase3-export-next-eleven-specialist-pilot.mjs > /tmp/scotty-b3-eleven-public-review.json
+```
+
+**Updated cumulative status:** **25 chiefs + 19 specialists = 44** source review dockets associated with an inspected public reference. **141 specialists** remain without any individually inspected public source. **511 dockets** lack a source candidate (50 second/third chief requirements + 461 uninspected specialist requirements). All **555 independent review decisions** remain unapproved, and **zero** live agent knowledge libraries or authorized citations have been created.
+
+**Phase B3 still fails its operational acceptance gate.**
