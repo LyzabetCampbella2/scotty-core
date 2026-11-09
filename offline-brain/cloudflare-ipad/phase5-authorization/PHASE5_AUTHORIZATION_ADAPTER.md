@@ -44,3 +44,15 @@ Local checks: **28/28 passing** using isolated synthetic data and no external ca
 ## Safety
 
 No credentials, calls to cloud providers, live memory, external app access, publishing, or infrastructure changes are implemented by these files. The `knowledge:propose` label only produces a synthetic **preview result**; it does not save a proposal. Draft PR only, with no merge or deployment approval implied.
+
+## Follow-up: disposable PostgreSQL transaction reference (Phase 5)
+
+Two new **unwired** files complement the existing adapter:
+
+- `phase5-synthetic-postgres-gate.mjs`: injected Postgres.js `sql.begin` transaction, grant row `FOR UPDATE`, parameterized SQL, unique nonce claim, and audit insert in the *same transaction*. Audit failure rolls back the nonce claim. Its result is still never a real access grant.
+- `phase5-synthetic-postgres-schema.sql`: unapplied SQL reference; it explicitly aborts unless the database name is `scotty_phase5_synthetic_test` and revokes public table access. This is not a production migration.
+- `phase5-synthetic-postgres-gate.test.mjs`: 18 local tests using a serialized **fake Postgres transaction**, not a real database. This tests fail-closed logic, not actual DB isolation, row locks, or multi-instance durability.
+
+The new module does **not** create a database connection, read environment variables, run the schema, register an HTTP route, or activate any agent.
+
+**Further acceptance blockers:** test SQL against a dedicated disposable PostgreSQL server; enforce least-privilege DB roles, RLS, and isolation; implement independent cryptographic owner-grant verification; record all denied attempts in a durable redacted audit store; test revocation and nonce uniqueness across actual concurrent PostgreSQL transactions; prove $0 plan/billing scope; get separate owner approval before any installation or deployment. `enabled` remains `false` by default. The database adapter is intentionally NOT imported into an executable runtime.
