@@ -22,6 +22,9 @@ CREATE TABLE IF NOT EXISTS scotty_p5_synthetic_grants (
   revoked BOOLEAN NOT NULL DEFAULT FALSE,
   expires_at TIMESTAMPTZ NOT NULL,
   proof_digest TEXT NOT NULL CHECK (length(proof_digest) BETWEEN 1 AND 256),
+  -- Inert column: only for the row-lock privilege required by FOR SHARE.
+  -- Runtime cannot change this to TRUE or update any authorization fields.
+  lock_pad BOOLEAN NOT NULL DEFAULT FALSE CHECK (lock_pad = FALSE),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
