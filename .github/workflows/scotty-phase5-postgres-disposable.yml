@@ -1,0 +1,75 @@
+name: SCOTTY Phase 5 — Disposable PostgreSQL Integration QA
+on:
+  pull_request:
+    paths:
+      - 'offline-brain/cloudflare-ipad/phase5-authorization/**'
+      - '.github/workflows/scotty-phase5-postgres-disposable.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: scotty_p5_admin
+          POSTGRES_PASSWORD: synthetic_ci_admin_only
+          POSTGRES_DB: scotty_phase5_synthetic_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U scotty_p5_admin -d scotty_phase5_synthetic_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      P5_CI_DISPOSABLE_POSTGRES: YES_EXACT_LOOPBACK_FIXTURE
+      P5_CI_ADMIN_URL: postgres://scotty_p5_admin:synthetic_ci_admin_only@127.0.0.1:5432/scotty_phase5_synthetic_test
+      P5_CI_RUNTIME_URL: postgres://scotty_p5_runtime:synthetic_ci_runtime_only@127.0.0.1:5432/scotty_phase5_synthetic_test
+      DATABASE_URL: ''
+      OPENAI_API_KEY: ''
+      GROQ_API_KEY: ''
+      XAI_API_KEY: ''
+      VERCEL_TOKEN: ''
+      CLOUDFLARE_API_TOKEN: ''
+      OWNER_BEARER_TOKEN: ''
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install only SQL driver for disposable CI service
+        run: |
+          npm --prefix /tmp/scotty-p5-ci install --ignore-scripts --no-save --no-audit --no-fund postgres@3.4.7
+          ln -s /tmp/scotty-p5-ci/node_modules node_modules
+      - name: Verify schema refuses incorrect database name without applying anything
+        run: |
+          set -euo pipefail
+          if docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d postgres < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres-schema.sql; then
+            echo "ERROR: synthetic schema unexpectedly accepted wrong database" >&2
+            exit 1
+          fi
+          test "$(docker exec -i "${{ job.services.postgres.id }}" psql -X -At -U scotty_p5_admin -d postgres -c "select count(*) from information_schema.tables where table_name like 'scotty_p5_synthetic_%'")" = '0'
+      - name: Apply isolated disposable schema ONLY inside ephemeral CI PostgreSQL
+        run: |
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres-schema.sql
+      - name: Grant disposable runtime SELECT on grants, INSERT on nonce/audit; no grant modification
+        run: |
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test <<'SQL'
+          CREATE ROLE scotty_p5_runtime LOGIN PASSWORD 'synthetic_ci_runtime_only';
+          GRANT CONNECT ON DATABASE scotty_phase5_synthetic_test TO scotty_p5_runtime;
+          GRANT USAGE ON SCHEMA public TO scotty_p5_runtime;
+          GRANT SELECT ON TABLE scotty_p5_synthetic_grants TO scotty_p5_runtime;
+          GRANT INSERT, SELECT ON TABLE scotty_p5_synthetic_nonce_claims TO scotty_p5_runtime;
+          GRANT INSERT, SELECT ON TABLE scotty_p5_synthetic_audit TO scotty_p5_runtime;
+          GRANT USAGE ON SEQUENCE scotty_p5_synthetic_audit_event_id_seq TO scotty_p5_runtime;
+          SQL
+      - name: Real disposable PostgreSQL transaction and security boundary tests
+        run: |
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres.integration.test.mjs
+          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres.integration.test.mjs
