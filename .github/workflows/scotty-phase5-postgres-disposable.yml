@@ -132,6 +132,22 @@ jobs:
         run: |
           node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-agent-memory-identity.integration.test.mjs
           node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-agent-memory-identity.integration.test.mjs
+      - name: Install guarded synthetic memory audit in disposable database only
+        run: |
+          set -euo pipefail
+          if docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d postgres < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-memory-request-audit.sql; then
+            echo "ERROR: synthetic memory audit schema accepted wrong database" >&2
+            exit 1
+          fi
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-memory-request-audit.sql
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test <<'SQL'
+          GRANT INSERT ON TABLE scotty_p5_synthetic_memory_request_audit TO scotty_p5_runtime;
+          GRANT USAGE ON SEQUENCE scotty_p5_synthetic_memory_request_audit_event_id_seq TO scotty_p5_runtime;
+          SQL
+      - name: Test default-stopped, audited synthetic memory requests on disposable PostgreSQL
+        run: |
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-guarded-memory-preview.integration.test.mjs
+          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-guarded-memory-preview.integration.test.mjs
       - name: Rehearse synthetic PostgreSQL backup and restore into second disposable DB
         run: |
           bash -n offline-brain/cloudflare-ipad/phase5-authorization/phase5-disposable-backup-restore.sh
