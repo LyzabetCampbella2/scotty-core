@@ -323,3 +323,28 @@ node scripts/phase3-export-unified-source-coverage.mjs > /tmp/scotty-b3-current-
 ```
 
 **Exact coverage after this batch:** **25 chiefs + 49 specialists = 74** first-source review candidates, **111 specialists** without an inspected public reference, **481 of 555** evidence dockets with no source candidate (50 chief K2/K3 and 431 specialist requirements). **All 555 independent source/claim/copyright/license/owner reviews remain pending**. The project has **0** accepted professional source libraries, **0** authorized live citations, **0** real-model source QA evaluations, and **0** active agents. Source inspection progress is not proof of correctness or agent proficiency.
+
+## Fourth specialist public-source pilot — November 9, 2026
+
+The next **10 separate specialist source candidates** now cover frozen expansion IDs 031–040. Each maps to the specialist's own K1 evidence docket; no chief or department permissions are inherited. This batch includes:
+
+| Role | Public, original-publisher reference | Proposed work and limitation |
+|---|---|---|
+| TROI inclusive design | [W3C WAI: Involving Users in Web Projects](https://www.w3.org/WAI/planning/involving-users/) | Include disabled users throughout design, without assuming accessibility certification |
+| DAX archives | [NARA: Handling Family Papers and Photographs](https://www.archives.gov/preservation/family-archives/handling.html) | Archival handling and provenance, without custody or ownership authority |
+| SEVEN visualization | [UK ONS: Data Visualisation Principles](https://service-manual.ons.gov.uk/data-visualisation/guidance/principles) | Clear comparable charts, without validating the underlying evidence |
+| OBRIEN recovery | [Google Cloud: Test Recovery from Data Loss](https://docs.cloud.google.com/architecture/framework/reliability/perform-testing-for-recovery-from-data-loss) | Recovery time and integrity drills, not a SCOTTY production restore certificate |
+| HOLOGRAM video editing | [Adobe Premiere: Paper Edit](https://helpx.adobe.com/premiere/desktop/edit-projects/edit-video-using-text-based-editing/create-a-sequence-with-paper-edit.html) | Transcript-based rough cuts, without user video/media access |
+| PIKE delivery review | [PMI: Project Closing](https://www.pmi.org/learning/library/importance-of-closing-process-group-9949) | Handover, acceptance and lessons learned, not evidence any stage passed |
+| CRUSHER ecology | [EPA: National Rivers and Streams Assessment](https://www.epa.gov/national-aquatic-resource-surveys/what-national-rivers-and-streams-assessment) | Sampling design and indicators, without field-sampling permission |
+| TORRES application testing | [Playwright: Actionability and Auto-Waiting](https://playwright.dev/docs/actionability) | Isolated UI action and assertion tests, not live production security validation |
+| NEELIX scheduling | [PMI: Common Scheduling Mistakes](https://www.pmi.org/learning/library/common-scheduling-mistakes-avoid-7221) | Check milestones/dependencies, without accessing real calendars |
+| JANEWAY source discovery | [Data.gov: Find and Search for Data](https://data.gov/contact/) | Discover publisher datasets and metadata, not guarantee dataset accuracy or licensing |
+
+The file `docs/stage-b/b3-fourth-ten-expansion-specialist-public-pilot-2026-11-09.json` captures the ten public reference records, short original paraphrases, source sections, observed date, material limits and fixed false approval flags. **No original page content was reproduced or imported into live agent knowledge.**
+
+The module `src/knowledge/phase3-fourth-ten-expansion-specialists.mjs` checks ten canonical IDs, declared names, specialties, chief memberships, existing K1 source dockets, exact official HTTPS paths, date consistency and denial of forged verification/approval/rights claims. Its negative tests run in CI.
+
+`src/knowledge/phase3-unified-public-coverage.mjs` now supports the **ninth source manifest** while retaining prior seven-/eight-manifest validation. Exactly **84 distinct agents** (25 chiefs and 59 specialists) have first-source review candidates. **101 specialists** have none, **471/555** evidence requirements lack even a candidate, and all **555 review decisions remain unapproved**. There are zero independently source-verified facts, zero owner-approved role libraries, zero real model evaluations and no activated agents.
+
+The entire batch is an assistant-authored **review queue**, not professional knowledge certification or user consent.
