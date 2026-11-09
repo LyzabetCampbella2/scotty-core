@@ -1,4 +1,5 @@
--- REFERENCE ONLY. NEVER APPLIED AUTOMATICALLY.
+-- TEST-ONLY SCHEMA: applied only to disposable GitHub CI database.
+-- NEVER apply to production or shared staging databases.
 -- The explicit database name is a hard stop against an accidental shared/production migration.
 BEGIN;
 DO $$
