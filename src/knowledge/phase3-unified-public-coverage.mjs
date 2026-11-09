@@ -30,7 +30,7 @@ export function reconcileB3PublicSourceCoverage({
   if(!Array.isArray(manifest?.items))throw Error("B3_MISSING_SOURCE_MANIFEST");
   for(const item of manifest.items){
    const agent=roster.get(item.agentId),requirement=evidence.get(item.requirementId);
-   if(!agent||!requirement||agent.Role!==itemRole(item,frozen)||
+   if(!agent||!requirement||
       requirement.canonicalAgentId!==item.agentId||
       requirement.reviewState!=="PENDING_SOURCE_EVIDENCE"||
       requirement.mayCiteExternalClaim!==false||
@@ -100,8 +100,4 @@ export function reconcileB3PublicSourceCoverage({
   },
   sourceRecords,pendingWithoutCandidate,nextSpecialists,departments
  };
-}
-function itemRole(item,frozen){
- const x=frozen.records.find(r=>r["Agent ID"]===item.agentId);
- return x?.Role;
 }
