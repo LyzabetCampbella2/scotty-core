@@ -290,3 +290,36 @@ node scripts/phase3-export-second-ten-expansion-specialists.mjs > /tmp/scotty-b3
 **Evidence accounting:** The cumulative public-source candidate count is **25 chiefs + 39 specialists = 64 dockets**, leaving **491 of 555 dockets without an inspected candidate**. **121 specialists** have not yet received any inspected public candidate. None of the 555 dockets has received independent source verification and exact owner authorization; there remain **0** approved live citations, certified knowledge libraries or real agent-model evaluations.
 
 The official pages above were consulted for planning and were not imported into running agents. Their precise claims, source versions, rights and current status require fresh independent inspection before any acceptance. This remains an offline, unmerged development stage.
+
+## Third mixed-specialist public-source batch — expansion 021–030 (November 8, 2026)
+
+Ten more frozen specialists have exactly one new public original-publisher reference candidate, tied to their individual K1 source-evidence docket. The assistant reviewed these pages to record the following limited original paraphrases; the claims are **not independently verified** or approved as live agent knowledge.
+
+| Specialist | Public source / proposed scope | Limitation |
+|---|---|---|
+| OBRIEN reliability | [Google SRE: Service Level Objectives](https://sre.google/sre-book/service-level-objectives/) — measurable service health, SLI/SLO and error budgets | No operating SCOTTY service monitoring was verified |
+| HOLOGRAM photography | [Nikon: Basics of Exposure](https://www.nikonusa.com/learn-and-explore/c/tips-and-techniques/a-basic-look-at-the-basics-of-exposure) — shutter speed, aperture and ISO tradeoffs | Does not license or inspect user media |
+| PIKE dependencies | [PMI: Four Ways Project Schedules Are Limited](https://www.pmi.org/learning/library/four-ways-project-schedules-limited-7265) — mandatory/discretionary predecessors and scheduling relationships | Cannot certify actual project dates or authorize delivery |
+| CRUSHER botany | [Smithsonian: Guide to Plant Specimens](https://naturalhistory.si.edu/research/botany/news/plant-press/guide-collecting-plant-specimens-us-national-herbarium) — records, provenance, permission and permits | Not authorization to collect plants or reveal protected species locations |
+| TORRES backend engineering | [OWASP: Broken Object Level Authorization](https://api-security.owasp.org/editions/2023/en/0xa1-broken-object-level-authorization/) — check resource permissions on each object request | Not evidence SCOTTY's live APIs are protected |
+| NEELIX travel logistics | [U.S. State Department: Planning Your Travel](https://travel.state.gov/en/international-travel/planning.html) — advisories, entry rules and documentation | Does not establish current destination-specific visa eligibility |
+| JANEWAY expedition planning | [NPS: Trip Planning Guide](https://www.nps.gov/subjects/healthandsafety/trip-planning-guide.htm) — itinerary, emergency planning and reconsidering an unsafe route | No actual location, route or weather checked |
+| TUVOK evidence review | [NIST SP 800-53A Rev. 5](https://www.nist.gov/publications/assessing-security-and-privacy-controls-information-systems-and-organizations) — evidence-focused security/privacy control assessment | Not operational accreditation of SCOTTY |
+| SISKO customer research | [GOV.UK: Plan User Research](https://www.gov.uk/service-manual/user-research/plan-user-research-for-your-service) — objectives, assumptions and research questions | No authorization to contact or inspect real customers |
+| ARCHER learning assessment | [IES: Using Student Achievement Data](https://ies.ed.gov/ncee/WWC/PracticeGuide/12/Published) — review learning evidence and adjust instruction | No access to individual educational records or validated personalized learning scores |
+
+### What was implemented and tested
+
+- `docs/stage-b/b3-third-ten-expansion-specialist-public-pilot-2026-11-08.json`: ten original-source review records, exact frozen IDs, source sections, dates when explicitly known, usage boundaries, and owner/citation/license grants fixed to `false`.
+- `src/knowledge/phase3-third-ten-expansion-specialists.mjs` and its negative tests: validate all ten unique specialists against immutable roles, K1 dockets, exact public HTTPS hosts/paths, date chronology and no fake authorization fields.
+- `scripts/phase3-export-third-ten-expansion-specialists.mjs`: offline, SHA-locked public-source review report, stdout only.
+- `src/knowledge/phase3-unified-public-coverage.mjs`: optional eighth source-batch verification while preserving the former seven-batch case, then source-record reconciliation to catch duplicate IDs and dockets. Its tests confirm **74** unique reference candidates and **111** specialist IDs still without a first-source candidate.
+- `scripts/phase3-export-unified-source-coverage.mjs` now emits the **eight-batch** summary; the combined source and export tests run in the existing Stage B3 CI workflow.
+
+```bash
+node --test src/knowledge/phase3-third-ten-expansion-specialists.test.mjs src/knowledge/phase3-unified-public-coverage.test.mjs
+node scripts/phase3-export-third-ten-expansion-specialists.mjs > /tmp/scotty-b3-expansion-021-030.json
+node scripts/phase3-export-unified-source-coverage.mjs > /tmp/scotty-b3-current-public-coverage.json
+```
+
+**Exact coverage after this batch:** **25 chiefs + 49 specialists = 74** first-source review candidates, **111 specialists** without an inspected public reference, **481 of 555** evidence dockets with no source candidate (50 chief K2/K3 and 431 specialist requirements). **All 555 independent source/claim/copyright/license/owner reviews remain pending**. The project has **0** accepted professional source libraries, **0** authorized live citations, **0** real-model source QA evaluations, and **0** active agents. Source inspection progress is not proof of correctness or agent proficiency.
