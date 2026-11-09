@@ -34,7 +34,8 @@ export function createPhase5SyntheticPostgresGate({sql,verifyOwnerSession,
     if(context?.verifiedByServer!==true||context.subject!=='owner'||
        !context.permissions?.[projectId]?.includes(action))return deny('TRUSTED_OWNER_SCOPE_MISSING');
 
-    // SELECT FOR SHARE synchronizes with revocation updates without granting the runtime role UPDATE privilege.
+    // PostgreSQL FOR SHARE requires UPDATE privilege on at least one column. In disposable CI,
+    // the runtime only receives UPDATE on constrained inert lock_pad, not on any approval fields.
     // A unique nonce and audit row are written in the same transaction.
     try{
       return await sql.begin(async tx=>{
