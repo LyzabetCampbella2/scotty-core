@@ -76,3 +76,10 @@ test('multiple denied attempts independently append',async()=>{
  assert.equal(out.length,5);assert.ok(out.every(x=>x.denialAuditPersisted===true));
  assert.equal(h.writes.length,5);
 });
+
+test('phase-numbered denial reason is accepted without weakening the audit code format',async()=>{
+ const h=setup({answer:{decision:'DENY',reason:'PHASE5_DISABLED_BY_DEFAULT',actualPermissionGranted:false,stagingOnly:true}});
+ const out=await h.preview({action:'workspace:read'});
+ assert.equal(out.denialAuditPersisted,true);
+ assert.deepEqual(h.writes[0],['PHASE5_DISABLED_BY_DEFAULT','WORKSPACE_READ']);
+});
