@@ -34,12 +34,12 @@ export function createPhase5SyntheticPostgresGate({sql,verifyOwnerSession,
     if(context?.verifiedByServer!==true||context.subject!=='owner'||
        !context.permissions?.[projectId]?.includes(action))return deny('TRUSTED_OWNER_SCOPE_MISSING');
 
-    // SELECT FOR UPDATE prevents revocation from racing ahead of this transaction.
+    // SELECT FOR SHARE synchronizes with revocation updates without granting the runtime role UPDATE privilege.
     // A unique nonce and audit row are written in the same transaction.
     try{
       return await sql.begin(async tx=>{
         const matches=await tx.unsafe(
-          'select grant_id as "id", subject, project_id as "projectId", resource_project_id as "resourceProjectId", resource_id as "resourceId", action, data_class as "dataClass", grant_version as "version", state as "status", revoked, expires_at as "expiresAt", proof_digest as "proofDigest" from scotty_p5_synthetic_grants where grant_id=$1 for update',
+          'select grant_id as "id", subject, project_id as "projectId", resource_project_id as "resourceProjectId", resource_id as "resourceId", action, data_class as "dataClass", grant_version as "version", state as "status", revoked, expires_at as "expiresAt", proof_digest as "proofDigest" from scotty_p5_synthetic_grants where grant_id=$1 for share',
           [grantId]);
         if(!Array.isArray(matches)||matches.length!==1)return deny('GRANT_NOT_FOUND');
         const g=matches[0];
