@@ -124,3 +124,17 @@ test('no secret, agent ID, project, or token enters redacted audit values',async
  await h.guard({request:{headers:{authorization:secret}},agentId:secret,projectId:secret,rawToken:secret});
  assert.equal(JSON.stringify(h.actions).includes(secret),false);
 });
+
+test('eligible callback extra fields never leak to the caller',async()=>{
+ const secret='SYN-NO-LEAK-TOKEN-PAYLOAD';
+ const h=harness({stopped:false,reply:{
+  ...eligible,token:secret,rawMemoryContent:secret,
+  projectSecret:secret,otherMetadata:{password:secret}
+ }});
+ const r=await h.guard({request:{authorization:secret}});
+ assert.equal(r.decision,'SIMULATED_MEMORY_METADATA');
+ assert.deepEqual(r.memoryIds,['SYN-MEM-PULSE-A']);
+ assert.equal(r.auditPersisted,true);
+ assert.equal(JSON.stringify(r).includes(secret),false);
+ assert.equal(JSON.stringify(h.actions).includes(secret),false);
+});
