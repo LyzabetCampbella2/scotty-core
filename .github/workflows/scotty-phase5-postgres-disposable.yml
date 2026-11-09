@@ -107,10 +107,23 @@ jobs:
             scotty_p5_agent_pulse,scotty_p5_agent_iris,
             scotty_p5_agent_pulse_other,scotty_p5_agent_unmapped;
           SQL
+      - name: Enforce default-stopped synthetic emergency control only in disposable database
+        run: |
+          set -euo pipefail
+          if docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d postgres < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-emergency-stop.sql; then
+            echo "ERROR: synthetic emergency schema accepted wrong database" >&2
+            exit 1
+          fi
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-emergency-stop.sql
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test <<'SQL'
+          GRANT SELECT ON TABLE scotty_p5_synthetic_emergency_stop TO scotty_p5_runtime;
+          GRANT UPDATE (lock_pad) ON TABLE scotty_p5_synthetic_emergency_stop TO scotty_p5_runtime;
+          SQL
       - name: Real disposable PostgreSQL transaction and security boundary tests
         run: |
           node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres.integration.test.mjs
           node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-denial-audit.integration.test.mjs
           node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-owner-proof.integration.test.mjs
           node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-memory-rls.integration.test.mjs
-          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-denial-audit.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-owner-proof.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-memory-rls.integration.test.mjs
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-emergency-stop.integration.test.mjs
+          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-denial-audit.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-owner-proof.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-memory-rls.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-emergency-stop.integration.test.mjs
