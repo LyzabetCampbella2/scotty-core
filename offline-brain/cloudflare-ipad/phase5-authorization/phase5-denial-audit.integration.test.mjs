@@ -75,6 +75,16 @@ test('denial audit persists on separate disposable PostgreSQL and is insert-only
    assert.deepEqual({...last[0]},{reason_code:'UNSAFE_HTTP_REQUEST',action_category:'KNOWLEDGE_PROPOSE'});
    assert.equal(JSON.stringify(last).includes('CANARY'),false);
   });
+  await t.test('phase-numbered denial is persisted as a redacted code in real PostgreSQL',async()=>{
+   const start=await count();
+   const stub=async()=>({decision:'DENY',reason:'PHASE5_DISABLED_BY_DEFAULT',actualPermissionGranted:false,stagingOnly:true});
+   const wrapped=createPhase5DenialAuditBoundary({gate:stub,sql:runtime,enabled:true});
+   const result=await wrapped({action:'workspace:read',body:{token:'DO_NOT_RECORD_THIS'}});
+   assert.equal(result.decision,'DENY');assert.equal(result.denialAuditPersisted,true);
+   assert.equal(await count(),start+1);
+   const rows=await admin`select reason_code,action_category from scotty_p5_synthetic_denial_audit order by event_id desc limit 1`;
+   assert.deepEqual({...rows[0]},{reason_code:'PHASE5_DISABLED_BY_DEFAULT',action_category:'WORKSPACE_READ'});
+ });
   await t.test('disabled wrapper never writes to database',async()=>{
    const beforeDisabled=await count();
    const r=await audited(runtime,false)({...payload});
