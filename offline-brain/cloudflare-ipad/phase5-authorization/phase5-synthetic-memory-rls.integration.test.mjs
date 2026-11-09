@@ -122,6 +122,31 @@ test('disposable PostgreSQL per-agent memory RLS isolation',async t=>{
    assert.ok(rows.every(row=>row.memory_id.startsWith('SYN-MEM-')&&
       row.data_class==='synthetic-only'&&row.payload.startsWith('SYN-')&&row.memory_scope==='individual'));
   });
+  await t.test('departmental and shared memory scopes are denied by schema',async()=>{
+   for(const scope of ['departmental','shared']){
+    await assert.rejects(admin`insert into scotty_p5_synthetic_memory_items
+      (memory_id,project_id,owner_agent_id,memory_scope,data_class,payload)
+      values (${'SYN-MEM-'+scope.toUpperCase()},'synthetic','agent-creative-pulse',${scope},'synthetic-only','SYN-NOT-PERMITTED')`,
+      e=>e?.code==='23514');
+   }
+  });
+  await t.test('production-classified memory records cannot enter synthetic tables',async()=>{
+   await assert.rejects(admin`insert into scotty_p5_synthetic_memory_items
+     (memory_id,project_id,owner_agent_id,memory_scope,data_class,payload)
+     values ('SYN-MEM-RESTRICTED','synthetic','agent-creative-pulse','individual','restricted','SYN-NOT-PERMITTED')`,
+     e=>e?.code==='23514');
+  });
+  await t.test('agent database roles cannot bypass row security or become superusers',async()=>{
+   const rows=await admin`select rolname,rolbypassrls,rolsuper from pg_roles
+     where rolname like 'scotty_p5_agent_%'`;
+   assert.equal(rows.length,4);
+   assert.ok(rows.every(row=>row.rolbypassrls===false&&row.rolsuper===false));
+  });
+  await t.test('agent role cannot change its own ACL membership or activation',async()=>{
+   await assert.rejects(pulse`update scotty_p5_synthetic_memory_identity_acl
+     set active=true where login_name='scotty_p5_agent_pulse'`,
+     e=>e?.code==='42501');
+  });
  }finally{
   await Promise.allSettled(all.map(db=>db.end({timeout:5})));
  }
