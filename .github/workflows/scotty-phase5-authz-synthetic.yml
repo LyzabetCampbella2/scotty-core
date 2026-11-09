@@ -40,6 +40,10 @@ jobs:
         run: |
           node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-roster-memory-policy-review.mjs
           node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-roster-memory-policy-review.test.mjs
+      - name: Validate all 185 Ed25519 synthetic roster sessions without provisioning credentials
+        run: |
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-signed-roster-policy-review.mjs
+          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-signed-roster-policy-review.test.mjs
       - name: Check SQL stays unapplied and restricted to disposable database
         run: |
           node -e "const fs=require('node:fs'); const s=fs.readFileSync('offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres-schema.sql','utf8'); if(!s.includes(\"current_database() <> 'scotty_phase5_synthetic_test'\")||!s.includes('REVOKE ALL ON TABLE')) process.exit(1)"
