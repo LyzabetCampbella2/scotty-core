@@ -30,6 +30,7 @@ const result=reconcileB3PublicSourceCoverage({
  expansionTen:json("b3-next-ten-expansion-specialist-public-pilot-2026-11-08.json"),
  expansionNextTen:json("b3-second-ten-expansion-specialist-public-pilot-2026-11-08.json"),
  expansionThirdTen:json("b3-third-ten-expansion-specialist-public-pilot-2026-11-08.json"),
- expansionFourthTen:json("b3-fourth-ten-expansion-specialist-public-pilot-2026-11-09.json")
+ expansionFourthTen:json("b3-fourth-ten-expansion-specialist-public-pilot-2026-11-09.json"),
+ expansionFifthTen:json("b3-fifth-ten-specialist-public-pilot-2026-11-09.json")
 });
 process.stdout.write(JSON.stringify(result,null,2)+"\n");
