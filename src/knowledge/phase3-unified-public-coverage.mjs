@@ -9,10 +9,11 @@
  * all batches to catch accidental cross-batch duplicates and wrong totals.
  */
 import {validateSecondTenExpansionSpecialists} from "./phase3-second-ten-expansion-specialists.mjs";
+import {validateThirdTenExpansionSpecialists} from "./phase3-third-ten-expansion-specialists.mjs";
 
 export function reconcileB3PublicSourceCoverage({
  frozen,queue,chief1,chief2,chief3,bonesEight,dataEleven,
- expansionTen,expansionNextTen
+ expansionTen,expansionNextTen,expansionThirdTen=null
 }={}){
  const latest=validateSecondTenExpansionSpecialists(
   expansionNextTen,expansionTen,dataEleven,bonesEight,
@@ -20,7 +21,21 @@ export function reconcileB3PublicSourceCoverage({
  );
  if(latest.summary.specialistsWithFirstPublicSourceCandidate!==39)
   throw Error("B3_UNEXPECTED_LATEST_BATCH");
- const manifests=[chief1,chief2,chief3,bonesEight,dataEleven,expansionTen,expansionNextTen];
+ if(expansionThirdTen!==null){
+  const third=validateThirdTenExpansionSpecialists(
+   expansionThirdTen,expansionNextTen,expansionTen,dataEleven,bonesEight,
+   frozen,queue,chief1,chief2,chief3
+  );
+  if(third.summary.specialistsWithFirstSourceCandidate!==49||
+     third.summary.publicDocketsWithCandidate!==74)
+   throw Error("B3_INVALID_THIRD_TEN_COVERAGE");
+ }
+ const expectedSources=expansionThirdTen===null?64:74;
+ const expectedSpecialists=expansionThirdTen===null?39:49;
+ const expectedRemaining=expansionThirdTen===null?121:111;
+ const expectedOpen=555-expectedSources;
+ const manifests=[chief1,chief2,chief3,bonesEight,dataEleven,expansionTen,
+  expansionNextTen,...(expansionThirdTen===null?[]:[expansionThirdTen])];
  const roster=new Map(frozen.records.map(r=>[r["Agent ID"],r]));
  const evidence=new Map(queue.items.map(r=>[r.requirementId,r]));
  if(roster.size!==185||evidence.size!==555)
@@ -52,9 +67,9 @@ export function reconcileB3PublicSourceCoverage({
  const chiefIds=frozen.records.filter(r=>r.Role==="Chief").map(r=>r["Agent ID"]);
  const specialistRows=frozen.records.filter(r=>r.Role==="Specialist");
  if(chiefIds.length!==25||specialistRows.length!==160||
-    seenAgents.size!==64||seenRequirements.size!==64||
+    seenAgents.size!==expectedSources||seenRequirements.size!==expectedSources||
     chiefIds.some(id=>!seenAgents.has(id))||
-    specialistRows.filter(r=>seenAgents.has(r["Agent ID"])).length!==39)
+    specialistRows.filter(r=>seenAgents.has(r["Agent ID"])).length!==expectedSpecialists)
   throw Error("B3_UNEXPECTED_SOURCE_COVERAGE_COUNT");
  const pendingWithoutCandidate=queue.items
   .filter(x=>!seenRequirements.has(x.requirementId))
@@ -78,7 +93,7 @@ export function reconcileB3PublicSourceCoverage({
    independentlyApprovedSources:0
   };
  });
- if(pendingWithoutCandidate.length!==491||nextSpecialists.length!==121||
+ if(pendingWithoutCandidate.length!==expectedOpen||nextSpecialists.length!==expectedRemaining||
     departments.length!==25)
   throw Error("B3_RECONCILED_PENDING_COVERAGE_INCORRECT");
  return {
@@ -86,13 +101,13 @@ export function reconcileB3PublicSourceCoverage({
   mode:"OFFLINE_SOURCE_INSPECTION_REPORTS_ONLY",
   summary:{
    canonicalAgents:185,chiefs:25,specialists:160,
-   candidateSources:64,
+   candidateSources:expectedSources,
    chiefsWithFirstCandidate:25,
-   specialistsWithFirstCandidate:39,
-   specialistsWithoutFirstCandidate:121,
+   specialistsWithFirstCandidate:expectedSpecialists,
+   specialistsWithoutFirstCandidate:expectedRemaining,
    evidenceDocketsTotal:555,
-   docketsWithCandidate:64,
-   docketsWithoutCandidate:491,
+   docketsWithCandidate:expectedSources,
+   docketsWithoutCandidate:expectedOpen,
    independentDocketReviewsPending:555,
    verifiedExternalClaims:0,ownerApprovedKnowledgeLibraries:0,
    permissionedLiveCitations:0,realModelEvaluations:0,
