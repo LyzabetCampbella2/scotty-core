@@ -24,7 +24,7 @@ function accept(scope,reason,requirements){
   canExecute:false
  });
 }
-export function validatePhase5RosterSnapshot(snapshot){
+function compilePhase5RosterSnapshot(snapshot){
  if(!snapshot||snapshot.schemaVersion!==1||snapshot.snapshotKind!=='development-review-only'||
    !Array.isArray(snapshot.agents)||snapshot.agents.length!==EXPECTED.agents||
    snapshot.source?.records!==EXPECTED.agents||snapshot.source?.chiefs!==EXPECTED.chiefs||
@@ -73,7 +73,7 @@ export function validatePhase5RosterSnapshot(snapshot){
   counts:Object.freeze({...EXPECTED}),
   agentIds:Object.freeze([...byId.keys()].sort()),
   chiefs:Object.freeze([...byId.values()].filter(x=>x.role==='Chief').map(x=>x.id).sort()),
-  byId, // not mutable via API? underlying Map only read by factory; do not export to callers
+  byId, // private compiler result; never exposed by either public function
   provenance:Object.freeze({
    fallback:[...byId.values()].filter(x=>x.provenance==='production-source-fallback').length,
    proposed:[...byId.values()].filter(x=>x.provenance==='proposed-addition').length
@@ -84,8 +84,15 @@ export function validatePhase5RosterSnapshot(snapshot){
  * A static review of a proposed access relationship, NOT memory entitlement.
  * For EVERY scope, owner-approved, signed and durable grants remain required.
  */
+export function validatePhase5RosterSnapshot(snapshot){
+ const {counts,agentIds,chiefs,provenance}=compilePhase5RosterSnapshot(snapshot);
+ return Object.freeze({
+  counts,uniqueIds:agentIds.length,chiefsWithSpecialists:chiefs.length,
+  provenance
+ });
+}
 export function createPhase5RosterMemoryPolicyReview(snapshot,{enabled=false}={}){
- const {byId,counts,agentIds,chiefs,provenance}=validatePhase5RosterSnapshot(snapshot);
+ const {byId,counts,agentIds,chiefs,provenance}=compilePhase5RosterSnapshot(snapshot);
  function evaluate({actorId,ownerAgentId,scope,projectId}={}){
   if(!enabled)return reject('ROSTER_REVIEW_DISABLED_BY_DEFAULT');
   if(!SCOPES.has(scope))return reject('UNKNOWN_MEMORY_SCOPE');
