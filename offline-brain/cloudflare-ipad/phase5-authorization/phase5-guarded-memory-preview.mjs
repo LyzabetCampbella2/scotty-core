@@ -68,8 +68,12 @@ export function createPhase5GuardedSyntheticMemoryPreview({
     );
     if(!rows||rows.count!==1)throw Error('UNCONFIRMED_AUDIT_INSERT');
     if(outcome==='SIMULATED_MEMORY_METADATA'){
+      // Return a strict allowlist. Never spread arbitrary untrusted fields:
+      // the preview callback might accidentally include secrets or content.
       return Object.freeze({
-        ...payload,actualPermissionGranted:false,stagingOnly:true,
+        decision:'SIMULATED_MEMORY_METADATA',actualPermissionGranted:false,
+        stagingOnly:true,memoryIds:Object.freeze([...payload.memoryIds]),
+        memoryWrites:0,externalCalls:0,
         auditPersisted:true,emergencyStopChecked:true
       });
     }
