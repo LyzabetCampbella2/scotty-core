@@ -16,7 +16,7 @@ const preview=()=>Object.freeze({decision:'SIMULATED_ELIGIBLE',reason:'NO_REAL_A
 // No migrations are run and no connection is opened by this module.
 export function createPhase5SyntheticPostgresGate({sql,verifyOwnerSession,
   loadAuthorizedProjectIds,newId,verifyGrantProof,resolveTrustedOwnerContext,
-  now=()=>Date.now(),enabled=false}={}) {
+  now=()=>Date.now(),enabled=false,requireEmergencyStop=false}={}) {
   if(!sql||typeof sql.begin!=='function'||typeof verifyGrantProof!=='function'||
      typeof now!=='function'||
      (resolveTrustedOwnerContext!==undefined&&typeof resolveTrustedOwnerContext!=='function')||
@@ -47,6 +47,18 @@ export function createPhase5SyntheticPostgresGate({sql,verifyOwnerSession,
     // A unique nonce and audit row are written in the same transaction.
     try{
       return await sql.begin(async tx=>{
+        // Optional strict synthetic emergency-stop mode. Stopped is the default;
+        // missing/unavailable row fails closed. Shared row lock serializes with
+        // administrative stop updates so a stop cannot race a pending preview.
+        if(requireEmergencyStop){
+          const stopRows=await tx.unsafe(
+            "select scope,stopped,version from scotty_p5_synthetic_emergency_stop where scope='synthetic' for share");
+          if(!Array.isArray(stopRows)||stopRows.length!==1||
+             stopRows[0].scope!=='synthetic'||stopRows[0].stopped!==false||
+             !Number.isSafeInteger(Number(stopRows[0].version))||
+             Number(stopRows[0].version)<1)
+            return deny('EMERGENCY_STOP_ACTIVE_OR_UNAVAILABLE');
+        }
         const matches=await tx.unsafe(
           'select grant_id as "id", subject, project_id as "projectId", resource_project_id as "resourceProjectId", resource_id as "resourceId", action, data_class as "dataClass", grant_version as "version", state as "status", revoked, expires_at as "expiresAt", proof_digest as "proofDigest", proof_issuer as "proofIssuer", proof_key_id as "proofKeyId", proof_signature as "proofSignature" from scotty_p5_synthetic_grants where grant_id=$1 for share',
           [grantId]);
