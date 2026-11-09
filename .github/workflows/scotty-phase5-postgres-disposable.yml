@@ -148,6 +148,10 @@ jobs:
         run: |
           node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-guarded-memory-preview.integration.test.mjs
           node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-guarded-memory-preview.integration.test.mjs
+      - name: Verify unified synthetic gateway against RLS, emergency stop, and audit
+        run: |
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-unified-memory-gateway.integration.test.mjs
+          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-unified-memory-gateway.integration.test.mjs
       - name: Rehearse synthetic PostgreSQL backup and restore into second disposable DB
         run: |
           bash -n offline-brain/cloudflare-ipad/phase5-authorization/phase5-disposable-backup-restore.sh
