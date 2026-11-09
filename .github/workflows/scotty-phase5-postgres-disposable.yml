@@ -29,6 +29,10 @@ jobs:
       P5_CI_DISPOSABLE_POSTGRES: YES_EXACT_LOOPBACK_FIXTURE
       P5_CI_ADMIN_URL: postgres://scotty_p5_admin:synthetic_ci_admin_only@127.0.0.1:5432/scotty_phase5_synthetic_test
       P5_CI_RUNTIME_URL: postgres://scotty_p5_runtime:synthetic_ci_runtime_only@127.0.0.1:5432/scotty_phase5_synthetic_test
+      P5_CI_AGENT_PULSE_URL: postgres://scotty_p5_agent_pulse:synthetic_ci_pulse_only@127.0.0.1:5432/scotty_phase5_synthetic_test
+      P5_CI_AGENT_IRIS_URL: postgres://scotty_p5_agent_iris:synthetic_ci_iris_only@127.0.0.1:5432/scotty_phase5_synthetic_test
+      P5_CI_AGENT_PULSE_OTHER_URL: postgres://scotty_p5_agent_pulse_other:synthetic_ci_other_only@127.0.0.1:5432/scotty_phase5_synthetic_test
+      P5_CI_AGENT_UNMAPPED_URL: postgres://scotty_p5_agent_unmapped:synthetic_ci_unmapped_only@127.0.0.1:5432/scotty_phase5_synthetic_test
       DATABASE_URL: ''
       OPENAI_API_KEY: ''
       GROQ_API_KEY: ''
@@ -72,9 +76,41 @@ jobs:
           GRANT INSERT ON TABLE scotty_p5_synthetic_denial_audit TO scotty_p5_runtime;
           GRANT USAGE ON SEQUENCE scotty_p5_synthetic_denial_audit_event_id_seq TO scotty_p5_runtime;
           SQL
+      - name: Create isolated synthetic agent DB identities for RLS verification
+        run: |
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test <<'SQL'
+          CREATE ROLE scotty_p5_agent_pulse LOGIN PASSWORD 'synthetic_ci_pulse_only' NOINHERIT NOBYPASSRLS;
+          CREATE ROLE scotty_p5_agent_iris LOGIN PASSWORD 'synthetic_ci_iris_only' NOINHERIT NOBYPASSRLS;
+          CREATE ROLE scotty_p5_agent_pulse_other LOGIN PASSWORD 'synthetic_ci_other_only' NOINHERIT NOBYPASSRLS;
+          CREATE ROLE scotty_p5_agent_unmapped LOGIN PASSWORD 'synthetic_ci_unmapped_only' NOINHERIT NOBYPASSRLS;
+          GRANT CONNECT ON DATABASE scotty_phase5_synthetic_test TO
+            scotty_p5_agent_pulse,scotty_p5_agent_iris,
+            scotty_p5_agent_pulse_other,scotty_p5_agent_unmapped;
+          GRANT USAGE ON SCHEMA public TO
+            scotty_p5_agent_pulse,scotty_p5_agent_iris,
+            scotty_p5_agent_pulse_other,scotty_p5_agent_unmapped;
+          SQL
+      - name: Verify memory RLS schema rejects wrong DB and apply only to disposable database
+        run: |
+          set -euo pipefail
+          if docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d postgres < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-memory-rls.sql; then
+            echo "ERROR: synthetic memory RLS schema accepted wrong database" >&2
+            exit 1
+          fi
+          test "$(docker exec -i "${{ job.services.postgres.id }}" psql -X -At -U scotty_p5_admin -d postgres -c "select count(*) from information_schema.tables where table_name in ('scotty_p5_synthetic_memory_items','scotty_p5_synthetic_memory_identity_acl')")" = '0'
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-memory-rls.sql
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test <<'SQL'
+          GRANT SELECT ON TABLE scotty_p5_synthetic_memory_items TO
+            scotty_p5_agent_pulse,scotty_p5_agent_iris,
+            scotty_p5_agent_pulse_other,scotty_p5_agent_unmapped;
+          GRANT EXECUTE ON FUNCTION public.scotty_p5_synthetic_memory_allows(TEXT,TEXT) TO
+            scotty_p5_agent_pulse,scotty_p5_agent_iris,
+            scotty_p5_agent_pulse_other,scotty_p5_agent_unmapped;
+          SQL
       - name: Real disposable PostgreSQL transaction and security boundary tests
         run: |
           node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres.integration.test.mjs
           node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-denial-audit.integration.test.mjs
           node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-owner-proof.integration.test.mjs
-          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-denial-audit.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-owner-proof.integration.test.mjs
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-memory-rls.integration.test.mjs
+          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-denial-audit.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-owner-proof.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-memory-rls.integration.test.mjs
