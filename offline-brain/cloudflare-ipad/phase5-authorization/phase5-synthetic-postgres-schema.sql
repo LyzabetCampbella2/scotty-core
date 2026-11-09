@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS scotty_p5_synthetic_audit (
 CREATE TABLE IF NOT EXISTS scotty_p5_synthetic_denial_audit (
   event_id BIGSERIAL PRIMARY KEY,
   outcome TEXT NOT NULL DEFAULT 'DENY' CHECK (outcome = 'DENY'),
-  reason_code TEXT NOT NULL CHECK (reason_code ~ '^[A-Z_]{3,64}$'),
+  reason_code TEXT NOT NULL CHECK (reason_code ~ '^[A-Z0-9_]{3,64}$'),
   action_category TEXT NOT NULL CHECK (action_category IN ('WORKSPACE_READ','KNOWLEDGE_PROPOSE','OTHER')),
   recorded_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
