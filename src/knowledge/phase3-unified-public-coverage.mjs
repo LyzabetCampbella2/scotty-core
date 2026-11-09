@@ -11,10 +11,11 @@
 import {validateSecondTenExpansionSpecialists} from "./phase3-second-ten-expansion-specialists.mjs";
 import {validateThirdTenExpansionSpecialists} from "./phase3-third-ten-expansion-specialists.mjs";
 import {validateFourthTenExpansionSpecialists} from "./phase3-fourth-ten-expansion-specialists.mjs";
+import {validateFifthTenSpecialistSources} from "./phase3-fifth-ten-specialists.mjs";
 
 export function reconcileB3PublicSourceCoverage({
  frozen,queue,chief1,chief2,chief3,bonesEight,dataEleven,
- expansionTen,expansionNextTen,expansionThirdTen=null,expansionFourthTen=null
+ expansionTen,expansionNextTen,expansionThirdTen=null,expansionFourthTen=null,expansionFifthTen=null
 }={}){
  const latest=validateSecondTenExpansionSpecialists(
   expansionNextTen,expansionTen,dataEleven,bonesEight,
@@ -40,13 +41,24 @@ export function reconcileB3PublicSourceCoverage({
      fourth.summary.publicDocketsWithCandidate!==84)
    throw Error("B3_INVALID_FOURTH_TEN_COVERAGE");
  }
- const expectedSources=expansionFourthTen!==null?84:expansionThirdTen===null?64:74;
- const expectedSpecialists=expansionFourthTen!==null?59:expansionThirdTen===null?39:49;
- const expectedRemaining=expansionFourthTen!==null?101:expansionThirdTen===null?121:111;
+ if(expansionFifthTen!==null){
+  if(expansionFourthTen===null||expansionThirdTen===null)
+   throw Error("B3_FIFTH_REQUIRES_PREVIOUS_BATCHES");
+  const fifth=validateFifthTenSpecialistSources(
+   expansionFifthTen,expansionFourthTen,expansionThirdTen,expansionNextTen,
+   expansionTen,dataEleven,bonesEight,frozen,queue,chief1,chief2,chief3);
+  if(fifth.summary.specialistsWithFirstCandidate!==69||
+     fifth.summary.docketsWithCandidate!==94)
+   throw Error("B3_INVALID_FIFTH_TEN_COVERAGE");
+ }
+ const expectedSources=expansionFifthTen!==null?94:expansionFourthTen!==null?84:expansionThirdTen===null?64:74;
+ const expectedSpecialists=expansionFifthTen!==null?69:expansionFourthTen!==null?59:expansionThirdTen===null?39:49;
+ const expectedRemaining=expansionFifthTen!==null?91:expansionFourthTen!==null?101:expansionThirdTen===null?121:111;
  const expectedOpen=555-expectedSources;
  const manifests=[chief1,chief2,chief3,bonesEight,dataEleven,expansionTen,
   expansionNextTen,...(expansionThirdTen===null?[]:[expansionThirdTen]),
-  ...(expansionFourthTen===null?[]:[expansionFourthTen])];
+  ...(expansionFourthTen===null?[]:[expansionFourthTen]),
+  ...(expansionFifthTen===null?[]:[expansionFifthTen])];
  const roster=new Map(frozen.records.map(r=>[r["Agent ID"],r]));
  const evidence=new Map(queue.items.map(r=>[r.requirementId,r]));
  if(roster.size!==185||evidence.size!==555)
