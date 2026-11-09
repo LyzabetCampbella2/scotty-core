@@ -138,7 +138,7 @@
       "url": "https://api-security.owasp.org/editions/2023/en/0xa1-broken-object-level-authorization/",
       "sourceSection": "Is the API Vulnerable?; How To Prevent",
       "documentVersion": "OWASP API Security Top 10 2023, API1 guidance",
-      "publicationDate": "2023-01-01",
+      "publicationDate": null,
       "paraphrase": "OWASP identifies missing per-object authorization checks as a risk when APIs accept user-supplied object identifiers; authenticated callers must still be checked for access to each resource.",
       "application": "Propose negative authorization tests for project, agent and tenant record access in a synthetic backend.",
       "criticalLimit": "The guide does not certify deployed SCOTTY authorization, provide penetration-test evidence, or authorize access to live customer data.",
