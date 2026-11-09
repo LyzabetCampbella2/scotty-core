@@ -7,7 +7,7 @@ function setup({answer={decision:'DENY',reason:'ACTION_NOT_ALLOWED',actualPermis
  const sql={begin:async fn=>{
    if(failAudit)throw Error('SENSITIVE_DB_FAILURE_DO_NOT_LEAK');
    return fn({unsafe:async(query,values)=>{
-     queries.push(query);writes.push(values);return [{event_id:writes.length}];
+     queries.push(query);writes.push(values);return Object.assign([],{count:1});
    }});
  }};
  const gate=async()=>{calls++;if(throwGate)throw Error('SENSITIVE_GATE_EXCEPTION_DO_NOT_LEAK');return answer};
