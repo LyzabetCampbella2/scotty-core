@@ -15,7 +15,7 @@
 | A — Inventory & Protect | A0 | Identity, policies, apps, costs, recovery | PR #76, 185 IDs and names owner-approved and version-locked; simulated owner-grant/backup CI; provider inventory | **BLOCKED:** real staging/production separation, live executor permissions, actual stop-all and real recovery |
 | B — Individual Intelligence | 1 | 185 individual personalities and brains | PR #77, 25 chief and 160 specialist concept drafts, 185 review worksheets, 555 planned tests, revisions and source dossiers | **BLOCKED:** 185 owner-reviewed versions and 555 independent real-model test outputs |
 | B — Individual Intelligence | 2 | Individual/shared memory | PR #78, 185 scope blueprints, offline lab and **disposable PostgreSQL persistence tests**, including database-committed fictional records, SQL-scoped retrieval, sharing/revocation, correction, deletion, TTL and independent synthetic database restore | **NOT COMPLETE:** no durable memory, real auth, restart/search/delete/promotion/restore verification |
-| B — Individual Intelligence | 3 | Verified specialist knowledge | PR #79, 185 role packs, 25 department guides, 790 internal sections, **555 source dockets**, 185 offline retrieval checks and 555 fictional citation tests; **25 chiefs + 39 specialists** have an initial assistant-inspected public-source candidate; 121 specialists still lack one, and all 555 review/owner approval decisions remain pending | **NOT COMPLETE:** independent real-world source verification, owner-approved libraries, actual indexed retrieval, source-backed citations/freshness, per-project privacy and live QA |
+| B — Individual Intelligence | 3 | Verified specialist knowledge | PR #79, 185 role packs, 25 department guides, 790 internal sections, **555 source dockets**, 185 offline retrieval checks and 555 fictional citation tests; **25 chiefs + 49 specialists** have an initial assistant-inspected public-source candidate; 111 specialists still lack one, and all 555 review/owner approval decisions remain pending | **NOT COMPLETE:** independent real-world source verification, owner-approved libraries, actual indexed retrieval, source-backed citations/freshness, per-project privacy and live QA |
 | C — Controlled Work | 4 | Independent callable engine | Earlier prototypes and default-deny development safety work | **NOT COMPLETE:** all IDs callable with owner-authenticated, budgeted, audited execution |
 | C — Controlled Work | 5 | Living jobs, assignments and biographies | Earlier draft relationships and project-workspace prototypes | **NOT COMPLETE:** verified real owner-approved assignments and biography history |
 | C — Controlled Work | 6 | Directed chief/specialist/SCOTTY handoffs | Synthetic proposals and draft collaboration formats | **NOT COMPLETE:** actual permissioned messages/handoff receipts and denial tests |
@@ -114,6 +114,15 @@
 - **CI:** Frozen agent IDs, exact source URLs, review dates, contradictory field rejection and false approval/permission denials tested. No real model/provider calls or production data.
 - **Current gate:** B3 is under development, not certified. Stage A0 safeguards, B1 real agent QA, B2 authorized memory and B3 owner-accepted evidence remain outstanding.
 
+## Phase 3 expansion specialist batch 021–030 and unified coverage — November 8, 2026
+
+- **10 additional public-source candidates** now cover frozen specialist IDs `agent-expansion-021` through `agent-expansion-030` (reliability, photography, dependencies, botany, backend engineering, travel logistics, expedition planning, evidence review, customer research and learning assessment).
+- **Eight-batch reconciliation:** source-specific validation plus a consolidated duplicate check now accounts for exactly **74 public-source candidates** attached to **25 chiefs and 49 specialists**. This is 74 of the 555 open requirements, not independent approval.
+- **121 specialists** remain without even one assistant-inspected public-source candidate; **481 individual evidence needs** still lack inspected sources (50 chief second/third needs and 431 specialist needs).
+- **Independent verification and actual owner acceptance:** 0 of 555 completed; source licenses/currentness/claim precision still need independent inspection, as do real model-backed retrieval tests and authenticated knowledge access.
+- **CI:** rejects fake owner approvals, duplicate or foreign source IDs, private/credential-bearing source URL substitutions, incorrect specialty/chief or dated-source claims. Both earlier seven-batch and new eight-batch reconciliations are tested.
+- **No production execution:** 0 activated agents; no private data exports, new infrastructure spend, production deploy or merge.
+
 ## Next safe development order
 
 1. **Continue Phase 1 owner-review preparation**: refine differences among all 185 personalities and reconcile prior chief source conflicts without changing approved canonical IDs.
@@ -137,6 +146,6 @@
 - B2: https://github.com/LyzabetCampbella2/scotty-core/pull/78
 - B3: https://github.com/LyzabetCampbella2/scotty-core/pull/79
 - B2 disposable SQL and independent synthetic restore tests: https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42497823547
-- B3 second ten expansion specialist source checks: https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42554853775
+- B3 021–030 expansion sources and 74-candidate unified reconciliation: https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42556139600
 
 **Acceptance count:** None of A0 or Phases 1–8 has a verified final exit sign-off. This board measures implementation evidence, not project percentage or production readiness.
