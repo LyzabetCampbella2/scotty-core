@@ -49,10 +49,21 @@ No credentials, calls to cloud providers, live memory, external app access, publ
 
 Two new **unwired** files complement the existing adapter:
 
-- `phase5-synthetic-postgres-gate.mjs`: injected Postgres.js `sql.begin` transaction, grant row `FOR UPDATE`, parameterized SQL, unique nonce claim, and audit insert in the *same transaction*. Audit failure rolls back the nonce claim. Its result is still never a real access grant.
-- `phase5-synthetic-postgres-schema.sql`: unapplied SQL reference; it explicitly aborts unless the database name is `scotty_phase5_synthetic_test` and revokes public table access. This is not a production migration.
+- `phase5-synthetic-postgres-gate.mjs`: injected Postgres.js `sql.begin` transaction, grant row `FOR SHARE`, parameterized SQL, unique nonce claim, and audit insert in the *same transaction*. Audit failure rolls back the nonce claim. Its result is still never a real access grant.
+- `phase5-synthetic-postgres-schema.sql`: test-only SQL reference, applied **only** in a disposable GitHub CI PostgreSQL service; it explicitly aborts unless the database name is `scotty_phase5_synthetic_test` and revokes public table access. This is not a production migration.
 - `phase5-synthetic-postgres-gate.test.mjs`: 18 local tests using a serialized **fake Postgres transaction**, not a real database. This tests fail-closed logic, not actual DB isolation, row locks, or multi-instance durability.
 
 The new module does **not** create a database connection, read environment variables, run the schema, register an HTTP route, or activate any agent.
 
-**Further acceptance blockers:** test SQL against a dedicated disposable PostgreSQL server; enforce least-privilege DB roles, RLS, and isolation; implement independent cryptographic owner-grant verification; record all denied attempts in a durable redacted audit store; test revocation and nonce uniqueness across actual concurrent PostgreSQL transactions; prove $0 plan/billing scope; get separate owner approval before any installation or deployment. `enabled` remains `false` by default. The database adapter is intentionally NOT imported into an executable runtime.
+**Further acceptance blockers:** implement trusted owner authentication and signed approval proof, durable denial auditing, RLS and agent-level isolation, cross-host revocation security, actual backend integration, plan/billing verification, and obtain explicit owner approval before deployment. `enabled` remains `false` by default. The database adapter is intentionally NOT imported into an executable runtime.
+
+## Verified disposable PostgreSQL integration (November 9, 2026)
+
+- GitHub Actions [run 42665515613](https://github.com/LyzabetCampbella2/scotty-core/actions/runs/42665515613) ran against an ephemeral PostgreSQL 16 service container inside GitHub Actions. The integration test requires an exact loopback host, port, synthetic database name and two synthetic database-role usernames.
+- The schema was **applied only in this disposable CI database**. The CI job deliberately attempted the same schema in the wrong local database; the database guard refused it and left that database unchanged.
+- **12/12 integration subtests passed** (Node TAP reports 13 when counting their parent). The other two mock test suites previously passed **46/46**.
+- The real database tests exercised committed nonce and audit rows, replay rejection across two connection pools, eight concurrent attempts with exactly one eligible preview, grant revocation and expiration, object/project scope, audit-insert failure and full nonce rollback, and restrictions against modifying grant authorization fields.
+- PostgreSQL `SELECT FOR SHARE` requires some `UPDATE` privilege. The disposable runtime role has `UPDATE` **only on constrained inert `lock_pad`** (cannot be changed to true), not on the grant's approval, project, action, expiry or revocation fields. CI proved attempts to modify approval fields were denied. This is a testing workaround, not a final production privilege architecture.
+- No actual signed owner approval, identity-provider token, agent execution, media/account connection, memory store, or production database was accessed or integrated. The tests deliberately stub grant signature verification and owner session checks. A synthetic eligibility result is **never a real permission**.
+- **Important remaining gap:** the demonstration logs eligible-preview transactions but does not yet durably log every denied attempt. Persistent privacy-safe denial auditing, backend RLS, stronger least-privilege roles (possibly a security-definer service), cryptographic proof verification, and tests across actual distinct backend machines remain outstanding.
+- No production migration, deployment, merge, or live permission grant was performed. GitHub Actions may consume included usage credits; account billing was not independently verified.
