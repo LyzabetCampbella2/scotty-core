@@ -15,11 +15,19 @@ const preview=()=>Object.freeze({decision:'SIMULATED_ELIGIBLE',reason:'NO_REAL_A
 // sql is a supplied isolated staging Postgres.js client; never inject production.
 // No migrations are run and no connection is opened by this module.
 export function createPhase5SyntheticPostgresGate({sql,verifyOwnerSession,
-  loadAuthorizedProjectIds,newId,verifyGrantProof,now=()=>Date.now(),enabled=false}={}) {
-  if(!sql||typeof sql.begin!=='function'||
-     [verifyOwnerSession,loadAuthorizedProjectIds,newId,verifyGrantProof,now].some(fn=>typeof fn!=='function'))
+  loadAuthorizedProjectIds,newId,verifyGrantProof,resolveTrustedOwnerContext,
+  now=()=>Date.now(),enabled=false}={}) {
+  if(!sql||typeof sql.begin!=='function'||typeof verifyGrantProof!=='function'||
+     typeof now!=='function'||
+     (resolveTrustedOwnerContext!==undefined&&typeof resolveTrustedOwnerContext!=='function')||
+     (resolveTrustedOwnerContext===undefined&&
+       [verifyOwnerSession,loadAuthorizedProjectIds,newId].some(fn=>typeof fn!=='function')))
     throw Error('TRUSTED_DEPENDENCIES_REQUIRED');
-  const getOwner=createOwnerWorkspaceContextFactory({verifyOwnerSession,loadAuthorizedProjectIds,newId});
+  // New synthetic signed-session resolver binds each verified subject to its own
+  // independently loaded project membership. Legacy owner-context path is retained
+  // solely for older isolated mocks on stacked draft PR #72; never use for production.
+  const getOwner=resolveTrustedOwnerContext||
+    createOwnerWorkspaceContextFactory({verifyOwnerSession,loadAuthorizedProjectIds,newId});
   return async function checkSyntheticPreview({request,projectId,resourceProjectId,
     resourceId,action,grantId,nonce,dataClass}={}) {
     if(!enabled)return deny('PHASE5_DISABLED_BY_DEFAULT');
