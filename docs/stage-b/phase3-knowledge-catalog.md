@@ -260,3 +260,33 @@ node scripts/phase3-export-ten-expansion-specialists.mjs > /tmp/scotty-b3-ten-ex
 ```
 
 **Updated totals:** **25 chiefs + 29 specialists = 54** individually linked initial public-source candidates; **131 of 160 specialists** still have no inspected candidate. **501 of 555** source-review dockets still lack any public inspection (50 chief K2/K3 + 451 specialist requirements), and **all 555 independent evidence reviews and owner approvals remain pending**. The new batch adds no real-model tests, private-data retrieval, production database, license grants or live agent citations. Stage B Phase 3 remains unapproved and operationally incomplete.
+
+## Second mixed-department specialist batch — expansion 011–020 (November 8, 2026)
+
+Ten additional frozen specialist identities now have **one assistant-inspected public source candidate each**, associated with their original K1 research requirement. These are reference-review notes, **not** independently validated facts or approved live agent knowledge.
+
+| Specialist | Source and proposed methodological use | Important boundary |
+|---|---|---|
+| CRUSHER biology | [NIH: Rigor and Reproducibility](https://www.grants.nih.gov/policy-and-compliance/policy-topics/reproducibility) — experiment design, bias and reproducibility | Not evidence that any study was actually evaluated |
+| TORRES frontend engineering | [W3C WAI: Menus Tutorial](https://www.w3.org/WAI/tutorials/menus/) — semantic navigation and keyboard usability | Does not prove a particular app is accessible or functional |
+| NEELIX home organization | [CFPB: Get prepared before a disaster or emergency](https://www.consumerfinance.gov/consumer-tools/disasters-and-emergencies/get-prepared-before-disaster-emergency-strikes/) — secure household document readiness | Not consent to handle personal financial or identity documents |
+| JANEWAY geography | [USGS: Geospatial Data](https://www.usgs.gov/geospatial-data) — public mapping catalogs and metadata | Dataset quality and coverage must be checked individually |
+| TUVOK test design | [NIST: Combinatorial Testing](https://www.nist.gov/programs-projects/combinatorial-testing) — interaction-focused software test combinations | Not equivalent to complete end-to-end coverage |
+| SISKO service design | [UK GDS: Understand users and their needs](https://www.gov.uk/service-manual/service-standard/point-1-understand-user-needs) — user research and prototypes | Does not certify a private business service |
+| ARCHER tutoring | [IES: Reading Interventions for Grades 4–9](https://ies.ed.gov/ncee/wwc/PracticeGuide/29) — reading interventions, fluency and comprehension | Age- and subject-specific, not a blanket tutoring method |
+| TROI supportive communication | [NIMH: Depression](https://www.nimh.nih.gov/health/publications/depression) — listening, practical support and professional help | No autonomous counseling, diagnosis or crisis care |
+| DAX cultural research | [Smithsonian: Recovering Voices](https://naturalhistory.si.edu/research/anthropology/programs/recovering-voices/recovering-voices-research) — collaboration and community knowledge | Not permission to reproduce community cultural material |
+| SEVEN data cleaning | [UK Government: Data Quality Framework](https://www.gov.uk/government/publications/the-government-data-quality-framework/the-government-data-quality-framework-guidance) — completeness, consistency, provenance and change records | Does not authorize editing real datasets or importing private records |
+
+**Implementation:** `docs/stage-b/b3-second-ten-expansion-specialist-public-pilot-2026-11-08.json` stores the ten role-specific reference records. `src/knowledge/phase3-second-ten-expansion-specialists.mjs` validates exact approved IDs, specialties, chief links, pending K1 dockets, fixed source URL locations, date format and all default-deny approval fields. Negative tests reject duplicate source agents, substituted official domains, embedded credentials, wrong scope, invented publication dates and forged owner approval.
+
+**Read-only export:**
+
+```bash
+node --test src/knowledge/phase3-second-ten-expansion-specialists.test.mjs
+node scripts/phase3-export-second-ten-expansion-specialists.mjs > /tmp/scotty-b3-expansion-011-020.json
+```
+
+**Evidence accounting:** The cumulative public-source candidate count is **25 chiefs + 39 specialists = 64 dockets**, leaving **491 of 555 dockets without an inspected candidate**. **121 specialists** have not yet received any inspected public candidate. None of the 555 dockets has received independent source verification and exact owner authorization; there remain **0** approved live citations, certified knowledge libraries or real agent-model evaluations.
+
+The official pages above were consulted for planning and were not imported into running agents. Their precise claims, source versions, rights and current status require fresh independent inspection before any acceptance. This remains an offline, unmerged development stage.
