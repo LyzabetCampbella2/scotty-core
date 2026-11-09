@@ -91,3 +91,49 @@ test("Independent validation rejects forged source approval and replay across ba
  assert.throws(()=>reconcileB3PublicSourceCoverage(missing),
   /B3_SOURCE_PILOT_MANIFEST_INVALID/);
 });
+
+const newSourceBatch=read("../../docs/stage-b/b3-third-ten-expansion-specialist-public-pilot-2026-11-08.json");
+const extendedBase={...base,expansionThirdTen:newSourceBatch};
+
+test("Eight source manifests reconcile to 74 candidate-only records, 111 uninspected specialists and 481 missing dockets",()=>{
+ const expanded=reconcileB3PublicSourceCoverage(extendedBase);
+ assert.equal(expanded.summary.canonicalAgents,185);
+ assert.equal(expanded.summary.chiefsWithFirstCandidate,25);
+ assert.equal(expanded.summary.specialistsWithFirstCandidate,49);
+ assert.equal(expanded.summary.specialistsWithoutFirstCandidate,111);
+ assert.equal(expanded.summary.docketsWithCandidate,74);
+ assert.equal(expanded.summary.docketsWithoutCandidate,481);
+ assert.equal(expanded.summary.independentDocketReviewsPending,555);
+ assert.equal(expanded.summary.verifiedExternalClaims,0);
+ assert.equal(expanded.summary.ownerApprovedKnowledgeLibraries,0);
+ assert.equal(expanded.summary.permissionedLiveCitations,0);
+ assert.equal(expanded.summary.realModelEvaluations,0);
+ assert.equal(expanded.summary.activatedAgents,0);
+ assert.equal(expanded.sourceRecords.length,74);
+ assert.equal(expanded.pendingWithoutCandidate.length,481);
+ assert.equal(expanded.nextSpecialists.length,111);
+ assert.equal(expanded.departments.reduce((n,x)=>n+x.specialistsWithFirstPublicCandidate,0),49);
+ assert.equal(new Set(expanded.sourceRecords.map(x=>x.requirementId)).size,74);
+ assert.equal(new Set(expanded.sourceRecords.map(x=>x.agentId)).size,74);
+ for(const source of expanded.sourceRecords){
+  assert.equal(source.candidateOnly,true);
+  assert.equal(source.ownerApproved,false);
+  assert.equal(source.liveCitationPermission,false);
+  assert.equal(source.independentlyReviewed,false);
+ }
+ assert.equal(expanded.nextSpecialists[0].agentId,"agent-expansion-031");
+});
+test("Unified eight-batch validation refuses forged approvals and replayed agent source identities",()=>{
+ const forged=structuredClone(extendedBase);
+ forged.expansionThirdTen.items[0].ownerApproved=true;
+ assert.throws(()=>reconcileB3PublicSourceCoverage(forged),
+  /B3_THIRD_TEN_FALSE_SOURCE_APPROVAL_OR_GRANT/);
+ const cross=structuredClone(extendedBase);
+ cross.expansionThirdTen.items[0].agentId="agent-expansion-011";
+ assert.throws(()=>reconcileB3PublicSourceCoverage(cross),
+  /B3_THIRD_TEN_DUPLICATE_UNKNOWN_OR_REPLAY_ID/);
+ const dropped=structuredClone(extendedBase);
+ dropped.expansionThirdTen.items.pop();
+ assert.throws(()=>reconcileB3PublicSourceCoverage(dropped),
+  /B3_THIRD_TEN_UNAPPROVED_MANIFEST_REQUIRED/);
+});
