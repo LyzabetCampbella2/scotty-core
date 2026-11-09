@@ -9,6 +9,7 @@ import {generateKeyPairSync,sign} from 'node:crypto';
 import postgres from 'postgres';
 import {canonicalSyntheticOwnerGrant,createSyntheticOwnerGrantProofVerifier} from './phase5-owner-proof.mjs';
 import {createPhase5SyntheticPostgresGate} from './phase5-synthetic-postgres-gate.mjs';
+import {createPhase5SyntheticOwnerSessionResolver} from './phase5-signed-owner-session.mjs';
 const DATABASE='scotty_phase5_synthetic_test';
 const NOW=Date.parse('2026-11-09T16:00:00Z');
 const GRANT_ID='SYN-GRANT-CRYPTO-001';
@@ -126,6 +127,66 @@ test('independently verified synthetic Ed25519 grant in disposable PostgreSQL',a
     const result=await makeGate()({...req('SYN-NONCE-ED25519-NOACTION'),action});
     assert.equal(result.reason,'ACTION_NOT_ALLOWED');
    }
+  });
+
+  // Session identity is independently signed and project membership is loaded
+  // for that VERIFIED principal, never from browser roles/project claims.
+  const tempSessionKeys=generateKeyPairSync('ed25519');
+  const sessionIssuer='scotty-p5-synthetic-idp';
+  const sessionHeader={alg:'EdDSA',typ:'SCOTTY-P5-SYNTHETIC-SESSION',kid:'SYN-SESSION-KEY-001'};
+  const toB64=x=>Buffer.from(JSON.stringify(x)).toString('base64url');
+  const tempSessionToken=(subject,sessionId)=>{
+   const payload={iss:sessionIssuer,aud:'scotty-p5-synthetic-preview',
+    sub:subject,jti:sessionId,iat:Math.floor(NOW/1000)-50,
+    nbf:Math.floor(NOW/1000)-50,exp:Math.floor(NOW/1000)+120,
+    version:1,purpose:'synthetic-owner-preview'};
+   const msg=toB64(sessionHeader)+'.'+toB64(payload);
+   return msg+'.'+sign(null,Buffer.from(msg),tempSessionKeys.privateKey).toString('base64url');
+  };
+  const signedRequest=(token,body={})=>({method:'GET',headers:{
+   get:k=>({host:'scotty.example',origin:'https://scotty.example',authorization:'Bearer '+token})[k]??null
+  },body});
+  const makeSignedContext=(revoked=false)=>createPhase5SyntheticOwnerSessionResolver({
+   enabled:true,now:()=>NOW,
+   trustedKeys:{'SYN-SESSION-KEY-001':{issuer:sessionIssuer,active:true,
+    publicKeyPem:tempSessionKeys.publicKey.export({type:'spki',format:'pem'})}},
+   isSessionRevoked:async()=>revoked,
+   loadProjectMembershipForSubject:async identity=>
+    identity.subject==='SYN-OWNER-001'?['synthetic']:['SYN-PROJECT-OTHER']
+  });
+  const signedGate=(context)=>createPhase5SyntheticPostgresGate({
+   sql:runtime,enabled:true,now:()=>NOW,verifyGrantProof:verifyProof,
+   resolveTrustedOwnerContext:context
+  });
+  await t.test('signed owner session + signed grant yield preview only',async()=>{
+   const nonce='SYN-NONCE-ED25519-SESSION001';
+   const token=tempSessionToken('SYN-OWNER-001','SYN-SESSION-001');
+   const result=await signedGate(makeSignedContext())({...req(nonce),
+    request:signedRequest(token,{roles:['superadmin'],projectId:'SYN-PROJECT-OTHER'})});
+   assert.equal(result.decision,'SIMULATED_ELIGIBLE');
+   assert.equal(result.actualPermissionGranted,false);assert.equal(await nonceCount(nonce),1);
+  });
+  await t.test('signed but other owner cannot borrow first owner project',async()=>{
+   const nonce='SYN-NONCE-ED25519-CROSSOWNER';
+   const token=tempSessionToken('SYN-OWNER-002','SYN-SESSION-002');
+   const result=await signedGate(makeSignedContext())({...req(nonce),request:signedRequest(token)});
+   assert.equal(result.reason,'TRUSTED_OWNER_SCOPE_MISSING');
+   assert.equal(await nonceCount(nonce),0);
+  });
+  await t.test('revoked independently signed owner session is blocked before SQL',async()=>{
+   const nonce='SYN-NONCE-ED25519-REVOKEDSESSION';
+   const token=tempSessionToken('SYN-OWNER-001','SYN-SESSION-003');
+   const result=await signedGate(makeSignedContext(true))({...req(nonce),request:signedRequest(token)});
+   assert.equal(result.reason,'OWNER_AUTHENTICATION_FAILED');
+   assert.equal(await nonceCount(nonce),0);
+  });
+  await t.test('tampered owner session is denied despite valid signed grant',async()=>{
+   const nonce='SYN-NONCE-ED25519-TAMPERSESSION';
+   const token=tempSessionToken('SYN-OWNER-001','SYN-SESSION-004').split('.');
+   token[1]=toB64({fake:'owner'});
+   const result=await signedGate(makeSignedContext())({...req(nonce),request:signedRequest(token.join('.'))});
+   assert.equal(result.reason,'OWNER_AUTHENTICATION_FAILED');
+   assert.equal(await nonceCount(nonce),0);
   });
  }finally{await Promise.allSettled([admin.end({timeout:5}),runtime.end({timeout:5})]);}
 });
