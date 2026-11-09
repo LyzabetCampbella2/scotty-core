@@ -76,4 +76,5 @@ jobs:
         run: |
           node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres.integration.test.mjs
           node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-denial-audit.integration.test.mjs
-          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-denial-audit.integration.test.mjs
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-owner-proof.integration.test.mjs
+          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-denial-audit.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-owner-proof.integration.test.mjs
