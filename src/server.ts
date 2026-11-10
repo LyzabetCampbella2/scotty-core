@@ -1,3 +1,4 @@
+import { handlePhase5 } from "./phase5/index.ts";
 import { renderReviewPage } from "./agents/review-ui.ts";
 import { handleAgents } from "./agents/api.ts";
 import { handleEyesOn } from "./eyes/index.ts";
@@ -19,6 +20,7 @@ Bun.serve({port:PORT,async fetch(req){const u=new URL(req.url);
    if(!token||req.headers.get("authorization")!==`Bearer ${token}`) return Response.json({ok:false,error:"Unauthorized"},{status:401,headers:{"Cache-Control":"no-store"}});
    return handleWorkspaceRecommendations(u);
  }
+ if(u.pathname.startsWith("/api/phase5")) return handlePhase5(req,u);
  if(u.pathname.startsWith("/api/workspace")) return handleWorkspace(req,u);
  if(u.pathname==="/agents/learning-review") {
    if(process.env.SCOTTY_AGENT_BRAINS_ENABLED!=="true") return new Response("Not enabled",{status:503});
