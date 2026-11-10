@@ -29,6 +29,7 @@ jobs:
       P5_CI_DISPOSABLE_POSTGRES: YES_EXACT_LOOPBACK_FIXTURE
       P5_CI_ADMIN_URL: postgres://scotty_p5_admin:synthetic_ci_admin_only@127.0.0.1:5432/scotty_phase5_synthetic_test
       P5_CI_RUNTIME_URL: postgres://scotty_p5_runtime:synthetic_ci_runtime_only@127.0.0.1:5432/scotty_phase5_synthetic_test
+      P5_CI_ISSUER_URL: postgres://scotty_p5_consent_issuer:synthetic_ci_issuer_only@127.0.0.1:5432/scotty_phase5_synthetic_test
       P5_CI_AGENT_PULSE_URL: postgres://scotty_p5_agent_pulse:synthetic_ci_pulse_only@127.0.0.1:5432/scotty_phase5_synthetic_test
       P5_CI_AGENT_IRIS_URL: postgres://scotty_p5_agent_iris:synthetic_ci_iris_only@127.0.0.1:5432/scotty_phase5_synthetic_test
       P5_CI_AGENT_PULSE_OTHER_URL: postgres://scotty_p5_agent_pulse_other:synthetic_ci_other_only@127.0.0.1:5432/scotty_phase5_synthetic_test
@@ -194,6 +195,26 @@ jobs:
         run: |
           node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-scoped-memory-rls.integration.test.mjs
           node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-scoped-memory-rls.integration.test.mjs
+      - name: Provision restricted synthetic receipt issuer with no grant-state write access
+        run: |
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test <<'SQL'
+          CREATE ROLE scotty_p5_consent_issuer LOGIN PASSWORD 'synthetic_ci_issuer_only' NOINHERIT NOBYPASSRLS;
+          GRANT CONNECT ON DATABASE scotty_phase5_synthetic_test TO scotty_p5_consent_issuer;
+          GRANT USAGE ON SCHEMA public TO scotty_p5_consent_issuer;
+          GRANT SELECT ON TABLE scotty_p5_synthetic_emergency_stop TO scotty_p5_consent_issuer;
+          GRANT UPDATE (lock_pad) ON TABLE scotty_p5_synthetic_emergency_stop TO scotty_p5_consent_issuer;
+          GRANT SELECT ON TABLE scotty_p5_synthetic_consent_state TO scotty_p5_consent_issuer;
+          GRANT UPDATE (lock_pad) ON TABLE scotty_p5_synthetic_consent_state TO scotty_p5_consent_issuer;
+          GRANT SELECT ON TABLE scotty_p5_synthetic_consent_versions TO scotty_p5_consent_issuer;
+          GRANT INSERT ON TABLE scotty_p5_synthetic_verified_consent_receipts TO scotty_p5_consent_issuer;
+          GRANT INSERT ON TABLE scotty_p5_synthetic_consent_review_events TO scotty_p5_consent_issuer;
+          GRANT USAGE ON SEQUENCE scotty_p5_synthetic_consent_review_events_event_id_seq TO scotty_p5_consent_issuer;
+          SQL
+      - name: Test signed owner session and project key binding before synthetic receipt issuance
+        run: |
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-consent-receipt-issuer.mjs
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-consent-receipt-issuer.integration.test.mjs
+          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-consent-receipt-issuer.integration.test.mjs
       - name: Rehearse synthetic PostgreSQL backup and restore into second disposable DB
         run: |
           bash -n offline-brain/cloudflare-ipad/phase5-authorization/phase5-disposable-backup-restore.sh
