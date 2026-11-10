@@ -1,0 +1,53 @@
+name: SCOTTY Phase 5 Authorization — Synthetic Tests Only
+on:
+  pull_request:
+    paths:
+      - 'offline-brain/cloudflare-ipad/phase5-authorization/**'
+      - '.github/workflows/scotty-phase5-authz-synthetic.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  synthetic-authorization:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DATABASE_URL: ''
+      OPENAI_API_KEY: ''
+      GROQ_API_KEY: ''
+      CLOUDFLARE_API_TOKEN: ''
+      VERCEL_TOKEN: ''
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check (no external services)
+        run: node --check offline-brain/cloudflare-ipad/phase5-authorization/workspace-authorization-adapter.mjs
+      - name: Synthetic authorization and transaction tests (mock database; no deployment)
+        run: |
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres-gate.mjs
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-denial-audit.mjs
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-owner-proof.mjs
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-signed-owner-session.mjs
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-agent-memory-identity.mjs
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-guarded-memory-preview.mjs
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-unified-memory-gateway.mjs
+          node --test offline-brain/cloudflare-ipad/phase5-authorization/workspace-authorization-adapter.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres-gate.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-denial-audit.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-owner-proof.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-signed-owner-session.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-agent-memory-identity.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-guarded-memory-preview.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-unified-memory-gateway.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-runtime-import-policy.test.mjs
+      - name: Validate all 185 SCOTTY agent identities and review-only memory scopes
+        run: |
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-roster-memory-policy-review.mjs
+          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-roster-memory-policy-review.test.mjs
+      - name: Validate all 185 Ed25519 synthetic roster sessions without provisioning credentials
+        run: |
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-signed-roster-policy-review.mjs
+          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-signed-roster-policy-review.test.mjs
+      - name: Validate synthetic departmental/shared object-specific consent lifecycle
+        run: |
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-object-consent-review.mjs
+          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-object-consent-review.test.mjs
+      - name: Check SQL stays unapplied and restricted to disposable database
+        run: |
+          node -e "const fs=require('node:fs'); const s=fs.readFileSync('offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres-schema.sql','utf8'); if(!s.includes(\"current_database() <> 'scotty_phase5_synthetic_test'\")||!s.includes('REVOKE ALL ON TABLE')) process.exit(1)"

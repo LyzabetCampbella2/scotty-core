@@ -1,0 +1,221 @@
+name: SCOTTY Phase 5 — Disposable PostgreSQL Integration QA
+on:
+  pull_request:
+    paths:
+      - 'offline-brain/cloudflare-ipad/phase5-authorization/**'
+      - '.github/workflows/scotty-phase5-postgres-disposable.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: scotty_p5_admin
+          POSTGRES_PASSWORD: synthetic_ci_admin_only
+          POSTGRES_DB: scotty_phase5_synthetic_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U scotty_p5_admin -d scotty_phase5_synthetic_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      P5_CI_DISPOSABLE_POSTGRES: YES_EXACT_LOOPBACK_FIXTURE
+      P5_CI_ADMIN_URL: postgres://scotty_p5_admin:synthetic_ci_admin_only@127.0.0.1:5432/scotty_phase5_synthetic_test
+      P5_CI_RUNTIME_URL: postgres://scotty_p5_runtime:synthetic_ci_runtime_only@127.0.0.1:5432/scotty_phase5_synthetic_test
+      P5_CI_ISSUER_URL: postgres://scotty_p5_consent_issuer:synthetic_ci_issuer_only@127.0.0.1:5432/scotty_phase5_synthetic_test
+      P5_CI_AGENT_PULSE_URL: postgres://scotty_p5_agent_pulse:synthetic_ci_pulse_only@127.0.0.1:5432/scotty_phase5_synthetic_test
+      P5_CI_AGENT_IRIS_URL: postgres://scotty_p5_agent_iris:synthetic_ci_iris_only@127.0.0.1:5432/scotty_phase5_synthetic_test
+      P5_CI_AGENT_PULSE_OTHER_URL: postgres://scotty_p5_agent_pulse_other:synthetic_ci_other_only@127.0.0.1:5432/scotty_phase5_synthetic_test
+      P5_CI_AGENT_UNMAPPED_URL: postgres://scotty_p5_agent_unmapped:synthetic_ci_unmapped_only@127.0.0.1:5432/scotty_phase5_synthetic_test
+      DATABASE_URL: ''
+      OPENAI_API_KEY: ''
+      GROQ_API_KEY: ''
+      XAI_API_KEY: ''
+      VERCEL_TOKEN: ''
+      CLOUDFLARE_API_TOKEN: ''
+      OWNER_BEARER_TOKEN: ''
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install only SQL driver for disposable CI service
+        run: |
+          npm --prefix /tmp/scotty-p5-ci install --ignore-scripts --no-save --no-audit --no-fund postgres@3.4.7
+          ln -s /tmp/scotty-p5-ci/node_modules node_modules
+      - name: Verify schema refuses incorrect database name without applying anything
+        run: |
+          set -euo pipefail
+          if docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d postgres < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres-schema.sql; then
+            echo "ERROR: synthetic schema unexpectedly accepted wrong database" >&2
+            exit 1
+          fi
+          test "$(docker exec -i "${{ job.services.postgres.id }}" psql -X -At -U scotty_p5_admin -d postgres -c "select count(*) from information_schema.tables where table_name like 'scotty_p5_synthetic_%'")" = '0'
+      - name: Apply isolated disposable schema ONLY inside ephemeral CI PostgreSQL
+        run: |
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres-schema.sql
+      - name: Grant SELECT and constrained inert-column row lock; no authorization-field updates
+        run: |
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test <<'SQL'
+          CREATE ROLE scotty_p5_runtime LOGIN PASSWORD 'synthetic_ci_runtime_only';
+          GRANT CONNECT ON DATABASE scotty_phase5_synthetic_test TO scotty_p5_runtime;
+          GRANT USAGE ON SCHEMA public TO scotty_p5_runtime;
+          GRANT SELECT ON TABLE scotty_p5_synthetic_grants TO scotty_p5_runtime;
+          GRANT UPDATE (lock_pad) ON TABLE scotty_p5_synthetic_grants TO scotty_p5_runtime;
+          GRANT INSERT, SELECT ON TABLE scotty_p5_synthetic_nonce_claims TO scotty_p5_runtime;
+          GRANT INSERT, SELECT ON TABLE scotty_p5_synthetic_audit TO scotty_p5_runtime;
+          GRANT USAGE ON SEQUENCE scotty_p5_synthetic_audit_event_id_seq TO scotty_p5_runtime;
+          GRANT INSERT ON TABLE scotty_p5_synthetic_denial_audit TO scotty_p5_runtime;
+          GRANT USAGE ON SEQUENCE scotty_p5_synthetic_denial_audit_event_id_seq TO scotty_p5_runtime;
+          SQL
+      - name: Create isolated synthetic agent DB identities for RLS verification
+        run: |
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test <<'SQL'
+          CREATE ROLE scotty_p5_agent_pulse LOGIN PASSWORD 'synthetic_ci_pulse_only' NOINHERIT NOBYPASSRLS;
+          CREATE ROLE scotty_p5_agent_iris LOGIN PASSWORD 'synthetic_ci_iris_only' NOINHERIT NOBYPASSRLS;
+          CREATE ROLE scotty_p5_agent_pulse_other LOGIN PASSWORD 'synthetic_ci_other_only' NOINHERIT NOBYPASSRLS;
+          CREATE ROLE scotty_p5_agent_unmapped LOGIN PASSWORD 'synthetic_ci_unmapped_only' NOINHERIT NOBYPASSRLS;
+          GRANT CONNECT ON DATABASE scotty_phase5_synthetic_test TO
+            scotty_p5_agent_pulse,scotty_p5_agent_iris,
+            scotty_p5_agent_pulse_other,scotty_p5_agent_unmapped;
+          GRANT USAGE ON SCHEMA public TO
+            scotty_p5_agent_pulse,scotty_p5_agent_iris,
+            scotty_p5_agent_pulse_other,scotty_p5_agent_unmapped;
+          SQL
+      - name: Verify memory RLS schema rejects wrong DB and apply only to disposable database
+        run: |
+          set -euo pipefail
+          if docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d postgres < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-memory-rls.sql; then
+            echo "ERROR: synthetic memory RLS schema accepted wrong database" >&2
+            exit 1
+          fi
+          test "$(docker exec -i "${{ job.services.postgres.id }}" psql -X -At -U scotty_p5_admin -d postgres -c "select count(*) from information_schema.tables where table_name in ('scotty_p5_synthetic_memory_items','scotty_p5_synthetic_memory_identity_acl')")" = '0'
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-memory-rls.sql
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test <<'SQL'
+          GRANT SELECT ON TABLE scotty_p5_synthetic_memory_items TO
+            scotty_p5_agent_pulse,scotty_p5_agent_iris,
+            scotty_p5_agent_pulse_other,scotty_p5_agent_unmapped;
+          GRANT EXECUTE ON FUNCTION public.scotty_p5_synthetic_memory_allows(TEXT,TEXT) TO
+            scotty_p5_agent_pulse,scotty_p5_agent_iris,
+            scotty_p5_agent_pulse_other,scotty_p5_agent_unmapped;
+          SQL
+      - name: Enforce default-stopped synthetic emergency control only in disposable database
+        run: |
+          set -euo pipefail
+          if docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d postgres < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-emergency-stop.sql; then
+            echo "ERROR: synthetic emergency schema accepted wrong database" >&2
+            exit 1
+          fi
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-emergency-stop.sql
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test <<'SQL'
+          GRANT SELECT ON TABLE scotty_p5_synthetic_emergency_stop TO scotty_p5_runtime;
+          GRANT UPDATE (lock_pad) ON TABLE scotty_p5_synthetic_emergency_stop TO scotty_p5_runtime;
+          SQL
+      - name: Real disposable PostgreSQL transaction and security boundary tests
+        run: |
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres.integration.test.mjs
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-denial-audit.integration.test.mjs
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-owner-proof.integration.test.mjs
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-memory-rls.integration.test.mjs
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-emergency-stop.integration.test.mjs
+          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-postgres.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-denial-audit.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-owner-proof.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-memory-rls.integration.test.mjs offline-brain/cloudflare-ipad/phase5-authorization/phase5-emergency-stop.integration.test.mjs
+
+      - name: Validate signed synthetic agent-to-DB-role mapping against RLS fixtures
+        run: |
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-agent-memory-identity.integration.test.mjs
+          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-agent-memory-identity.integration.test.mjs
+      - name: Install guarded synthetic memory audit in disposable database only
+        run: |
+          set -euo pipefail
+          if docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d postgres < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-memory-request-audit.sql; then
+            echo "ERROR: synthetic memory audit schema accepted wrong database" >&2
+            exit 1
+          fi
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-memory-request-audit.sql
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test <<'SQL'
+          GRANT INSERT ON TABLE scotty_p5_synthetic_memory_request_audit TO scotty_p5_runtime;
+          GRANT USAGE ON SEQUENCE scotty_p5_synthetic_memory_request_audit_event_id_seq TO scotty_p5_runtime;
+          SQL
+      - name: Test default-stopped, audited synthetic memory requests on disposable PostgreSQL
+        run: |
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-guarded-memory-preview.integration.test.mjs
+          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-guarded-memory-preview.integration.test.mjs
+      - name: Verify unified synthetic gateway against RLS, emergency stop, and audit
+        run: |
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-unified-memory-gateway.integration.test.mjs
+          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-unified-memory-gateway.integration.test.mjs
+      - name: Apply versioned synthetic consent ledger ONLY to disposable PostgreSQL
+        run: |
+          set -euo pipefail
+          if docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d postgres < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-versioned-consent.sql; then
+            echo "ERROR: synthetic consent schema accepted a non-disposable database" >&2
+            exit 1
+          fi
+          test "$(docker exec -i "${{ job.services.postgres.id }}" psql -X -At -U scotty_p5_admin -d postgres -c "select count(*) from information_schema.tables where table_name like 'scotty_p5_synthetic_consent_%'")" = '0'
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-versioned-consent.sql
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test <<'SQL'
+          GRANT SELECT ON TABLE scotty_p5_synthetic_consent_versions TO scotty_p5_runtime;
+          GRANT SELECT ON TABLE scotty_p5_synthetic_consent_state TO scotty_p5_runtime;
+          GRANT UPDATE (lock_pad) ON TABLE scotty_p5_synthetic_consent_state TO scotty_p5_runtime;
+          GRANT INSERT ON TABLE scotty_p5_synthetic_consent_review_events TO scotty_p5_runtime;
+          GRANT USAGE ON SEQUENCE scotty_p5_synthetic_consent_review_events_event_id_seq TO scotty_p5_runtime;
+          SQL
+      - name: Test consent registration, immutable revisions, revocation and lock-safe review
+        run: |
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-versioned-consent-store.mjs
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-versioned-consent-store.integration.test.mjs
+          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-versioned-consent-store.integration.test.mjs
+      - name: Install scoped synthetic memory RLS only in disposable database
+        run: |
+          set -euo pipefail
+          if docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d postgres < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-scoped-memory-rls.sql; then
+            echo "ERROR: scoped synthetic RLS schema accepted wrong database" >&2
+            exit 1
+          fi
+          test "$(docker exec -i "${{ job.services.postgres.id }}" psql -X -At -U scotty_p5_admin -d postgres -c "select count(*) from information_schema.tables where table_name in ('scotty_p5_synthetic_scoped_memory_items','scotty_p5_synthetic_scoped_identity_acl','scotty_p5_synthetic_verified_consent_receipts')")" = '0'
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-scoped-memory-rls.sql
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test <<'SQL'
+          GRANT SELECT ON scotty_p5_synthetic_scoped_memory_items TO
+            scotty_p5_agent_pulse,scotty_p5_agent_iris,
+            scotty_p5_agent_pulse_other,scotty_p5_agent_unmapped;
+          GRANT EXECUTE ON FUNCTION public.scotty_p5_synthetic_scoped_memory_allows(TEXT,TEXT,TEXT,TEXT,TEXT) TO
+            scotty_p5_agent_pulse,scotty_p5_agent_iris,
+            scotty_p5_agent_pulse_other,scotty_p5_agent_unmapped;
+          SQL
+      - name: Prove departmental/shared scope is database-isolated and revocable
+        run: |
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-scoped-memory-rls.integration.test.mjs
+          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-scoped-memory-rls.integration.test.mjs
+      - name: Provision restricted synthetic receipt issuer with no grant-state write access
+        run: |
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test <<'SQL'
+          CREATE ROLE scotty_p5_consent_issuer LOGIN PASSWORD 'synthetic_ci_issuer_only' NOINHERIT NOBYPASSRLS;
+          GRANT CONNECT ON DATABASE scotty_phase5_synthetic_test TO scotty_p5_consent_issuer;
+          GRANT USAGE ON SCHEMA public TO scotty_p5_consent_issuer;
+          GRANT SELECT ON TABLE scotty_p5_synthetic_emergency_stop TO scotty_p5_consent_issuer;
+          GRANT UPDATE (lock_pad) ON TABLE scotty_p5_synthetic_emergency_stop TO scotty_p5_consent_issuer;
+          GRANT SELECT ON TABLE scotty_p5_synthetic_consent_state TO scotty_p5_consent_issuer;
+          GRANT UPDATE (lock_pad) ON TABLE scotty_p5_synthetic_consent_state TO scotty_p5_consent_issuer;
+          GRANT SELECT ON TABLE scotty_p5_synthetic_consent_versions TO scotty_p5_consent_issuer;
+          GRANT INSERT ON TABLE scotty_p5_synthetic_verified_consent_receipts TO scotty_p5_consent_issuer;
+          GRANT INSERT ON TABLE scotty_p5_synthetic_consent_review_events TO scotty_p5_consent_issuer;
+          GRANT USAGE ON SEQUENCE scotty_p5_synthetic_consent_review_events_event_id_seq TO scotty_p5_consent_issuer;
+          SQL
+      - name: Test signed owner session and project key binding before synthetic receipt issuance
+        run: |
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-consent-receipt-issuer.mjs
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-consent-receipt-issuer.integration.test.mjs
+          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-consent-receipt-issuer.integration.test.mjs
+      - name: Rehearse synthetic PostgreSQL backup and restore into second disposable DB
+        run: |
+          bash -n offline-brain/cloudflare-ipad/phase5-authorization/phase5-disposable-backup-restore.sh
+          bash offline-brain/cloudflare-ipad/phase5-authorization/phase5-disposable-backup-restore.sh "${{ job.services.postgres.id }}"
