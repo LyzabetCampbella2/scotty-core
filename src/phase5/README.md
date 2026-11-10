@@ -6,7 +6,7 @@ This review branch adds a **disabled-by-default GET-only owner preview** plus a 
 - `/api/phase5/owner/portfolio?projectId=...`
 - `/api/phase5/agents/<agent-id>/biography?projectId=...`
 - Requires `SCOTTY_ENV=staging`, `SCOTTY_PHASE5_STAGING_ENABLED=true`, `SCOTTY_PHASE5_READ_ONLY=true`, pinned RS256 JWT verification and exact owner issuer/audience/subject.
-- Reads through `SCOTTY_PHASE5_STAGING_DATABASE_URL` only; no production DATABASE_URL fallback.
+- Reads through `SCOTTY_PHASE5_STAGING_DATABASE_URL` only; no production DATABASE_URL fallback. Requires exact reviewed `SCOTTY_PHASE5_STAGING_DB_HOST` and `SCOTTY_PHASE5_STAGING_DB_NAME`, rejects configured production DB overlap, and uses PostgreSQL READ ONLY transactions.
 
 ## New dormant job lifecycle (V18)
 - `lifecycle.ts`: proposed -> owner-approved -> assigned -> specialist submission -> chief review/revision -> accepted -> owner closure; reassignment/revocation and version checks.
@@ -22,6 +22,6 @@ This review branch adds a **disabled-by-default GET-only owner preview** plus a 
 4. Real Postgres multi-request tests and verified end-to-end HUD biography updates.
 5. Owner sign-off for each new task; 185-agent roster retained unchanged.
 
-The local V18 package passed 82 offline tests, but the real Postgres adapter and OIDC integration have **not** passed live staging acceptance.
+The local V18 package passed 88 offline tests, but the real Postgres adapter and OIDC integration have **not** passed live staging acceptance.
 
 **RELEASE DECISION: DENY. Do not merge or deploy without review.**
