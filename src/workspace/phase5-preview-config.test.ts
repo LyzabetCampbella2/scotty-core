@@ -1,0 +1,10 @@
+import {test,expect} from 'bun:test';
+import {assertPreviewDbConfig} from '../phase5/preview-config.ts';
+import {Denied} from '../phase5/lifecycle.ts';
+const good={SCOTTY_ENV:'staging',SCOTTY_PHASE5_STAGING_ENABLED:'true',SCOTTY_PHASE5_READ_ONLY:'true',SCOTTY_PHASE5_STAGING_DATABASE_URL:'postgresql://readonly@stage.internal/scotty_stage',SCOTTY_PHASE5_STAGING_DB_HOST:'stage.internal',SCOTTY_PHASE5_STAGING_DB_NAME:'scotty_stage',DATABASE_URL:'postgresql://admin@prod.internal/scotty_prod'};
+test('preview: exact reviewed stage target',()=>expect(assertPreviewDbConfig(good)).toBe(good.SCOTTY_PHASE5_STAGING_DATABASE_URL));
+test('preview: default denial on production context',()=>expect(()=>assertPreviewDbConfig({...good,SCOTTY_ENV:'production'})).toThrow(Denied));
+test('preview: stage hostname must match',()=>expect(()=>assertPreviewDbConfig({...good,SCOTTY_PHASE5_STAGING_DB_HOST:'other.internal'})).toThrow(Denied));
+test('preview: stage db name must match',()=>expect(()=>assertPreviewDbConfig({...good,SCOTTY_PHASE5_STAGING_DB_NAME:'other'})).toThrow(Denied));
+test('preview: readonly must be explicit',()=>expect(()=>assertPreviewDbConfig({...good,SCOTTY_PHASE5_READ_ONLY:'false'})).toThrow(Denied));
+test('preview: production overlap blocked even with another username',()=>expect(()=>assertPreviewDbConfig({...good,DATABASE_URL:'postgresql://other@stage.internal/scotty_stage'})).toThrow(Denied));
