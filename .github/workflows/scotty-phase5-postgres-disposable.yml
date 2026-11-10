@@ -152,6 +152,27 @@ jobs:
         run: |
           node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-unified-memory-gateway.integration.test.mjs
           node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-unified-memory-gateway.integration.test.mjs
+      - name: Apply versioned synthetic consent ledger ONLY to disposable PostgreSQL
+        run: |
+          set -euo pipefail
+          if docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d postgres < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-versioned-consent.sql; then
+            echo "ERROR: synthetic consent schema accepted a non-disposable database" >&2
+            exit 1
+          fi
+          test "$(docker exec -i "${{ job.services.postgres.id }}" psql -X -At -U scotty_p5_admin -d postgres -c "select count(*) from information_schema.tables where table_name like 'scotty_p5_synthetic_consent_%'")" = '0'
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test < offline-brain/cloudflare-ipad/phase5-authorization/phase5-synthetic-versioned-consent.sql
+          docker exec -i "${{ job.services.postgres.id }}" psql -X -v ON_ERROR_STOP=1 -U scotty_p5_admin -d scotty_phase5_synthetic_test <<'SQL'
+          GRANT SELECT ON TABLE scotty_p5_synthetic_consent_versions TO scotty_p5_runtime;
+          GRANT SELECT ON TABLE scotty_p5_synthetic_consent_state TO scotty_p5_runtime;
+          GRANT UPDATE (lock_pad) ON TABLE scotty_p5_synthetic_consent_state TO scotty_p5_runtime;
+          GRANT INSERT ON TABLE scotty_p5_synthetic_consent_review_events TO scotty_p5_runtime;
+          GRANT USAGE ON SEQUENCE scotty_p5_synthetic_consent_review_events_event_id_seq TO scotty_p5_runtime;
+          SQL
+      - name: Test consent registration, immutable revisions, revocation and lock-safe review
+        run: |
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-versioned-consent-store.mjs
+          node --check offline-brain/cloudflare-ipad/phase5-authorization/phase5-versioned-consent-store.integration.test.mjs
+          node --test offline-brain/cloudflare-ipad/phase5-authorization/phase5-versioned-consent-store.integration.test.mjs
       - name: Rehearse synthetic PostgreSQL backup and restore into second disposable DB
         run: |
           bash -n offline-brain/cloudflare-ipad/phase5-authorization/phase5-disposable-backup-restore.sh
