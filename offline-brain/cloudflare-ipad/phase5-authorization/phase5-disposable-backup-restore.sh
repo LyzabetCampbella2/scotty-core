@@ -44,6 +44,9 @@ tables=(
  scotty_p5_synthetic_consent_state
  scotty_p5_synthetic_consent_lifecycle_events
  scotty_p5_synthetic_consent_review_events
+ scotty_p5_synthetic_scoped_identity_acl
+ scotty_p5_synthetic_scoped_memory_items
+ scotty_p5_synthetic_verified_consent_receipts
 )
 orders=(
  grant_id
@@ -58,6 +61,9 @@ orders=(
  grant_id
  event_id
  event_id
+ login_name
+ memory_id
+ 'grant_id,revision'
 )
 for i in "${!tables[@]}"; do
  table="${tables[$i]}"
@@ -87,6 +93,15 @@ consent_events="$(pg -d "$restore_db" -c "select count(*) from scotty_p5_synthet
 if [[ "$consent_events" != '6' ]]; then echo "Recovery lost synthetic revocation history" >&2; exit 4; fi
 consent_trigger_count="$(pg -d "$restore_db" -c "select count(*) from pg_trigger where tgrelid='public.scotty_p5_synthetic_consent_state'::regclass and not tgisinternal")"
 if [[ "$consent_trigger_count" != '2' ]]; then echo "Recovery lost consent transition or no-delete trigger" >&2; exit 4; fi
+scoped_rls="$(pg -d "$restore_db" -c "select relrowsecurity::text||':'||relforcerowsecurity::text from pg_class where oid='public.scotty_p5_synthetic_scoped_memory_items'::regclass")"
+if [[ "$scoped_rls" != 'true:true' ]]; then echo "Recovery lost scoped memory RLS" >&2; exit 4; fi
+scoped_policy_count="$(pg -d "$restore_db" -c "select count(*) from pg_policies where tablename='scotty_p5_synthetic_scoped_memory_items'")"
+if [[ "$scoped_policy_count" != '1' ]]; then echo "Recovery lost scoped memory policy" >&2; exit 4; fi
+verified_count="$(pg -d "$restore_db" -c "select count(*) from scotty_p5_synthetic_verified_consent_receipts")"
+if [[ "$verified_count" != '4' ]]; then echo "Recovery lost signed test consent receipts" >&2; exit 4; fi
+scoped_count="$(pg -d "$restore_db" -c "select count(*) from scotty_p5_synthetic_scoped_memory_items")"
+if [[ "$scoped_count" != '3' ]]; then echo "Recovery lost scoped synthetic memory fixtures" >&2; exit 4; fi
+echo "SCOPED MEMORY RECOVERY: verified receipts, RLS FORCE and scoped policies preserved."
 echo "CONSENT RECOVERY: immutable signed revisions, revoked state and automatic transition triggers verified."
 echo "RECOVERY ACCEPTANCE: disposable archive roundtrip passed; synthetic stop, RLS and revoked consent history preserved."
 # No production or shared environment was connected. The ephemeral CI service
