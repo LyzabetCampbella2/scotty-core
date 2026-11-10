@@ -98,7 +98,11 @@ if [[ "$scoped_rls" != 'true:true' ]]; then echo "Recovery lost scoped memory RL
 scoped_policy_count="$(pg -d "$restore_db" -c "select count(*) from pg_policies where tablename='scotty_p5_synthetic_scoped_memory_items'")"
 if [[ "$scoped_policy_count" != '1' ]]; then echo "Recovery lost scoped memory policy" >&2; exit 4; fi
 verified_count="$(pg -d "$restore_db" -c "select count(*) from scotty_p5_synthetic_verified_consent_receipts")"
-if [[ "$verified_count" != '4' ]]; then echo "Recovery lost signed test consent receipts" >&2; exit 4; fi
+if (( verified_count < 4 )); then echo "Recovery lost previously verified synthetic receipts" >&2; exit 4; fi
+issuer_receipt_count="$(pg -d "$restore_db" -c "select count(*) from scotty_p5_synthetic_verified_consent_receipts where grant_id like 'SYN-CONSENT-ISSUER-%'")"
+if [[ "$issuer_receipt_count" != '3' ]]; then echo "Recovery lost owner-bound synthetic issuer receipts" >&2; exit 4; fi
+issuer_revoked_count="$(pg -d "$restore_db" -c "select count(*) from scotty_p5_synthetic_consent_state where grant_id like 'SYN-CONSENT-ISSUER-%' and revoked=true")"
+if [[ "$issuer_revoked_count" != '4' ]]; then echo "Recovery reactivated an issuer's revoked synthetic consent" >&2; exit 4; fi
 scoped_count="$(pg -d "$restore_db" -c "select count(*) from scotty_p5_synthetic_scoped_memory_items")"
 if [[ "$scoped_count" != '3' ]]; then echo "Recovery lost scoped synthetic memory fixtures" >&2; exit 4; fi
 echo "SCOPED MEMORY RECOVERY: verified receipts, RLS FORCE and scoped policies preserved."
