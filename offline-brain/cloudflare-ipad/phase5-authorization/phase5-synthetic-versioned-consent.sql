@@ -54,7 +54,8 @@ CREATE TABLE scotty_p5_synthetic_consent_review_events (
  event_id BIGSERIAL PRIMARY KEY,
  outcome TEXT NOT NULL CHECK (outcome IN ('DENY','SIMULATED_ELIGIBLE')),
  reason_code TEXT NOT NULL CHECK (reason_code IN (
-  'CONSENT_NOT_VERIFIED','CONSENT_REVOKED_OR_MISSING','SYNTHETIC_CONSENT_REVIEW_OK'
+  'CONSENT_NOT_VERIFIED','CONSENT_REVOKED_OR_MISSING',
+  'SYNTHETIC_EMERGENCY_STOPPED','SYNTHETIC_CONSENT_REVIEW_OK'
  )),
  state_version BIGINT CHECK (state_version IS NULL OR state_version>0),
  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -115,6 +116,9 @@ END $$;
 CREATE TRIGGER scotty_p5_consent_state_audit
  BEFORE INSERT OR UPDATE ON scotty_p5_synthetic_consent_state
  FOR EACH ROW EXECUTE FUNCTION public.scotty_p5_consent_state_transition();
+CREATE TRIGGER scotty_p5_consent_state_no_delete
+ BEFORE DELETE ON scotty_p5_synthetic_consent_state
+ FOR EACH ROW EXECUTE FUNCTION public.scotty_p5_consent_forbid_mutation();
 
 REVOKE ALL ON TABLE scotty_p5_synthetic_consent_versions FROM PUBLIC;
 REVOKE ALL ON TABLE scotty_p5_synthetic_consent_state FROM PUBLIC;
