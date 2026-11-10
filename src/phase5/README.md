@@ -1,30 +1,27 @@
-# SCOTTY Phase 5 — Staging-only owner preview (development draft)
+# SCOTTY Phase 5 staging draft — release gate DENY
 
-## Scope
-This branch adds a **read-only preview** for existing SCOTTY workspace assignments and agent biographies. It is not the full Phase 5 transactional assignment engine, and it does not activate agents, connect Activepieces, publish, grant memory access, or migrate a database. It intentionally does **not** reuse the existing workspace bearer-admin token or production `DATABASE_URL`.
+This review branch adds a **disabled-by-default GET-only owner preview** plus a separate, **dormant assignment lifecycle**. No production release, paid AI use, OAuth, migration or live-agent execution is authorized.
 
-## Endpoints (GET only)
+## Read-only owner preview (PR #81)
 - `/api/phase5/owner/portfolio?projectId=...`
-- `/api/phase5/agents/<canonical-agent-id>/biography?projectId=...`
+- `/api/phase5/agents/<agent-id>/biography?projectId=...`
+- Requires `SCOTTY_ENV=staging`, `SCOTTY_PHASE5_STAGING_ENABLED=true`, `SCOTTY_PHASE5_READ_ONLY=true`, pinned RS256 JWT verification and exact owner issuer/audience/subject.
+- Reads through `SCOTTY_PHASE5_STAGING_DATABASE_URL` only; no production DATABASE_URL fallback.
 
-Both require a pinned RS256 public key, exact issuer, audience, owner subject and short-lived token. The query adapter only reads existing `scotty_projects`, `scotty_missions`, `scotty_agents`, and `scotty_project_agents`. It makes no tables and performs no writes. Other methods return 405.
+## New dormant job lifecycle (V18)
+- `lifecycle.ts`: proposed -> owner-approved -> assigned -> specialist submission -> chief review/revision -> accepted -> owner closure; reassignment/revocation and version checks.
+- `assignment-store.ts`: transactional task/event contract, atomic rollback and compare-and-swap version enforcement.
+- `postgres-assignment-store.ts`: PostgreSQL implementation not connected to live routes. Extra write flag and emergency stop must explicitly permit staging writes, otherwise DENY.
+- `staging-schema.sql`: **UNAPPLIED migration draft**, requiring a verified separate staging database.
+- `src/workspace/phase5-policy.test.ts`: regression cases included in repository workspace tests.
 
-## All gates are deny-by-default
-Only on a separately reviewed staging deployment should an administrator **consider** configuring:
-- `SCOTTY_ENV=staging`
-- `SCOTTY_PHASE5_STAGING_ENABLED=true`
-- `SCOTTY_PHASE5_READ_ONLY=true`
-- `SCOTTY_PHASE5_OIDC_ISSUER` — exact reviewed identity provider issuer
-- `SCOTTY_PHASE5_OIDC_AUDIENCE` — dedicated staging audience
-- `SCOTTY_PHASE5_OWNER_SUB` — owner's verified immutable IdP subject
-- `SCOTTY_PHASE5_OIDC_KID` — exact pinned key ID
-- `SCOTTY_PHASE5_OIDC_PUBLIC_KEY_PEM` — reviewed >=2048-bit RSA public key; never commit private keys
-- `SCOTTY_PHASE5_STAGING_DATABASE_URL` — independently verified **staging-only** database with no production data, and preferably a read-only database role
+## Acceptance blockers (do not enable staging writes yet)
+1. Real identity provider, bound owner approvals, chief/specialist identities and permission proof.
+2. Independently proven isolation of staging database and read/write roles; RLS and revocation verification.
+3. Explicit owner-approved migration, backup and restoration; immutable audit retention.
+4. Real Postgres multi-request tests and verified end-to-end HUD biography updates.
+5. Owner sign-off for each new task; 185-agent roster retained unchanged.
 
-**Do not set these on production or reuse a production database URL.** A database hostname/branch verification and IdP enrollment approval are still required. The repository files do not establish a safe hosted environment.
+The local V18 package passed 82 offline tests, but the real Postgres adapter and OIDC integration have **not** passed live staging acceptance.
 
-## Local test command
-`node --experimental-strip-types --test src/phase5/phase5.test.ts` (Node 22+) or test with Bun after verifying compatibility. No network or real accounts are used. The initial 28-case Node suite passed locally on November 10, 2026. The GitHub branch has not been independently CI-verified.
-
-## Release / security gate
-**DENY.** To complete Phase 5, integrate the existing transactional job ledger using a real reviewed owner IdP, staged grants and revocation, independently isolated staging persistence and HUD, end-to-end signed assignment -> accepted work -> biography history, recovery, and 185-roster checks. No branch merge, production deploy, billing, OAuth, Activepieces activation or owner profile certification is authorized by this draft.
+**RELEASE DECISION: DENY. Do not merge or deploy without review.**
