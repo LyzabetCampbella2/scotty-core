@@ -40,6 +40,10 @@ tables=(
  scotty_p5_synthetic_memory_identity_acl
  scotty_p5_synthetic_emergency_stop
  scotty_p5_synthetic_memory_request_audit
+ scotty_p5_synthetic_consent_versions
+ scotty_p5_synthetic_consent_state
+ scotty_p5_synthetic_consent_lifecycle_events
+ scotty_p5_synthetic_consent_review_events
 )
 orders=(
  grant_id
@@ -49,6 +53,10 @@ orders=(
  memory_id
  'login_name,project_id,agent_id'
  scope
+ event_id
+ 'grant_id,revision'
+ grant_id
+ event_id
  event_id
 )
 for i in "${!tables[@]}"; do
@@ -71,6 +79,15 @@ rls="$(pg -d "$restore_db" -c "select relrowsecurity::text||':'||relforcerowsecu
 if [[ "$rls" != 'true:true' ]]; then echo "Restored memory RLS FORCE settings missing" >&2; exit 4; fi
 policy_count="$(pg -d "$restore_db" -c "select count(*) from pg_policies where tablename='scotty_p5_synthetic_memory_items'")"
 if [[ "$policy_count" != '1' ]]; then echo "Restored RLS read policy missing" >&2; exit 4; fi
-echo "RECOVERY ACCEPTANCE: disposable archive roundtrip passed; synthetic emergency stop remained active and RLS enabled."
+consent_revoked="$(pg -d "$restore_db" -c "select revoked from scotty_p5_synthetic_consent_state where grant_id='SYN-CONSENT-DURABLE-001'")"
+if [[ "$consent_revoked" != 't' ]]; then echo "Recovery reactivated a revoked synthetic consent" >&2; exit 4; fi
+consent_revisions="$(pg -d "$restore_db" -c "select count(*) from scotty_p5_synthetic_consent_versions where grant_id='SYN-CONSENT-DURABLE-001'")"
+if [[ "$consent_revisions" != '4' ]]; then echo "Recovery lost consent history" >&2; exit 4; fi
+consent_events="$(pg -d "$restore_db" -c "select count(*) from scotty_p5_synthetic_consent_lifecycle_events where grant_id='SYN-CONSENT-DURABLE-001'")"
+if [[ "$consent_events" != '6' ]]; then echo "Recovery lost synthetic revocation history" >&2; exit 4; fi
+consent_trigger_count="$(pg -d "$restore_db" -c "select count(*) from pg_trigger where tgrelid='public.scotty_p5_synthetic_consent_state'::regclass and not tgisinternal")"
+if [[ "$consent_trigger_count" != '2' ]]; then echo "Recovery lost consent transition or no-delete trigger" >&2; exit 4; fi
+echo "CONSENT RECOVERY: immutable signed revisions, revoked state and automatic transition triggers verified."
+echo "RECOVERY ACCEPTANCE: disposable archive roundtrip passed; synthetic stop, RLS and revoked consent history preserved."
 # No production or shared environment was connected. The ephemeral CI service
 # and restored test database are destroyed with the GitHub Actions runner.
