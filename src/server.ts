@@ -6,10 +6,12 @@ import { handleMemory } from "./memory/index.ts";
 import { handleWorkspace } from "./workspace/index.ts";
 import { handleWorkspaceRecommendations } from "./workspace/recommendations.ts";
 import { handleHealth } from "./health.ts";
+import { handleStarship } from "./living-interface/gateway.ts";
 
 const PORT=Number(process.env.PORT||3000);
 Bun.serve({port:PORT,async fetch(req){const u=new URL(req.url);
  if(u.pathname==="/health") return handleHealth();
+ if(u.pathname==="/starship"||u.pathname.startsWith("/api/starship/")) return handleStarship(req,u);
  if(u.pathname.startsWith("/api/eyes")) return handleEyesOn(req,u);
  if(u.pathname.startsWith("/api/voice")) return handleVoice(req,u);
  if(u.pathname.startsWith("/api/memory")) return handleMemory(req,u);
