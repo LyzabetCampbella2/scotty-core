@@ -1,0 +1,33 @@
+name: Offline SCOTTY Knowledge Brain — Synthetic Tests
+on:
+  pull_request:
+    paths:
+      - "offline-brain/**"
+      - ".github/workflows/offline-brain-tests.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      DATABASE_URL: ""
+      GROQ_API_KEY: ""
+      XAI_API_KEY: ""
+      OPENAI_API_KEY: ""
+      SCOTTY_LEGACY_API_URL: ""
+    steps:
+      - name: Checkout isolated source
+        uses: actions/checkout@v4
+      - name: Use Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Test no-provider brain
+        run: node --test offline-brain/offline-brain.test.mjs
+      - name: Exercise synthetic plan
+        run: node offline-brain/cli.mjs demo > /tmp/offline-scotty-demo.json
+      - name: Validate demonstration output
+        run: |
+          node -e "const x=require('/tmp/offline-scotty-demo.json'); if(x.stats.agents!==128||x.stats.chiefs!==12||x.plan.providerCalls!==0||x.plan.productionWrites!==0) process.exit(1)"
