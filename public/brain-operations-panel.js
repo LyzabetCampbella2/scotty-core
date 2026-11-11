@@ -7,14 +7,14 @@
  if(root.SCOTTYBrainOperations)return;
  const el=(tag,txt)=>{const n=document.createElement(tag);if(txt!=null)n.textContent=String(txt);return n};
  const css=(n,s)=>{n.style.cssText=s;return n};
- const btn=(parent,label,fn)=>{const b=el('button',label);b.type='button';css(b,'padding:8px 11px;border:1px solid #75b9cb;border-radius:8px;background:#142e46;color:#f0ffff;margin:4px;cursor:pointer');b.addEventListener('click',fn);parent.appendChild(b);return b};
+ const btn=(parent,label,fn)=>{const b=el('button',label);b.type='button';css(b,'padding:10px 13px;min-height:44px;touch-action:manipulation;border:1px solid #75b9cb;border-radius:8px;background:#142e46;color:#f0ffff;margin:4px;cursor:pointer');b.addEventListener('click',fn);parent.appendChild(b);return b};
  const para=(parent,txt)=>{const p=el('p',txt);parent.appendChild(p);return p};
  const headline=(parent,s)=>{const h=el('h3',s);css(h,'margin:14px 0 6px;font-size:17px');parent.appendChild(h);return h};
  const input=(parent,placeholder,value='')=>{const n=el('input');n.placeholder=placeholder;n.value=value;css(n,'display:block;box-sizing:border-box;width:100%;padding:9px;background:#fff;color:#111;border:1px solid #b7ccd1;border-radius:6px;margin:5px 0');parent.appendChild(n);return n};
  const check=(parent,text)=>{const lab=el('label');css(lab,'display:block;margin:10px 0');const n=el('input');n.type='checkbox';lab.appendChild(n);lab.appendChild(document.createTextNode(' '+text));parent.appendChild(lab);return n};
  const clear=n=>{while(n.firstChild)n.firstChild.remove()};
  async function api(path,data){
-  const r=await fetch(path,{credentials:'same-origin',cache:'no-store',method:data?'POST':'GET',headers:data?{'content-type':'application/json'}:{},...(data?{body:JSON.stringify(data)}:{})});
+  const r=await fetch(path,{credentials:'same-origin',cache:'no-store',method:data?'POST':'GET',headers:data?{'content-type':'application/json','x-scotty-csrf':'1'}:{},...(data?{body:JSON.stringify(data)}:{})});
   let d;try{d=await r.json()}catch{throw Error('Invalid server response for '+path)}
   if(!r.ok||d.ok===false)throw Error(String(d.message||d.error||'Request failed')+' (HTTP '+r.status+')');
   return d;
@@ -23,18 +23,84 @@
  function line(parent,name,value){const row=el('p');const strong=el('strong',name+': ');row.appendChild(strong);row.appendChild(document.createTextNode(String(value??'Not reported')));parent.appendChild(row)}
  function error(parent,e){para(parent,'Unavailable: '+String(e.message||e).slice(0,240))}
  function section(parent,name,fn){const wrap=el('section');css(wrap,'padding:12px;margin:10px 0;border:1px solid #456070;border-radius:9px');headline(wrap,name);parent.appendChild(wrap);fn(wrap);return wrap}
- async function showReadiness(parent){
+ function checkRecoveryApproval(parent,missionId,checkpoint){
+  return check(parent,'I investigated mission '+missionId+' and reviewed checkpoint '+checkpoint+'. I approve marking only that stale run incomplete, with no retry.');
+ }
+ function showReadiness(parent){
   const out=el('div');parent.appendChild(out);
   async function refresh(){clear(out);
-   const jobs=[['Render operations','/api/system/status'],['Cloudflare readiness','/api/independent-brain/readiness'],['Cloudflare status','/api/independent-brain/status']];
+   const jobs=[['Render operations','/api/system/status'],['Cloudflare readiness','/api/independent-brain/readiness'],['Cloudflare status','/api/independent-brain/status'],['Cloudflare mission operations','/api/independent-brain/operations']];
    for(const [name,path] of jobs){
     const block=el('div');out.appendChild(block);
     try{const d=await api(path);line(block,name,'Connected');
      if(name==='Render operations'){
       line(block,'Overall state',d.status||d.health||'Reported by server');
       if(d.counts)for(const key of ['agents','chiefs','memory','missions','pendingApprovals'])if(d.counts[key]!=null)line(block,key,d.counts[key]);
+     }else if(name==='Cloudflare mission operations'){
+      line(block,'Dedicated memory ready',d.memoryReady);
+      line(block,'Persisted mission count',d.total??'Not measured');
+      for(const [state,count] of Object.entries(d.counts||{}))line(block,'  '+state,count);
+      line(block,'Stale missions (total)',d.staleRunningTotal??'Not measured');
+      line(block,'Mission records needing owner review',d.requiresOwnerReview??'Not measured');
+      line(block,'Recovery audit migration',d.recoveryAudit?.ready===true?'Ready':'NOT VERIFIED — recovery apply must remain disabled');
+      line(block,'Stale mission sample displayed',(d.staleRunningSample||[]).length);
+      for(const m of d.staleRunningSample||[]){
+       const item=el('div');css(item,'padding:8px;margin:6px 0;border-left:3px solid #7999ab');block.appendChild(item);
+       line(item,'Stale mission',m.missionId);
+       line(item,'Last checkpoint',m.lastCheckpoint);
+       const warning=el('div');item.appendChild(warning);
+       btn(item,'Review stale mission — no retry',async()=>{
+        clear(warning);
+        try{
+         const p=await api('/api/independent-brain/mission-recovery',{stage:'preview',missionId:m.missionId});
+         line(warning,'Verified checkpoint',p.expectedUpdatedAt);
+         line(warning,'Inactivity',p.staleMinutes+' minutes');
+         line(warning,'Proposed action','Mark incomplete, preserving saved stages');
+         para(warning,p.warning||'The worker may still be active. Do not retry automatically.');
+         if(p.canApply!==true||p.auditMigrationReady!==true){
+          line(warning,'Recovery blocked',p.auditMigrationReason||'D1 audit migration not verified');
+          para(warning,'Apply the reviewed isolated D1 migration after backup and staging approval. No recovery action is available.');
+          return;
+         }
+         const check=checkRecoveryApproval(warning,m.missionId,p.expectedUpdatedAt);
+         btn(warning,'Confirm this exact stale checkpoint',async()=>{
+          if(!check.checked){para(warning,'No recovery sent. Review and check the approval first.');return}
+          try{
+           const result=await api('/api/independent-brain/mission-recovery',{
+            stage:'apply',missionId:m.missionId,expectedUpdatedAt:p.expectedUpdatedAt,
+            ownerApproved:true,reviewAcknowledged:true
+           });
+           line(warning,'Independent readback',result.verified===true?'Verified incomplete':'UNVERIFIED');
+           line(warning,'Preserved work stages',result.preservedStages??'Unknown');
+           para(warning,'AI calls: zero; no automatic retry, delete, source sharing or restoration was requested. Refresh operations and inspect the saved mission before choosing next steps.');
+           check.checked=false;
+          }catch(e){error(warning,e);para(warning,'No automatic repeat. Reload the actual checkpoint before any further attempt.')}
+         });
+        }catch(e){error(warning,e);para(warning,'Recovery is locked unless the explicit owner flag and D1 schema are ready.')}
+       });
+      }
+      const incidents=el('div');block.appendChild(incidents);
+      btn(block,'Inspect redacted recovery audit (read-only)',async()=>{
+       clear(incidents);
+       try{
+        const state=await api('/api/independent-brain/mission-incidents');
+        line(incidents,'Recovery incidents shown',(state.incidents||[]).length);
+        para(incidents,'Owner-confirmed checkpoint closures only. No prompt, files, private notes, model outputs or credentials are included.');
+        for(const x of state.incidents||[]){
+         const item=el('div');css(item,'padding:6px;border-bottom:1px solid #456070');incidents.appendChild(item);
+         line(item,'Mission',x.missionId);
+         line(item,'Audit event',x.eventId);
+         line(item,'Closed at',x.completedAt);
+         line(item,'Previous → new status',String(x.previousStatus)+' → '+String(x.newStatus));
+         line(item,'Preserved stages',x.preservedStageCount);
+        }
+       }catch(e){error(incidents,e);para(incidents,'Incident readback unavailable; no recovery action was made. Check D1 migration and recovery proxy approval.')}
+      });
+      line(block,'Provider quota',d.quota??'Unavailable — check Cloudflare dashboard');
+      line(block,'Provider calls',d.providerCalls??'Unavailable — not measured');
+      para(block,'These are stored checkpoint counts only. No inference, provider quota check or automatic retry occurred.');
      }else{
-      for(const key of ['release','memoryConnected','memoryBound','liveRosterVerified','aiEnabled','teamMaxCalls','memoryReason','ready'])if(d[key]!==undefined)line(block,key,d[key]);
+      for(const key of ['release','memoryConnected','memoryBound','liveRosterVerified','aiEnabled','teamMaxCalls','memoryReason','recoveryAuditMigrationReady','recoveryAuditReason','ready'])if(d[key]!==undefined)line(block,key,d[key]);
       line(block,'Remaining provider quota',d.quota??'Unavailable — not measured');
      }
     }catch(e){line(block,name,'Not verified');error(block,e)}
@@ -60,8 +126,20 @@
      const item=el('div');css(item,'padding:8px;margin:6px 0;border-left:3px solid #84d5df');out.appendChild(item);
      line(item,r.name||r.agentId,r.role||'reader');
      const a=assignments.find(a=>a.agentId===r.agentId||a.chiefId===r.agentId);
-     if(a)line(item,'Why selected',a.selectionReason||a.reason||a.specialty||'Department routing match');
+     if(a||r.selectionReason)line(item,'Why selected',r.selectionReason||a?.selectionReason||a?.reason||'Department routing match');
      if(r.fieldKnowledge)line(item,'Knowledge guide',r.fieldKnowledge.title||r.fieldKnowledge.id||r.fieldKnowledge.version||'Field guide');
+     if(r.specialistPlaybook){
+      const book=r.specialistPlaybook;
+      line(item,'Specialist playbook',book.focus+' · '+book.version);
+      line(item,'Knowledge verification',book.reviewed===true?'Owner reviewed':'Authored methodology — not verified field facts');
+      if(book.foundation)para(item,book.foundation);
+      for(const step of (book.procedure||[]).slice(0,5))para(item,'Procedure: '+String(step).slice(0,280));
+      if(book.workedExample)para(item,'Synthetic example: '+String(book.workedExample).slice(0,360));
+      for(const boundary of (book.boundaries||[]).slice(0,3))para(item,'Limit: '+String(boundary).slice(0,240));
+      for(const candidate of (book.candidateReferences||[]).slice(0,2)){
+       line(item,'Research candidate',candidate.publisher+' (unverified; requires owner/source review)');
+      }
+     }
      const refs=r.references||[];
      line(item,'Scoped notes visible to this reader',refs.length);
      for(const note of refs.slice(0,12))line(item,'  '+(note.scope||'note')+' — '+(note.title||note.id),String(note.text||'').slice(0,140));
@@ -119,6 +197,475 @@
    }catch(e){error(out,e)}
   });
  }
+ function showBackupContinuity(parent){
+  para(parent,'Verified as of October 30, 2026. These are dated review notes, not a live Render control-plane feed; recheck the provider before acting.');
+  const expiry=new Date('2026-11-07T17:46:59.110Z').getTime();
+  const now=Date.now();
+  line(parent,'Free PostgreSQL expiry','November 7, 2026, 17:46 UTC (09:46 Pacific standard time)');
+  line(parent,'Time until recorded deadline',now<expiry?Math.ceil((expiry-now)/86400000)+' calendar-day equivalent(s)':'Recorded date has passed; verify status directly with Render');
+  line(parent,'Last verified full PostgreSQL restore','October 18, 2026 — 77 tables / 6 sequences / 128 agents / 12 chiefs');
+  line(parent,'October 24 backup attempts','Failed — DATABASE_URL missing from existing backup cron');
+  para(parent,'The October 18 encrypted production snapshot was independently restored. Any later changes need a more recent verified recovery point.');
+  const links=[
+    ['Render PostgreSQL database','https://dashboard.render.com/d/dpg-db3te4rbc2fs73bt4p50-a'],
+    ['Existing encrypted backup cron','https://dashboard.render.com/cron/crn-dba53f61egvs739d4ivg'],
+    ['Recovery and deadline checklist','https://github.com/LyzabetCampbella2/scotty-core/issues/55']
+  ];
+  for(const [label,url] of links){
+   const a=el('a',label);a.href=url;a.target='_blank';a.rel='noopener noreferrer';css(a,'display:block;margin:5px;color:#a9eafa');parent.appendChild(a);
+  }
+  para(parent,'Never paste a DATABASE_URL or recovery key here. Configure the internal connection URL in Render private environment settings only. Do not enable exports, change billing, or migrate without an explicitly approved recovery plan.');
+ }
+ function showDepartmentAcceptance(parent){
+  para(parent,'One tailored fictional assignment per department. Viewing does not contact a model or save memory; each real answer still requires an owner review before PASS.');
+  const out=el('div');parent.appendChild(out);
+  btn(parent,'Load 25 practical department acceptance cases (read-only)',async()=>{
+   clear(out);
+   try{
+    const d=await api('/api/independent-brain/quality-cases');
+    line(out,'Authored test version',d.version||'Not reported');
+    line(out,'Department cases',(d.cases||[]).length);
+    line(out,'Model calls',d.modelCalls??0);
+    for(const c of d.cases||[]){
+     const item=el('details');css(item,'padding:8px;margin:6px 0;border:1px solid #456070;border-radius:8px');out.appendChild(item);
+     const heading=el('summary',c.department+' — '+(c.synthetic?'Synthetic':'Unknown evidence'));item.appendChild(heading);
+     line(item,'Assigned specialist',c.specialistId);
+     line(item,'Reviewing chief',c.chiefId);
+     para(item,c.question);
+     for(const criterion of c.reviewCriteria||[])para(item,'Review: '+criterion);
+     line(item,'Status',c.ownerReviewRequired?'Not run / owner review required':'Unverified');
+    }
+    para(out,d.warning||'Do not interpret the test fixture as verified agent competence.');
+   }catch(e){error(out,e)}
+  });
+  btn(parent,'Open existing Brain Lab to run owner-reviewed acceptance',()=>{root.location.href='/brain-lab'});
+ }
+ function projectCommandCenter(parent){
+  para(parent,'This reads existing owner-authorized Render projects and mission status. No documents or private notes are sent to Cloudflare; actions still require their original per-operation approvals.');
+  const status=el('div');parent.appendChild(status);
+  const picker=el('select');picker.setAttribute('aria-label','Choose a real SCOTTY project');css(picker,'display:block;width:100%;padding:9px');parent.appendChild(picker);
+  const result=el('div');parent.appendChild(result);
+  const link=(where,label,url)=>{
+   const a=el('a',label);a.href=url;a.target='_self';a.rel='noopener noreferrer';
+   css(a,'display:block;padding:5px;color:#a9eafa');where.appendChild(a);
+  };
+  async function loadProjects(){
+   clear(status);clear(picker);clear(result);
+   try{
+    const d=await api('/api/agent-brains/project-operations');
+    line(status,'Existing projects',(d.projects||[]).length);
+    line(status,'Live draft calls enabled',d.realDraftsEnabled===true);
+    line(status,'Provider configured',d.providerConfigured===true?'Yes':'No or unavailable');
+    line(status,'Ansjem collaboration enabled',d.ansjemEnabled===true);
+    for(const p of d.projects||[]){
+     const opt=el('option',String(p.name||p.id));opt.value=p.id;picker.appendChild(opt);
+    }
+    if(!(d.projects||[]).length)para(status,'No permitted projects returned. Open the native project workspace to create or authorize one.');
+   }catch(e){error(status,e);para(status,'Project operations might be disabled by an owner feature flag. No changes were made.');}
+  }
+  btn(parent,'Load my real project list',loadProjects);
+  btn(parent,'Review reusable lessons from project corrections',async()=>{
+   clear(result);const id=picker.value;
+   if(!/^[A-Za-z0-9_-]{1,160}$/.test(id)){para(result,'Select an existing project first.');return}
+   const base='/api/agent-brains/project-operations/'+encodeURIComponent(id);
+   try{
+    const data=await api(base+'/lesson-proposals');
+    line(result,'Review-only proposals',(data.proposals||[]).length);
+    line(result,'Automatic memory writes',data.automaticMemoryWrites);
+    for(const candidate of data.proposals||[]){
+     const item=el('div');css(item,'padding:10px;margin:6px 0;border:1px solid #456070');result.appendChild(item);
+     line(item,'Agent',candidate.agentName||candidate.agentId);
+     line(item,'Original decision',candidate.sourceDecision);
+     line(item,'Mission and step',(candidate.missionId||'Not recorded')+' / '+(candidate.stepId||'Not recorded'));
+     const wording=input(item,'Edit the proposed reusable lesson',candidate.proposedLesson);
+     const consent=check(item,'I reviewed this project-specific lesson, its original correction and the assigned agent.');
+     btn(item,'Save this owner-reviewed lesson only',async()=>{
+      if(picker.value!==id||!consent.checked||!wording.value.trim()){para(item,'Not saved. Review the project, correction, wording and recipient first.');return}
+      const body={agentId:candidate.agentId,kind:'lesson',body:wording.value.trim(),approved:true};
+      try{
+       const response=await fetch(base+'/development',{method:'POST',credentials:'same-origin',
+        headers:{'content-type':'application/json','x-scotty-csrf':'1'},body:JSON.stringify(body)});
+       const saved=await response.json();if(!response.ok||saved.ok===false)throw Error(saved.error||'Lesson save rejected');
+       line(item,'Owner-reviewed record',saved.id||'Request acknowledged');
+       para(item,'Development record saved for this project and agent. This does not retrain a model or automatically change permanent memory.');
+       consent.checked=false;
+      }catch(e){error(item,e)}
+     });
+    }
+    if(!(data.proposals||[]).length)para(result,'No owner-rejected or revision-requested work with useful corrections was returned.');
+   }catch(e){error(result,e)}
+  });
+  btn(parent,'Read all-project chief-of-staff briefing (read-only)',async()=>{
+   clear(result);
+   try{
+    const data=await api('/api/agent-brains/project-operations/brief-all'),b=data.brief||{};
+    line(result,'Projects covered',b.projectCount??0);
+    line(result,'As of',b.asOf||'Unknown');
+    for(const [k,name] of [['overdue','Overdue'],['upcoming','Upcoming'],['decisions','Awaiting decisions'],['blocked','Blocked'],['pendingHandoffs','Pending handoffs']])
+     line(result,name,b.totals?.[k]??'Not measured');
+    for(const p of b.projects||[]){
+     const item=el('div');css(item,'padding:8px;margin:7px 0;border:1px solid #456070');result.appendChild(item);
+     headline(item,p.name||p.id);
+     for(const alert of p.attention||[])line(item,alert.kind,alert.text+(alert.dueAt?' · '+alert.dueAt:''));
+     for(const gap of p.sourceGaps||[])para(item,'Source gap: '+gap);
+     line(item,'Saved connected-app snapshots',p.connectedAppSnapshots??'Unknown');
+     line(item,'Stale or undated snapshots',p.staleSnapshots??'Unknown');
+    }
+    para(result,b.note||'This briefing is on-demand and does not read live mail or calendar services.');
+   }catch(e){error(result,e)}
+  });
+  btn(parent,'Attach uploaded PDF, document or image evidence',()=>{
+   clear(result);
+   const id=picker.value;
+   if(!/^[A-Za-z0-9_-]{1,160}$/.test(id)){para(result,'Choose a real project first.');return}
+   projectLocalEvidence(result,id);
+  });
+  btn(parent,'Manage preferred project team (owner approval required)',()=>{
+   clear(result);const id=picker.value;
+   if(!/^[A-Za-z0-9_-]{1,160}$/.test(id)){para(result,'Select a real project first.');return}
+   projectTeamPresets(result,id);
+  });
+  btn(parent,'Inspect selected project team, missions and briefing',async()=>{
+   clear(result);const id=picker.value;
+   if(!/^[A-Za-z0-9_-]{1,160}$/.test(id)){para(result,'Select a valid existing project first.');return}
+   const base='/api/agent-brains/project-operations/'+encodeURIComponent(id);
+   for(const [title,slug] of [['Daily chief-of-staff briefing','brief'],['Mission stages and blockers','progress'],['Selected project team','team-status'],['Approved document/evidence register','evidence']]){
+    const item=el('div');css(item,'padding:7px;border-bottom:1px solid #456070');result.appendChild(item);
+    try{
+     const d=await api(base+'/'+slug);
+     line(item,title,'Available — current owner-authenticated response');
+     if(slug==='brief'){
+      const b=d.brief||{};
+      line(item,'As of',b.asOf||'Unknown');
+      for(const [key,name] of [['overdue','Overdue tasks'],['upcoming','Upcoming deadlines'],['decisions','Owner decisions'],['blocked','Blockers']])line(item,name,(b[key]||[]).length);
+      line(item,'Pending handoffs',b.pendingHandoffs??'Not reported');
+      for(const t of (b.upcoming||[]).slice(0,7))line(item,'Upcoming',t.title+' · '+(t.dueAt||'Date unavailable'));
+      for(const x of (b.decisions||[]).slice(0,7))line(item,'Decision',x.goal+' · '+x.status);
+      for(const gap of (b.gaps||[]).slice(0,6))para(item,'Source gap: '+gap);
+      para(item,'Saved connected-app snapshots are not equivalent to fresh Calendar, Gmail or Drive access.');
+     }
+     if(slug==='progress')for(const m of (d.missions||[]).slice(0,15)){
+      line(item,'Mission',m.goal+' · '+m.status);
+      line(item,'Stages',(m.steps||[]).length);
+      if(m.blocker)line(item,'Blocked',m.blocker);
+      for(const step of (m.steps||[]).slice(0,10))line(item,'  '+step.agentId,step.status+' · '+step.deliverable);
+      if(m.status==='completed'&&(m.steps||[]).length&&m.steps.every(step=>step.status==='released')){
+       const href=base+'/deliverable?missionId='+encodeURIComponent(m.id)+'&revision='+encodeURIComponent(m.revision)+'&format=md';
+       const a=el('a','Download owner-released mission as Markdown');a.href=href;
+       a.setAttribute('download','');css(a,'display:block;color:#a9eafa;margin:5px');item.appendChild(a);
+      }
+     }
+     if(slug==='team-status')line(item,'Current members',(d.members||[]).map(x=>x.name||x.id).slice(0,20).join(', ')||'None reported');
+     if(slug==='evidence'){
+      const items=d.evidence||[];
+      line(item,'Owner-approved sources',items.filter(x=>!x.revoked_at).length);
+      for(const x of items.slice(0,12))line(item,'  '+x.title,x.revoked_at?'Revoked':'Approved recipient IDs: '+(x.recipients||[]).length);
+     }
+    }catch(e){line(item,title,'Unavailable or disabled');error(item,e)}
+   }
+  });
+  link(parent,'Open full Project Operations (teams, documents, deadlines, decisions)','/agents/project-operations');
+  link(parent,'Open multi-step Mission Editor','/agents/project-missions');
+  link(parent,'Open approval-controlled cross-team inbox','/agents/collaboration-inbox');
+  link(parent,'Open voice-driven folder workspace','/workspace');
+  para(parent,'Voice commands already available when enabled: “Scotty, list my projects”, “Read my daily briefing”, “Read mission progress”, “Build a project team”, “List my Google Docs”, and “List my Notion pages”. Physical microphone recognition is still unverified.');
+ }
+ function projectTeamPresets(parent,projectId){
+  const area=el('div');css(area,'padding:8px;border:1px solid #456070;border-radius:8px');parent.appendChild(area);
+  para(area,'Project team presets are owner-reviewed templates only. They do not start AI, share evidence, create agents, or grant project membership.');
+  async function load(){
+   clear(area);para(area,'Stored teams are checked against current project grants. Revoked agents disable reuse.');
+   try{
+    const base='/api/agent-brains/project-operations/'+encodeURIComponent(projectId);
+    const [members,templates]=await Promise.all([api(base+'/team-status'),api(base+'/team-presets')]);
+    const people=members.members||[],current=templates.teams||[];
+    line(area,'Project members available',people.length);
+    for(const t of current){
+     const tile=el('div');css(tile,'padding:7px;border-bottom:1px solid #456070');area.appendChild(tile);
+     line(tile,'Preferred team '+t.name,'revision '+t.revision);
+     line(tile,'Members',t.agentIds.join(', '));
+     line(tile,'Lead chief',t.leadChiefId);
+     line(tile,'Current access',t.active?'Current permitted members':'STALE — member removed or paused; do not reuse');
+     if(t.active){
+      const missionGoal=input(tile,'New goal for this preferred project team');
+      const evidenceNote=el('p','No evidence snapshots automatically shared. Add only owner-approved sources in the full mission editor.');tile.appendChild(evidenceNote);
+      const reviewPlan=check(tile,'I authorize saving a non-executing multi-step mission draft with these already permitted agents.');
+      const result=el('div');tile.appendChild(result);
+      btn(tile,'Prepare mission plan from preferred team',async()=>{
+       clear(result);
+       if(!reviewPlan.checked||!missionGoal.value.trim()||missionGoal.value.length>12000){
+        para(result,'Enter the mission goal and explicitly approve this team for a draft plan.');return;
+       }
+       try{
+        const data=await api(base+'/plan',{goal:missionGoal.value.trim(),
+         agentIds:[...t.agentIds],leadChiefId:t.leadChiefId,
+         evidenceIds:[],realDrafts:false,chiefReview:false});
+        line(result,'Saved mission plan',data.id||data.plan?.id||data.planId||'Created; verify in Mission Editor');
+        para(result,'No model calls, file sharing, or draft execution were requested. Review plan revision and steps in the full Mission Editor before starting.');
+        reviewPlan.checked=false;
+       }catch(e){error(result,e)}
+      });
+     }
+    }
+    const name=input(area,'Team name (example: Manuscript Review Team)');
+    const selectChief=el('select');selectChief.setAttribute('aria-label','Lead project chief');area.appendChild(selectChief);
+    for(const p of people.filter(x=>x.isChief===true)){const op=el('option',p.name||p.id);op.value=p.id;selectChief.appendChild(op)}
+    const selections=el('div');area.appendChild(selections);
+    const boxes=[];
+    for(const p of people){
+     const choice=check(selections,(p.name||p.id)+(p.isChief?' · chief':' · specialist'));boxes.push({id:p.id,checked:choice});
+    }
+    const approval=check(area,'I reviewed the exact team and confirm the selected agents already have permission for this project.');
+    const preview=el('div');area.appendChild(preview);
+    btn(area,'Review preferred team (no write)',()=>{
+     clear(preview);
+     line(preview,'Team',name.value.trim());
+     line(preview,'Selected existing members',boxes.filter(x=>x.checked.checked).map(x=>x.id).join(', ')||'None');
+     line(preview,'Lead chief',selectChief.value);
+     para(preview,'No source sharing, external action, model call or permission grant will occur. A subsequent save requires approval.');
+    });
+    btn(area,'Save owner-reviewed team preset',async()=>{
+     const chosen=boxes.filter(x=>x.checked.checked).map(x=>x.id),teamName=name.value.trim();
+     const existing=current.find(x=>x.name.toLowerCase()===teamName.toLowerCase());
+     if(!approval.checked){para(preview,'Not saved — review and approve the exact team first.');return}
+     if(chosen.length<2||chosen.length>8||!selectChief.value||!teamName){para(preview,'Choose a team name, lead chief and 2–8 approved project members.');return}
+     const body={action:'save',name:teamName,agentIds:chosen,leadChiefId:selectChief.value,
+      expectedRevision:existing?.revision||0,reviewed:true,approved:true};
+     try{
+      const response=await fetch(base+'/team-presets',{method:'POST',credentials:'same-origin',cache:'no-store',
+       headers:{'content-type':'application/json','x-scotty-csrf':'1'},body:JSON.stringify(body)});
+      const data=await response.json();
+      if(!response.ok||data.ok===false)throw Error(data.error||'Save rejected');
+      clear(preview);line(preview,'Saved team ID',data.id);line(preview,'Revision',data.revision);
+      para(preview,'Team template stored. No model run or project permission grant occurred. Reload to independently verify.');
+      approval.checked=false;
+     }catch(e){error(preview,e)}
+    });
+   }catch(e){error(area,e)}
+  }
+  btn(area,'Reload preferred project teams',load);
+  load();
+ }
+ function projectLocalEvidence(parent,projectId){
+  const area=el('div');css(area,'padding:8px;border:1px solid #456070;border-radius:8px');parent.appendChild(area);
+  para(area,'Preview an uploaded project file before sharing a dated extract or owner-written image description with approved project agents. File bytes remain in the existing workspace; nothing is sent to Cloudflare automatically.');
+  const chooser=el('select');chooser.setAttribute('aria-label','Uploaded project file');area.appendChild(chooser);
+  const recipients=el('div');area.appendChild(recipients);
+  const description=input(area,'Owner description for an image (required for images)');
+  const previewArea=el('div');area.appendChild(previewArea);
+  const consent=check(area,'I reviewed this exact file preview or image description and approve sharing it with the selected project agents.');
+  let token=null,selected=null,epoch=0;
+  const base='/api/agent-brains/project-operations/'+encodeURIComponent(projectId)+'/local-file-evidence';
+  async function post(body){
+   const res=await fetch(base,{method:'POST',credentials:'same-origin',cache:'no-store',
+    headers:{'content-type':'application/json','x-scotty-csrf':'1'},body:JSON.stringify(body)});
+   const data=await res.json();if(!res.ok||data.ok===false)throw Error(data.error||'Project file review rejected');
+   return data;
+  }
+  btn(area,'List uploaded files and approved recipients',async()=>{
+   clear(chooser);clear(recipients);clear(previewArea);token=null;selected=null;consent.checked=false;epoch++;
+   try{
+    const [workspace,team]=await Promise.all([api('/api/workspace/project?id='+encodeURIComponent(projectId)),
+     api('/api/agent-brains/project-operations/'+encodeURIComponent(projectId)+'/team-status')]);
+    for(const f of (workspace.files||[]).slice(0,80)){
+     const option=el('option',String(f.name||f.id));option.value=f.id;chooser.appendChild(option);
+    }
+    for(const m of team.members||[]){
+     const checkbox=check(recipients,'Allow '+m.name);checkbox.value=m.id;
+    }
+    para(previewArea,'Choose one uploaded file and its permitted recipients. Indexed web links without actual file bytes may not be previewable.');
+   }catch(e){error(previewArea,e)}
+  });
+  chooser.addEventListener('change',()=>{epoch++;token=null;selected=null;consent.checked=false;clear(previewArea)});
+  btn(area,'Preview file content or image reference',async()=>{
+   clear(previewArea);token=null;selected=null;consent.checked=false;
+   const turn=++epoch,id=chooser.value;
+   if(!id){para(previewArea,'Select a project file first.');return}
+   try{
+    const data=await post({action:'preview',fileId:id});
+    if(turn!==epoch||chooser.value!==id)return;
+    token=data.previewToken;selected=id;
+    line(previewArea,'File',data.title);
+    line(previewArea,'Kind',data.kind);
+    line(previewArea,'Source SHA-256',data.sha256);
+    para(previewArea,data.note);
+    if(data.referenceOnly)para(previewArea,'No image pixels analyzed; only your own approved description can be shared.');
+    else para(previewArea,String(data.body||'').slice(0,21000));
+   }catch(e){error(previewArea,e)}
+  });
+  btn(area,'Attach owner-approved project evidence',async()=>{
+   if(!consent.checked||!token||selected!==chooser.value){para(previewArea,'Not attached. Review the current file and confirm recipients.');return}
+   const agentIds=Array.from(recipients.children).filter(n=>n.children[0]?.checked).map(n=>n.children[0].value);
+   if(!agentIds.length){para(previewArea,'Select at least one current project agent.');return}
+   try{
+    const data=await post({action:'attach',previewToken:token,agentIds,approved:true,reviewed:true,description:description.value});
+    token=null;consent.checked=false;
+    line(previewArea,'Evidence ID',data.id);
+    line(previewArea,'Independent evidence readback',data.evidenceReadbackVerified===true?'Verified':'Not verified; inspect project evidence list');
+    para(previewArea,data.limitation||'Snapshot source restrictions apply.');
+   }catch(e){error(previewArea,e)}
+  });
+ }
+ function showVoiceDiagnostics(parent){
+  para(parent,'Voice health is read-only. A ready service does not prove an iPad microphone, exact Scottish pronunciation or uninterrupted spoken playback.');
+  const out=el('div');parent.appendChild(out);
+  btn(parent,'Inspect live Scottish TTS readiness and local voice state',async()=>{
+   clear(out);
+   try{
+    const result=await api('/api/voice/status');
+    line(out,'Scottish TTS provider',result.provider||'Not reported');
+    line(out,'Configured',result.configured===true);
+    line(out,'Provider ready',result.ready===true);
+    line(out,'Diagnostic code',result.code||'Unavailable');
+   }catch(e){error(out,e)}
+   line(out,'HUD voice transport',root.SCOTTYVoiceTransport?.state||'Not available');
+   line(out,'Conversation review mode',root.SCOTTYConversation?.preferences?.review===true?'Review on':root.SCOTTYConversation?.preferences?.review===false?'Hands-free recognition preference':'Not measured');
+   para(out,'For iPad acceptance, confirm the microphone permission, speak a fictional team request, listen for actual Scottish playback, interrupt with “Scotty stop”, and ensure no approval was accepted from speaker echo.');
+  });
+  btn(parent,'Open original voice conversation controls',()=>{root.SCOTTYConversation?.refresh?.();para(out,'Original voice controls refreshed where available. Use the existing microphone and conversation settings to test playback.');});
+ }
+ function showConnectedActions(parent){
+  para(parent,'Verify connections before asking SCOTTY to act. Viewing status performs no sends, calendar edits, Drive uploads or Notion writes. Actual changes require the existing connector action preview and owner confirmation.');
+  const out=el('div');parent.appendChild(out);
+  btn(parent,'Check connector configuration (read-only)',async()=>{
+   clear(out);
+   try{
+    const d=await api('/api/connectors');
+    const desired=['notion','googledocs','google','gmail','googlecalendar','googledrive','appleplanner'];
+    const entries=Array.isArray(d.providers)?d.providers:Object.entries(d.providers||{}).map(([provider,data])=>({provider,...(data||{})}));
+    for(const name of desired){
+     const x=entries.find(v=>v.provider===name||v.name===name||v.id===name);
+     line(out,name,x?String(x.status||x.state||(x.enabled?'Configured':'Listed; check account')||'Unverified'):'Not listed — do not assume connected');
+    }
+    if(d.vaultConfigured===false)para(out,'Connector vault is not configured; do not attempt external actions.');
+    para(out,'A listed connector is not proof that the account is reachable, a token is valid, or a requested operation is permitted. Verify in the full Connectors screen.');
+   }catch(e){error(out,e);para(out,'Cannot verify connected apps from this environment. Avoid making provider actions.')}
+  });
+  btn(parent,'Verify native Google Gmail, Calendar and Drive scope grants',async()=>{
+   const box=el('div');parent.appendChild(box);
+   try{
+    const data=await api('/api/connections'),google=data.connections?.google||{};
+    const scopes=new Set(google.scopes||[]);
+    line(box,'Google OAuth account',google.status||'Not connected');
+    line(box,'Reconnect required',google.needsReconnect===true);
+    line(box,'Token refresh configured',google.refreshCapable===true);
+    line(box,'Last updated',google.updatedAt||'Not available');
+    for(const [name,permission] of [
+      ['Gmail send','https://www.googleapis.com/auth/gmail.send'],
+      ['Gmail read','https://www.googleapis.com/auth/gmail.readonly'],
+      ['Calendar event create/update','https://www.googleapis.com/auth/calendar.events'],
+      ['Drive files created/opened by SCOTTY','https://www.googleapis.com/auth/drive.file']
+    ])line(box,name,google.status==='connected'&&scopes.has(permission)?'Granted in saved OAuth record':'Not confirmed');
+    para(box,'Scope grants confirm recorded authorization, not current provider reachability or permission for a specific send/edit/upload. Each actual action still requires its own reviewed owner approval.');
+   }catch(e){error(box,e)}
+  });
+  btn(parent,'Inspect SCOTTY–Dawna bridge readiness (read-only)',async()=>{
+   const box=el('div');parent.appendChild(box);
+   try{
+    const state=await api('/api/agent-brains/project-operations');
+    const bridge=state.ansjemBridge||{};
+    line(box,'ANSJEM work requests enabled',state.ansjemEnabled===true);
+    line(box,'Coordination enabled',state.ansjemCoordinationEnabled===true);
+    line(box,'Dawna remote connected',bridge.connected===true);
+    line(box,'Synchronization',bridge.synchronization||'Not established');
+    line(box,'Review contract',bridge.contract||'No verified contract');
+    para(box,bridge.reason||'No authenticated Dawna endpoint has been verified.');
+    para(box,'Owner-approved request and handoff packets can be prepared in Project Operations. Actual remote sending remains off until both independent systems agree on scope, identity and authentication.');
+   }catch(e){error(box,e)}
+  });
+  btn(parent,'Check original folder and document database (read-only)',async()=>{
+   const box=el('div');parent.appendChild(box);
+   try{
+    const d=await api('/api/folders?structure=1');
+    line(box,'Available folders',(d.folders||[]).length);
+    line(box,'Available projects',(d.projects||[]).length);
+    para(box,'These are same-origin records; no changes or sharing have occurred.');
+   }catch(e){error(box,e)}
+  });
+  const links=[
+   ['Open existing app Connectors','/connectors'],
+   ['Review Google Docs and Notion evidence permissions','/agents/project-operations'],
+   ['Open native folders and files','/workspace'],
+   ['Open approved ANSJEM / Dawna work exchange','/agents/project-operations']
+  ];
+  for(const [label,url] of links){const a=el('a',label);a.href=url;a.target='_self';css(a,'display:block;margin:5px;color:#a9eafa');parent.appendChild(a);}
+  para(parent,'SCOTTY–Dawna: this is the existing Ansjem work-request and handoff workflow, not an automatically established live API connection. Both systems retain independent ownership; sharing and releases remain owner-approved.');
+  para(parent,'Deliverables: use the project mission editor and existing file workspace to review reports, outlines, schedules and content plans. A draft is not a downloadable PDF, DOCX or completed external action until its output is generated and verified.');
+ }
+ function showCloudflareMemory(parent){
+  para(parent,'Dedicated Cloudflare D1 memory is separate from Render PostgreSQL. This section reads only the chosen agent’s notes; changes require a new preview and explicit owner approval. Governance migration v2 must first be applied to the dedicated D1 database.');
+  const agent=input(parent,'Exact Cloudflare specialist or chief ID','scotty');
+  const out=el('div');parent.appendChild(out);
+  btn(parent,'Inspect conflicting D1 notes (read-only)',async()=>{
+   const id=agent.value.trim(),box=el('div');parent.appendChild(box);
+   if(!/^[a-zA-Z0-9-]{1,90}$/.test(id)){para(box,'Choose an exact agent ID.');return}
+   try{
+    const data=await api('/api/independent-brain/memory-conflicts?agentId='+encodeURIComponent(id));
+    line(box,'Active notes compared',data.searched);
+    line(box,'Conflicts requiring owner review',(data.conflicts||[]).length);
+    for(const issue of data.conflicts||[])line(box,'Conflict '+issue.key,'Notes '+issue.ids.join(', ')+'. '+issue.reason);
+    para(box,data.warning||'No automatic conflict resolution.');
+   }catch(e){error(box,e)}
+  });
+  btn(parent,'Read reviewed D1 notes',async()=>{
+   clear(out);
+   const id=agent.value.trim();
+   if(!/^[a-zA-Z0-9-]{1,90}$/.test(id)){para(out,'Choose a valid exact agent ID.');return}
+   try{
+    const readiness=await api('/api/independent-brain/status');
+    const ready=readiness.governanceMigrationReady===true;
+    line(out,'D1 governance migration',ready?'Verified ready by Worker':'Unavailable — edits disabled');
+    const data=await api('/api/independent-brain/memory?agentId='+encodeURIComponent(id));
+    for(const n of data.notes||[]){
+     const item=el('div');css(item,'padding:10px;margin:10px 0;border:1px solid #456070;border-radius:6px');out.appendChild(item);
+     line(item,'D1 note '+n.id,n.title);
+     para(item,String(n.content||'').slice(0,1800));
+     line(item,'Scope',n.scope);line(item,'Reviewed',n.reviewedAt);line(item,'Expires',n.expiresAt);
+     if(n.url){const a=el('a','Read original source');a.href=n.url;a.target='_blank';a.rel='noopener noreferrer';item.appendChild(a)}
+     if(!ready){para(item,'Read-only: the isolated D1 governance schema has not been verified. No changes or history requests are enabled.');continue;}
+     btn(item,'Read redacted change history',async()=>{const box=el('div');item.appendChild(box);
+      try{const h=await api('/api/independent-brain/memory-history?noteId='+encodeURIComponent(n.id));
+       for(const c of h.changes||[])line(box,c.action,c.changedAt);
+       if(!(h.changes||[]).length)para(box,'No changes recorded in the D1 governance audit.');
+      }catch(e){error(box,e)}
+     });
+     for(const op of ['correct','replace','expire','archive','delete'])btn(item,op,()=>cloudflareChange(item,n,op));
+    }
+    if(!(data.notes||[]).length)para(out,'No unexpired notes returned for this agent.');
+   }catch(e){error(out,e)}
+  });
+ }
+ function cloudflareChange(parent,n,action){
+  const area=el('div');css(area,'padding:9px;margin:9px 0;border:1px solid #84b7bc;border-radius:8px');parent.appendChild(area);
+  headline(area,action+' D1 note '+n.id);
+  const title=['correct','replace'].includes(action)?input(area,'New reviewed title',n.title):null;
+  const content=['correct','replace'].includes(action)?input(area,'New reviewed content',n.content):null;
+  const expires=action==='expire'?input(area,'Future expiration date, YYYY-MM-DD'):null;
+  const privacy=check(area,'I confirm this note and any edits contain no private, client, account or production data.');
+  const summary=el('div');area.appendChild(summary);
+  btn(area,'Preview exact D1 change — no mutation',async()=>{
+   clear(summary);if(!privacy.checked){para(summary,'No request sent. Confirm the privacy statement first.');return}
+   const payload={stage:'preview',noteId:n.id,action,noPrivateDataConfirmed:true};
+   if(title){payload.title=title.value;payload.content=content.value;}
+   if(expires){payload.expiresAt=expires.value+'T00:00:00.000Z';}
+   try{
+    const p=await api('/api/independent-brain/memory-change',payload);
+    para(summary,p.reminder||'Review the before and after values.');
+    line(summary,'Old content',String(p.old?.content||'').slice(0,600));
+    line(summary,'Next content',p.next?.deleted?'Deleted':String(p.next?.content||'').slice(0,600));
+    line(summary,'Old expiry',p.old?.expiresAt);
+    line(summary,'New expiry',p.next?.deleted?'Deleted':p.next?.expiresAt);
+    const agree=check(summary,'I reviewed the exact preview and authorize this one D1 operation.');
+    btn(summary,'Confirm and apply reviewed D1 change',async()=>{
+     if(!agree.checked){para(summary,'Not applied. Confirm this preview first.');return}
+     try{
+      const applied=await api('/api/independent-brain/memory-change',{...payload,stage:'apply',previewToken:p.previewToken,approved:true,reviewAcknowledged:true});
+      para(summary,applied.verified?'Change independently read back and verified. Refresh notes.':'The change could not be verified; check the D1 database before retrying.');
+     }catch(e){error(summary,e)}
+    });
+   }catch(e){error(summary,e)}
+  });
+ }
  function showMissions(parent){
   const out=el('div');parent.appendChild(out);
   btn(parent,'Inspect saved Cloudflare missions',async()=>{clear(out);try{
@@ -162,7 +709,16 @@
        line(info,'Fetched at',found.fetchedAt||'Not reported');
        for(const item of found.items||[]){
         const a=el('a',item.title);a.href=item.url;a.target='_blank';a.rel='noopener noreferrer';a.style.display='block';info.appendChild(a);
-        line(info,'Publication date',item.publishedAt||'Not provided — review source');line(info,'Trust','Unverified candidate; no update applied');
+        line(info,'Publication date',item.publishedAt||'Not provided — review source');
+        line(info,'Publisher',item.publisher||found.publisher||'Not reported');
+        const proposal=item.proposedKnowledgeUpdate;
+        if(proposal){
+         line(info,'Update state',proposal.status||'Pending owner review');
+         line(info,'Target fields',(proposal.targetDepartments||[]).join(', ')||'Not assigned');
+         para(info,proposal.proposedAction||'Read the original publication and verify each claim before approving a knowledge note.');
+         line(info,'Verified claims',Array.isArray(proposal.verifiedClaims)?proposal.verifiedClaims.length:'Not verified');
+        }
+        line(info,'Trust','Unverified candidate; no automatic publishing or memory update');
        }
       }catch(e){error(info,e)}
      });
@@ -174,14 +730,21 @@
   if(panel){panel.focus();return}
   panel=el('aside');panel.tabIndex=-1;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','SCOTTY Brain Operations');
   css(panel,'position:fixed;z-index:1000010;inset:5vh 3vw auto;max-width:700px;max-height:90vh;overflow:auto;margin:auto;padding:18px;background:#0b1b2c;color:#e8f7fa;border:2px solid #73cbd9;border-radius:12px;box-shadow:0 18px 65px #000d;font:14px/1.5 system-ui,sans-serif');
+  panel.addEventListener('keydown',event=>{if(event.key==='Escape'){panel.remove();panel=null;event.preventDefault?.();}});
   document.body.appendChild(panel);headline(panel,'SCOTTY · Brain Operations');
   para(panel,'Owner controls in the original HUD. All requests are authenticated. Nothing shown here certifies live microphone, provider quota, or database scope tests.');
   btn(panel,'Close',()=>{panel.remove();panel=null});
   section(panel,'1 · Readiness, status and quota',showReadiness);
   section(panel,'2 · Agent selection and knowledge preview',showPreview);
   section(panel,'3 · Memory search, source review and change approval',showMemory);
+  section(panel,'Cloudflare · Reviewed D1 notes and governance',showCloudflareMemory);
+  section(panel,'Recovery · verified backup and November 7 continuity',showBackupContinuity);
   section(panel,'4 · Mission checkpoints and recovery evidence',showMissions);
   section(panel,'5 · Publisher source candidates',showSources);
+  section(panel,'6 · Department-specific acceptance cases',showDepartmentAcceptance);
+  section(panel,'7 · Project Command Center — approved teams, evidence, missions and briefings',projectCommandCenter);
+  section(panel,'8 · Connected apps, document workspace and Dawna exchange',showConnectedActions);
+  section(panel,'9 · Scottish voice health, interruption and iPad acceptance',showVoiceDiagnostics);
   btn(panel,'Open existing System & Recovery',()=>{root.location.href='/system'});
   panel.focus();
  }

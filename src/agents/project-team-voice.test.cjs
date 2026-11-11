@@ -20,6 +20,8 @@ function fixture(){
   let d={ok:true};const kind=u.pathname.split('/').at(-1);
   if(u.pathname==='/api/agent-brains/project-operations')d={ok:true,projects,realDraftsEnabled:false};
   else if(u.pathname==='/api/agent-brains')d={ok:true,agents};
+  else if(kind==='team-presets'&&!b)d={ok:true,teams:[]};
+  else if(kind==='brief-all')d={ok:true,brief:{projectCount:2,totals:{overdue:1,upcoming:2,decisions:1,blocked:0,pendingHandoffs:0},projects:[]}};
   else if(kind==='team')d={ok:true,candidates:agents,recommended:['writer','chief'],note:'Owner editable recommendation'};
   else if(kind==='team-status')d={ok:true,members:agents,decisions:[],pendingHandoffs:0,blocked:[]};
   else if(kind==='brief')d={ok:true,brief:{overdue:[],upcoming:[],decisions:[],pendingHandoffs:0,blocked:[],connectedAppItems:[],gaps:[]}};
@@ -105,4 +107,38 @@ test('an explicitly chosen existing voice project supplies context without infer
 });
 test('project-choice follow-up expires and cannot cross conversation threads',async()=>{
  const f=fixture();await f.say('Recommend agents for reviewing my outline');f.expire();assert.equal(await f.say('one'),false);const g=fixture();await g.say('Recommend agents for reviewing my outline');g.context.SCOTTYConversation.db.state.active='new-thread';assert.equal(await g.say('one'),false);
+});
+
+test('voice all-project briefing is on-demand and needs no project membership mutation',async()=>{
+ const f=fixture();
+ const answer=await f.say('Read all project briefing');
+ assert.match(answer,/All projects: 2/);
+ assert.match(answer,/live email and calendar have not been checked/);
+ assert.equal(f.requests.filter(x=>x.body).length,0);
+});
+test('voice preferred team requires exact one-time confirmation and never grants memberships',async()=>{
+ const f=fixture();
+ await select(f);
+ await f.say('Recommend agents for reviewing a fictional scene');
+ await f.say('Use agents one and two');
+ await f.say('Lead chief one');
+ const proposed=await f.say('Save preferred team as Manuscript Review Team');
+ assert.match(proposed,/only a team preference/);
+ assert.equal(f.requests.filter(x=>x.path.endsWith('/team-presets')&&x.body).length,0);
+ const exact=f.confirm();
+ assert.match(await f.say('yes'),/general yes cannot/);
+ await f.say(exact);
+ const writes=f.requests.filter(x=>x.path.endsWith('/team-presets')&&x.body);
+ assert.equal(writes.length,1);
+ assert.deepEqual(writes[0].body.agentIds,['chief','writer']);
+ assert.equal(writes[0].body.approved,true);
+ assert.equal(writes[0].body.reviewed,true);
+ assert.equal(writes[0].body.expectedRevision,0);
+ assert.equal(f.requests.filter(x=>x.path.includes('/grants')||x.body?.action==='run-draft').length,0);
+});
+test('preferred teams are queried read-only and no templates are falsely claimed active',async()=>{
+ const f=fixture();
+ await select(f);
+ assert.match(await f.say('List preferred project teams'),/Owner-reviewed preferred teams/);
+ assert.equal(f.requests.filter(x=>x.path.endsWith('/team-presets')&&x.body).length,0);
 });

@@ -173,8 +173,10 @@
   const data=await call('team',{data:{question,teamSize,missionId,ownerApproved:true,shareWithCloudflare:true,noPrivateDataConfirmed:true},signal});
   let missionVerified=false;
   try{
-   const history=await call('missions',{signal});
-   missionVerified=Boolean(data.missionPersisted&&(history.missions||[]).some(m=>m.id===missionId&&m.status===data.status&&m.result?.answer===data.answer));
+   const receipt=await call('mission?missionId='+encodeURIComponent(missionId),{signal});
+   missionVerified=Boolean(data.missionPersisted===true&&data.missionReadbackVerified===true&&
+    receipt.missionReadbackVerified===true&&receipt.missionId===missionId&&
+    receipt.status===data.status&&(receipt.answer??null)===(data.answer??null));
   }catch{}
   if(signal?.aborted)return {cancelled:true};
   const answer=safeText(data.answer);
